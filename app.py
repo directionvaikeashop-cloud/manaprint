@@ -116,6 +116,20 @@ def client_intl():
     return jsonify({"ok": True})
 
 
+# ── ACCÈS CLIENT POLYNÉSIEN (sans machine, télécharge ou vient chez 2KEA) ──────
+@app.route("/api/client-polynesien", methods=["POST"])
+def client_poly():
+    data = request.get_json(force=True)
+    nom = data.get("nom", "").strip()
+    email = data.get("email", "").strip()
+    if not nom or "@" not in email:
+        return jsonify({"ok": False, "message": "Nom et email requis"}), 400
+    db.enregistrer_client_intl(nom, email, "Polynésie française")
+    session["acces"] = "polynesien"
+    session["identifiant"] = email
+    return jsonify({"ok": True})
+
+
 # ── GÉNÉRATION — MODE ESSAI (gratuit, 1 feuille, 3 max) ───────────────────────
 @app.route("/api/essai", methods=["POST"])
 def essai():
