@@ -17,6 +17,24 @@ app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-pro
 # Code de gestion — À DÉFINIR via variable d'environnement en production
 CODE_ADMIN = os.environ.get("MANAPRINT_ADMIN_CODE", "2KEA-MOOREA")
 
+# Noms réservés : un client ne peut pas les utiliser dans sa personnalisation
+NOMS_RESERVES = ["tukea", "2kea", "maeva", "2kea&associe", "2kea & associe", "2kea associe"]
+
+
+def contient_nom_reserve(*champs):
+    """Retourne le mot réservé détecté (ou None) dans n'importe quel champ."""
+    for champ in champs:
+        if not champ:
+            continue
+        texte = champ.lower()
+        # enlever espaces/ponctuation pour attraper les variantes (2 kea, tu-kea…)
+        compact = "".join(ch for ch in texte if ch.isalnum())
+        for reserve in NOMS_RESERVES:
+            r_compact = "".join(ch for ch in reserve if ch.isalnum())
+            if reserve in texte or r_compact in compact:
+                return reserve
+    return None
+
 
 @app.before_request
 def _setup():
@@ -78,8 +96,14 @@ def essai():
     nom_evenement = data.get("nom_evenement", "").strip()
     titre_jeu = data.get("titre_jeu", "").strip()
     date_lieu = data.get("date_lieu", "").strip()
-    if not nom_evenement or not titre_jeu or not date_lieu:
-        return jsonify({"ok": False, "message": "Personnalisation obligatoire : renseignez le nom du client/association, le nom du tournoi et la date avant de générer."}), 400
+    telephone = data.get("telephone", "").strip()
+    if not nom_evenement or not titre_jeu or not date_lieu or not telephone:
+        return jsonify({"ok": False, "message": "Personnalisation obligatoire : nom du client/association, nom du tournoi, date et numéro de téléphone du responsable."}), 400
+
+    # Noms réservés interdits dans la personnalisation
+    reserve = contient_nom_reserve(nom_evenement, titre_jeu, date_lieu)
+    if reserve:
+        return jsonify({"ok": False, "message": "Ce nom est réservé et ne peut pas être utilisé dans la personnalisation. Merci d'indiquer le nom de votre propre événement."}), 400
 
     # Décompte l'essai (3 max)
     ok, restants = db.incrementer_essai(identifiant)
@@ -92,6 +116,7 @@ def essai():
             nb_tickets=10, serie_start=1, theme=theme, couleur=couleur,
             nom_evenement=nom_evenement, titre_jeu=titre_jeu,
             couleur_perso=data.get("couleur_perso", ""), date_lieu=date_lieu,
+            telephone=telephone,
         )
     else:
         pdf = bingo.generer_pdf(programme=programme, theme=theme, nb_cartes=1)
@@ -127,8 +152,14 @@ def commander():
     nom_evenement = data.get("nom_evenement", "").strip()
     titre_jeu = data.get("titre_jeu", "").strip()
     date_lieu = data.get("date_lieu", "").strip()
-    if not nom_evenement or not titre_jeu or not date_lieu:
-        return jsonify({"ok": False, "message": "Personnalisation obligatoire : renseignez le nom du client/association, le nom du tournoi et la date avant de commander."}), 400
+    telephone = data.get("telephone", "").strip()
+    if not nom_evenement or not titre_jeu or not date_lieu or not telephone:
+        return jsonify({"ok": False, "message": "Personnalisation obligatoire : nom du client/association, nom du tournoi, date et numéro de téléphone du responsable."}), 400
+
+    # Noms réservés interdits dans la personnalisation
+    reserve = contient_nom_reserve(nom_evenement, titre_jeu, date_lieu)
+    if reserve:
+        return jsonify({"ok": False, "message": "Ce nom est réservé et ne peut pas être utilisé dans la personnalisation. Merci d'indiquer le nom de votre propre événement."}), 400
 
     import json as _json
     params_perso = _json.dumps({
@@ -137,6 +168,7 @@ def commander():
         "titre_jeu": titre_jeu,
         "couleur_perso": data.get("couleur_perso", ""),
         "date_lieu": date_lieu,
+        "telephone": telephone,
     })
 
     commande_id, montant = db.creer_commande(
@@ -191,6 +223,7 @@ def generer_commande(commande_id):
             theme=perso.get("theme", ""), couleur=couleur,
             nom_evenement=perso.get("nom_evenement", ""), titre_jeu=perso.get("titre_jeu", ""),
             couleur_perso=perso.get("couleur_perso", ""), date_lieu=perso.get("date_lieu", ""),
+            telephone=perso.get("telephone", ""),
         )
     else:
         pdf = bingo.generer_pdf(programme=programme, theme=perso.get("theme", ""), nb_cartes=nb_feuilles)
