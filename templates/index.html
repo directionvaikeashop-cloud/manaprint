@@ -111,9 +111,6 @@
       <div>
         <p class="label-mono">Choisir un programme</p>
         <div id="gen-programmes" style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:1.25rem"></div>
-        <p class="label-mono">Thème de la carte</p>
-        <textarea id="gen-theme" rows="2" placeholder="Ex : le festival Heiva de Tahiti"></textarea>
-
         <p class="label-mono" style="color:var(--coral)">Personnalisation obligatoire <span style="color:var(--coral)">*</span></p>
         <p style="font-size:.78rem;color:var(--muted);margin-bottom:.6rem;line-height:1.5">Pour sécuriser vos tickets, chaque carte porte le nom de votre tournoi et la date. Ces 3 champs sont requis.</p>
         <input id="perso-evenement" placeholder="Nom du client / association *">
@@ -197,11 +194,10 @@
 
 <script>
 const PROGRAMMES = [
-  {id:"triple_action",nom:"TRIPLE ACTION 75",couleur:"#E53935",desc:"Ticket vertical arc-en-ciel"},
-  {id:"p6",nom:"Programme P6",couleur:"#2D6E63",desc:"Grille 6×6"},
-  {id:"ohana75",nom:"OHANA 75",couleur:"#D4663D",desc:"Bingo 5×5"},
-  {id:"quines90",nom:"QUINES 90",couleur:"#1A4A42",desc:"Loto 90 cases"},
-  {id:"petits",nom:"Pack Petits Jeux",couleur:"#8B5A2B",desc:"Grille 4×4"},
+  {id:"triple_action",nom:"TRIPLE ACTION 75",couleur:"#E53935",desc:"Ticket 10/feuille"},
+  {id:"aloha75",nom:"ALOHA 75",couleur:"#D4663D",desc:"5 colonnes · 12/feuille"},
+  {id:"p6_marathon",nom:"P6 MARATHON",couleur:"#2D6E63",desc:"Grille 5×5 · 6/feuille"},
+  {id:"bingo_ball",nom:"BINGO BALL",couleur:"#1E88E5",desc:"Croix · 10/feuille"},
 ];
 let progChoisi = "triple_action";
 let origineAcces = "";
@@ -278,7 +274,6 @@ const PRIX_COULEUR = 10, PRIX_NB = 5;
 function getPersoParams(){
   return {
     programme: progChoisi,
-    theme: document.getElementById('gen-theme').value,
     couleur: couleurChoisie,
     nom_evenement: document.getElementById('perso-evenement').value,
     titre_jeu: document.getElementById('perso-titre').value,
