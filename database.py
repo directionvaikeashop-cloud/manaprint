@@ -69,15 +69,42 @@ def init_db():
         c.execute("""
             CREATE TABLE IF NOT EXISTS impressions (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                origine     TEXT NOT NULL,          -- 'pacific_ink' | 'international'
-                identifiant TEXT,                   -- numéro client ou email
+                origine     TEXT NOT NULL,
+                identifiant TEXT,
                 programme   TEXT NOT NULL,
                 theme       TEXT,
-                couleur     INTEGER DEFAULT 1,      -- 1 = couleur, 0 = noir & blanc
+                couleur     INTEGER DEFAULT 1,
                 nb_feuilles INTEGER DEFAULT 1,
-                prix_feuille INTEGER DEFAULT 10,    -- XPF par feuille
-                montant_total INTEGER DEFAULT 0,    -- XPF total de l'impression
+                prix_feuille INTEGER DEFAULT 10,
+                montant_total INTEGER DEFAULT 0,
                 machine_id  TEXT,
+                cree_le     TEXT NOT NULL
+            )
+        """)
+
+        # Suivi des essais gratuits par client (3 essais max, 1 feuille chacun)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS essais (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                identifiant TEXT NOT NULL,
+                nb_essais   INTEGER DEFAULT 0,
+                cree_le     TEXT NOT NULL
+            )
+        """)
+
+        # Commandes payées (en ligne ou validées manuellement)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS commandes (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                identifiant TEXT NOT NULL,
+                origine     TEXT,
+                programme   TEXT,
+                couleur     INTEGER DEFAULT 1,
+                nb_feuilles INTEGER NOT NULL,
+                montant     INTEGER NOT NULL,
+                mode_paiement TEXT,                 -- 'stripe' | 'manuel'
+                statut      TEXT DEFAULT 'en_attente', -- 'en_attente' | 'payee' | 'generee'
+                params_perso TEXT,                  -- personnalisation en JSON
                 cree_le     TEXT NOT NULL
             )
         """)
@@ -192,6 +219,75 @@ def enregistrer_impression(origine, identifiant, programme, theme, nb_feuilles=1
              nb_feuilles, prix_feuille, montant_total, machine_id, datetime.utcnow().isoformat())
         )
         return montant_total
+
+
+# ── ESSAIS GRATUITS (3 max, 1 feuille chacun) ─────────────────────────────────
+NB_ESSAIS_MAX = 3
+
+
+def get_essais(identifiant):
+    """Retourne le nombre d'essais déjà utilisés par ce client."""
+    with get_db() as conn:
+        row = conn.execute("SELECT nb_essais FROM essais WHERE identifiant = ?", (identifiant,)).fetchone()
+        return row["nb_essais"] if row else 0
+
+
+def incrementer_essai(identifiant):
+    """Ajoute un essai. Retourne (ok, essais_restants)."""
+    with get_db() as conn:
+        row = conn.execute("SELECT nb_essais FROM essais WHERE identifiant = ?", (identifiant,)).fetchone()
+        if row is None:
+            conn.execute("INSERT INTO essais (identifiant, nb_essais, cree_le) VALUES (?,1,?)",
+                         (identifiant, datetime.utcnow().isoformat()))
+            return True, NB_ESSAIS_MAX - 1
+        if row["nb_essais"] >= NB_ESSAIS_MAX:
+            return False, 0
+        nouveau = row["nb_essais"] + 1
+        conn.execute("UPDATE essais SET nb_essais = ? WHERE identifiant = ?", (nouveau, identifiant))
+        return True, NB_ESSAIS_MAX - nouveau
+
+
+# ── COMMANDES ─────────────────────────────────────────────────────────────────
+def creer_commande(identifiant, origine, programme, couleur, nb_feuilles, mode_paiement, params_perso=""):
+    prix_feuille = PRIX_COULEUR if couleur else PRIX_NB
+    montant = prix_feuille * nb_feuilles
+    statut = "en_attente"
+    with get_db() as conn:
+        cur = conn.execute(
+            """INSERT INTO commandes
+               (identifiant, origine, programme, couleur, nb_feuilles, montant, mode_paiement, statut, params_perso, cree_le)
+               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (identifiant, origine, programme, 1 if couleur else 0, nb_feuilles, montant,
+             mode_paiement, statut, params_perso, datetime.utcnow().isoformat())
+        )
+        return cur.lastrowid, montant
+
+
+def get_commande(commande_id):
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM commandes WHERE id = ?", (commande_id,)).fetchone()
+        return dict(row) if row else None
+
+
+def marquer_commande_payee(commande_id):
+    with get_db() as conn:
+        conn.execute("UPDATE commandes SET statut = 'payee' WHERE id = ?", (commande_id,))
+        return True
+
+
+def marquer_commande_generee(commande_id):
+    with get_db() as conn:
+        conn.execute("UPDATE commandes SET statut = 'generee' WHERE id = ?", (commande_id,))
+        return True
+
+
+def lister_commandes(statut=None):
+    with get_db() as conn:
+        if statut:
+            rows = conn.execute("SELECT * FROM commandes WHERE statut = ? ORDER BY cree_le DESC", (statut,)).fetchall()
+        else:
+            rows = conn.execute("SELECT * FROM commandes ORDER BY cree_le DESC").fetchall()
+        return [dict(r) for r in rows]
 
 
 if __name__ == "__main__":
