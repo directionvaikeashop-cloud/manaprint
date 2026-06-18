@@ -67,21 +67,31 @@ def essai():
         return jsonify({"ok": False, "message": "Accès non autorisé"}), 403
 
     identifiant = session.get("identifiant", "anon")
-    ok, restants = db.incrementer_essai(identifiant)
-    if not ok:
-        return jsonify({"ok": False, "message": "Vous avez utilisé vos 3 essais gratuits. Passez commande pour générer.", "essais_restants": 0}), 402
 
     data = request.get_json(force=True)
     programme = data.get("programme", "triple_action")
     theme = data.get("theme", "")
     couleur = bool(data.get("couleur", True))
 
+    # Personnalisation OBLIGATOIRE (sécurité : chaque ticket est identifié)
+    # Vérifiée AVANT de décompter l'essai, pour ne pas pénaliser le client.
+    nom_evenement = data.get("nom_evenement", "").strip()
+    titre_jeu = data.get("titre_jeu", "").strip()
+    date_lieu = data.get("date_lieu", "").strip()
+    if not nom_evenement or not titre_jeu or not date_lieu:
+        return jsonify({"ok": False, "message": "Personnalisation obligatoire : renseignez le nom du client/association, le nom du tournoi et la date avant de générer."}), 400
+
+    # Décompte l'essai (3 max)
+    ok, restants = db.incrementer_essai(identifiant)
+    if not ok:
+        return jsonify({"ok": False, "message": "Vous avez utilisé vos 3 essais gratuits. Passez commande pour générer.", "essais_restants": 0}), 402
+
     # Essai = 1 seule feuille (10 tickets)
     if programme == "triple_action":
         pdf = triple_action.generer_pdf(
             nb_tickets=10, serie_start=1, theme=theme, couleur=couleur,
-            nom_evenement=data.get("nom_evenement", ""), titre_jeu=data.get("titre_jeu", ""),
-            couleur_perso=data.get("couleur_perso", ""), date_lieu=data.get("date_lieu", ""),
+            nom_evenement=nom_evenement, titre_jeu=titre_jeu,
+            couleur_perso=data.get("couleur_perso", ""), date_lieu=date_lieu,
         )
     else:
         pdf = bingo.generer_pdf(programme=programme, theme=theme, nb_cartes=1)
@@ -113,13 +123,20 @@ def commander():
     nb_feuilles = max(1, min(int(data.get("nb_feuilles", 500)), 5000))
     mode_paiement = data.get("mode_paiement", "manuel")  # 'stripe' | 'manuel'
 
+    # Personnalisation OBLIGATOIRE (sécurité)
+    nom_evenement = data.get("nom_evenement", "").strip()
+    titre_jeu = data.get("titre_jeu", "").strip()
+    date_lieu = data.get("date_lieu", "").strip()
+    if not nom_evenement or not titre_jeu or not date_lieu:
+        return jsonify({"ok": False, "message": "Personnalisation obligatoire : renseignez le nom du client/association, le nom du tournoi et la date avant de commander."}), 400
+
     import json as _json
     params_perso = _json.dumps({
         "theme": data.get("theme", ""),
-        "nom_evenement": data.get("nom_evenement", ""),
-        "titre_jeu": data.get("titre_jeu", ""),
+        "nom_evenement": nom_evenement,
+        "titre_jeu": titre_jeu,
         "couleur_perso": data.get("couleur_perso", ""),
-        "date_lieu": data.get("date_lieu", ""),
+        "date_lieu": date_lieu,
     })
 
     commande_id, montant = db.creer_commande(
