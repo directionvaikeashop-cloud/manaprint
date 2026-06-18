@@ -232,11 +232,12 @@ def commander():
     )
 
     # Mode manuel : la commande est en attente de validation par 2KEA
+    montant_aff = int(montant) if float(montant).is_integer() else montant
     if mode_paiement == "manuel":
         return jsonify({
-            "ok": True, "commande_id": commande_id, "montant": montant,
+            "ok": True, "commande_id": commande_id, "montant": montant_aff,
             "mode": "manuel",
-            "message": f"Commande enregistrée ({montant} XPF). Elle sera générée après validation du paiement par 2KEA & Associé.",
+            "message": f"Commande enregistrée ({montant_aff} XPF). Elle sera générée après validation du paiement par 2KEA & Associé.",
         })
 
     # Mode stripe : à brancher (emplacement prêt)
