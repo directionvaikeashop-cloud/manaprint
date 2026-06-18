@@ -131,8 +131,32 @@
           <button id="btn-couleur" onclick="setCouleur(true)" style="flex:1;padding:.6rem;border:1px solid var(--teal);border-radius:4px;background:var(--teal);color:#fff;font-weight:600;font-size:.82rem">Couleur — 10 F/feuille</button>
           <button id="btn-nb" onclick="setCouleur(false)" style="flex:1;padding:.6rem;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink);font-weight:600;font-size:.82rem">Noir & blanc — 5 F/feuille</button>
         </div>
-        <button class="btn" id="gen-btn" onclick="genererPDF()">Générer</button>
-        <p id="gen-msg" style="margin-top:1rem;font-size:.85rem;color:var(--muted)"></p>
+
+        <!-- BLOC ESSAI -->
+        <div style="background:var(--sand);border-radius:6px;padding:1rem;margin-bottom:1rem">
+          <p style="font-weight:600;font-size:.9rem;margin-bottom:.3rem">Essai gratuit</p>
+          <p style="font-size:.8rem;color:var(--muted);line-height:1.5;margin-bottom:.7rem">Générez 1 feuille d'aperçu pour valider votre personnalisation. <span id="essai-compteur" style="font-weight:600;color:var(--teal)">3 essais restants</span>.</p>
+          <button class="btn" id="essai-btn" onclick="faireEssai()" style="background:var(--coral)">Générer un essai (1 feuille)</button>
+          <p id="essai-msg" style="margin-top:.6rem;font-size:.82rem;color:var(--muted)"></p>
+        </div>
+
+        <!-- BLOC COMMANDE -->
+        <div style="border:1px solid var(--line);border-radius:6px;padding:1rem">
+          <p style="font-weight:600;font-size:.9rem;margin-bottom:.7rem">Commander la production complète</p>
+          <label style="display:block;font-size:.8rem;color:var(--muted);margin-bottom:.3rem">Nombre de feuilles A4 (10 tickets par feuille)</label>
+          <input id="cmd-feuilles" type="number" min="1" max="5000" value="500" oninput="majPrix()" style="margin-bottom:.6rem">
+          <div style="background:var(--paper);border-radius:4px;padding:.7rem .9rem;margin-bottom:.8rem;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:.85rem;color:var(--muted)">Total à payer</span>
+            <span id="cmd-total" class="mono" style="font-weight:700;font-size:1.1rem;color:var(--teal)">5 000 XPF</span>
+          </div>
+          <label style="display:block;font-size:.8rem;color:var(--muted);margin-bottom:.4rem">Mode de paiement</label>
+          <div style="display:flex;gap:.5rem;margin-bottom:.9rem">
+            <button id="pay-stripe" onclick="setPaiement('stripe')" style="flex:1;padding:.55rem;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink);font-size:.8rem;font-weight:600">Carte bancaire</button>
+            <button id="pay-manuel" onclick="setPaiement('manuel')" style="flex:1;padding:.55rem;border:1px solid var(--teal);border-radius:4px;background:var(--teal);color:#fff;font-size:.8rem;font-weight:600">Sur place / virement</button>
+          </div>
+          <button class="btn" id="cmd-btn" onclick="passerCommande()">Passer la commande</button>
+          <p id="cmd-msg" style="margin-top:.7rem;font-size:.82rem;color:var(--muted);line-height:1.5"></p>
+        </div>
       </div>
       <div id="gen-apercu" style="height:420px;border:1px dashed var(--line);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.9rem">
         Votre PDF sera généré et téléchargé automatiquement
@@ -160,6 +184,10 @@
       </div>
       <p id="admin-msg" style="font-size:.82rem;color:var(--teal);margin-bottom:1rem"></p>
       <div id="admin-liste" style="display:flex;flex-direction:column;gap:.4rem"></div>
+
+      <h2 class="display" style="font-size:1.3rem;margin:2rem 0 .4rem">Commandes à valider</h2>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem;line-height:1.6">Validez une commande une fois le paiement reçu. Le client pourra alors générer sa production.</p>
+      <div id="admin-commandes" style="display:flex;flex-direction:column;gap:.4rem"></div>
     </div>
   </div>
 
@@ -187,6 +215,7 @@ function setCouleur(val){
     bnb.style.background="var(--ink)"; bnb.style.color="#fff"; bnb.style.borderColor="var(--ink)";
     bc.style.background="#fff"; bc.style.color="var(--ink)"; bc.style.borderColor="var(--line)";
   }
+  if(document.getElementById('cmd-total')) majPrix();
 }
 
 function majApercuCouleur(){
@@ -237,46 +266,103 @@ function ouvrirGenerateur(){
     b.onclick=()=>{ progChoisi=p.id; ouvrirGenerateur(); };
     cont.appendChild(b);
   });
+  chargerEssaisRestants();
+  majPrix();
 }
 
-async function genererPDF(){
-  const theme=document.getElementById('gen-theme').value;
-  const nb=document.getElementById('gen-nb').value;
-  const nom_evenement=document.getElementById('perso-evenement').value;
-  const titre_jeu=document.getElementById('perso-titre').value;
-  const date_lieu=document.getElementById('perso-datelieu').value;
-  const couleur_perso=document.getElementById('perso-couleur').value;
-  const btn=document.getElementById('gen-btn'), msg=document.getElementById('gen-msg');
+let modePaiement = "manuel";
+const PRIX_COULEUR = 10, PRIX_NB = 5;
+
+function getPersoParams(){
+  return {
+    programme: progChoisi,
+    theme: document.getElementById('gen-theme').value,
+    couleur: couleurChoisie,
+    nom_evenement: document.getElementById('perso-evenement').value,
+    titre_jeu: document.getElementById('perso-titre').value,
+    date_lieu: document.getElementById('perso-datelieu').value,
+    couleur_perso: document.getElementById('perso-couleur').value,
+  };
+}
+
+function majPrix(){
+  const f = Math.max(1, parseInt(document.getElementById('cmd-feuilles').value)||1);
+  const prix = couleurChoisie ? PRIX_COULEUR : PRIX_NB;
+  document.getElementById('cmd-total').textContent = (f*prix).toLocaleString('fr-FR') + " XPF";
+}
+
+function setPaiement(mode){
+  modePaiement = mode;
+  const s=document.getElementById('pay-stripe'), m=document.getElementById('pay-manuel');
+  if(mode==='stripe'){
+    s.style.background="var(--teal)"; s.style.color="#fff"; s.style.borderColor="var(--teal)";
+    m.style.background="#fff"; m.style.color="var(--ink)"; m.style.borderColor="var(--line)";
+  } else {
+    m.style.background="var(--teal)"; m.style.color="#fff"; m.style.borderColor="var(--teal)";
+    s.style.background="#fff"; s.style.color="var(--ink)"; s.style.borderColor="var(--line)";
+  }
+}
+
+async function chargerEssaisRestants(){
+  try{
+    const r=await fetch('/api/essais-restants');
+    const d=await r.json();
+    if(d.ok){
+      const c=document.getElementById('essai-compteur');
+      c.textContent = d.restants + " essai" + (d.restants>1?"s":"") + " restant" + (d.restants>1?"s":"");
+      if(d.restants<=0){
+        c.textContent="Essais épuisés";
+        document.getElementById('essai-btn').disabled=true;
+      }
+    }
+  }catch(e){}
+}
+
+async function faireEssai(){
+  const btn=document.getElementById('essai-btn'), msg=document.getElementById('essai-msg');
   btn.disabled=true; btn.innerHTML='<span class="spin"></span> Génération…';
   try{
-    const r=await fetch('/api/generer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-      programme:progChoisi, theme, nb_cartes:nb, couleur:couleurChoisie,
-      nom_evenement, titre_jeu, date_lieu, couleur_perso
-    })});
+    const r=await fetch('/api/essai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(getPersoParams())});
     if(r.ok){
-      if(origineAcces==="pacific_ink"){
-        // Impression directe sur machine — PAS de téléchargement, le client ne reçoit pas le fichier
-        msg.style.color="var(--teal)";
-        msg.textContent="Envoyé à votre machine Pacific Ink pour impression. Le fichier n'est pas téléchargeable.";
-      } else {
-        // Client international — téléchargement autorisé
-        const blob=await r.blob();
-        const url=URL.createObjectURL(blob);
-        const a=document.createElement('a'); a.href=url; a.download=`manaprint_${progChoisi}.pdf`; a.click();
-        URL.revokeObjectURL(url);
-        msg.style.color="var(--teal)";
-        msg.textContent="PDF téléchargé. Imprimez-le où vous voulez.";
-      }
-    } else { const d=await r.json(); msg.textContent=d.message||"Erreur"; }
+      const blob=await r.blob();
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download='ESSAI_manaprint.pdf'; a.click();
+      URL.revokeObjectURL(url);
+      const restants=r.headers.get('X-Essais-Restants');
+      msg.style.color="var(--teal)";
+      msg.textContent="Essai téléchargé. "+(restants!==null?restants+" essai(s) restant(s).":"");
+      chargerEssaisRestants();
+    } else {
+      const d=await r.json();
+      msg.style.color="var(--coral)"; msg.textContent=d.message;
+      chargerEssaisRestants();
+    }
   }catch(e){ msg.textContent="Erreur réseau"; }
-  btn.disabled=false; btn.textContent="Générer";
+  btn.disabled=false; btn.textContent="Générer un essai (1 feuille)";
+}
+
+async function passerCommande(){
+  const btn=document.getElementById('cmd-btn'), msg=document.getElementById('cmd-msg');
+  const nb_feuilles=Math.max(1, parseInt(document.getElementById('cmd-feuilles').value)||1);
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> Envoi…';
+  try{
+    const params={...getPersoParams(), nb_feuilles, mode_paiement:modePaiement};
+    const r=await fetch('/api/commander',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(params)});
+    const d=await r.json();
+    if(d.ok){
+      msg.style.color="var(--teal)"; msg.textContent=d.message;
+    } else {
+      msg.style.color="var(--coral)"; msg.textContent=d.message;
+    }
+  }catch(e){ msg.textContent="Erreur réseau"; }
+  btn.disabled=false; btn.textContent="Passer la commande";
 }
 
 async function adminLogin(){
   const code=document.getElementById('admin-code').value;
   const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
   const d=await r.json();
-  if(d.ok){ document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-panel').classList.remove('hidden'); chargerClients(); }
+  if(d.ok){ document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-panel').classList.remove('hidden'); chargerClients(); chargerCommandes(); }
   else document.getElementById('admin-login-msg').textContent="Code incorrect.";
 }
 
@@ -306,6 +392,38 @@ async function adminAjouter(){
 async function adminRetirer(num){
   await fetch('/api/admin/clients-pi/'+encodeURIComponent(num),{method:'DELETE'});
   chargerClients();
+}
+
+async function chargerCommandes(){
+  const r=await fetch('/api/admin/commandes');
+  const d=await r.json();
+  const liste=document.getElementById('admin-commandes');
+  liste.innerHTML="";
+  if(!d.commandes || d.commandes.length===0){ liste.innerHTML='<p style="color:var(--muted);font-style:italic;font-size:.88rem">Aucune commande.</p>'; return; }
+  d.commandes.forEach(c=>{
+    const coul = c.couleur ? "Couleur" : "N&B";
+    const div=document.createElement('div');
+    div.style.cssText="display:flex;justify-content:space-between;align-items:center;padding:.7rem 1rem;border:1px solid var(--line);border-radius:4px;background:#fff";
+    let badge, action;
+    if(c.statut==="en_attente"){
+      badge='<span style="font-size:.72rem;color:var(--coral);font-weight:600">EN ATTENTE</span>';
+      action=`<button onclick="validerCommande(${c.id})" style="background:var(--teal);border:none;color:#fff;font-size:.78rem;font-weight:600;padding:.4rem .8rem;border-radius:4px">Valider le paiement</button>`;
+    } else if(c.statut==="payee"){
+      badge='<span style="font-size:.72rem;color:var(--teal);font-weight:600">PAYÉE ✓</span>';
+      action='<span style="font-size:.75rem;color:var(--muted)">En attente de génération</span>';
+    } else {
+      badge='<span style="font-size:.72rem;color:var(--muted);font-weight:600">GÉNÉRÉE</span>';
+      action='';
+    }
+    div.innerHTML=`<div><div style="font-size:.85rem;font-weight:600">#${c.id} — ${c.nb_feuilles} feuilles ${coul}</div><div style="font-size:.78rem;color:var(--muted)"><span class="mono">${c.montant.toLocaleString('fr-FR')} XPF</span> · ${c.mode_paiement} · ${c.identifiant} · ${badge}</div></div><div>${action}</div>`;
+    liste.appendChild(div);
+  });
+}
+
+async function validerCommande(id){
+  const r=await fetch('/api/admin/commandes/'+id+'/valider',{method:'POST'});
+  const d=await r.json();
+  if(d.ok) chargerCommandes();
 }
 </script>
 </body>
