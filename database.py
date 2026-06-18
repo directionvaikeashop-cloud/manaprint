@@ -65,7 +65,7 @@ def init_db():
             )
         """)
 
-        # Historique des générations (pour la facturation 1,5% à la feuille)
+        # Historique des générations (facturation par feuille : 10 XPF couleur / 5 XPF N&B)
         c.execute("""
             CREATE TABLE IF NOT EXISTS impressions (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,7 +73,10 @@ def init_db():
                 identifiant TEXT,                   -- numéro client ou email
                 programme   TEXT NOT NULL,
                 theme       TEXT,
+                couleur     INTEGER DEFAULT 1,      -- 1 = couleur, 0 = noir & blanc
                 nb_feuilles INTEGER DEFAULT 1,
+                prix_feuille INTEGER DEFAULT 10,    -- XPF par feuille
+                montant_total INTEGER DEFAULT 0,    -- XPF total de l'impression
                 machine_id  TEXT,
                 cree_le     TEXT NOT NULL
             )
@@ -173,14 +176,22 @@ def installer_machine(machine_id, client_nom, client_num, ile):
 
 
 # ── IMPRESSIONS / FACTURATION ─────────────────────────────────────────────────
-def enregistrer_impression(origine, identifiant, programme, theme, nb_feuilles=1, machine_id=None):
+PRIX_COULEUR = 10  # XPF par feuille couleur
+PRIX_NB = 5        # XPF par feuille noir & blanc
+
+
+def enregistrer_impression(origine, identifiant, programme, theme, nb_feuilles=1, couleur=True, machine_id=None):
+    prix_feuille = PRIX_COULEUR if couleur else PRIX_NB
+    montant_total = prix_feuille * nb_feuilles
     with get_db() as conn:
         conn.execute(
-            """INSERT INTO impressions (origine, identifiant, programme, theme, nb_feuilles, machine_id, cree_le)
-               VALUES (?,?,?,?,?,?,?)""",
-            (origine, identifiant, programme, theme, nb_feuilles, machine_id, datetime.utcnow().isoformat())
+            """INSERT INTO impressions
+               (origine, identifiant, programme, theme, couleur, nb_feuilles, prix_feuille, montant_total, machine_id, cree_le)
+               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (origine, identifiant, programme, theme, 1 if couleur else 0,
+             nb_feuilles, prix_feuille, montant_total, machine_id, datetime.utcnow().isoformat())
         )
-        return True
+        return montant_total
 
 
 if __name__ == "__main__":
