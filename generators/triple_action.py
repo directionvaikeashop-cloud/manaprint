@@ -43,7 +43,7 @@ def _gen_grille():
     return [sorted(random.sample(range(lo, hi + 1), 3)) for (lo, hi) in RANGES]
 
 
-def _dessiner_ticket(c, x0, y0, grille, couleur_hex, serie, couleur=True, titre_jeu=""):
+def _dessiner_ticket(c, x0, y0, grille, couleur_hex, serie, couleur=True, titre_jeu="", telephone=""):
     col = colors.HexColor(couleur_hex)
     encre = NOIR if couleur else GRIS40  # chiffres noirs en couleur, gris 40% en N&B
 
@@ -64,11 +64,14 @@ def _dessiner_ticket(c, x0, y0, grille, couleur_hex, serie, couleur=True, titre_
 
     c.setFillColor(GREY)
     c.setFont("Helvetica", 5)
-    c.drawCentredString(x0 + CARD_W / 2, hdr_y + 0.5 * mm, f"N° {serie:06d}")
+    c.drawCentredString(x0 + CARD_W / 2, hdr_y + 2.4 * mm, f"N° {serie:06d}")
+    if telephone:
+        c.setFont("Helvetica", 4.5)
+        c.drawCentredString(x0 + CARD_W / 2, hdr_y + 0.7 * mm, f"Resp. {telephone}")
 
     c.setStrokeColor(col)
     c.setLineWidth(0.5)
-    c.line(x0 + 2 * mm, hdr_y, x0 + CARD_W - 2 * mm, hdr_y)
+    c.line(x0 + 2 * mm, hdr_y - 0.6 * mm, x0 + CARD_W - 2 * mm, hdr_y - 0.6 * mm)
 
     body_h = CARD_H - HDR_H
     group_h = body_h / 5
@@ -103,7 +106,7 @@ def _dessiner_ticket(c, x0, y0, grille, couleur_hex, serie, couleur=True, titre_
 
 
 def generer_pdf(nb_tickets=10, serie_start=1, theme="", couleur=True,
-                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu=""):
+                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone=""):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4)
 
@@ -143,7 +146,7 @@ def generer_pdf(nb_tickets=10, serie_start=1, theme="", couleur=True,
                     coul = couleur_perso
                 else:
                     coul = RAINBOW[(serie - 1) % len(RAINBOW)]
-                _dessiner_ticket(c, x0, y0, grille, coul, serie, couleur, titre_jeu)
+                _dessiner_ticket(c, x0, y0, grille, coul, serie, couleur, titre_jeu, telephone)
                 serie += 1
 
         cut_y = MARGIN_BOT + CARD_H + CUT_GAP / 2
