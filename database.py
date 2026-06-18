@@ -82,12 +82,12 @@ def init_db():
             )
         """)
 
-        # Suivi des essais gratuits par client (3 essais max, 1 feuille chacun)
+        # Suivi des essais gratuits : un enregistrement par essai, avec horodatage
+        # (3 essais autorisés par fenêtre de 5 minutes, puis renouvellement auto)
         c.execute("""
             CREATE TABLE IF NOT EXISTS essais (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 identifiant TEXT NOT NULL,
-                nb_essais   INTEGER DEFAULT 0,
                 cree_le     TEXT NOT NULL
             )
         """)
@@ -233,30 +233,40 @@ def enregistrer_impression(origine, identifiant, programme, theme, nb_feuilles=1
         return montant_total
 
 
-# ── ESSAIS GRATUITS (3 max, 1 feuille chacun) ─────────────────────────────────
+# ── ESSAIS GRATUITS (3 par fenêtre de 5 minutes, renouvellement auto) ─────────
 NB_ESSAIS_MAX = 3
+FENETRE_ESSAIS_MINUTES = 5
+
+
+def _essais_recents(conn, identifiant):
+    """Nombre d'essais utilisés dans les 5 dernières minutes."""
+    from datetime import timedelta
+    limite = (datetime.utcnow() - timedelta(minutes=FENETRE_ESSAIS_MINUTES)).isoformat()
+    row = conn.execute(
+        "SELECT COUNT(*) AS n FROM essais WHERE identifiant = ? AND cree_le >= ?",
+        (identifiant, limite)
+    ).fetchone()
+    return row["n"] if row else 0
 
 
 def get_essais(identifiant):
-    """Retourne le nombre d'essais déjà utilisés par ce client."""
+    """Retourne le nombre d'essais utilisés dans la fenêtre de 5 minutes."""
     with get_db() as conn:
-        row = conn.execute("SELECT nb_essais FROM essais WHERE identifiant = ?", (identifiant,)).fetchone()
-        return row["nb_essais"] if row else 0
+        return _essais_recents(conn, identifiant)
 
 
 def incrementer_essai(identifiant):
-    """Ajoute un essai. Retourne (ok, essais_restants)."""
+    """Ajoute un essai si moins de 3 dans les 5 dernières minutes.
+    Retourne (ok, essais_restants)."""
     with get_db() as conn:
-        row = conn.execute("SELECT nb_essais FROM essais WHERE identifiant = ?", (identifiant,)).fetchone()
-        if row is None:
-            conn.execute("INSERT INTO essais (identifiant, nb_essais, cree_le) VALUES (?,1,?)",
-                         (identifiant, datetime.utcnow().isoformat()))
-            return True, NB_ESSAIS_MAX - 1
-        if row["nb_essais"] >= NB_ESSAIS_MAX:
+        utilises = _essais_recents(conn, identifiant)
+        if utilises >= NB_ESSAIS_MAX:
             return False, 0
-        nouveau = row["nb_essais"] + 1
-        conn.execute("UPDATE essais SET nb_essais = ? WHERE identifiant = ?", (nouveau, identifiant))
-        return True, NB_ESSAIS_MAX - nouveau
+        conn.execute(
+            "INSERT INTO essais (identifiant, cree_le) VALUES (?,?)",
+            (identifiant, datetime.utcnow().isoformat())
+        )
+        return True, NB_ESSAIS_MAX - (utilises + 1)
 
 
 # ── COMMANDES ─────────────────────────────────────────────────────────────────
