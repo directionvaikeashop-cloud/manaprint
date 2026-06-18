@@ -64,7 +64,10 @@ def _dessiner_ticket(c, x0, y0, grille, couleur_hex, serie, couleur=True, titre_
 
     c.setFillColor(GREY)
     c.setFont("Helvetica", 5)
-    c.drawCentredString(x0 + CARD_W / 2, hdr_y + 2.4 * mm, f"N° {serie:06d}")
+    serie_txt = f"N° {serie:06d}"
+    if titre_jeu:
+        serie_txt += "  ·  " + titre_jeu[:22]
+    c.drawCentredString(x0 + CARD_W / 2, hdr_y + 2.4 * mm, serie_txt)
     if telephone:
         c.setFont("Helvetica", 4.5)
         c.drawCentredString(x0 + CARD_W / 2, hdr_y + 0.7 * mm, f"Resp. {telephone}")
