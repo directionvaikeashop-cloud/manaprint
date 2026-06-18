@@ -74,6 +74,20 @@ def contient_nom_reserve(*champs):
     return None
 
 
+def est_numero_polynesien(tel):
+    """Vrai si le numéro est polynésien : 8 chiffres commençant par 87, 88, 89 (mobiles) ou 40 (fixe).
+    Tolère +689, espaces, points, tirets."""
+    if not tel:
+        return False
+    chiffres = "".join(ch for ch in tel if ch.isdigit())
+    if chiffres.startswith("689"):
+        chiffres = chiffres[3:]
+    # un numéro polynésien a 8 chiffres et commence par 87, 88, 89 ou 40
+    if len(chiffres) == 8 and chiffres[:2] in ("87", "88", "89", "40"):
+        return True
+    return False
+
+
 @app.before_request
 def _setup():
     # Initialise la base au premier appel
@@ -152,12 +166,15 @@ def essai():
     if not nom_evenement or not titre_jeu or not date_lieu or not telephone:
         return jsonify({"ok": False, "message": "Personnalisation obligatoire : nom du client/association, nom du tournoi, date et numéro de téléphone du responsable."}), 400
 
+    # Profil polynésien : le téléphone doit être un numéro polynésien (87/88/89/40)
+    if session.get("acces") == "polynesien" and not est_numero_polynesien(telephone):
+        return jsonify({"ok": False, "message": "Pour le tarif Polynésien, le téléphone du responsable doit être un numéro polynésien (87, 88, 89 ou 40). Si vous êtes hors Polynésie, utilisez l'accès Client International."}), 400
+
     # Noms réservés interdits dans la personnalisation
     reserve = contient_nom_reserve(nom_evenement, titre_jeu, date_lieu)
     if reserve:
         return jsonify({"ok": False, "message": "Ce nom est réservé et ne peut pas être utilisé dans la personnalisation. Merci d'indiquer le nom de votre propre événement."}), 400
 
-    # Décompte l'essai (3 max)
     ok, restants = db.incrementer_essai(identifiant)
     if not ok:
         return jsonify({"ok": False, "message": "Vous avez utilisé vos 3 essais gratuits. Passez commande pour générer.", "essais_restants": 0}), 402
@@ -205,6 +222,10 @@ def commander():
     telephone = data.get("telephone", "").strip()
     if not nom_evenement or not titre_jeu or not date_lieu or not telephone:
         return jsonify({"ok": False, "message": "Personnalisation obligatoire : nom du client/association, nom du tournoi, date et numéro de téléphone du responsable."}), 400
+
+    # Profil polynésien : le téléphone doit être un numéro polynésien (87/88/89/40)
+    if session.get("acces") == "polynesien" and not est_numero_polynesien(telephone):
+        return jsonify({"ok": False, "message": "Pour le tarif Polynésien, le téléphone du responsable doit être un numéro polynésien (87, 88, 89 ou 40). Si vous êtes hors Polynésie, utilisez l'accès Client International."}), 400
 
     # Noms réservés interdits dans la personnalisation
     reserve = contient_nom_reserve(nom_evenement, titre_jeu, date_lieu)
