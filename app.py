@@ -177,7 +177,7 @@ def essai():
 
     ok, restants = db.incrementer_essai(identifiant)
     if not ok:
-        return jsonify({"ok": False, "message": "Vous avez utilisé vos 3 essais gratuits. Passez commande pour générer.", "essais_restants": 0}), 402
+        return jsonify({"ok": False, "message": "Vous avez utilisé vos 3 essais. De nouveaux essais seront disponibles dans 5 minutes. Vous pouvez aussi passer commande dès maintenant.", "essais_restants": 0}), 402
 
     # Essai = 1 seule feuille (selon le jeu)
     perso = {
