@@ -10,6 +10,9 @@ from functools import wraps
 import database as db
 from generators import bingo
 from generators import triple_action
+from generators import aloha75
+from generators import p6_marathon
+from generators import bingo_ball
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
@@ -19,6 +22,41 @@ CODE_ADMIN = os.environ.get("MANAPRINT_ADMIN_CODE", "2KEA-MOOREA")
 
 # Noms réservés : un client ne peut pas les utiliser dans sa personnalisation
 NOMS_RESERVES = ["tukea", "2kea", "maeva", "2kea&associe", "2kea & associe", "2kea associe"]
+
+# Jeux disponibles au lancement (générateurs validés)
+GENERATEURS = {
+    "triple_action": triple_action.generer_pdf,
+    "aloha75": aloha75.generer_pdf,
+    "p6_marathon": p6_marathon.generer_pdf,
+    "bingo_ball": bingo_ball.generer_pdf,
+}
+
+# Nombre de cartes/tickets par feuille A4 selon le jeu
+CARTES_PAR_FEUILLE = {
+    "triple_action": 10,
+    "aloha75": 12,
+    "p6_marathon": 6,
+    "bingo_ball": 10,
+}
+
+
+def generer_jeu(programme, nb_cartes, couleur, perso):
+    """Appelle le bon générateur selon le jeu. perso = dict des champs de personnalisation."""
+    fn = GENERATEURS.get(programme, triple_action.generer_pdf)
+    if programme == "triple_action":
+        return fn(
+            nb_tickets=nb_cartes, serie_start=1, theme="", couleur=couleur,
+            nom_evenement=perso.get("nom_evenement", ""), titre_jeu=perso.get("titre_jeu", ""),
+            couleur_perso=perso.get("couleur_perso", ""), date_lieu=perso.get("date_lieu", ""),
+            telephone=perso.get("telephone", ""),
+        )
+    # aloha75, p6_marathon, bingo_ball utilisent nb_cartes
+    return fn(
+        nb_cartes=nb_cartes, serie_start=1, theme="", couleur=couleur,
+        nom_evenement=perso.get("nom_evenement", ""), titre_jeu=perso.get("titre_jeu", ""),
+        couleur_perso=perso.get("couleur_perso", ""), date_lieu=perso.get("date_lieu", ""),
+        telephone=perso.get("telephone", ""),
+    )
 
 
 def contient_nom_reserve(*champs):
@@ -110,16 +148,14 @@ def essai():
     if not ok:
         return jsonify({"ok": False, "message": "Vous avez utilisé vos 3 essais gratuits. Passez commande pour générer.", "essais_restants": 0}), 402
 
-    # Essai = 1 seule feuille (10 tickets)
-    if programme == "triple_action":
-        pdf = triple_action.generer_pdf(
-            nb_tickets=10, serie_start=1, theme=theme, couleur=couleur,
-            nom_evenement=nom_evenement, titre_jeu=titre_jeu,
-            couleur_perso=data.get("couleur_perso", ""), date_lieu=date_lieu,
-            telephone=telephone,
-        )
-    else:
-        pdf = bingo.generer_pdf(programme=programme, theme=theme, nb_cartes=1)
+    # Essai = 1 seule feuille (selon le jeu)
+    perso = {
+        "nom_evenement": nom_evenement, "titre_jeu": titre_jeu,
+        "couleur_perso": data.get("couleur_perso", ""), "date_lieu": date_lieu,
+        "telephone": telephone,
+    }
+    nb_essai = CARTES_PAR_FEUILLE.get(programme, 10)  # 1 feuille
+    pdf = generer_jeu(programme, nb_essai, couleur, perso)
 
     resp = send_file(pdf, mimetype="application/pdf", as_attachment=True,
                      download_name=f"ESSAI_manaprint_{programme}.pdf")
@@ -217,16 +253,9 @@ def generer_commande(commande_id):
     nb_feuilles = cmd["nb_feuilles"]
     programme = cmd["programme"]
 
-    if programme == "triple_action":
-        pdf = triple_action.generer_pdf(
-            nb_tickets=nb_feuilles * 10, serie_start=1,
-            theme=perso.get("theme", ""), couleur=couleur,
-            nom_evenement=perso.get("nom_evenement", ""), titre_jeu=perso.get("titre_jeu", ""),
-            couleur_perso=perso.get("couleur_perso", ""), date_lieu=perso.get("date_lieu", ""),
-            telephone=perso.get("telephone", ""),
-        )
-    else:
-        pdf = bingo.generer_pdf(programme=programme, theme=perso.get("theme", ""), nb_cartes=nb_feuilles)
+    cartes_par_feuille = CARTES_PAR_FEUILLE.get(programme, 10)
+    nb_cartes = nb_feuilles * cartes_par_feuille
+    pdf = generer_jeu(programme, nb_cartes, couleur, perso)
 
     db.enregistrer_impression(
         origine=cmd["origine"], identifiant=cmd["identifiant"],
