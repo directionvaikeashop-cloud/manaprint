@@ -119,6 +119,7 @@
         <input id="perso-evenement" placeholder="Nom du client / association *">
         <input id="perso-titre" placeholder="Nom du tournoi *">
         <input id="perso-datelieu" placeholder="Date du tournoi *">
+        <input id="perso-telephone" placeholder="Téléphone du responsable *">
         <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.9rem">
           <label style="font-size:.82rem;color:var(--muted)">Couleur principale :</label>
           <input id="perso-couleur" type="color" value="#2D6E63" style="width:44px;height:32px;padding:2px;margin-bottom:0;cursor:pointer">
@@ -282,6 +283,7 @@ function getPersoParams(){
     nom_evenement: document.getElementById('perso-evenement').value,
     titre_jeu: document.getElementById('perso-titre').value,
     date_lieu: document.getElementById('perso-datelieu').value,
+    telephone: document.getElementById('perso-telephone').value,
     couleur_perso: document.getElementById('perso-couleur').value,
   };
 }
@@ -290,7 +292,8 @@ function persoManquante(){
   const ev=document.getElementById('perso-evenement').value.trim();
   const ti=document.getElementById('perso-titre').value.trim();
   const da=document.getElementById('perso-datelieu').value.trim();
-  return (!ev || !ti || !da);
+  const te=document.getElementById('perso-telephone').value.trim();
+  return (!ev || !ti || !da || !te);
 }
 
 function majPrix(){
@@ -330,7 +333,7 @@ async function faireEssai(){
   const btn=document.getElementById('essai-btn'), msg=document.getElementById('essai-msg');
   if(persoManquante()){
     msg.style.color="var(--coral)";
-    msg.textContent="Remplissez d'abord le nom du client, le nom du tournoi et la date (champs obligatoires).";
+    msg.textContent="Remplissez d'abord le nom du client, le nom du tournoi, la date et le téléphone du responsable (champs obligatoires).";
     return;
   }
   btn.disabled=true; btn.innerHTML='<span class="spin"></span> Génération…';
@@ -358,7 +361,7 @@ async function passerCommande(){
   const btn=document.getElementById('cmd-btn'), msg=document.getElementById('cmd-msg');
   if(persoManquante()){
     msg.style.color="var(--coral)";
-    msg.textContent="Remplissez d'abord le nom du client, le nom du tournoi et la date (champs obligatoires).";
+    msg.textContent="Remplissez d'abord le nom du client, le nom du tournoi, la date et le téléphone du responsable (champs obligatoires).";
     return;
   }
   const nb_feuilles=Math.max(1, parseInt(document.getElementById('cmd-feuilles').value)||1);
