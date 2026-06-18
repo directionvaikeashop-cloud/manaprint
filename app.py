@@ -9,6 +9,7 @@ from functools import wraps
 
 import database as db
 from generators import bingo
+from generators import triple_action
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
@@ -68,18 +69,33 @@ def generer():
     data = request.get_json(force=True)
     programme = data.get("programme", "ohana75")
     theme = data.get("theme", "")
-    nb_cartes = max(1, min(int(data.get("nb_cartes", 1)), 50))
+    nb_cartes = max(1, min(int(data.get("nb_cartes", 1)), 1000))
+    couleur = bool(data.get("couleur", True))
+    nom_evenement = data.get("nom_evenement", "")
+    titre_jeu = data.get("titre_jeu", "")
+    date_lieu = data.get("date_lieu", "")
+    couleur_perso = data.get("couleur_perso", "")
 
-    # Génère le PDF
-    pdf = bingo.generer_pdf(programme=programme, theme=theme, nb_cartes=nb_cartes)
+    # Génère le PDF — TRIPLE ACTION 75 a son propre moteur (A4, 10 tickets/feuille)
+    if programme == "triple_action":
+        pdf = triple_action.generer_pdf(
+            nb_tickets=nb_cartes, serie_start=1, theme=theme, couleur=couleur,
+            nom_evenement=nom_evenement, titre_jeu=titre_jeu,
+            couleur_perso=couleur_perso, date_lieu=date_lieu,
+        )
+        nb_feuilles = (nb_cartes + 9) // 10
+    else:
+        pdf = bingo.generer_pdf(programme=programme, theme=theme, nb_cartes=nb_cartes)
+        nb_feuilles = nb_cartes
 
-    # Enregistre l'impression (facturation 1,5% à la feuille)
-    db.enregistrer_impression(
+    # Enregistre l'impression (10 XPF/feuille couleur, 5 XPF/feuille N&B)
+    montant = db.enregistrer_impression(
         origine=session["acces"],
         identifiant=session.get("identifiant"),
         programme=programme,
         theme=theme,
-        nb_feuilles=nb_cartes,
+        nb_feuilles=nb_feuilles,
+        couleur=couleur,
     )
 
     return send_file(
