@@ -1,297 +1,282 @@
 """
-MANAPRINT — Couche base de données
-SQLite par défaut (développement). Pour la production sur Railway,
-remplacer DATABASE_URL par une base PostgreSQL : le schéma reste identique.
+MANAPRINT — Application Flask
+Relie : contrôle d'accès (Pacific Ink / international), génération PDF, espace gestion.
+Déployable sur Railway (même stack que Ticket Bingo).
 """
-import sqlite3
 import os
-import json
-from datetime import datetime
-from contextlib import contextmanager
+from flask import Flask, request, jsonify, send_file, render_template, session
+from functools import wraps
 
-DB_PATH = os.environ.get("MANAPRINT_DB", os.path.join(os.path.dirname(__file__), "manaprint.db"))
+import database as db
+from generators import bingo
+from generators import triple_action
 
+app = Flask(__name__)
+app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
 
-@contextmanager
-def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    try:
-        yield conn
-        conn.commit()
-    finally:
-        conn.close()
+# Code de gestion — À DÉFINIR via variable d'environnement en production
+CODE_ADMIN = os.environ.get("MANAPRINT_ADMIN_CODE", "2KEA-MOOREA")
 
 
-def init_db():
-    """Crée les tables si elles n'existent pas."""
-    with get_db() as conn:
-        c = conn.cursor()
-
-        # Clients Pacific Ink confirmés (numéro de client vérifié)
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS clients_pacific_ink (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                numero      TEXT UNIQUE NOT NULL,
-                nom         TEXT,
-                ile         TEXT,
-                machine_id  TEXT,
-                actif       INTEGER DEFAULT 1,
-                cree_le     TEXT NOT NULL
-            )
-        """)
-
-        # Clients internationaux (génèrent un PDF, impriment où ils veulent)
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS clients_international (
-                id        INTEGER PRIMARY KEY AUTOINCREMENT,
-                nom       TEXT NOT NULL,
-                email     TEXT NOT NULL,
-                pays      TEXT,
-                cree_le   TEXT NOT NULL
-            )
-        """)
-
-        # Les 4 machines reliées à la plateforme (gérées par 2KEA & Associé)
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS machines (
-                id          TEXT PRIMARY KEY,
-                statut      TEXT NOT NULL DEFAULT 'disponible',
-                client_nom  TEXT,
-                client_num  TEXT,
-                ile         TEXT,
-                installee_le TEXT,
-                cree_le     TEXT NOT NULL
-            )
-        """)
-
-        # Historique des générations (facturation par feuille : 10 XPF couleur / 5 XPF N&B)
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS impressions (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                origine     TEXT NOT NULL,
-                identifiant TEXT,
-                programme   TEXT NOT NULL,
-                theme       TEXT,
-                couleur     INTEGER DEFAULT 1,
-                nb_feuilles INTEGER DEFAULT 1,
-                prix_feuille INTEGER DEFAULT 10,
-                montant_total INTEGER DEFAULT 0,
-                machine_id  TEXT,
-                cree_le     TEXT NOT NULL
-            )
-        """)
-
-        # Suivi des essais gratuits par client (3 essais max, 1 feuille chacun)
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS essais (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                identifiant TEXT NOT NULL,
-                nb_essais   INTEGER DEFAULT 0,
-                cree_le     TEXT NOT NULL
-            )
-        """)
-
-        # Commandes payées (en ligne ou validées manuellement)
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS commandes (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                identifiant TEXT NOT NULL,
-                origine     TEXT,
-                programme   TEXT,
-                couleur     INTEGER DEFAULT 1,
-                nb_feuilles INTEGER NOT NULL,
-                montant     INTEGER NOT NULL,
-                mode_paiement TEXT,                 -- 'stripe' | 'manuel'
-                statut      TEXT DEFAULT 'en_attente', -- 'en_attente' | 'payee' | 'generee'
-                params_perso TEXT,                  -- personnalisation en JSON
-                cree_le     TEXT NOT NULL
-            )
-        """)
-
-        conn.commit()
+@app.before_request
+def _setup():
+    # Initialise la base au premier appel
+    if not getattr(app, "_db_ready", False):
+        db.init_db()
+        db.init_machines(4)
+        app._db_ready = True
 
 
-# ── CLIENTS PACIFIC INK ───────────────────────────────────────────────────────
-def normalize_num(n):
-    n = (n or "").replace(" ", "").replace(".", "").replace("-", "")
-    if n.startswith("+689"):
-        n = n[4:]
-    elif n.startswith("689") and len(n) > 8:
-        n = n[3:]
-    return n
+# ── PAGES ─────────────────────────────────────────────────────────────────────
+@app.route("/")
+def accueil():
+    return render_template("index.html")
 
 
-def ajouter_client_pi(numero, nom=None, ile=None, machine_id=None):
-    num = normalize_num(numero)
-    if not num:
-        return False, "Numéro vide"
-    with get_db() as conn:
-        try:
-            conn.execute(
-                "INSERT INTO clients_pacific_ink (numero, nom, ile, machine_id, cree_le) VALUES (?,?,?,?,?)",
-                (num, nom, ile, machine_id, datetime.utcnow().isoformat())
-            )
-            return True, num
-        except sqlite3.IntegrityError:
-            return False, "Ce numéro est déjà confirmé"
+# ── ACCÈS CLIENT PACIFIC INK ──────────────────────────────────────────────────
+@app.route("/api/verifier-pacific-ink", methods=["POST"])
+def verifier_pi():
+    data = request.get_json(force=True)
+    numero = data.get("numero", "")
+    if db.verifier_client_pi(numero):
+        session["acces"] = "pacific_ink"
+        session["identifiant"] = db.normalize_num(numero)
+        return jsonify({"ok": True})
+    return jsonify({"ok": False, "message": "Numéro non confirmé"}), 404
 
 
-def verifier_client_pi(numero):
-    """Retourne True si le numéro figure parmi les clients actifs."""
-    num = normalize_num(numero)
-    with get_db() as conn:
-        row = conn.execute(
-            "SELECT id FROM clients_pacific_ink WHERE numero = ? AND actif = 1", (num,)
-        ).fetchone()
-        return row is not None
+# ── ACCÈS CLIENT INTERNATIONAL ────────────────────────────────────────────────
+@app.route("/api/client-international", methods=["POST"])
+def client_intl():
+    data = request.get_json(force=True)
+    nom = data.get("nom", "").strip()
+    email = data.get("email", "").strip()
+    pays = data.get("pays", "").strip()
+    if not nom or "@" not in email:
+        return jsonify({"ok": False, "message": "Nom et email requis"}), 400
+    db.enregistrer_client_intl(nom, email, pays)
+    session["acces"] = "international"
+    session["identifiant"] = email
+    return jsonify({"ok": True})
 
 
-def lister_clients_pi():
-    with get_db() as conn:
-        rows = conn.execute(
-            "SELECT * FROM clients_pacific_ink ORDER BY cree_le DESC"
-        ).fetchall()
-        return [dict(r) for r in rows]
+# ── GÉNÉRATION — MODE ESSAI (gratuit, 1 feuille, 3 max) ───────────────────────
+@app.route("/api/essai", methods=["POST"])
+def essai():
+    if "acces" not in session:
+        return jsonify({"ok": False, "message": "Accès non autorisé"}), 403
 
+    identifiant = session.get("identifiant", "anon")
+    ok, restants = db.incrementer_essai(identifiant)
+    if not ok:
+        return jsonify({"ok": False, "message": "Vous avez utilisé vos 3 essais gratuits. Passez commande pour générer.", "essais_restants": 0}), 402
 
-def retirer_client_pi(numero):
-    num = normalize_num(numero)
-    with get_db() as conn:
-        conn.execute("DELETE FROM clients_pacific_ink WHERE numero = ?", (num,))
-        return True
+    data = request.get_json(force=True)
+    programme = data.get("programme", "triple_action")
+    theme = data.get("theme", "")
+    couleur = bool(data.get("couleur", True))
 
-
-# ── CLIENTS INTERNATIONAUX ────────────────────────────────────────────────────
-def enregistrer_client_intl(nom, email, pays=None):
-    with get_db() as conn:
-        conn.execute(
-            "INSERT INTO clients_international (nom, email, pays, cree_le) VALUES (?,?,?,?)",
-            (nom, email, pays, datetime.utcnow().isoformat())
+    # Essai = 1 seule feuille (10 tickets)
+    if programme == "triple_action":
+        pdf = triple_action.generer_pdf(
+            nb_tickets=10, serie_start=1, theme=theme, couleur=couleur,
+            nom_evenement=data.get("nom_evenement", ""), titre_jeu=data.get("titre_jeu", ""),
+            couleur_perso=data.get("couleur_perso", ""), date_lieu=data.get("date_lieu", ""),
         )
-        return True
+    else:
+        pdf = bingo.generer_pdf(programme=programme, theme=theme, nb_cartes=1)
+
+    resp = send_file(pdf, mimetype="application/pdf", as_attachment=True,
+                     download_name=f"ESSAI_manaprint_{programme}.pdf")
+    resp.headers["X-Essais-Restants"] = str(restants)
+    return resp
 
 
-# ── MACHINES ──────────────────────────────────────────────────────────────────
-def init_machines(n=4):
-    """Crée les machines reliées à la plateforme si elles n'existent pas."""
-    with get_db() as conn:
-        for i in range(1, n + 1):
-            mid = f"MP-MACHINE-{i:02d}"
-            existe = conn.execute("SELECT id FROM machines WHERE id = ?", (mid,)).fetchone()
-            if not existe:
-                conn.execute(
-                    "INSERT INTO machines (id, statut, cree_le) VALUES (?, 'disponible', ?)",
-                    (mid, datetime.utcnow().isoformat())
-                )
-        conn.commit()
+@app.route("/api/essais-restants", methods=["GET"])
+def essais_restants():
+    if "acces" not in session:
+        return jsonify({"ok": False}), 403
+    identifiant = session.get("identifiant", "anon")
+    utilises = db.get_essais(identifiant)
+    return jsonify({"ok": True, "restants": max(0, db.NB_ESSAIS_MAX - utilises)})
 
 
-def lister_machines():
-    with get_db() as conn:
-        rows = conn.execute("SELECT * FROM machines ORDER BY id").fetchall()
-        return [dict(r) for r in rows]
+# ── COMMANDE — calcul du prix + création ──────────────────────────────────────
+@app.route("/api/commander", methods=["POST"])
+def commander():
+    if "acces" not in session:
+        return jsonify({"ok": False, "message": "Accès non autorisé"}), 403
+
+    data = request.get_json(force=True)
+    programme = data.get("programme", "triple_action")
+    couleur = bool(data.get("couleur", True))
+    nb_feuilles = max(1, min(int(data.get("nb_feuilles", 500)), 5000))
+    mode_paiement = data.get("mode_paiement", "manuel")  # 'stripe' | 'manuel'
+
+    import json as _json
+    params_perso = _json.dumps({
+        "theme": data.get("theme", ""),
+        "nom_evenement": data.get("nom_evenement", ""),
+        "titre_jeu": data.get("titre_jeu", ""),
+        "couleur_perso": data.get("couleur_perso", ""),
+        "date_lieu": data.get("date_lieu", ""),
+    })
+
+    commande_id, montant = db.creer_commande(
+        identifiant=session.get("identifiant"),
+        origine=session["acces"],
+        programme=programme,
+        couleur=couleur,
+        nb_feuilles=nb_feuilles,
+        mode_paiement=mode_paiement,
+        params_perso=params_perso,
+    )
+
+    # Mode manuel : la commande est en attente de validation par 2KEA
+    if mode_paiement == "manuel":
+        return jsonify({
+            "ok": True, "commande_id": commande_id, "montant": montant,
+            "mode": "manuel",
+            "message": f"Commande enregistrée ({montant} XPF). Elle sera générée après validation du paiement par 2KEA & Associé.",
+        })
+
+    # Mode stripe : à brancher (emplacement prêt)
+    # TODO Stripe : créer une session de paiement et renvoyer l'URL de checkout
+    return jsonify({
+        "ok": True, "commande_id": commande_id, "montant": montant,
+        "mode": "stripe",
+        "message": "Paiement en ligne bientôt disponible. Pour l'instant, choisissez le paiement sur place.",
+        "stripe_pret": False,
+    })
 
 
-def installer_machine(machine_id, client_nom, client_num, ile):
-    with get_db() as conn:
-        conn.execute(
-            "UPDATE machines SET statut='installee', client_nom=?, client_num=?, ile=?, installee_le=? WHERE id=?",
-            (client_nom, client_num, ile, datetime.utcnow().isoformat(), machine_id)
+# ── GÉNÉRATION PAYÉE — réservée aux commandes validées ────────────────────────
+@app.route("/api/generer-commande/<int:commande_id>", methods=["POST"])
+def generer_commande(commande_id):
+    if "acces" not in session:
+        return jsonify({"ok": False, "message": "Accès non autorisé"}), 403
+
+    cmd = db.get_commande(commande_id)
+    if not cmd:
+        return jsonify({"ok": False, "message": "Commande introuvable"}), 404
+    if cmd["statut"] not in ("payee",):
+        return jsonify({"ok": False, "message": "Cette commande n'est pas encore validée"}), 402
+
+    import json as _json
+    perso = _json.loads(cmd["params_perso"] or "{}")
+    couleur = bool(cmd["couleur"])
+    nb_feuilles = cmd["nb_feuilles"]
+    programme = cmd["programme"]
+
+    if programme == "triple_action":
+        pdf = triple_action.generer_pdf(
+            nb_tickets=nb_feuilles * 10, serie_start=1,
+            theme=perso.get("theme", ""), couleur=couleur,
+            nom_evenement=perso.get("nom_evenement", ""), titre_jeu=perso.get("titre_jeu", ""),
+            couleur_perso=perso.get("couleur_perso", ""), date_lieu=perso.get("date_lieu", ""),
         )
-        return True
+    else:
+        pdf = bingo.generer_pdf(programme=programme, theme=perso.get("theme", ""), nb_cartes=nb_feuilles)
+
+    db.enregistrer_impression(
+        origine=cmd["origine"], identifiant=cmd["identifiant"],
+        programme=programme, theme=perso.get("theme", ""),
+        nb_feuilles=nb_feuilles, couleur=couleur,
+    )
+    db.marquer_commande_generee(commande_id)
+
+    return send_file(pdf, mimetype="application/pdf", as_attachment=True,
+                     download_name=f"manaprint_{programme}.pdf")
 
 
-# ── IMPRESSIONS / FACTURATION ─────────────────────────────────────────────────
-PRIX_COULEUR = 10  # XPF par feuille couleur
-PRIX_NB = 5        # XPF par feuille noir & blanc
+# ── ESPACE GESTION (2KEA & Associé) ───────────────────────────────────────────
+def admin_requis(f):
+    @wraps(f)
+    def wrap(*args, **kwargs):
+        if not session.get("admin"):
+            return jsonify({"ok": False, "message": "Non autorisé"}), 403
+        return f(*args, **kwargs)
+    return wrap
 
 
-def enregistrer_impression(origine, identifiant, programme, theme, nb_feuilles=1, couleur=True, machine_id=None):
-    prix_feuille = PRIX_COULEUR if couleur else PRIX_NB
-    montant_total = prix_feuille * nb_feuilles
-    with get_db() as conn:
-        conn.execute(
-            """INSERT INTO impressions
-               (origine, identifiant, programme, theme, couleur, nb_feuilles, prix_feuille, montant_total, machine_id, cree_le)
-               VALUES (?,?,?,?,?,?,?,?,?,?)""",
-            (origine, identifiant, programme, theme, 1 if couleur else 0,
-             nb_feuilles, prix_feuille, montant_total, machine_id, datetime.utcnow().isoformat())
-        )
-        return montant_total
+@app.route("/api/admin/login", methods=["POST"])
+def admin_login():
+    data = request.get_json(force=True)
+    if data.get("code") == CODE_ADMIN:
+        session["admin"] = True
+        return jsonify({"ok": True})
+    return jsonify({"ok": False, "message": "Code incorrect"}), 401
 
 
-# ── ESSAIS GRATUITS (3 max, 1 feuille chacun) ─────────────────────────────────
-NB_ESSAIS_MAX = 3
+@app.route("/api/admin/clients-pi", methods=["GET"])
+@admin_requis
+def admin_lister_pi():
+    return jsonify({"ok": True, "clients": db.lister_clients_pi()})
 
 
-def get_essais(identifiant):
-    """Retourne le nombre d'essais déjà utilisés par ce client."""
-    with get_db() as conn:
-        row = conn.execute("SELECT nb_essais FROM essais WHERE identifiant = ?", (identifiant,)).fetchone()
-        return row["nb_essais"] if row else 0
+@app.route("/api/admin/clients-pi", methods=["POST"])
+@admin_requis
+def admin_ajouter_pi():
+    data = request.get_json(force=True)
+    ok, msg = db.ajouter_client_pi(
+        data.get("numero", ""), data.get("nom"), data.get("ile"), data.get("machine_id")
+    )
+    return jsonify({"ok": ok, "message": msg})
 
 
-def incrementer_essai(identifiant):
-    """Ajoute un essai. Retourne (ok, essais_restants)."""
-    with get_db() as conn:
-        row = conn.execute("SELECT nb_essais FROM essais WHERE identifiant = ?", (identifiant,)).fetchone()
-        if row is None:
-            conn.execute("INSERT INTO essais (identifiant, nb_essais, cree_le) VALUES (?,1,?)",
-                         (identifiant, datetime.utcnow().isoformat()))
-            return True, NB_ESSAIS_MAX - 1
-        if row["nb_essais"] >= NB_ESSAIS_MAX:
-            return False, 0
-        nouveau = row["nb_essais"] + 1
-        conn.execute("UPDATE essais SET nb_essais = ? WHERE identifiant = ?", (nouveau, identifiant))
-        return True, NB_ESSAIS_MAX - nouveau
+@app.route("/api/admin/clients-pi/<numero>", methods=["DELETE"])
+@admin_requis
+def admin_retirer_pi(numero):
+    db.retirer_client_pi(numero)
+    return jsonify({"ok": True})
 
 
-# ── COMMANDES ─────────────────────────────────────────────────────────────────
-def creer_commande(identifiant, origine, programme, couleur, nb_feuilles, mode_paiement, params_perso=""):
-    prix_feuille = PRIX_COULEUR if couleur else PRIX_NB
-    montant = prix_feuille * nb_feuilles
-    statut = "en_attente"
-    with get_db() as conn:
-        cur = conn.execute(
-            """INSERT INTO commandes
-               (identifiant, origine, programme, couleur, nb_feuilles, montant, mode_paiement, statut, params_perso, cree_le)
-               VALUES (?,?,?,?,?,?,?,?,?,?)""",
-            (identifiant, origine, programme, 1 if couleur else 0, nb_feuilles, montant,
-             mode_paiement, statut, params_perso, datetime.utcnow().isoformat())
-        )
-        return cur.lastrowid, montant
+@app.route("/api/admin/machines", methods=["GET"])
+@admin_requis
+def admin_machines():
+    return jsonify({"ok": True, "machines": db.lister_machines()})
 
 
-def get_commande(commande_id):
-    with get_db() as conn:
-        row = conn.execute("SELECT * FROM commandes WHERE id = ?", (commande_id,)).fetchone()
-        return dict(row) if row else None
+# ── COMMANDES À VALIDER (paiement manuel) ─────────────────────────────────────
+@app.route("/api/admin/commandes", methods=["GET"])
+@admin_requis
+def admin_commandes():
+    return jsonify({"ok": True, "commandes": db.lister_commandes()})
 
 
-def marquer_commande_payee(commande_id):
-    with get_db() as conn:
-        conn.execute("UPDATE commandes SET statut = 'payee' WHERE id = ?", (commande_id,))
-        return True
+@app.route("/api/admin/commandes/<int:commande_id>/valider", methods=["POST"])
+@admin_requis
+def admin_valider_commande(commande_id):
+    cmd = db.get_commande(commande_id)
+    if not cmd:
+        return jsonify({"ok": False, "message": "Commande introuvable"}), 404
+    db.marquer_commande_payee(commande_id)
+    return jsonify({"ok": True, "message": "Commande validée — le client peut générer."})
 
 
-def marquer_commande_generee(commande_id):
-    with get_db() as conn:
-        conn.execute("UPDATE commandes SET statut = 'generee' WHERE id = ?", (commande_id,))
-        return True
+@app.route("/api/admin/machines/installer", methods=["POST"])
+@admin_requis
+def admin_installer_machine():
+    data = request.get_json(force=True)
+    db.installer_machine(
+        data.get("machine_id"), data.get("client_nom"),
+        data.get("client_num"), data.get("ile")
+    )
+    # Ajoute automatiquement le numéro à la liste des clients confirmés
+    db.ajouter_client_pi(
+        data.get("client_num"), data.get("client_nom"),
+        data.get("ile"), data.get("machine_id")
+    )
+    return jsonify({"ok": True})
 
 
-def lister_commandes(statut=None):
-    with get_db() as conn:
-        if statut:
-            rows = conn.execute("SELECT * FROM commandes WHERE statut = ? ORDER BY cree_le DESC", (statut,)).fetchall()
-        else:
-            rows = conn.execute("SELECT * FROM commandes ORDER BY cree_le DESC").fetchall()
-        return [dict(r) for r in rows]
+@app.route("/api/health")
+def health():
+    return jsonify({"status": "ok", "service": "manaprint"})
 
 
 if __name__ == "__main__":
-    init_db()
-    init_machines(4)
-    print("Base de données initialisée :", DB_PATH)
-    print("Machines :", len(lister_machines()))
+    db.init_db()
+    db.init_machines(4)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
