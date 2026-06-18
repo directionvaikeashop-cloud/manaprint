@@ -49,16 +49,21 @@
       <h1 class="display" style="font-size:clamp(2rem,5vw,3rem);font-weight:500;line-height:1.1;margin-bottom:1rem;color:var(--teal-d)">Le générateur de cartes MANAPRINT.</h1>
       <p style="font-size:1.02rem;color:var(--muted);line-height:1.7;margin-bottom:2.5rem;max-width:540px;margin-inline:auto">Génération illimitée de cartes de jeux polynésiens. Choisissez votre point d'accès.</p>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem">
         <button class="card-choice" onclick="montrer('ecran-pi')">
-          <p class="label-mono" style="color:var(--coral)">Polynésie française</p>
-          <h3 class="display" style="font-size:1.3rem;margin-bottom:.6rem">Client Pacific Ink</h3>
-          <p style="font-size:.88rem;color:var(--muted);line-height:1.6">Vous avez une machine Pacific Ink confirmée. Accès via votre numéro de client.</p>
+          <p class="label-mono" style="color:var(--coral)">Polynésie · machine</p>
+          <h3 class="display" style="font-size:1.15rem;margin-bottom:.5rem">Client Pacific Ink</h3>
+          <p style="font-size:.83rem;color:var(--muted);line-height:1.55">Vous avez une machine Pacific Ink. Accès par votre numéro de client, impression directe.</p>
+        </button>
+        <button class="card-choice" onclick="montrer('ecran-poly')">
+          <p class="label-mono" style="color:var(--teal)">Polynésie · sans machine</p>
+          <h3 class="display" style="font-size:1.15rem;margin-bottom:.5rem">Client Polynésien</h3>
+          <p style="font-size:.83rem;color:var(--muted);line-height:1.55">Générez vos cartes : imprimez-les vous-même, ou venez chez 2KEA & Associé.</p>
         </button>
         <button class="card-choice" onclick="montrer('ecran-intl')">
           <p class="label-mono" style="color:var(--teal)">Hors Polynésie</p>
-          <h3 class="display" style="font-size:1.3rem;margin-bottom:.6rem">Client international</h3>
-          <p style="font-size:.88rem;color:var(--muted);line-height:1.6">Générez vos cartes, téléchargez le PDF, imprimez-le où vous voulez.</p>
+          <h3 class="display" style="font-size:1.15rem;margin-bottom:.5rem">Client International</h3>
+          <p style="font-size:.83rem;color:var(--muted);line-height:1.55">Générez vos cartes, téléchargez le PDF, imprimez-le où vous voulez.</p>
         </button>
       </div>
 
@@ -99,6 +104,17 @@
     <input id="intl-pays" placeholder="Pays (optionnel)">
     <button class="btn" id="intl-btn" onclick="accederIntl()">Accéder au générateur</button>
     <p id="intl-msg" style="margin-top:1rem;font-size:.88rem"></p>
+  </div>
+
+  <!-- ÉCRAN CLIENT POLYNÉSIEN -->
+  <div id="ecran-poly" class="hidden" style="max-width:460px;margin:0 auto">
+    <button onclick="montrer('ecran-choix')" style="background:none;border:none;color:var(--muted);font-size:.85rem;margin-bottom:1.5rem">← Retour</button>
+    <h2 class="display" style="font-size:1.5rem;margin-bottom:.6rem">Client Polynésien</h2>
+    <p style="color:var(--muted);font-size:.9rem;margin-bottom:1.25rem;line-height:1.6">Renseignez vos informations pour accéder au générateur. Vous pourrez télécharger vos cartes pour les imprimer vous-même, ou venir les faire imprimer chez 2KEA & Associé.</p>
+    <input id="poly-nom" placeholder="Votre nom">
+    <input id="poly-email" type="email" placeholder="vous@email.com">
+    <button class="btn" id="poly-btn" onclick="accederPoly()">Accéder au générateur</button>
+    <p id="poly-msg" style="margin-top:1rem;font-size:.88rem"></p>
   </div>
 
   <!-- ÉCRAN GÉNÉRATEUR -->
@@ -252,9 +268,20 @@ async function accederIntl(){
   btn.disabled=false; btn.textContent="Accéder au générateur";
 }
 
-function ouvrirGenerateur(){
-  montrer('ecran-gen');
-  document.getElementById('gen-origine').textContent = origineAcces==="pacific_ink" ? "Accès Pacific Ink confirmé" : "Accès international";
+async function accederPoly(){
+  const nom=document.getElementById('poly-nom').value, email=document.getElementById('poly-email').value;
+  const btn=document.getElementById('poly-btn'), msg=document.getElementById('poly-msg');
+  if(!nom||!email.includes('@')){ msg.style.color="var(--coral)"; msg.textContent="Nom et email valides requis."; return; }
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
+  try{
+    const r=await fetch('/api/client-polynesien',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom,email})});
+    const d=await r.json();
+    if(d.ok){ origineAcces="polynesien"; ouvrirGenerateur(); }
+    else msg.textContent=d.message;
+  }catch(e){ msg.textContent="Erreur réseau"; }
+  btn.disabled=false; btn.textContent="Accéder au générateur";
+}
+  document.getElementById('gen-origine').textContent = origineAcces==="pacific_ink" ? "Accès Pacific Ink confirmé" : origineAcces==="polynesien" ? "Accès Client Polynésien" : "Accès Client International";
   const cont = document.getElementById('gen-programmes');
   cont.innerHTML = "";
   PROGRAMMES.forEach(p=>{
