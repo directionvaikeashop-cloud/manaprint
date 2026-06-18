@@ -112,10 +112,26 @@
         <p class="label-mono">Choisir un programme</p>
         <div id="gen-programmes" style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:1.25rem"></div>
         <p class="label-mono">Thème de la carte</p>
-        <textarea id="gen-theme" rows="3" placeholder="Ex : le festival Heiva de Tahiti"></textarea>
+        <textarea id="gen-theme" rows="2" placeholder="Ex : le festival Heiva de Tahiti"></textarea>
+
+        <p class="label-mono">Personnalisation (facultatif)</p>
+        <input id="perso-evenement" placeholder="Nom de l'événement / association">
+        <input id="perso-titre" placeholder="Titre du jeu (défaut : TRIPLE ACTION 75)">
+        <input id="perso-datelieu" placeholder="Date et lieu du loto">
+        <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.9rem">
+          <label style="font-size:.82rem;color:var(--muted)">Couleur principale :</label>
+          <input id="perso-couleur" type="color" value="#2D6E63" style="width:44px;height:32px;padding:2px;margin-bottom:0;cursor:pointer">
+          <button onclick="document.getElementById('perso-couleur').value='';majApercuCouleur()" style="background:none;border:1px solid var(--line);border-radius:4px;padding:.3rem .6rem;font-size:.75rem;color:var(--muted);cursor:pointer">Arc-en-ciel</button>
+        </div>
+
         <p class="label-mono">Nombre de cartes</p>
-        <input id="gen-nb" type="number" min="1" max="50" value="6">
-        <button class="btn" id="gen-btn" onclick="genererPDF()">Générer le PDF</button>
+        <input id="gen-nb" type="number" min="1" max="1000" value="10">
+        <p class="label-mono">Couleur d'impression</p>
+        <div style="display:flex;gap:.5rem;margin-bottom:1rem">
+          <button id="btn-couleur" onclick="setCouleur(true)" style="flex:1;padding:.6rem;border:1px solid var(--teal);border-radius:4px;background:var(--teal);color:#fff;font-weight:600;font-size:.82rem">Couleur — 10 F/feuille</button>
+          <button id="btn-nb" onclick="setCouleur(false)" style="flex:1;padding:.6rem;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink);font-weight:600;font-size:.82rem">Noir & blanc — 5 F/feuille</button>
+        </div>
+        <button class="btn" id="gen-btn" onclick="genererPDF()">Générer</button>
         <p id="gen-msg" style="margin-top:1rem;font-size:.85rem;color:var(--muted)"></p>
       </div>
       <div id="gen-apercu" style="height:420px;border:1px dashed var(--line);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.9rem">
@@ -151,13 +167,31 @@
 
 <script>
 const PROGRAMMES = [
+  {id:"triple_action",nom:"TRIPLE ACTION 75",couleur:"#E53935",desc:"Ticket vertical arc-en-ciel"},
   {id:"p6",nom:"Programme P6",couleur:"#2D6E63",desc:"Grille 6×6"},
   {id:"ohana75",nom:"OHANA 75",couleur:"#D4663D",desc:"Bingo 5×5"},
   {id:"quines90",nom:"QUINES 90",couleur:"#1A4A42",desc:"Loto 90 cases"},
   {id:"petits",nom:"Pack Petits Jeux",couleur:"#8B5A2B",desc:"Grille 4×4"},
 ];
-let progChoisi = "ohana75";
+let progChoisi = "triple_action";
 let origineAcces = "";
+let couleurChoisie = true;
+
+function setCouleur(val){
+  couleurChoisie = val;
+  const bc = document.getElementById('btn-couleur'), bnb = document.getElementById('btn-nb');
+  if(val){
+    bc.style.background="var(--teal)"; bc.style.color="#fff"; bc.style.borderColor="var(--teal)";
+    bnb.style.background="#fff"; bnb.style.color="var(--ink)"; bnb.style.borderColor="var(--line)";
+  } else {
+    bnb.style.background="var(--ink)"; bnb.style.color="#fff"; bnb.style.borderColor="var(--ink)";
+    bc.style.background="#fff"; bc.style.color="var(--ink)"; bc.style.borderColor="var(--line)";
+  }
+}
+
+function majApercuCouleur(){
+  // Bouton "Arc-en-ciel" : vide le sélecteur pour repasser en arc-en-ciel
+}
 
 function montrer(id){
   document.querySelectorAll('.wrap > div').forEach(d=>d.classList.add('hidden'));
@@ -208,20 +242,34 @@ function ouvrirGenerateur(){
 async function genererPDF(){
   const theme=document.getElementById('gen-theme').value;
   const nb=document.getElementById('gen-nb').value;
+  const nom_evenement=document.getElementById('perso-evenement').value;
+  const titre_jeu=document.getElementById('perso-titre').value;
+  const date_lieu=document.getElementById('perso-datelieu').value;
+  const couleur_perso=document.getElementById('perso-couleur').value;
   const btn=document.getElementById('gen-btn'), msg=document.getElementById('gen-msg');
   btn.disabled=true; btn.innerHTML='<span class="spin"></span> Génération…';
   try{
-    const r=await fetch('/api/generer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({programme:progChoisi,theme,nb_cartes:nb})});
+    const r=await fetch('/api/generer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      programme:progChoisi, theme, nb_cartes:nb, couleur:couleurChoisie,
+      nom_evenement, titre_jeu, date_lieu, couleur_perso
+    })});
     if(r.ok){
-      const blob=await r.blob();
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a'); a.href=url; a.download=`manaprint_${progChoisi}.pdf`; a.click();
-      URL.revokeObjectURL(url);
-      msg.style.color="var(--teal)";
-      msg.textContent = origineAcces==="international" ? "PDF téléchargé. Imprimez-le où vous voulez." : "PDF prêt — envoyez-le à votre machine Pacific Ink.";
+      if(origineAcces==="pacific_ink"){
+        // Impression directe sur machine — PAS de téléchargement, le client ne reçoit pas le fichier
+        msg.style.color="var(--teal)";
+        msg.textContent="Envoyé à votre machine Pacific Ink pour impression. Le fichier n'est pas téléchargeable.";
+      } else {
+        // Client international — téléchargement autorisé
+        const blob=await r.blob();
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a'); a.href=url; a.download=`manaprint_${progChoisi}.pdf`; a.click();
+        URL.revokeObjectURL(url);
+        msg.style.color="var(--teal)";
+        msg.textContent="PDF téléchargé. Imprimez-le où vous voulez.";
+      }
     } else { const d=await r.json(); msg.textContent=d.message||"Erreur"; }
   }catch(e){ msg.textContent="Erreur réseau"; }
-  btn.disabled=false; btn.textContent="Générer le PDF";
+  btn.disabled=false; btn.textContent="Générer";
 }
 
 async function adminLogin(){
