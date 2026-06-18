@@ -281,6 +281,9 @@ async function accederPoly(){
   }catch(e){ msg.textContent="Erreur réseau"; }
   btn.disabled=false; btn.textContent="Accéder au générateur";
 }
+
+function ouvrirGenerateur(){
+  montrer('ecran-gen');
   document.getElementById('gen-origine').textContent = origineAcces==="pacific_ink" ? "Accès Pacific Ink confirmé" : origineAcces==="polynesien" ? "Accès Client Polynésien" : "Accès Client International";
   const cont = document.getElementById('gen-programmes');
   cont.innerHTML = "";
