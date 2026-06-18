@@ -114,10 +114,11 @@
         <p class="label-mono">Thème de la carte</p>
         <textarea id="gen-theme" rows="2" placeholder="Ex : le festival Heiva de Tahiti"></textarea>
 
-        <p class="label-mono">Personnalisation (facultatif)</p>
-        <input id="perso-evenement" placeholder="Nom de l'événement / association">
-        <input id="perso-titre" placeholder="Titre du jeu (défaut : TRIPLE ACTION 75)">
-        <input id="perso-datelieu" placeholder="Date et lieu du loto">
+        <p class="label-mono" style="color:var(--coral)">Personnalisation obligatoire <span style="color:var(--coral)">*</span></p>
+        <p style="font-size:.78rem;color:var(--muted);margin-bottom:.6rem;line-height:1.5">Pour sécuriser vos tickets, chaque carte porte le nom de votre tournoi et la date. Ces 3 champs sont requis.</p>
+        <input id="perso-evenement" placeholder="Nom du client / association *">
+        <input id="perso-titre" placeholder="Nom du tournoi *">
+        <input id="perso-datelieu" placeholder="Date du tournoi *">
         <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.9rem">
           <label style="font-size:.82rem;color:var(--muted)">Couleur principale :</label>
           <input id="perso-couleur" type="color" value="#2D6E63" style="width:44px;height:32px;padding:2px;margin-bottom:0;cursor:pointer">
@@ -285,6 +286,13 @@ function getPersoParams(){
   };
 }
 
+function persoManquante(){
+  const ev=document.getElementById('perso-evenement').value.trim();
+  const ti=document.getElementById('perso-titre').value.trim();
+  const da=document.getElementById('perso-datelieu').value.trim();
+  return (!ev || !ti || !da);
+}
+
 function majPrix(){
   const f = Math.max(1, parseInt(document.getElementById('cmd-feuilles').value)||1);
   const prix = couleurChoisie ? PRIX_COULEUR : PRIX_NB;
@@ -320,6 +328,11 @@ async function chargerEssaisRestants(){
 
 async function faireEssai(){
   const btn=document.getElementById('essai-btn'), msg=document.getElementById('essai-msg');
+  if(persoManquante()){
+    msg.style.color="var(--coral)";
+    msg.textContent="Remplissez d'abord le nom du client, le nom du tournoi et la date (champs obligatoires).";
+    return;
+  }
   btn.disabled=true; btn.innerHTML='<span class="spin"></span> Génération…';
   try{
     const r=await fetch('/api/essai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(getPersoParams())});
@@ -343,6 +356,11 @@ async function faireEssai(){
 
 async function passerCommande(){
   const btn=document.getElementById('cmd-btn'), msg=document.getElementById('cmd-msg');
+  if(persoManquante()){
+    msg.style.color="var(--coral)";
+    msg.textContent="Remplissez d'abord le nom du client, le nom du tournoi et la date (champs obligatoires).";
+    return;
+  }
   const nb_feuilles=Math.max(1, parseInt(document.getElementById('cmd-feuilles').value)||1);
   btn.disabled=true; btn.innerHTML='<span class="spin"></span> Envoi…';
   try{
