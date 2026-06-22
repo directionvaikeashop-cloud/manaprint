@@ -116,9 +116,15 @@ def init_db():
                 ip_hash   TEXT,
                 page      TEXT,
                 ua        TEXT,
+                source    TEXT,
                 cree_le   TEXT NOT NULL
             )
         """)
+        # Migration : ajoute la colonne source si la table existait déjà sans elle
+        try:
+            c.execute("ALTER TABLE visites ADD COLUMN source TEXT")
+        except Exception:
+            pass
 
         conn.commit()
 def normalize_num(n):
@@ -321,12 +327,12 @@ def lister_commandes(statut=None):
 
 
 # ── VISITEURS ─────────────────────────────────────────────────────────────────
-def enregistrer_visite(ip_hash, page, ua):
-    """Enregistre une visite (ip_hash anonymisé, page, navigateur)."""
+def enregistrer_visite(ip_hash, page, ua, source=None):
+    """Enregistre une visite (ip_hash anonymisé, page, navigateur, source)."""
     with get_db() as conn:
         conn.execute(
-            "INSERT INTO visites (ip_hash, page, ua, cree_le) VALUES (?, ?, ?, ?)",
-            (ip_hash, page, (ua or "")[:300], datetime.now().isoformat())
+            "INSERT INTO visites (ip_hash, page, ua, source, cree_le) VALUES (?, ?, ?, ?, ?)",
+            (ip_hash, page, (ua or "")[:300], (source or "direct")[:40], datetime.now().isoformat())
         )
 
 
@@ -351,12 +357,17 @@ def stats_visites():
             "FROM visites GROUP BY j ORDER BY j DESC LIMIT 14"
         ).fetchall()
         par_jour = [dict(r) for r in rows]
+        rows2 = c.execute(
+            "SELECT COALESCE(NULLIF(source,''),'direct') AS s, COUNT(*) AS n, "
+            "COUNT(DISTINCT ip_hash) AS u FROM visites GROUP BY s ORDER BY n DESC"
+        ).fetchall()
+        par_source = [dict(r) for r in rows2]
     return {
         "total": total, "uniques": uniques,
         "visites_auj": visites_auj, "uniques_auj": uniques_auj,
         "essais": essais, "impressions": impressions,
         "feuilles": feuilles, "commandes": commandes,
-        "par_jour": par_jour
+        "par_jour": par_jour, "par_source": par_source
     }
 
 
