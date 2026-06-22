@@ -77,40 +77,49 @@ CODE_ADMIN = os.environ.get("MANAPRINT_ADMIN_CODE", "2KEA-MOOREA")
 # Noms réservés : un client ne peut pas les utiliser dans sa personnalisation
 NOMS_RESERVES = ["tukea", "2kea", "maeva", "2kea&associe", "2kea & associe", "2kea associe"]
 
-# Jeux disponibles au lancement (générateurs validés)
-GENERATEURS = {
-    "triple_action": triple_action.generer_pdf,
-    "aloha75": aloha75.generer_pdf,
-    "p6_marathon": p6_marathon.generer_pdf,
-    "bingo_ball": bingo_ball.generer_pdf,
-}
+# ============================================================
+# REGISTRE UNIVERSEL DES JEUX (format A4)
+# Pour AJOUTER un jeu : 1) place le module dans generators/ (fonction generer_pdf)
+#                       2) ajoute UNE seule ligne _enregistrer_jeu(...) ci-dessous.
+# Le jeu apparaît AUTOMATIQUEMENT dans le menu du générateur. C'est tout.
+# ============================================================
+REGISTRE_JEUX = {}
 
-# Nombre de cartes/tickets par feuille A4 selon le jeu
-CARTES_PAR_FEUILLE = {
-    "triple_action": 10,
-    "aloha75": 12,
-    "p6_marathon": 6,
-    "bingo_ball": 10,
-}
+def _enregistrer_jeu(jeu_id, nom, emoji, cartes_par_feuille, generer, kwarg_nb="nb_cartes"):
+    """Enregistre un jeu A4 dans le registre universel (tolérant si un module manque)."""
+    try:
+        REGISTRE_JEUX[jeu_id] = {
+            "nom": nom, "emoji": emoji,
+            "cartes_par_feuille": cartes_par_feuille,
+            "generer": generer, "kwarg_nb": kwarg_nb,
+        }
+        print(f"[JEU A4 INSTALLE] {emoji} {nom}")
+    except Exception as e:
+        print(f"[JEU A4 ABSENT] {nom} : {e}")
+
+#                 id               nom                 emoji  cartes/feuille  fonction                   (kwarg nb)
+_enregistrer_jeu("triple_action", "Triple Action 75", "🎯", 10, triple_action.generer_pdf, kwarg_nb="nb_tickets")
+_enregistrer_jeu("aloha75",       "Aloha 75",         "🌺", 12, aloha75.generer_pdf)
+_enregistrer_jeu("p6_marathon",   "P6 Marathon",      "6️⃣", 6,  p6_marathon.generer_pdf)
+_enregistrer_jeu("bingo_ball",    "Bingo Ball",       "🎱", 10, bingo_ball.generer_pdf)
+# --- Ajouter les futurs jeux A4 ici, une ligne chacun : ---
+# _enregistrer_jeu("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
+# _enregistrer_jeu("quines90", "QUINES 90", "🎲", 6, quines90.generer_pdf)
+
+# Table cartes/feuille dérivée automatiquement du registre
+CARTES_PAR_FEUILLE = {jid: j["cartes_par_feuille"] for jid, j in REGISTRE_JEUX.items()}
 
 
 def generer_jeu(programme, nb_cartes, couleur, perso):
-    """Appelle le bon générateur selon le jeu. perso = dict des champs de personnalisation."""
-    fn = GENERATEURS.get(programme, triple_action.generer_pdf)
-    if programme == "triple_action":
-        return fn(
-            nb_tickets=nb_cartes, serie_start=1, theme="", couleur=couleur,
-            nom_evenement=perso.get("nom_evenement", ""), titre_jeu=perso.get("titre_jeu", ""),
-            couleur_perso=perso.get("couleur_perso", ""), date_lieu=perso.get("date_lieu", ""),
-            telephone=perso.get("telephone", ""),
-        )
-    # aloha75, p6_marathon, bingo_ball utilisent nb_cartes
-    return fn(
-        nb_cartes=nb_cartes, serie_start=1, theme="", couleur=couleur,
-        nom_evenement=perso.get("nom_evenement", ""), titre_jeu=perso.get("titre_jeu", ""),
-        couleur_perso=perso.get("couleur_perso", ""), date_lieu=perso.get("date_lieu", ""),
-        telephone=perso.get("telephone", ""),
-    )
+    """Génère le PDF A4 de N'IMPORTE QUEL jeu du registre. perso = champs de personnalisation."""
+    jeu = REGISTRE_JEUX.get(programme) or REGISTRE_JEUX.get("triple_action")
+    kwargs = {
+        jeu["kwarg_nb"]: nb_cartes, "serie_start": 1, "theme": "", "couleur": couleur,
+        "nom_evenement": perso.get("nom_evenement", ""), "titre_jeu": perso.get("titre_jeu", ""),
+        "couleur_perso": perso.get("couleur_perso", ""), "date_lieu": perso.get("date_lieu", ""),
+        "telephone": perso.get("telephone", ""),
+    }
+    return jeu["generer"](**kwargs)
 
 
 def contient_nom_reserve(*champs):
@@ -346,6 +355,15 @@ def essais_restants():
     identifiant = session.get("identifiant", "anon")
     utilises = db.get_essais(identifiant)
     return jsonify({"ok": True, "restants": max(0, db.NB_ESSAIS_MAX - utilises)})
+
+
+@app.route("/api/jeux", methods=["GET"])
+def api_jeux():
+    """Liste des jeux du registre universel (pour construire le menu côté page)."""
+    return jsonify({"ok": True, "jeux": [
+        {"id": jid, "nom": j["nom"], "emoji": j["emoji"], "cartes_par_feuille": j["cartes_par_feuille"]}
+        for jid, j in REGISTRE_JEUX.items()
+    ]})
 
 
 @app.route("/api/partenaires", methods=["GET"])
