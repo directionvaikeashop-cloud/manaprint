@@ -34,8 +34,11 @@
 </head>
 <body>
 <nav>
-  <div class="display" style="font-size:1.4rem;font-weight:600"><span style="color:var(--teal)">Mana</span>print</div>
-  <span class="mono" style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Générateur de cartes</span>
+  <div style="display:flex;align-items:baseline;gap:.7rem">
+    <div class="display" style="font-size:1.4rem;font-weight:600"><span style="color:var(--teal)">Mana</span>print</div>
+    <span class="mono" data-i18n="nav_sub" style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Générateur de cartes</span>
+  </div>
+  <button id="lang-toggle" onclick="toggleLang()" style="background:#fff;border:1px solid var(--line);border-radius:20px;padding:.32rem .8rem;font-size:.78rem;font-weight:600;cursor:pointer;color:var(--teal-d)">🇬🇧 English</button>
 </nav>
 <div class="wrap">
 
@@ -44,21 +47,21 @@
     <div style="text-align:center;max-width:720px;margin:0 auto">
       <div style="display:inline-flex;align-items:center;gap:.55rem;border:1px solid var(--line);border-radius:30px;padding:.35rem 1rem;margin-bottom:1.5rem;background:#fff">
         <span style="width:6px;height:6px;border-radius:50%;background:var(--coral)"></span>
-        <span class="mono" style="font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">En partenariat avec Pacific Ink</span>
+        <span class="mono" data-i18n="badge_pi" style="font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">En partenariat avec Pacific Ink</span>
       </div>
-      <h1 class="display" style="font-size:clamp(2rem,5vw,3rem);font-weight:500;line-height:1.1;margin-bottom:1rem;color:var(--teal-d)">Le générateur de cartes MANAPRINT.</h1>
-      <p style="font-size:1.02rem;color:var(--muted);line-height:1.7;margin-bottom:2.5rem;max-width:540px;margin-inline:auto">Génération illimitée de cartes de jeux polynésiens. Choisissez votre point d'accès.</p>
+      <h1 class="display" style="font-size:clamp(2rem,5vw,3rem);font-weight:500;line-height:1.1;margin-bottom:1rem;color:var(--teal-d)" data-i18n="h1">Le générateur de cartes MANAPRINT.</h1>
+      <p style="font-size:1.02rem;color:var(--muted);line-height:1.7;margin-bottom:2.5rem;max-width:540px;margin-inline:auto" data-i18n="intro">Génération illimitée de cartes de jeux polynésiens. Choisissez votre point d'accès.</p>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem">
         <button class="card-choice" onclick="montrer('ecran-pi')">
-          <p class="label-mono" style="color:var(--coral)">Polynésie française</p>
-          <h3 class="display" style="font-size:1.3rem;margin-bottom:.6rem">Client Pacific Ink</h3>
-          <p style="font-size:.88rem;color:var(--muted);line-height:1.6">Vous avez une machine Pacific Ink confirmée. Accès via votre numéro de client.</p>
+          <p class="label-mono" data-i18n="pi_label" style="color:var(--coral)">Polynésie française</p>
+          <h3 class="display" data-i18n="pi_titre" style="font-size:1.3rem;margin-bottom:.6rem">Client Pacific Ink</h3>
+          <p data-i18n="pi_desc" style="font-size:.88rem;color:var(--muted);line-height:1.6">Vous avez une machine Pacific Ink confirmée. Accès via votre numéro de client.</p>
         </button>
         <button class="card-choice" onclick="montrer('ecran-intl')">
-          <p class="label-mono" style="color:var(--teal)">Hors Polynésie</p>
-          <h3 class="display" style="font-size:1.3rem;margin-bottom:.6rem">Client international</h3>
-          <p style="font-size:.88rem;color:var(--muted);line-height:1.6">Générez vos cartes, téléchargez le PDF, imprimez-le où vous voulez.</p>
+          <p class="label-mono" data-i18n="intl_label" style="color:var(--teal)">Hors Polynésie</p>
+          <h3 class="display" data-i18n="intl_titre" style="font-size:1.3rem;margin-bottom:.6rem">Client international</h3>
+          <p data-i18n="intl_desc" style="font-size:.88rem;color:var(--muted);line-height:1.6">Générez vos cartes, téléchargez le PDF, imprimez-le où vous voulez.</p>
         </button>
       </div>
 
@@ -70,16 +73,16 @@
           <div style="width:12px;height:16px;border-radius:2px;background:#fff;opacity:.9"></div>
         </div>
         <div>
-          <p style="color:#fff;font-weight:600;font-size:.95rem;margin-bottom:.2rem">4 machines reliées à la plateforme, prêtes à installer</p>
-          <p style="color:rgba(255,255,255,.7);font-size:.82rem;line-height:1.5">Installation et mise en service traitées directement avec 2KEA & Associé.</p>
+          <p data-i18n="machines_t" style="color:#fff;font-weight:600;font-size:.95rem;margin-bottom:.2rem">4 machines reliées à la plateforme, prêtes à installer</p>
+          <p data-i18n="machines_d" style="color:rgba(255,255,255,.7);font-size:.82rem;line-height:1.5">Installation et mise en service traitées directement avec 2KEA & Associé.</p>
         </div>
       </div>
 
-      <button onclick="montrer('ecran-admin')" class="mono" style="background:none;border:none;color:var(--muted);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;text-decoration:underline;text-underline-offset:3px">Espace gestion</button>
+      <button onclick="montrer('ecran-admin')" class="mono" style="background:none;border:none;color:var(--muted);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;text-decoration:underline;text-underline-offset:3px" data-i18n="gestion">Espace gestion</button>
 
       <a href="https://ticket-bingo-production.up.railway.app/?source=manaprint" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:.55rem;margin-top:2rem;padding:.9rem 1.1rem;border:1px solid var(--line);border-radius:12px;text-decoration:none;background:#fff;color:var(--teal-d)">
         <span style="font-size:1.2rem">🎱</span>
-        <span style="font-size:.85rem;font-weight:600">Tu organises des tournois ? Joue en ligne sur Ticket Bingo</span>
+        <span data-i18n="crosslink" style="font-size:.85rem;font-weight:600">Tu organises des tournois ? Joue en ligne sur Ticket Bingo</span>
         <span style="color:var(--teal);font-weight:700">→</span>
       </a>
     </div>
@@ -87,23 +90,23 @@
 
   <!-- ÉCRAN PACIFIC INK -->
   <div id="ecran-pi" class="hidden" style="max-width:460px;margin:0 auto">
-    <button onclick="montrer('ecran-choix')" style="background:none;border:none;color:var(--muted);font-size:.85rem;margin-bottom:1.5rem">← Retour</button>
-    <h2 class="display" style="font-size:1.5rem;margin-bottom:.6rem">Vérification Pacific Ink</h2>
-    <p style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;line-height:1.6">Entrez le numéro de client associé à votre machine Pacific Ink.</p>
+    <button onclick="montrer('ecran-choix')" data-i18n="retour" style="background:none;border:none;color:var(--muted);font-size:.85rem;margin-bottom:1.5rem">← Retour</button>
+    <h2 class="display" data-i18n="pi_verif_t" style="font-size:1.5rem;margin-bottom:.6rem">Vérification Pacific Ink</h2>
+    <p data-i18n="pi_verif_d" style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;line-height:1.6">Entrez le numéro de client associé à votre machine Pacific Ink.</p>
     <input id="pi-numero" placeholder="89 22 03 05">
-    <button class="btn" id="pi-btn" onclick="verifierPI()">Vérifier mon accès</button>
+    <button class="btn" id="pi-btn" data-i18n="btn_verifier" onclick="verifierPI()">Vérifier mon accès</button>
     <p id="pi-msg" style="margin-top:1rem;font-size:.88rem"></p>
   </div>
 
   <!-- ÉCRAN INTERNATIONAL -->
   <div id="ecran-intl" class="hidden" style="max-width:460px;margin:0 auto">
-    <button onclick="montrer('ecran-choix')" style="background:none;border:none;color:var(--muted);font-size:.85rem;margin-bottom:1.5rem">← Retour</button>
-    <h2 class="display" style="font-size:1.5rem;margin-bottom:.6rem">Client international</h2>
-    <p style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;line-height:1.6">Renseignez vos informations pour accéder au générateur.</p>
-    <input id="intl-nom" placeholder="Votre nom">
+    <button onclick="montrer('ecran-choix')" data-i18n="retour" style="background:none;border:none;color:var(--muted);font-size:.85rem;margin-bottom:1.5rem">← Retour</button>
+    <h2 class="display" data-i18n="intl_form_t" style="font-size:1.5rem;margin-bottom:.6rem">Client international</h2>
+    <p data-i18n="intl_form_d" style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;line-height:1.6">Renseignez vos informations pour accéder au générateur.</p>
+    <input id="intl-nom" data-i18n-ph="ph_nom" placeholder="Votre nom">
     <input id="intl-email" type="email" placeholder="vous@email.com">
-    <input id="intl-pays" placeholder="Pays (optionnel)">
-    <button class="btn" id="intl-btn" onclick="accederIntl()">Accéder au générateur</button>
+    <input id="intl-pays" data-i18n-ph="ph_pays" placeholder="Pays (optionnel)">
+    <button class="btn" id="intl-btn" data-i18n="btn_acceder" onclick="accederIntl()">Accéder au générateur</button>
     <p id="intl-msg" style="margin-top:1rem;font-size:.88rem"></p>
   </div>
 
@@ -115,16 +118,16 @@
     </div>
     <div style="display:grid;grid-template-columns:320px 1fr;gap:2rem;align-items:start">
       <div>
-        <p class="label-mono">Choisir un programme</p>
+        <p class="label-mono" data-i18n="gen_prog">Choisir un programme</p>
         <div id="gen-programmes" style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:1.25rem"></div>
-        <p class="label-mono">Thème de la carte</p>
-        <textarea id="gen-theme" rows="3" placeholder="Ex : le festival Heiva de Tahiti"></textarea>
-        <p class="label-mono">Nombre de cartes</p>
+        <p class="label-mono" data-i18n="gen_theme">Thème de la carte</p>
+        <textarea id="gen-theme" rows="3" data-i18n-ph="ph_theme" placeholder="Ex : le festival Heiva de Tahiti"></textarea>
+        <p class="label-mono" data-i18n="gen_nb">Nombre de cartes</p>
         <input id="gen-nb" type="number" min="1" max="50" value="6">
-        <button class="btn" id="gen-btn" onclick="genererPDF()">Générer le PDF</button>
+        <button class="btn" id="gen-btn" data-i18n="btn_generer" onclick="genererPDF()">Générer le PDF</button>
         <p id="gen-msg" style="margin-top:1rem;font-size:.85rem;color:var(--muted)"></p>
       </div>
-      <div id="gen-apercu" style="height:420px;border:1px dashed var(--line);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.9rem">
+      <div id="gen-apercu" style="height:420px;border:1px dashed var(--line);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.9rem" data-i18n="gen_apercu">
         Votre PDF sera généré et téléchargé automatiquement
       </div>
     </div>
@@ -157,13 +160,26 @@
 
 <script>
 const PROGRAMMES = [
-  {id:"p6",nom:"Programme P6",couleur:"#2D6E63",desc:"Grille 6×6"},
-  {id:"ohana75",nom:"OHANA 75",couleur:"#D4663D",desc:"Bingo 5×5"},
-  {id:"quines90",nom:"QUINES 90",couleur:"#1A4A42",desc:"Loto 90 cases"},
-  {id:"petits",nom:"Pack Petits Jeux",couleur:"#8B5A2B",desc:"Grille 4×4"},
+  {id:"p6",nom:"Programme P6",nomEn:"P6 Program",couleur:"#2D6E63",desc:"Grille 6×6",descEn:"6×6 grid"},
+  {id:"ohana75",nom:"OHANA 75",nomEn:"OHANA 75",couleur:"#D4663D",desc:"Bingo 5×5",descEn:"5×5 bingo"},
+  {id:"quines90",nom:"QUINES 90",nomEn:"QUINES 90",couleur:"#1A4A42",desc:"Loto 90 cases",descEn:"90-number lotto"},
+  {id:"petits",nom:"Pack Petits Jeux",nomEn:"Small Games Pack",couleur:"#8B5A2B",desc:"Grille 4×4",descEn:"4×4 grid"},
 ];
 let progChoisi = "ohana75";
 let origineAcces = "";
+let LANG = "fr";
+const T = {"nav_sub": {"fr": "Générateur de cartes", "en": "Card generator"}, "badge_pi": {"fr": "En partenariat avec Pacific Ink", "en": "In partnership with Pacific Ink"}, "h1": {"fr": "Le générateur de cartes MANAPRINT.", "en": "The MANAPRINT bingo card generator."}, "intro": {"fr": "Génération illimitée de cartes de jeux polynésiens. Choisissez votre point d'accès.", "en": "Unlimited bingo & game card generation. Choose your access point."}, "pi_label": {"fr": "Polynésie française", "en": "French Polynesia"}, "pi_titre": {"fr": "Client Pacific Ink", "en": "Pacific Ink Client"}, "pi_desc": {"fr": "Vous avez une machine Pacific Ink confirmée. Accès via votre numéro de client.", "en": "You have a confirmed Pacific Ink machine. Access with your client number."}, "intl_label": {"fr": "Hors Polynésie", "en": "Outside Polynesia"}, "intl_titre": {"fr": "Client international", "en": "International Client"}, "intl_desc": {"fr": "Générez vos cartes, téléchargez le PDF, imprimez-le où vous voulez.", "en": "Generate your cards, download the PDF, print it anywhere."}, "machines_t": {"fr": "4 machines reliées à la plateforme, prêtes à installer", "en": "4 machines linked to the platform, ready to install"}, "machines_d": {"fr": "Installation et mise en service traitées directement avec 2KEA & Associé.", "en": "Installation and setup handled directly with 2KEA & Associé."}, "gestion": {"fr": "Espace gestion", "en": "Management area"}, "crosslink": {"fr": "Tu organises des tournois ? Joue en ligne sur Ticket Bingo", "en": "Running tournaments? Play online on Ticket Bingo"}, "retour": {"fr": "← Retour", "en": "← Back"}, "pi_verif_t": {"fr": "Vérification Pacific Ink", "en": "Pacific Ink Verification"}, "pi_verif_d": {"fr": "Entrez le numéro de client associé à votre machine Pacific Ink.", "en": "Enter the client number linked to your Pacific Ink machine."}, "btn_verifier": {"fr": "Vérifier mon accès", "en": "Verify my access"}, "intl_form_t": {"fr": "Client international", "en": "International Client"}, "intl_form_d": {"fr": "Renseignez vos informations pour accéder au générateur.", "en": "Enter your details to access the generator."}, "ph_nom": {"fr": "Votre nom", "en": "Your name"}, "ph_pays": {"fr": "Pays (optionnel)", "en": "Country (optional)"}, "btn_acceder": {"fr": "Accéder au générateur", "en": "Access the generator"}, "gen_prog": {"fr": "Choisir un programme", "en": "Choose a game"}, "gen_theme": {"fr": "Thème de la carte", "en": "Card theme"}, "ph_theme": {"fr": "Ex : le festival Heiva de Tahiti", "en": "e.g. a tropical beach party"}, "gen_nb": {"fr": "Nombre de cartes", "en": "Number of cards"}, "btn_generer": {"fr": "Générer le PDF", "en": "Generate the PDF"}, "gen_apercu": {"fr": "Votre PDF sera généré et téléchargé automatiquement", "en": "Your PDF will be generated and downloaded automatically"}, "msg_erreur_reseau": {"fr": "Erreur réseau", "en": "Network error"}, "msg_erreur": {"fr": "Erreur", "en": "Error"}, "msg_pi_nonconfirme": {"fr": "Ce numéro n'est pas confirmé. Contactez Pacific Ink pour l'ajouter.", "en": "This number is not confirmed. Contact Pacific Ink to add it."}, "msg_intl_requis": {"fr": "Nom et email valides requis.", "en": "Valid name and email required."}, "gen_loading": {"fr": "Génération…", "en": "Generating…"}, "msg_pdf_intl": {"fr": "PDF téléchargé. Imprimez-le où vous voulez.", "en": "PDF downloaded. Print it anywhere."}, "msg_pdf_pi": {"fr": "PDF prêt — envoyez-le à votre machine Pacific Ink.", "en": "PDF ready — send it to your Pacific Ink machine."}, "acces_pi": {"fr": "Accès Pacific Ink confirmé", "en": "Pacific Ink access confirmed"}, "acces_intl": {"fr": "Accès international", "en": "International access"}};
+function t(k){ return (T[k] && T[k][LANG]!=null) ? T[k][LANG] : (T[k]?T[k].fr:k); }
+function setLang(lang){
+  LANG = lang;
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach(function(el){ var k=el.getAttribute("data-i18n"); if(T[k]&&T[k][lang]!=null) el.textContent=T[k][lang]; });
+  document.querySelectorAll("[data-i18n-ph]").forEach(function(el){ var k=el.getAttribute("data-i18n-ph"); if(T[k]&&T[k][lang]!=null) el.setAttribute("placeholder",T[k][lang]); });
+  var bt=document.getElementById("lang-toggle"); if(bt) bt.textContent=(lang==="fr")?"\uD83C\uDDEC\uD83C\uDDE7 English":"\uD83C\uDDEB\uD83C\uDDF7 Fran\u00e7ais";
+  try{ localStorage.setItem("manaprint_lang",lang); }catch(e){}
+  var g=document.getElementById("ecran-gen"); if(g && !g.classList.contains("hidden")){ try{ ouvrirGenerateur(); }catch(e){} }
+}
+function toggleLang(){ setLang(LANG==="fr"?"en":"fr"); }
 
 function montrer(id){
   document.querySelectorAll('.wrap > div').forEach(d=>d.classList.add('hidden'));
@@ -178,34 +194,34 @@ async function verifierPI(){
     const r = await fetch('/api/verifier-pacific-ink',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({numero:num})});
     const d = await r.json();
     if(d.ok){ origineAcces="pacific_ink"; ouvrirGenerateur(); }
-    else { msg.style.color="var(--coral)"; msg.textContent="Ce numéro n'est pas confirmé. Contactez Pacific Ink pour l'ajouter."; }
-  }catch(e){ msg.textContent="Erreur réseau"; }
-  btn.disabled=false; btn.textContent="Vérifier mon accès";
+    else { msg.style.color="var(--coral)"; msg.textContent=t("msg_pi_nonconfirme"); }
+  }catch(e){ msg.textContent=t("msg_erreur_reseau"); }
+  btn.disabled=false; btn.textContent=t("btn_verifier");
 }
 
 async function accederIntl(){
   const nom=document.getElementById('intl-nom').value, email=document.getElementById('intl-email').value, pays=document.getElementById('intl-pays').value;
   const btn=document.getElementById('intl-btn'), msg=document.getElementById('intl-msg');
-  if(!nom||!email.includes('@')){ msg.style.color="var(--coral)"; msg.textContent="Nom et email valides requis."; return; }
+  if(!nom||!email.includes('@')){ msg.style.color="var(--coral)"; msg.textContent=t("msg_intl_requis"); return; }
   btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
   try{
     const r=await fetch('/api/client-international',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom,email,pays})});
     const d=await r.json();
     if(d.ok){ origineAcces="international"; ouvrirGenerateur(); }
     else msg.textContent=d.message;
-  }catch(e){ msg.textContent="Erreur réseau"; }
-  btn.disabled=false; btn.textContent="Accéder au générateur";
+  }catch(e){ msg.textContent=t("msg_erreur_reseau"); }
+  btn.disabled=false; btn.textContent=t("btn_acceder");
 }
 
 function ouvrirGenerateur(){
   montrer('ecran-gen');
-  document.getElementById('gen-origine').textContent = origineAcces==="pacific_ink" ? "Accès Pacific Ink confirmé" : "Accès international";
+  document.getElementById('gen-origine').textContent = origineAcces==="pacific_ink" ? t("acces_pi") : t("acces_intl");
   const cont = document.getElementById('gen-programmes');
   cont.innerHTML = "";
   PROGRAMMES.forEach(p=>{
     const b=document.createElement('button');
     b.style.cssText=`display:flex;align-items:center;gap:.6rem;padding:.65rem .85rem;border-radius:4px;text-align:left;border:1px solid ${progChoisi===p.id?p.couleur:'var(--line)'};background:${progChoisi===p.id?p.couleur+'12':'#fff'}`;
-    b.innerHTML=`<div style="width:8px;height:8px;border-radius:50%;background:${p.couleur};flex-shrink:0"></div><div><div style="font-weight:600;font-size:.85rem">${p.nom}</div><div style="font-size:.7rem;color:var(--muted)">${p.desc}</div></div>`;
+    b.innerHTML=`<div style="width:8px;height:8px;border-radius:50%;background:${p.couleur};flex-shrink:0"></div><div><div style="font-weight:600;font-size:.85rem">${LANG==='en'?(p.nomEn||p.nom):p.nom}</div><div style="font-size:.7rem;color:var(--muted)">${LANG==='en'?(p.descEn||p.desc):p.desc}</div></div>`;
     b.onclick=()=>{ progChoisi=p.id; ouvrirGenerateur(); };
     cont.appendChild(b);
   });
@@ -215,7 +231,7 @@ async function genererPDF(){
   const theme=document.getElementById('gen-theme').value;
   const nb=document.getElementById('gen-nb').value;
   const btn=document.getElementById('gen-btn'), msg=document.getElementById('gen-msg');
-  btn.disabled=true; btn.innerHTML='<span class="spin"></span> Génération…';
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> '+t("gen_loading");
   try{
     const r=await fetch('/api/generer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({programme:progChoisi,theme,nb_cartes:nb})});
     if(r.ok){
@@ -224,10 +240,10 @@ async function genererPDF(){
       const a=document.createElement('a'); a.href=url; a.download=`manaprint_${progChoisi}.pdf`; a.click();
       URL.revokeObjectURL(url);
       msg.style.color="var(--teal)";
-      msg.textContent = origineAcces==="international" ? "PDF téléchargé. Imprimez-le où vous voulez." : "PDF prêt — envoyez-le à votre machine Pacific Ink.";
-    } else { const d=await r.json(); msg.textContent=d.message||"Erreur"; }
-  }catch(e){ msg.textContent="Erreur réseau"; }
-  btn.disabled=false; btn.textContent="Générer le PDF";
+      msg.textContent = origineAcces==="international" ? t("msg_pdf_intl") : t("msg_pdf_pi");
+    } else { const d=await r.json(); msg.textContent=d.message||t("msg_erreur"); }
+  }catch(e){ msg.textContent=t("msg_erreur_reseau"); }
+  btn.disabled=false; btn.textContent=t("btn_generer");
 }
 
 async function adminLogin(){
@@ -265,6 +281,8 @@ async function adminRetirer(num){
   await fetch('/api/admin/clients-pi/'+encodeURIComponent(num),{method:'DELETE'});
   chargerClients();
 }
+
+(function(){ var l="fr"; try{ l=localStorage.getItem("manaprint_lang")||"fr"; }catch(e){} setLang(l); })();
 </script>
 </body>
 </html>
