@@ -18,6 +18,33 @@ from generators import bingo_ball
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
 
+# ── Envoi d'email (impression partenaire FUN AND CO) ──────────────────────────
+import smtplib
+from email.message import EmailMessage
+
+FUN_AND_CO_EMAIL = os.environ.get("FUN_AND_CO_EMAIL", "funandco.24@gmail.com")
+SMTP_USER = os.environ.get("SMTP_USER", "")   # ex: ton.compte@gmail.com
+SMTP_PASS = os.environ.get("SMTP_PASS", "")   # mot de passe d'application Gmail
+
+def envoyer_email_pdf(destinataire, sujet, corps, pdf_io, nom_fichier):
+    """Envoie un email avec un PDF en pièce jointe (SMTP Gmail). Renvoie (ok, message)."""
+    if not SMTP_USER or not SMTP_PASS:
+        return False, "Email non configuré (SMTP_USER / SMTP_PASS manquants sur Railway)"
+    try:
+        msg = EmailMessage()
+        msg["Subject"] = sujet
+        msg["From"] = SMTP_USER
+        msg["To"] = destinataire
+        msg.set_content(corps)
+        pdf_io.seek(0)
+        msg.add_attachment(pdf_io.read(), maintype="application", subtype="pdf", filename=nom_fichier)
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
+            s.login(SMTP_USER, SMTP_PASS)
+            s.send_message(msg)
+        return True, "Email envoyé"
+    except Exception as e:
+        return False, "Echec email : " + str(e)
+
 # Code de gestion — À DÉFINIR via variable d'environnement en production
 CODE_ADMIN = os.environ.get("MANAPRINT_ADMIN_CODE", "2KEA-MOOREA")
 
@@ -332,6 +359,7 @@ def commander():
         "couleur_perso": data.get("couleur_perso", ""),
         "date_lieu": date_lieu,
         "telephone": telephone,
+        "fun_and_co": bool(data.get("fun_and_co", False)),
     })
 
     commande_id, montant = db.creer_commande(
@@ -458,7 +486,36 @@ def admin_valider_commande(commande_id):
     if not cmd:
         return jsonify({"ok": False, "message": "Commande introuvable"}), 404
     db.marquer_commande_payee(commande_id)
-    return jsonify({"ok": True, "message": "Commande validée — le client peut générer."})
+    # Impression chez FUN AND CO : générer le PDF et l'envoyer par email au partenaire
+    import json as _json
+    perso = _json.loads(cmd["params_perso"] or "{}")
+    info = ""
+    if perso.get("fun_and_co"):
+        try:
+            cpf = CARTES_PAR_FEUILLE.get(cmd["programme"], 10)
+            nb_cartes = cmd["nb_feuilles"] * cpf
+            pdf = generer_jeu(cmd["programme"], nb_cartes, bool(cmd["couleur"]), perso)
+            sujet = f"MANAPRINT — Commande #{commande_id} à imprimer"
+            corps = (
+                "Bonjour FUN AND CO,\n\n"
+                "Une nouvelle commande validée est à imprimer (presqu'île) :\n\n"
+                f"  • Client : {cmd['identifiant']}\n"
+                f"  • Événement : {perso.get('nom_evenement','')}\n"
+                f"  • Jeu : {cmd['programme']} — {cmd['nb_feuilles']} feuille(s)\n"
+                f"  • Téléphone du responsable : {perso.get('telephone','')}\n\n"
+                "Le PDF prêt à imprimer est en pièce jointe.\n\n"
+                "— MANAPRINT / 2KEA & Associé"
+            )
+            ok, m = envoyer_email_pdf(FUN_AND_CO_EMAIL, sujet, corps, pdf,
+                                      f"manaprint_cmd{commande_id}.pdf")
+            if ok:
+                db.marquer_commande_generee(commande_id)
+                info = " Le PDF a été envoyé à FUN AND CO pour impression."
+            else:
+                info = " ATTENTION : envoi à FUN AND CO échoué — " + m
+        except Exception as e:
+            info = " ATTENTION : erreur génération/envoi FUN AND CO — " + str(e)
+    return jsonify({"ok": True, "message": "Commande validée." + info})
 
 
 @app.route("/api/admin/machines/installer", methods=["POST"])
