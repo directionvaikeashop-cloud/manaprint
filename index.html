@@ -78,9 +78,10 @@
       <!-- Partenaires d'impression -->
       <div style="background:var(--sand);border-radius:8px;padding:1.1rem 1.4rem;margin-bottom:1.5rem;text-align:left">
         <p class="label-mono" data-i18n="part_titre" style="margin-bottom:.5rem">Où imprimer en Polynésie</p>
-        <p style="font-size:.85rem;color:var(--ink);line-height:1.6">
+        <p style="font-size:.85rem;color:var(--ink);line-height:1.7">
           <b>Pacific Ink</b> <span data-i18n="part_pi" class="opt">— machines installées</span><br>
-          <b>FUN AND CO</b> <span data-i18n="part_funco" class="opt">— presqu'île (Tahiti Iti)</span> · 📞 87 26 73 24 · ✉️ funandco.24@gmail.com
+          <b>FUN AND CO</b> <span data-i18n="part_funco" class="opt">— presqu'île (Tahiti Iti)</span> · 📞 87 26 73 24<br>
+          <b>2KEA &amp; Associé — Raiatea</b> <span data-i18n="part_raiatea" class="opt">— Îles Sous-le-Vent</span>
         </p>
       </div>
 
@@ -179,10 +180,13 @@
       <input id="gen-nb-feuilles" type="number" min="1" max="5000" value="10" oninput="majPrix()">
       <p id="gen-prix" style="font-size:.95rem;font-weight:600;color:var(--teal-d);margin-bottom:.9rem"></p>
 
-      <label id="gen-funco-wrap" class="hidden" style="display:flex;align-items:flex-start;gap:.5rem;font-size:.88rem;line-height:1.5;background:var(--sand);border-radius:6px;padding:.7rem .8rem;margin-bottom:.9rem;cursor:pointer">
-        <input type="checkbox" id="gen-funco" style="width:auto;margin:.2rem 0 0">
-        <span data-i18n="funco_choice">Imprimer chez <b>FUN AND CO</b> (presqu'île). Après validation, ton PDF leur est envoyé pour impression.</span>
-      </label>
+      <div id="gen-part-wrap" class="hidden" style="margin-bottom:.9rem">
+        <label class="field-label" data-i18n="lbl_partenaire">Où faire imprimer ?</label>
+        <select id="gen-partenaire" onchange="majPartInfo()" style="margin-bottom:0">
+          <option value="" data-i18n="part_self">Je télécharge le PDF moi-même</option>
+        </select>
+        <p id="gen-part-info" style="font-size:.8rem;color:var(--muted);margin-top:.45rem;line-height:1.5"></p>
+      </div>
 
       <button class="btn" id="gen-cmd-btn" data-i18n="btn_commander" onclick="commander()">Passer commande</button>
       <p id="gen-cmd-msg" style="margin-top:.8rem;font-size:.85rem;line-height:1.6"></p>
@@ -264,6 +268,10 @@ const T = {
  part_titre:{fr:"Où imprimer en Polynésie",en:"Where to print in Polynesia"},
  part_pi:{fr:"— machines installées",en:"— installed machines"},
  part_funco:{fr:"— presqu'île (Tahiti Iti)",en:"— peninsula (Tahiti Iti)"},
+ part_raiatea:{fr:"— Îles Sous-le-Vent",en:"— Leeward Islands"},
+ lbl_partenaire:{fr:"Où faire imprimer ?",en:"Where to print?"},
+ part_self:{fr:"Je télécharge le PDF moi-même",en:"I download the PDF myself"},
+ part_info:{fr:"Après validation, ton PDF est envoyé à",en:"After approval, your PDF is sent to"},
  crosslink:{fr:"Tu organises des tournois ? Joue en ligne sur Ticket Bingo",en:"Running tournaments? Play online on Ticket Bingo"},
  gestion:{fr:"Espace gestion",en:"Management area"},
  retour:{fr:"← Retour",en:"← Back"},
@@ -381,14 +389,40 @@ function ouvrirGenerateur(){
   montrer('ecran-gen');
   majOrigine();
   rendreProgrammes();
-  // option FUN AND CO : visible pour les clients polynésiens (presqu'île)
-  document.getElementById('gen-funco-wrap').classList.toggle('hidden', origineAcces!=="polynesien");
+  // menu partenaires d'impression : visible pour les clients polynésiens (presqu'île, îles…)
+  const pw=document.getElementById('gen-part-wrap');
+  pw.classList.toggle('hidden', origineAcces!=="polynesien");
+  if(origineAcces==="polynesien") chargerPartenaires();
   majPrix();
   majEssais();
 }
 function majOrigine(){
   var k = origineAcces==="pacific_ink" ? "acces_pi" : (origineAcces==="polynesien" ? "acces_poly" : "acces_intl");
   document.getElementById('gen-origine').textContent = t(k);
+}
+let PARTENAIRES_LIST = [];
+async function chargerPartenaires(){
+  const sel=document.getElementById('gen-partenaire');
+  try{
+    const r=await fetch('/api/partenaires'); const d=await r.json();
+    PARTENAIRES_LIST = d.partenaires||[];
+  }catch(e){ PARTENAIRES_LIST=[]; }
+  const garder = sel.value;
+  sel.innerHTML='<option value="">'+t('part_self')+'</option>';
+  PARTENAIRES_LIST.forEach(function(p){
+    const o=document.createElement('option');
+    o.value=p.id; o.textContent=p.nom+" — "+p.zone;
+    sel.appendChild(o);
+  });
+  sel.value=garder;
+  majPartInfo();
+}
+function majPartInfo(){
+  const sel=document.getElementById('gen-partenaire');
+  const info=document.getElementById('gen-part-info');
+  const p=PARTENAIRES_LIST.find(function(x){ return x.id===sel.value; });
+  if(p){ info.textContent = t('part_info')+" "+p.nom+(p.tel?(" · 📞 "+p.tel):"")+". "; }
+  else { info.textContent=""; }
 }
 function rendreProgrammes(){
   const cont=document.getElementById('gen-programmes'); cont.innerHTML="";
@@ -457,11 +491,12 @@ async function commander(){
   const perso=collectPerso(msg); if(!perso) return;
   const nb=parseInt(document.getElementById('gen-nb-feuilles').value)||0;
   if(nb<1){ msg.style.color="var(--coral)"; msg.textContent=t("nb_invalide"); return; }
-  const funco=document.getElementById('gen-funco').checked;
+  const sel=document.getElementById('gen-partenaire');
+  const partenaire=sel?sel.value:"";
   const btn=document.getElementById('gen-cmd-btn');
   btn.disabled=true; btn.innerHTML='<span class="spin"></span> '+t("cmd_envoi");
   try{
-    const body=Object.assign({programme:progChoisi,couleur:document.getElementById('gen-couleur').checked,nb_feuilles:nb,mode_paiement:'manuel',fun_and_co:funco},perso);
+    const body=Object.assign({programme:progChoisi,couleur:document.getElementById('gen-couleur').checked,nb_feuilles:nb,mode_paiement:'manuel',partenaire:partenaire},perso);
     const r=await fetch('/api/commander',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const d=await r.json();
     if(d.ok){ msg.style.color="var(--teal)"; msg.textContent=d.message; }
