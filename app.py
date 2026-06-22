@@ -26,8 +26,9 @@ FUN_AND_CO_EMAIL = os.environ.get("FUN_AND_CO_EMAIL", "funandco.24@gmail.com")
 SMTP_USER = os.environ.get("SMTP_USER", "")   # ex: ton.compte@gmail.com
 SMTP_PASS = os.environ.get("SMTP_PASS", "")   # mot de passe d'application Gmail
 
-def envoyer_email_pdf(destinataire, sujet, corps, pdf_io, nom_fichier):
-    """Envoie un email avec un PDF en pièce jointe (SMTP Gmail). Renvoie (ok, message)."""
+def envoyer_email_pdf(destinataire, sujet, corps, pdf_io, nom_fichier, copie=None):
+    """Envoie un email avec un PDF en pièce jointe (SMTP Gmail). Renvoie (ok, message).
+    copie : adresse mise en copie (CC), ex. la plateforme pour garder une trace."""
     if not SMTP_USER or not SMTP_PASS:
         return False, "Email non configuré (SMTP_USER / SMTP_PASS manquants sur Railway)"
     try:
@@ -35,6 +36,8 @@ def envoyer_email_pdf(destinataire, sujet, corps, pdf_io, nom_fichier):
         msg["Subject"] = sujet
         msg["From"] = SMTP_USER
         msg["To"] = destinataire
+        if copie:
+            msg["Cc"] = copie
         msg.set_content(corps)
         pdf_io.seek(0)
         msg.add_attachment(pdf_io.read(), maintype="application", subtype="pdf", filename=nom_fichier)
@@ -507,7 +510,8 @@ def admin_valider_commande(commande_id):
                 "— MANAPRINT / 2KEA & Associé"
             )
             ok, m = envoyer_email_pdf(FUN_AND_CO_EMAIL, sujet, corps, pdf,
-                                      f"manaprint_cmd{commande_id}.pdf")
+                                      f"manaprint_cmd{commande_id}.pdf",
+                                      copie=SMTP_USER or None)
             if ok:
                 db.marquer_commande_generee(commande_id)
                 info = " Le PDF a été envoyé à FUN AND CO pour impression."
