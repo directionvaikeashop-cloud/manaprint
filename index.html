@@ -235,20 +235,16 @@
 </div>
 
 <script>
-// ── Jeux disponibles (correspondent au moteur app.py) ──
-const PROGRAMMES = [
-  {id:"triple_action", nom:"Triple Action 75", desc:"10 cartes / feuille", descEn:"10 cards / sheet", couleur:"#2D6E63"},
-  {id:"aloha75",       nom:"Aloha 75",         desc:"12 cartes / feuille", descEn:"12 cards / sheet", couleur:"#D4663D"},
-  {id:"p6_marathon",   nom:"P6 Marathon",      desc:"6 cartes / feuille",  descEn:"6 cards / sheet",  couleur:"#1A4A42"},
-  {id:"bingo_ball",    nom:"Bingo Ball",       desc:"10 cartes / feuille", descEn:"10 cards / sheet", couleur:"#8B5A2B"},
-];
+// ── Générateur universel : la liste des jeux vient du registre (/api/jeux) ──
+let PROGRAMMES = [];
+const PALETTE = ["#2D6E63","#D4663D","#1A4A42","#8B5A2B","#7C3AED","#0EA5E9","#DB2777","#65A30D"];
 // Tarifs XPF / feuille (couleur, N&B) selon le profil — identiques au moteur
 const TARIFS = {
   pacific_ink:  {c:10,  nb:5},
   polynesien:   {c:3,   nb:1.5},
   international: {c:6,   nb:3},
 };
-let progChoisi = "triple_action";
+let progChoisi = "";
 let origineAcces = "";
 let LANG = "fr";
 
@@ -390,7 +386,7 @@ async function accederIntl(){
 function ouvrirGenerateur(){
   montrer('ecran-gen');
   majOrigine();
-  rendreProgrammes();
+  chargerJeux();
   // menu partenaires d'impression : visible pour les clients polynésiens (presqu'île, îles…)
   const pw=document.getElementById('gen-part-wrap');
   pw.classList.toggle('hidden', origineAcces!=="polynesien");
@@ -426,13 +422,24 @@ function majPartInfo(){
   if(p){ info.textContent = t('part_info')+" "+p.nom+(p.tel?(" · 📞 "+p.tel):"")+". "; }
   else { info.textContent=""; }
 }
+async function chargerJeux(){
+  if(!PROGRAMMES.length){
+    try{
+      const r=await fetch('/api/jeux'); const d=await r.json();
+      PROGRAMMES=(d.jeux||[]).map(function(j,i){ return {id:j.id,nom:j.nom,emoji:j.emoji||"",cpf:j.cartes_par_feuille||10,couleur:PALETTE[i%PALETTE.length]}; });
+    }catch(e){ PROGRAMMES=[]; }
+    if(!progChoisi && PROGRAMMES.length) progChoisi=PROGRAMMES[0].id;
+  }
+  rendreProgrammes();
+}
 function rendreProgrammes(){
   const cont=document.getElementById('gen-programmes'); cont.innerHTML="";
   PROGRAMMES.forEach(function(p){
     const b=document.createElement('button');
     const on=progChoisi===p.id;
+    const desc=p.cpf+(LANG==='en'?" cards / sheet":" cartes / feuille");
     b.style.cssText="display:flex;align-items:center;gap:.6rem;padding:.65rem .85rem;border-radius:4px;text-align:left;width:100%;border:1px solid "+(on?p.couleur:'var(--line)')+";background:"+(on?p.couleur+'12':'#fff');
-    b.innerHTML='<div style="width:8px;height:8px;border-radius:50%;background:'+p.couleur+';flex-shrink:0"></div><div><div style="font-weight:600;font-size:.85rem">'+p.nom+'</div><div style="font-size:.7rem;color:var(--muted)">'+(LANG==='en'?p.descEn:p.desc)+'</div></div>';
+    b.innerHTML='<div style="width:8px;height:8px;border-radius:50%;background:'+p.couleur+';flex-shrink:0"></div><div><div style="font-weight:600;font-size:.85rem">'+(p.emoji?p.emoji+" ":"")+p.nom+'</div><div style="font-size:.7rem;color:var(--muted)">'+desc+'</div></div>';
     b.onclick=function(){ progChoisi=p.id; rendreProgrammes(); };
     cont.appendChild(b);
   });
