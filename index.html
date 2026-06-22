@@ -143,11 +143,7 @@
     <p class="label-mono" data-i18n="gen_prog">Choisir un jeu</p>
     <div id="gen-programmes" style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:1.25rem"></div>
 
-    <!-- 2. Couleur -->
-    <label style="display:flex;align-items:center;gap:.5rem;font-size:.9rem;margin-bottom:1.25rem;cursor:pointer">
-      <input type="checkbox" id="gen-couleur" checked onchange="majPrix()" style="width:auto;margin:0">
-      <span data-i18n="gen_couleur">Cartes en couleur (sinon noir & blanc, moins cher)</span>
-    </label>
+    <!-- 2. (La couleur est déterminée par le jeu choisi : version Couleur ou N&B) -->
 
     <!-- 3. Personnalisation -->
     <p class="label-mono" data-i18n="gen_perso">Personnalisation (obligatoire)</p>
@@ -426,7 +422,7 @@ async function chargerJeux(){
   if(!PROGRAMMES.length){
     try{
       const r=await fetch('/api/jeux'); const d=await r.json();
-      PROGRAMMES=(d.jeux||[]).map(function(j,i){ return {id:j.id,nom:j.nom,emoji:j.emoji||"",cpf:j.cartes_par_feuille||10,couleur:PALETTE[i%PALETTE.length]}; });
+      PROGRAMMES=(d.jeux||[]).map(function(j,i){ return {id:j.id,nom:j.nom,emoji:j.emoji||"",cpf:j.cartes_par_feuille||10,couleur:j.couleur,teinte:PALETTE[i%PALETTE.length]}; });
     }catch(e){ PROGRAMMES=[]; }
     if(!progChoisi && PROGRAMMES.length) progChoisi=PROGRAMMES[0].id;
   }
@@ -438,15 +434,16 @@ function rendreProgrammes(){
     const b=document.createElement('button');
     const on=progChoisi===p.id;
     const desc=p.cpf+(LANG==='en'?" cards / sheet":" cartes / feuille");
-    b.style.cssText="display:flex;align-items:center;gap:.6rem;padding:.65rem .85rem;border-radius:4px;text-align:left;width:100%;border:1px solid "+(on?p.couleur:'var(--line)')+";background:"+(on?p.couleur+'12':'#fff');
-    b.innerHTML='<div style="width:8px;height:8px;border-radius:50%;background:'+p.couleur+';flex-shrink:0"></div><div><div style="font-weight:600;font-size:.85rem">'+(p.emoji?p.emoji+" ":"")+p.nom+'</div><div style="font-size:.7rem;color:var(--muted)">'+desc+'</div></div>';
-    b.onclick=function(){ progChoisi=p.id; rendreProgrammes(); };
+    b.style.cssText="display:flex;align-items:center;gap:.6rem;padding:.65rem .85rem;border-radius:4px;text-align:left;width:100%;border:1px solid "+(on?p.teinte:'var(--line)')+";background:"+(on?p.teinte+'12':'#fff');
+    b.innerHTML='<div style="width:8px;height:8px;border-radius:50%;background:'+p.teinte+';flex-shrink:0"></div><div><div style="font-weight:600;font-size:.85rem">'+(p.emoji?p.emoji+" ":"")+p.nom+'</div><div style="font-size:.7rem;color:var(--muted)">'+desc+'</div></div>';
+    b.onclick=function(){ progChoisi=p.id; rendreProgrammes(); majPrix(); };
     cont.appendChild(b);
   });
 }
 function majPrix(){
   const nb=parseInt(document.getElementById('gen-nb-feuilles').value)||0;
-  const couleur=document.getElementById('gen-couleur').checked;
+  const jeu=PROGRAMMES.find(function(p){ return p.id===progChoisi; });
+  const couleur = jeu ? jeu.couleur : true;
   const tar=TARIFS[origineAcces]||TARIFS.pacific_ink;
   const prix=couleur?tar.c:tar.nb;
   const total=nb*prix;
@@ -482,7 +479,7 @@ async function essaiPDF(){
   const btn=document.getElementById('gen-essai-btn');
   btn.disabled=true; btn.innerHTML='<span class="spin"></span> '+t("gen_loading");
   try{
-    const body=Object.assign({programme:progChoisi,couleur:document.getElementById('gen-couleur').checked},perso);
+    const body=Object.assign({programme:progChoisi},perso);
     const r=await fetch('/api/essai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const ct=r.headers.get('Content-Type')||'';
     if(r.ok && ct.indexOf('pdf')!==-1){
@@ -505,7 +502,7 @@ async function commander(){
   const btn=document.getElementById('gen-cmd-btn');
   btn.disabled=true; btn.innerHTML='<span class="spin"></span> '+t("cmd_envoi");
   try{
-    const body=Object.assign({programme:progChoisi,couleur:document.getElementById('gen-couleur').checked,nb_feuilles:nb,mode_paiement:'manuel',partenaire:partenaire},perso);
+    const body=Object.assign({programme:progChoisi,nb_feuilles:nb,mode_paiement:'manuel',partenaire:partenaire},perso);
     const r=await fetch('/api/commander',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const d=await r.json();
     if(d.ok){ msg.style.color="var(--teal)"; msg.textContent=d.message; }
