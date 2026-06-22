@@ -29,6 +29,12 @@ SMTP_PASS = os.environ.get("SMTP_PASS", "")   # mot de passe d'application Gmail
 # ── Partenaires d'impression (le client polynésien peut faire imprimer chez eux) ──
 # Pour en ajouter un : ajoute une ligne ici (id, nom, email, zone, tel). C'est tout.
 PARTENAIRES = {
+    "2kea_papeete": {
+        "nom": "2KEA & Associé — Papeete",
+        "email": os.environ.get("PAPEETE_EMAIL", "directionvaikeashop@gmail.com"),
+        "zone": "Papeete (Tahiti)",
+        "tel": "89 52 98 83",
+    },
     "fun_and_co": {
         "nom": "FUN AND CO",
         "email": FUN_AND_CO_EMAIL,
@@ -39,7 +45,7 @@ PARTENAIRES = {
         "nom": "2KEA & Associé — Raiatea",
         "email": os.environ.get("RAIATEA_EMAIL", "vaikeashop04@gmail.com"),
         "zone": "Raiatea (Îles Sous-le-Vent)",
-        "tel": "",
+        "tel": "87 77 34 26",
     },
 }
 
