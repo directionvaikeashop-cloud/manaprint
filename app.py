@@ -86,28 +86,40 @@ NOMS_RESERVES = ["tukea", "2kea", "maeva", "2kea&associe", "2kea & associe", "2k
 # ============================================================
 REGISTRE_JEUX = {}
 
-def _enregistrer_jeu(jeu_id, nom, emoji, cartes_par_feuille, generer, kwarg_nb="nb_cartes"):
-    """Enregistre un jeu A4 dans le registre universel (tolérant si un module manque)."""
+def _enregistrer_jeu(jeu_id, nom, emoji, cartes_par_feuille, generer, kwarg_nb="nb_cartes", couleur=True):
+    """Enregistre un jeu A4 (tolérant). couleur=True (arc-en-ciel) ou False (N&B)."""
     try:
         REGISTRE_JEUX[jeu_id] = {
             "nom": nom, "emoji": emoji,
             "cartes_par_feuille": cartes_par_feuille,
-            "generer": generer, "kwarg_nb": kwarg_nb,
+            "generer": generer, "kwarg_nb": kwarg_nb, "couleur": couleur,
         }
         print(f"[JEU A4 INSTALLE] {emoji} {nom}")
     except Exception as e:
         print(f"[JEU A4 ABSENT] {nom} : {e}")
 
-#                 id               nom                 emoji  cartes/feuille  fonction                   (kwarg nb)
-_enregistrer_jeu("triple_action", "Triple Action 75", "🎯", 10, triple_action.generer_pdf, kwarg_nb="nb_tickets")
-_enregistrer_jeu("aloha75",       "Aloha 75",         "🌺", 12, aloha75.generer_pdf)
-_enregistrer_jeu("p6_marathon",   "P6 Marathon",      "6️⃣", 6,  p6_marathon.generer_pdf)
-_enregistrer_jeu("bingo_ball",    "Bingo Ball",       "🎱", 10, bingo_ball.generer_pdf)
-_enregistrer_jeu("ohana75_2s_couleur", "OHANA 75 · 2 séries (Couleur)", "🌈", 2, ohana75_2series.generer_couleur)
-_enregistrer_jeu("ohana75_2s_nb",      "OHANA 75 · 2 séries (N&B)",     "⚫", 2, ohana75_2series.generer_nb)
-# --- Ajouter les futurs jeux A4 ici, une ligne chacun : ---
-# _enregistrer_jeu("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
-# _enregistrer_jeu("quines90", "QUINES 90", "🎲", 6, quines90.generer_pdf)
+def _variante(fn, couleur_force):
+    """Crée une version d'un générateur qui force la couleur (True/False)."""
+    def _w(**kwargs):
+        kwargs["couleur"] = couleur_force
+        return fn(**kwargs)
+    return _w
+
+def _enregistrer_paire(base_id, nom, emoji, cpf, fn, kwarg_nb="nb_cartes"):
+    """Enregistre les 2 variantes d'un jeu : (Couleur) et (N&B). 1 ligne = 2 entrées."""
+    _enregistrer_jeu(base_id + "_couleur", nom + " (Couleur)", emoji, cpf,
+                     _variante(fn, True),  kwarg_nb=kwarg_nb, couleur=True)
+    _enregistrer_jeu(base_id + "_nb",      nom + " (N&B)",     emoji, cpf,
+                     _variante(fn, False), kwarg_nb=kwarg_nb, couleur=False)
+
+#                  id base          nom                 emoji  cartes/feuille  fonction
+_enregistrer_paire("triple_action", "Triple Action 75",  "🎯", 10, triple_action.generer_pdf, kwarg_nb="nb_tickets")
+_enregistrer_paire("aloha75",       "Aloha 75",          "🌺", 12, aloha75.generer_pdf)
+_enregistrer_paire("p6_marathon",   "P6 Marathon",       "6️⃣", 6,  p6_marathon.generer_pdf)
+_enregistrer_paire("bingo_ball",    "Bingo Ball",        "🎱", 10, bingo_ball.generer_pdf)
+_enregistrer_paire("ohana75_2s",    "OHANA 75 · 2 séries","🌺", 2,  ohana75_2series.generer_pdf)
+# --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
+# _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
 
 # Table cartes/feuille dérivée automatiquement du registre
 CARTES_PAR_FEUILLE = {jid: j["cartes_par_feuille"] for jid, j in REGISTRE_JEUX.items()}
@@ -312,7 +324,7 @@ def essai():
     data = request.get_json(force=True)
     programme = data.get("programme", "triple_action")
     theme = data.get("theme", "")
-    couleur = bool(data.get("couleur", True))
+    couleur = REGISTRE_JEUX.get(programme, {}).get("couleur", True)
 
     # Personnalisation OBLIGATOIRE (sécurité : chaque ticket est identifié)
     # Vérifiée AVANT de décompter l'essai, pour ne pas pénaliser le client.
@@ -364,7 +376,8 @@ def essais_restants():
 def api_jeux():
     """Liste des jeux du registre universel (pour construire le menu côté page)."""
     return jsonify({"ok": True, "jeux": [
-        {"id": jid, "nom": j["nom"], "emoji": j["emoji"], "cartes_par_feuille": j["cartes_par_feuille"]}
+        {"id": jid, "nom": j["nom"], "emoji": j["emoji"],
+         "cartes_par_feuille": j["cartes_par_feuille"], "couleur": j["couleur"]}
         for jid, j in REGISTRE_JEUX.items()
     ]})
 
@@ -386,7 +399,7 @@ def commander():
 
     data = request.get_json(force=True)
     programme = data.get("programme", "triple_action")
-    couleur = bool(data.get("couleur", True))
+    couleur = REGISTRE_JEUX.get(programme, {}).get("couleur", True)
     nb_feuilles = max(1, min(int(data.get("nb_feuilles", 500)), 5000))
     mode_paiement = data.get("mode_paiement", "manuel")  # 'stripe' | 'manuel'
 
