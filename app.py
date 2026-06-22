@@ -19,6 +19,7 @@ from generators import brown8
 from generators import flash_quines_allonge
 from generators import kai
 from generators import ohana75_8boules
+from generators import ohana75_10boules
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
@@ -126,6 +127,7 @@ _enregistrer_paire("brown8",        "BROWN 8 boules",     "🟤", 8,  brown8.gen
 _enregistrer_paire("flash_quines",  "FLASH QUINES allongé","⚡", 9,  flash_quines_allonge.generer_pdf)
 _enregistrer_paire("kai",           "KAI 7 boules",       "🍽️", 12, kai.generer_pdf)
 _enregistrer_paire("ohana75_8b",    "OHANA 75 · 8 boules","🌺", 9,  ohana75_8boules.generer_pdf)
+_enregistrer_paire("ohana75_10b",   "OHANA 75 · 10 boules","🌺", 9,  ohana75_10boules.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
 
