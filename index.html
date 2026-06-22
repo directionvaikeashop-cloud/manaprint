@@ -60,13 +60,13 @@
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem" id="cartes-acces">
         <button class="card-choice" onclick="montrer('ecran-pi')">
           <p class="label-mono" data-i18n="pi_label" style="color:var(--coral)">Polynésie · Pacific Ink</p>
-          <h3 class="display" data-i18n="pi_titre" style="font-size:1.2rem;margin-bottom:.6rem">Client Pacific Ink</h3>
+          <h3 class="display" data-i18n="pi_titre" style="font-size:1.2rem;margin-bottom:.6rem">Machine à placer de chez Pacific Ink</h3>
           <p data-i18n="pi_desc" style="font-size:.85rem;color:var(--muted);line-height:1.6">Vous avez une machine Pacific Ink. Accès par votre numéro de client.</p>
         </button>
         <button class="card-choice" onclick="montrer('ecran-poly')">
           <p class="label-mono" data-i18n="poly_label" style="color:var(--teal)">Polynésie · sans machine</p>
           <h3 class="display" data-i18n="poly_titre" style="font-size:1.2rem;margin-bottom:.6rem">Client Polynésien</h3>
-          <p data-i18n="poly_desc" style="font-size:.85rem;color:var(--muted);line-height:1.6">Générez vos fichiers au tarif local. Imprimez chez un partenaire.</p>
+          <p data-i18n="poly_desc" style="font-size:.85rem;color:var(--muted);line-height:1.6">Générez vos fichiers au tarif local. Imprimez sur une machine Pacific Ink.</p>
         </button>
         <button class="card-choice" onclick="montrer('ecran-intl')">
           <p class="label-mono" data-i18n="intl_label" style="color:var(--teal)">Hors Polynésie</p>
@@ -77,7 +77,7 @@
 
       <!-- Partenaires d'impression -->
       <div style="background:var(--sand);border-radius:8px;padding:1.1rem 1.4rem;margin-bottom:1.5rem;text-align:left">
-        <p class="label-mono" data-i18n="part_titre" style="margin-bottom:.5rem">Où imprimer en Polynésie</p>
+        <p class="label-mono" data-i18n="part_titre" style="margin-bottom:.5rem">Machines Pacific Ink à placer</p>
         <p style="font-size:.85rem;color:var(--ink);line-height:1.7">
           <b>Pacific Ink</b> <span data-i18n="part_pi" class="opt">— machines installées</span><br>
           <b>2KEA &amp; Associé — Papeete</b> <span data-i18n="part_papeete" class="opt">— Tahiti</span> · 📞 89 52 98 83<br>
@@ -182,7 +182,7 @@
       <p id="gen-prix" style="font-size:.95rem;font-weight:600;color:var(--teal-d);margin-bottom:.9rem"></p>
 
       <div id="gen-part-wrap" class="hidden" style="margin-bottom:.9rem">
-        <label class="field-label" data-i18n="lbl_partenaire">Où faire imprimer ?</label>
+        <label class="field-label" data-i18n="lbl_partenaire">Choisir une machine Pacific Ink</label>
         <select id="gen-partenaire" onchange="majPartInfo()" style="margin-bottom:0">
           <option value="" data-i18n="part_self">Je télécharge le PDF moi-même</option>
         </select>
@@ -258,20 +258,20 @@ const T = {
  h1:{fr:"Le générateur de cartes MANAPRINT.",en:"The MANAPRINT bingo card generator."},
  intro:{fr:"Génération de cartes de bingo personnalisées. Choisissez votre accès.",en:"Custom bingo card generation. Choose your access."},
  pi_label:{fr:"Polynésie · Pacific Ink",en:"Polynesia · Pacific Ink"},
- pi_titre:{fr:"Client Pacific Ink",en:"Pacific Ink Client"},
+ pi_titre:{fr:"Machine à placer de chez Pacific Ink",en:"Pacific Ink machine to install"},
  pi_desc:{fr:"Vous avez une machine Pacific Ink. Accès par votre numéro de client.",en:"You have a Pacific Ink machine. Access with your client number."},
  poly_label:{fr:"Polynésie · sans machine",en:"Polynesia · no machine"},
  poly_titre:{fr:"Client Polynésien",en:"Polynesian Client"},
- poly_desc:{fr:"Générez vos fichiers au tarif local. Imprimez chez un partenaire.",en:"Generate your files at the local rate. Print with a partner."},
+ poly_desc:{fr:"Générez vos fichiers au tarif local. Imprimez sur une machine Pacific Ink.",en:"Generate your files at the local rate. Print on a Pacific Ink machine."},
  intl_label:{fr:"Hors Polynésie",en:"Outside Polynesia"},
  intl_titre:{fr:"Client international",en:"International Client"},
  intl_desc:{fr:"Générez vos cartes, téléchargez le PDF, imprimez où vous voulez.",en:"Generate your cards, download the PDF, print anywhere."},
- part_titre:{fr:"Où imprimer en Polynésie",en:"Where to print in Polynesia"},
+ part_titre:{fr:"Machines Pacific Ink à placer",en:"Pacific Ink machines"},
  part_pi:{fr:"— machines installées",en:"— installed machines"},
  part_funco:{fr:"— presqu'île (Tahiti Iti)",en:"— peninsula (Tahiti Iti)"},
  part_raiatea:{fr:"— Îles Sous-le-Vent",en:"— Leeward Islands"},
  part_papeete:{fr:"— Tahiti",en:"— Tahiti"},
- lbl_partenaire:{fr:"Où faire imprimer ?",en:"Where to print?"},
+ lbl_partenaire:{fr:"Choisir une machine Pacific Ink",en:"Choose a Pacific Ink machine"},
  part_self:{fr:"Je télécharge le PDF moi-même",en:"I download the PDF myself"},
  part_info:{fr:"Après validation, ton PDF est envoyé à",en:"After approval, your PDF is sent to"},
  crosslink:{fr:"Tu organises des tournois ? Joue en ligne sur Ticket Bingo",en:"Running tournaments? Play online on Ticket Bingo"},
