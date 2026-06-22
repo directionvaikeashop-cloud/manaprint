@@ -14,6 +14,7 @@ from generators import triple_action
 from generators import aloha75
 from generators import p6_marathon
 from generators import bingo_ball
+from generators import ohana75_2series
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
@@ -102,6 +103,8 @@ _enregistrer_jeu("triple_action", "Triple Action 75", "🎯", 10, triple_action.
 _enregistrer_jeu("aloha75",       "Aloha 75",         "🌺", 12, aloha75.generer_pdf)
 _enregistrer_jeu("p6_marathon",   "P6 Marathon",      "6️⃣", 6,  p6_marathon.generer_pdf)
 _enregistrer_jeu("bingo_ball",    "Bingo Ball",       "🎱", 10, bingo_ball.generer_pdf)
+_enregistrer_jeu("ohana75_2s_couleur", "OHANA 75 · 2 séries (Couleur)", "🌈", 2, ohana75_2series.generer_couleur)
+_enregistrer_jeu("ohana75_2s_nb",      "OHANA 75 · 2 séries (N&B)",     "⚫", 2, ohana75_2series.generer_nb)
 # --- Ajouter les futurs jeux A4 ici, une ligne chacun : ---
 # _enregistrer_jeu("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
 # _enregistrer_jeu("quines90", "QUINES 90", "🎲", 6, quines90.generer_pdf)
