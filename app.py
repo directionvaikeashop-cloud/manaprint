@@ -26,6 +26,23 @@ FUN_AND_CO_EMAIL = os.environ.get("FUN_AND_CO_EMAIL", "funandco.24@gmail.com")
 SMTP_USER = os.environ.get("SMTP_USER", "")   # ex: ton.compte@gmail.com
 SMTP_PASS = os.environ.get("SMTP_PASS", "")   # mot de passe d'application Gmail
 
+# ── Partenaires d'impression (le client polynésien peut faire imprimer chez eux) ──
+# Pour en ajouter un : ajoute une ligne ici (id, nom, email, zone, tel). C'est tout.
+PARTENAIRES = {
+    "fun_and_co": {
+        "nom": "FUN AND CO",
+        "email": FUN_AND_CO_EMAIL,
+        "zone": "Presqu'île (Tahiti Iti)",
+        "tel": "87 26 73 24",
+    },
+    "2kea_raiatea": {
+        "nom": "2KEA & Associé — Raiatea",
+        "email": os.environ.get("RAIATEA_EMAIL", "vaikeashop04@gmail.com"),
+        "zone": "Raiatea (Îles Sous-le-Vent)",
+        "tel": "",
+    },
+}
+
 def envoyer_email_pdf(destinataire, sujet, corps, pdf_io, nom_fichier, copie=None):
     """Envoie un email avec un PDF en pièce jointe (SMTP Gmail). Renvoie (ok, message).
     copie : adresse mise en copie (CC), ex. la plateforme pour garder une trace."""
@@ -325,6 +342,15 @@ def essais_restants():
     return jsonify({"ok": True, "restants": max(0, db.NB_ESSAIS_MAX - utilises)})
 
 
+@app.route("/api/partenaires", methods=["GET"])
+def api_partenaires():
+    """Liste des points d'impression partenaires (pour le menu déroulant)."""
+    return jsonify({"ok": True, "partenaires": [
+        {"id": k, "nom": v["nom"], "zone": v["zone"], "tel": v["tel"]}
+        for k, v in PARTENAIRES.items()
+    ]})
+
+
 # ── COMMANDE — calcul du prix + création ──────────────────────────────────────
 @app.route("/api/commander", methods=["POST"])
 def commander():
@@ -355,6 +381,13 @@ def commander():
         return jsonify({"ok": False, "message": "Ce nom est réservé et ne peut pas être utilisé dans la personnalisation. Merci d'indiquer le nom de votre propre événement."}), 400
 
     import json as _json
+    # Partenaire d'impression choisi (ex. "fun_and_co", "vaikea_raiatea"). Vide = le client télécharge lui-même.
+    partenaire = (data.get("partenaire", "") or "").strip()
+    if partenaire and partenaire not in PARTENAIRES:
+        partenaire = ""
+    # Compatibilité ancienne case "fun_and_co"
+    if not partenaire and data.get("fun_and_co"):
+        partenaire = "fun_and_co"
     params_perso = _json.dumps({
         "theme": data.get("theme", ""),
         "nom_evenement": nom_evenement,
@@ -362,7 +395,8 @@ def commander():
         "couleur_perso": data.get("couleur_perso", ""),
         "date_lieu": date_lieu,
         "telephone": telephone,
-        "fun_and_co": bool(data.get("fun_and_co", False)),
+        "partenaire": partenaire,
+        "fun_and_co": (partenaire == "fun_and_co"),
     })
 
     commande_id, montant = db.creer_commande(
@@ -489,19 +523,21 @@ def admin_valider_commande(commande_id):
     if not cmd:
         return jsonify({"ok": False, "message": "Commande introuvable"}), 404
     db.marquer_commande_payee(commande_id)
-    # Impression chez FUN AND CO : générer le PDF et l'envoyer par email au partenaire
+    # Impression chez un partenaire : générer le PDF et l'envoyer par email au partenaire choisi
     import json as _json
     perso = _json.loads(cmd["params_perso"] or "{}")
+    pid = perso.get("partenaire") or ("fun_and_co" if perso.get("fun_and_co") else "")
     info = ""
-    if perso.get("fun_and_co"):
+    if pid and pid in PARTENAIRES:
+        part = PARTENAIRES[pid]
         try:
             cpf = CARTES_PAR_FEUILLE.get(cmd["programme"], 10)
             nb_cartes = cmd["nb_feuilles"] * cpf
             pdf = generer_jeu(cmd["programme"], nb_cartes, bool(cmd["couleur"]), perso)
             sujet = f"MANAPRINT — Commande #{commande_id} à imprimer"
             corps = (
-                "Bonjour FUN AND CO,\n\n"
-                "Une nouvelle commande validée est à imprimer (presqu'île) :\n\n"
+                f"Bonjour {part['nom']},\n\n"
+                f"Une nouvelle commande validée est à imprimer ({part['zone']}) :\n\n"
                 f"  • Client : {cmd['identifiant']}\n"
                 f"  • Événement : {perso.get('nom_evenement','')}\n"
                 f"  • Jeu : {cmd['programme']} — {cmd['nb_feuilles']} feuille(s)\n"
@@ -509,16 +545,16 @@ def admin_valider_commande(commande_id):
                 "Le PDF prêt à imprimer est en pièce jointe.\n\n"
                 "— MANAPRINT / 2KEA & Associé"
             )
-            ok, m = envoyer_email_pdf(FUN_AND_CO_EMAIL, sujet, corps, pdf,
+            ok, m = envoyer_email_pdf(part["email"], sujet, corps, pdf,
                                       f"manaprint_cmd{commande_id}.pdf",
                                       copie=SMTP_USER or None)
             if ok:
                 db.marquer_commande_generee(commande_id)
-                info = " Le PDF a été envoyé à FUN AND CO pour impression."
+                info = f" Le PDF a été envoyé à {part['nom']} pour impression."
             else:
-                info = " ATTENTION : envoi à FUN AND CO échoué — " + m
+                info = f" ATTENTION : envoi à {part['nom']} échoué — " + m
         except Exception as e:
-            info = " ATTENTION : erreur génération/envoi FUN AND CO — " + str(e)
+            info = f" ATTENTION : erreur génération/envoi {part['nom']} — " + str(e)
     return jsonify({"ok": True, "message": "Commande validée." + info})
 
 
