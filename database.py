@@ -109,10 +109,18 @@ def init_db():
             )
         """)
 
+        # Suivi des visiteurs de la plateforme (1 ligne par visite de la page d'accueil)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS visites (
+                id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                ip_hash   TEXT,
+                page      TEXT,
+                ua        TEXT,
+                cree_le   TEXT NOT NULL
+            )
+        """)
+
         conn.commit()
-
-
-# ── CLIENTS PACIFIC INK ───────────────────────────────────────────────────────
 def normalize_num(n):
     n = (n or "").replace(" ", "").replace(".", "").replace("-", "")
     if n.startswith("+689"):
@@ -310,6 +318,46 @@ def lister_commandes(statut=None):
         else:
             rows = conn.execute("SELECT * FROM commandes ORDER BY cree_le DESC").fetchall()
         return [dict(r) for r in rows]
+
+
+# ── VISITEURS ─────────────────────────────────────────────────────────────────
+def enregistrer_visite(ip_hash, page, ua):
+    """Enregistre une visite (ip_hash anonymisé, page, navigateur)."""
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO visites (ip_hash, page, ua, cree_le) VALUES (?, ?, ?, ?)",
+            (ip_hash, page, (ua or "")[:300], datetime.now().isoformat())
+        )
+
+
+def stats_visites():
+    """Renvoie un résumé de fréquentation de la plateforme."""
+    auj = datetime.now().strftime("%Y-%m-%d")
+    with get_db() as conn:
+        c = conn.cursor()
+        def un(q, args=()):
+            r = c.execute(q, args).fetchone()
+            return r[0] if r else 0
+        total       = un("SELECT COUNT(*) FROM visites")
+        uniques     = un("SELECT COUNT(DISTINCT ip_hash) FROM visites")
+        visites_auj = un("SELECT COUNT(*) FROM visites WHERE substr(cree_le,1,10)=?", (auj,))
+        uniques_auj = un("SELECT COUNT(DISTINCT ip_hash) FROM visites WHERE substr(cree_le,1,10)=?", (auj,))
+        essais      = un("SELECT COUNT(*) FROM essais")
+        impressions = un("SELECT COUNT(*) FROM impressions")
+        feuilles    = un("SELECT COALESCE(SUM(nb_feuilles),0) FROM impressions")
+        commandes   = un("SELECT COUNT(*) FROM commandes")
+        rows = c.execute(
+            "SELECT substr(cree_le,1,10) AS j, COUNT(*) AS n, COUNT(DISTINCT ip_hash) AS u "
+            "FROM visites GROUP BY j ORDER BY j DESC LIMIT 14"
+        ).fetchall()
+        par_jour = [dict(r) for r in rows]
+    return {
+        "total": total, "uniques": uniques,
+        "visites_auj": visites_auj, "uniques_auj": uniques_auj,
+        "essais": essais, "impressions": impressions,
+        "feuilles": feuilles, "commandes": commandes,
+        "par_jour": par_jour
+    }
 
 
 if __name__ == "__main__":
