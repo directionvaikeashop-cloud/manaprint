@@ -4,7 +4,8 @@ Relie : contrôle d'accès (Pacific Ink / international), génération PDF, espa
 Déployable sur Railway (même stack que Ticket Bingo).
 """
 import os
-from flask import Flask, request, jsonify, send_file, render_template, session
+import hashlib
+from flask import Flask, request, jsonify, send_file, render_template, session, Response
 from functools import wraps
 
 import database as db
@@ -100,7 +101,64 @@ def _setup():
 # ── PAGES ─────────────────────────────────────────────────────────────────────
 @app.route("/")
 def accueil():
+    # Compteur de visiteurs (IP anonymisée par hachage, jamais stockée en clair)
+    try:
+        ip = (request.headers.get("X-Forwarded-For", request.remote_addr or "") or "").split(",")[0].strip()
+        ip_hash = hashlib.sha256(("manaprint:" + ip).encode("utf-8")).hexdigest()[:16]
+        db.enregistrer_visite(ip_hash, "/", request.headers.get("User-Agent", ""))
+    except Exception:
+        pass
     return render_template("index.html")
+
+
+@app.route("/diag-visiteurs")
+def diag_visiteurs():
+    """Statistiques de fréquentation. Accès : ?cle=TON_CODE_ADMIN."""
+    if (request.args.get("cle", "") or "").strip() != CODE_ADMIN:
+        return Response("Acces reserve. Ajoute ?cle=TON_CODE_ADMIN a l'adresse.",
+                        status=403, mimetype="text/plain; charset=utf-8")
+    s = db.stats_visites()
+    lignes = ""
+    for j in s["par_jour"]:
+        lignes += (f'<tr style="border-bottom:1px solid rgba(255,255,255,.08)">'
+                   f'<td style="padding:8px 10px;color:#e2e8f0">{j["j"]}</td>'
+                   f'<td style="padding:8px 10px;color:#34d399;font-weight:600">{j["n"]} visite(s)</td>'
+                   f'<td style="padding:8px 10px;color:#a78bfa">{j["u"]} visiteur(s) unique(s)</td></tr>')
+    if not lignes:
+        lignes = '<tr><td colspan="3" style="padding:14px;color:#94a3b8;text-align:center">Aucune visite enregistrée pour l\'instant.</td></tr>'
+
+    def carte(emoji, valeur, libelle, couleur):
+        return (f'<div style="flex:1;min-width:140px;background:#1e293b;border:1px solid #334155;'
+                f'border-radius:12px;padding:16px;text-align:center">'
+                f'<div style="font-size:26px">{emoji}</div>'
+                f'<div style="font-size:30px;font-weight:800;color:{couleur};line-height:1.2">{valeur}</div>'
+                f'<div style="font-size:12px;color:#94a3b8;margin-top:2px">{libelle}</div></div>')
+
+    cartes = (
+        carte("👁️", s["visites_auj"], "Visites aujourd'hui", "#34d399")
+        + carte("🧍", s["uniques_auj"], "Visiteurs uniques aujourd'hui", "#a78bfa")
+        + carte("📈", s["total"], "Visites au total", "#60a5fa")
+        + carte("👥", s["uniques"], "Visiteurs uniques (total)", "#f472b6")
+        + carte("🎲", s["essais"], "Essais gratuits lancés", "#fbbf24")
+        + carte("🖨️", s["impressions"], "Générations de cartes", "#22d3ee")
+        + carte("📄", s["feuilles"], "Feuilles générées", "#fb923c")
+        + carte("🛒", s["commandes"], "Commandes créées", "#4ade80")
+    )
+
+    html = f'''<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MANAPRINT — Visiteurs</title></head>
+<body style="margin:0;background:#0f172a;color:#f1f5f9;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:18px;max-width:760px;margin:0 auto">
+<h1 style="font-size:20px;margin:0 0 4px">📊 MANAPRINT — Fréquentation</h1>
+<div style="font-size:13px;color:#94a3b8;margin-bottom:18px">Statistiques de la plateforme manaprint.up.railway.app</div>
+<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px">{cartes}</div>
+<h2 style="font-size:15px;margin:0 0 10px;color:#cbd5e1">Détail des 14 derniers jours</h2>
+<table style="width:100%;border-collapse:collapse;background:#1e293b;border-radius:12px;overflow:hidden">
+<thead><tr style="background:#334155"><th style="padding:10px;text-align:left;font-size:12px;color:#cbd5e1">Jour</th><th style="padding:10px;text-align:left;font-size:12px;color:#cbd5e1">Visites</th><th style="padding:10px;text-align:left;font-size:12px;color:#cbd5e1">Visiteurs uniques</th></tr></thead>
+<tbody>{lignes}</tbody></table>
+<div style="font-size:11px;color:#64748b;margin-top:18px;line-height:1.6">Les visiteurs sont comptés de façon anonyme (adresse IP hachée, jamais stockée en clair).<br>« Visiteur unique » = une même personne ne compte qu'une fois par mesure.</div>
+</body></html>'''
+    return Response(html, mimetype="text/html; charset=utf-8")
 
 
 # ── ACCÈS CLIENT PACIFIC INK ──────────────────────────────────────────────────
