@@ -105,10 +105,27 @@ def accueil():
     try:
         ip = (request.headers.get("X-Forwarded-For", request.remote_addr or "") or "").split(",")[0].strip()
         ip_hash = hashlib.sha256(("manaprint:" + ip).encode("utf-8")).hexdigest()[:16]
-        db.enregistrer_visite(ip_hash, "/", request.headers.get("User-Agent", ""))
+        db.enregistrer_visite(ip_hash, "/", request.headers.get("User-Agent", ""), _detecter_source())
     except Exception:
         pass
     return render_template("index.html")
+
+
+def _detecter_source():
+    """Source de la visite : ?source= explicite, sinon déduite du référent."""
+    src = (request.args.get("source", "") or request.args.get("utm_source", "") or "").strip().lower()[:40]
+    if src:
+        return src
+    ref = (request.headers.get("Referer", "") or "").lower()
+    if not ref:
+        return "direct"
+    for cle, nom in [("facebook", "facebook"), ("fb.", "facebook"), ("messenger", "facebook"),
+                     ("instagram", "instagram"), ("tiktok", "tiktok"), ("whatsapp", "whatsapp"),
+                     ("wa.me", "whatsapp"), ("youtube", "youtube"), ("google", "google"),
+                     ("bing", "bing"), ("ticket-bingo", "ticketbingo")]:
+        if cle in ref:
+            return nom
+    return "autre-site"
 
 
 @app.route("/diag-visiteurs")
@@ -126,6 +143,19 @@ def diag_visiteurs():
                    f'<td style="padding:8px 10px;color:#a78bfa">{j["u"]} visiteur(s) unique(s)</td></tr>')
     if not lignes:
         lignes = '<tr><td colspan="3" style="padding:14px;color:#94a3b8;text-align:center">Aucune visite enregistrée pour l\'instant.</td></tr>'
+
+    emoji_src = {"facebook":"📘","instagram":"📸","tiktok":"🎵","whatsapp":"💬",
+                 "youtube":"▶️","google":"🔎","qr":"🔳","ticketbingo":"🎱",
+                 "direct":"🔗","autre-site":"🌐"}
+    lignes_src = ""
+    for r in s["par_source"]:
+        nom = r["s"]; em = emoji_src.get(nom, "•")
+        lignes_src += (f'<tr style="border-bottom:1px solid rgba(255,255,255,.08)">'
+                       f'<td style="padding:8px 10px;color:#e2e8f0">{em} {nom}</td>'
+                       f'<td style="padding:8px 10px;color:#34d399;font-weight:600">{r["n"]} visite(s)</td>'
+                       f'<td style="padding:8px 10px;color:#a78bfa">{r["u"]} unique(s)</td></tr>')
+    if not lignes_src:
+        lignes_src = '<tr><td colspan="3" style="padding:14px;color:#94a3b8;text-align:center">Aucune source pour l\'instant.</td></tr>'
 
     def carte(emoji, valeur, libelle, couleur):
         return (f'<div style="flex:1;min-width:140px;background:#1e293b;border:1px solid #334155;'
@@ -152,6 +182,10 @@ def diag_visiteurs():
 <h1 style="font-size:20px;margin:0 0 4px">📊 MANAPRINT — Fréquentation</h1>
 <div style="font-size:13px;color:#94a3b8;margin-bottom:18px">Statistiques de la plateforme manaprint.up.railway.app</div>
 <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px">{cartes}</div>
+<h2 style="font-size:15px;margin:0 0 10px;color:#cbd5e1">D'où viennent tes visiteurs ?</h2>
+<table style="width:100%;border-collapse:collapse;background:#1e293b;border-radius:12px;overflow:hidden;margin-bottom:24px">
+<thead><tr style="background:#334155"><th style="padding:10px;text-align:left;font-size:12px;color:#cbd5e1">Source</th><th style="padding:10px;text-align:left;font-size:12px;color:#cbd5e1">Visites</th><th style="padding:10px;text-align:left;font-size:12px;color:#cbd5e1">Uniques</th></tr></thead>
+<tbody>{lignes_src}</tbody></table>
 <h2 style="font-size:15px;margin:0 0 10px;color:#cbd5e1">Détail des 14 derniers jours</h2>
 <table style="width:100%;border-collapse:collapse;background:#1e293b;border-radius:12px;overflow:hidden">
 <thead><tr style="background:#334155"><th style="padding:10px;text-align:left;font-size:12px;color:#cbd5e1">Jour</th><th style="padding:10px;text-align:left;font-size:12px;color:#cbd5e1">Visites</th><th style="padding:10px;text-align:left;font-size:12px;color:#cbd5e1">Visiteurs uniques</th></tr></thead>
