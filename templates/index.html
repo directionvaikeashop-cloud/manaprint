@@ -19,14 +19,19 @@
   .wrap{max-width:980px;margin:0 auto;padding:4rem 1.5rem 6rem}
   .hidden{display:none}
   button{font-family:inherit;cursor:pointer}
-  input,textarea{font-family:inherit;width:100%;padding:.75rem .9rem;border:1px solid var(--line);
+  input,textarea,select{font-family:inherit;width:100%;padding:.75rem .9rem;border:1px solid var(--line);
     border-radius:4px;font-size:.95rem;background:#fff;margin-bottom:.9rem}
-  input:focus,textarea:focus{outline:none;border-color:var(--teal)}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--teal)}
   .btn{width:100%;padding:.85rem;border:none;border-radius:4px;background:var(--teal);color:#fff;font-weight:600;font-size:.9rem}
   .btn:disabled{background:var(--line);cursor:not-allowed}
   .btn-d{background:var(--teal-d)}
+  .btn-out{background:#fff;color:var(--teal-d);border:1px solid var(--teal)}
   .card-choice{text-align:left;border:1px solid var(--line);border-radius:8px;padding:1.75rem;background:#fff;width:100%}
   .label-mono{font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem}
+  .lang-btn{background:#fff;border:1px solid var(--line);border-radius:20px;padding:.32rem .8rem;font-size:.78rem;font-weight:600;color:var(--teal-d)}
+  .field-label{font-size:.78rem;font-weight:600;color:var(--ink);margin-bottom:.3rem;display:block}
+  .opt{font-weight:400;color:var(--muted)}
+  .sec{border:1px solid var(--line);border-radius:8px;padding:1.4rem;background:#fff;margin-bottom:1.25rem}
   @keyframes spin{to{transform:rotate(360deg)}}
   .spin{width:13px;height:13px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;
     border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle}
@@ -34,165 +39,185 @@
 </head>
 <body>
 <nav>
-  <div class="display" style="font-size:1.4rem;font-weight:600"><span style="color:var(--teal)">Mana</span>print</div>
-  <span class="mono" style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Générateur de cartes</span>
+  <div style="display:flex;align-items:baseline;gap:.7rem">
+    <div class="display" style="font-size:1.4rem;font-weight:600"><span style="color:var(--teal)">Mana</span>print</div>
+    <span class="mono" data-i18n="nav_sub" style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Générateur de cartes</span>
+  </div>
+  <button id="lang-toggle" class="lang-btn" onclick="toggleLang()">🇬🇧 English</button>
 </nav>
 <div class="wrap">
 
   <!-- ÉCRAN CHOIX -->
   <div id="ecran-choix">
-    <div style="text-align:center;max-width:720px;margin:0 auto">
+    <div style="text-align:center;max-width:760px;margin:0 auto">
       <div style="display:inline-flex;align-items:center;gap:.55rem;border:1px solid var(--line);border-radius:30px;padding:.35rem 1rem;margin-bottom:1.5rem;background:#fff">
         <span style="width:6px;height:6px;border-radius:50%;background:var(--coral)"></span>
-        <span class="mono" style="font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">En partenariat avec Pacific Ink</span>
+        <span class="mono" data-i18n="badge_pi" style="font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">4 machines Pacific à placer</span>
       </div>
-      <h1 class="display" style="font-size:clamp(2rem,5vw,3rem);font-weight:500;line-height:1.1;margin-bottom:1rem;color:var(--teal-d)">Le générateur de cartes MANAPRINT.</h1>
-      <p style="font-size:1.02rem;color:var(--muted);line-height:1.7;margin-bottom:2.5rem;max-width:540px;margin-inline:auto">Génération illimitée de cartes de jeux polynésiens. Choisissez votre point d'accès.</p>
+      <h1 class="display" data-i18n="h1" style="font-size:clamp(2rem,5vw,3rem);font-weight:500;line-height:1.1;margin-bottom:1rem;color:var(--teal-d)">Le générateur de cartes MANAPRINT.</h1>
+      <p data-i18n="intro" style="font-size:1.02rem;color:var(--muted);line-height:1.7;margin-bottom:2.5rem;max-width:560px;margin-inline:auto">Génération de cartes de bingo personnalisées. Choisissez votre accès.</p>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem" id="cartes-acces">
         <button class="card-choice" onclick="montrer('ecran-pi')">
-          <p class="label-mono" style="color:var(--coral)">Polynésie · machine</p>
-          <h3 class="display" style="font-size:1.15rem;margin-bottom:.5rem">Client Pacific Ink</h3>
-          <p style="font-size:.83rem;color:var(--muted);line-height:1.55">Vous avez une machine Pacific Ink. Accès par votre numéro de client, impression directe.</p>
+          <p class="label-mono" data-i18n="pi_label" style="color:var(--coral)">Polynésie · Pacific Ink</p>
+          <h3 class="display" data-i18n="pi_titre" style="font-size:1.2rem;margin-bottom:.6rem">Machine à placer de chez Pacific Ink</h3>
+          <p data-i18n="pi_desc" style="font-size:.85rem;color:var(--muted);line-height:1.6">Il y a 4 machines à placer.</p>
         </button>
         <button class="card-choice" onclick="montrer('ecran-poly')">
-          <p class="label-mono" style="color:var(--teal)">Polynésie · sans machine</p>
-          <h3 class="display" style="font-size:1.15rem;margin-bottom:.5rem">Client Polynésien</h3>
-          <p style="font-size:.83rem;color:var(--muted);line-height:1.55">Générez vos cartes : imprimez-les vous-même, ou venez chez 2KEA & Associé.</p>
+          <p class="label-mono" data-i18n="poly_label" style="color:var(--teal)">Polynésie · sans machine</p>
+          <h3 class="display" data-i18n="poly_titre" style="font-size:1.2rem;margin-bottom:.6rem">Client Polynésien</h3>
+          <p data-i18n="poly_desc" style="font-size:.85rem;color:var(--muted);line-height:1.6">Générez vos fichiers au tarif local. Pour l'impression, nous avons des partenaires d'impression qui vous facturent les charges de feuille et d'encre.</p>
         </button>
         <button class="card-choice" onclick="montrer('ecran-intl')">
-          <p class="label-mono" style="color:var(--teal)">Hors Polynésie</p>
-          <h3 class="display" style="font-size:1.15rem;margin-bottom:.5rem">Client International</h3>
-          <p style="font-size:.83rem;color:var(--muted);line-height:1.55">Générez vos cartes, téléchargez le PDF, imprimez-le où vous voulez.</p>
+          <p class="label-mono" data-i18n="intl_label" style="color:var(--teal)">Hors Polynésie</p>
+          <h3 class="display" data-i18n="intl_titre" style="font-size:1.2rem;margin-bottom:.6rem">Client international</h3>
+          <p data-i18n="intl_desc" style="font-size:.85rem;color:var(--muted);line-height:1.6">Générez vos cartes, téléchargez le PDF, imprimez où vous voulez.</p>
         </button>
       </div>
 
-      <div style="background:var(--teal-d);border-radius:8px;padding:1.4rem 1.6rem;margin-bottom:2rem;display:flex;align-items:center;gap:1.25rem;text-align:left">
-        <div style="display:flex;gap:.4rem;flex-shrink:0">
-          <div style="width:12px;height:16px;border-radius:2px;background:#fff;opacity:.9"></div>
-          <div style="width:12px;height:16px;border-radius:2px;background:#fff;opacity:.9"></div>
-          <div style="width:12px;height:16px;border-radius:2px;background:#fff;opacity:.9"></div>
-          <div style="width:12px;height:16px;border-radius:2px;background:#fff;opacity:.9"></div>
-        </div>
-        <div>
-          <p style="color:#fff;font-weight:600;font-size:.95rem;margin-bottom:.2rem">4 machines reliées à la plateforme, prêtes à installer</p>
-          <p style="color:rgba(255,255,255,.7);font-size:.82rem;line-height:1.5">Installation et mise en service traitées directement avec 2KEA & Associé.</p>
-        </div>
+      <!-- Partenaires d'impression -->
+      <div style="background:var(--sand);border-radius:8px;padding:1.1rem 1.4rem;margin-bottom:1.5rem;text-align:left">
+        <p style="font-size:.85rem;color:var(--ink);line-height:1.7">
+          <b>Pacific Ink</b> <span data-i18n="part_pi" class="opt">— machines installées</span><br>
+          <b>2KEA &amp; Associé — Papeete</b> <span data-i18n="part_papeete" class="opt">— Tahiti</span> · 📞 89 52 98 83<br>
+          <b>FUN AND CO</b> <span data-i18n="part_funco" class="opt">— presqu'île (Tahiti Iti)</span> · 📞 87 26 73 24<br>
+          <b>2KEA &amp; Associé — Raiatea</b> <span data-i18n="part_raiatea" class="opt">— Îles Sous-le-Vent</span> · 📞 87 77 34 26
+        </p>
       </div>
 
-      <button onclick="montrer('ecran-admin')" class="mono" style="background:none;border:none;color:var(--muted);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;text-decoration:underline;text-underline-offset:3px">Espace gestion</button>
+      <a href="https://ticket-bingo-production.up.railway.app/?source=manaprint" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:.55rem;margin-bottom:1.25rem;padding:.9rem 1.1rem;border:1px solid var(--line);border-radius:12px;text-decoration:none;background:#fff;color:var(--teal-d)">
+        <span style="font-size:1.2rem">🎱</span>
+        <span data-i18n="crosslink" style="font-size:.85rem;font-weight:600">Tu organises des tournois ? Joue en ligne sur Ticket Bingo</span>
+        <span style="color:var(--teal);font-weight:700">→</span>
+      </a>
+
+      <button onclick="montrer('ecran-admin')" class="mono" data-i18n="gestion" style="background:none;border:none;color:var(--muted);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;text-decoration:underline;text-underline-offset:3px">Espace gestion</button>
     </div>
   </div>
 
   <!-- ÉCRAN PACIFIC INK -->
   <div id="ecran-pi" class="hidden" style="max-width:460px;margin:0 auto">
-    <button onclick="montrer('ecran-choix')" style="background:#fff;border:1px solid var(--line);border-radius:6px;color:var(--ink);font-size:.85rem;font-weight:600;padding:.5rem .9rem;margin-bottom:1.5rem;cursor:pointer">← Retour à l'accueil</button>
-    <h2 class="display" style="font-size:1.5rem;margin-bottom:.6rem">Vérification Pacific Ink</h2>
-    <p style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;line-height:1.6">Entrez le numéro de client associé à votre machine Pacific Ink.</p>
-    <input id="pi-numero" placeholder="89 22 03 05">
-    <button class="btn" id="pi-btn" onclick="verifierPI()">Vérifier mon accès</button>
+    <button onclick="montrer('ecran-choix')" data-i18n="retour" class="mono" style="background:none;border:none;color:var(--muted);font-size:.85rem;margin-bottom:1.5rem">← Retour</button>
+    <h2 class="display" data-i18n="pi_verif_t" style="font-size:1.5rem;margin-bottom:.6rem">Je souhaite avoir une machine</h2>
+    <p data-i18n="pi_verif_d" style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;line-height:1.6">Laissez-nous vos coordonnées, nous vous recontactons pour l'installation d'une machine.</p>
+    <input id="pi-tel" placeholder="Numéro de téléphone">
+    <input id="pi-email" type="email" placeholder="vous@email.com">
+    <button class="btn" id="pi-btn" data-i18n="btn_demander" onclick="demanderMachine()">Envoyer ma demande</button>
     <p id="pi-msg" style="margin-top:1rem;font-size:.88rem"></p>
+  </div>
+
+  <!-- ÉCRAN POLYNÉSIEN -->
+  <div id="ecran-poly" class="hidden" style="max-width:460px;margin:0 auto">
+    <button onclick="montrer('ecran-choix')" data-i18n="retour" class="mono" style="background:none;border:none;color:var(--muted);font-size:.85rem;margin-bottom:1.5rem">← Retour</button>
+    <h2 class="display" data-i18n="poly_form_t" style="font-size:1.5rem;margin-bottom:.6rem">Client Polynésien</h2>
+    <p data-i18n="poly_form_d" style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;line-height:1.6">Vos informations pour accéder au générateur (tarif local).</p>
+    <input id="poly-nom" data-i18n-ph="ph_nom" placeholder="Votre nom">
+    <input id="poly-email" type="email" placeholder="vous@email.com">
+    <button class="btn" id="poly-btn" data-i18n="btn_acceder" onclick="accederPoly()">Accéder au générateur</button>
+    <p id="poly-msg" style="margin-top:1rem;font-size:.88rem"></p>
   </div>
 
   <!-- ÉCRAN INTERNATIONAL -->
   <div id="ecran-intl" class="hidden" style="max-width:460px;margin:0 auto">
-    <button onclick="montrer('ecran-choix')" style="background:#fff;border:1px solid var(--line);border-radius:6px;color:var(--ink);font-size:.85rem;font-weight:600;padding:.5rem .9rem;margin-bottom:1.5rem;cursor:pointer">← Retour à l'accueil</button>
-    <h2 class="display" style="font-size:1.5rem;margin-bottom:.6rem">Client international</h2>
-    <p style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;line-height:1.6">Renseignez vos informations pour accéder au générateur.</p>
-    <input id="intl-nom" placeholder="Votre nom">
+    <button onclick="montrer('ecran-choix')" data-i18n="retour" class="mono" style="background:none;border:none;color:var(--muted);font-size:.85rem;margin-bottom:1.5rem">← Retour</button>
+    <h2 class="display" data-i18n="intl_form_t" style="font-size:1.5rem;margin-bottom:.6rem">Client international</h2>
+    <p data-i18n="intl_form_d" style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;line-height:1.6">Vos informations pour accéder au générateur.</p>
+    <input id="intl-nom" data-i18n-ph="ph_nom" placeholder="Votre nom">
     <input id="intl-email" type="email" placeholder="vous@email.com">
-    <input id="intl-pays" placeholder="Pays (optionnel)">
-    <button class="btn" id="intl-btn" onclick="accederIntl()">Accéder au générateur</button>
+    <input id="intl-pays" data-i18n-ph="ph_pays" placeholder="Pays (optionnel)">
+    <button class="btn" id="intl-btn" data-i18n="btn_acceder" onclick="accederIntl()">Accéder au générateur</button>
     <p id="intl-msg" style="margin-top:1rem;font-size:.88rem"></p>
   </div>
 
-  <!-- ÉCRAN CLIENT POLYNÉSIEN -->
-  <div id="ecran-poly" class="hidden" style="max-width:460px;margin:0 auto">
-    <button onclick="montrer('ecran-choix')" style="background:#fff;border:1px solid var(--line);border-radius:6px;color:var(--ink);font-size:.85rem;font-weight:600;padding:.5rem .9rem;margin-bottom:1.5rem;cursor:pointer">← Retour à l'accueil</button>
-    <h2 class="display" style="font-size:1.5rem;margin-bottom:.6rem">Client Polynésien</h2>
-    <p style="color:var(--muted);font-size:.9rem;margin-bottom:1.25rem;line-height:1.6">Renseignez vos informations pour accéder au générateur. Vous pourrez télécharger vos cartes pour les imprimer vous-même, ou venir les faire imprimer chez 2KEA & Associé.</p>
-    <input id="poly-nom" placeholder="Votre nom">
-    <input id="poly-email" type="email" placeholder="vous@email.com">
-    <button class="btn" id="poly-btn" onclick="accederPoly()">Accéder au générateur</button>
-    <p id="poly-msg" style="margin-top:1rem;font-size:.88rem"></p>
-  </div>
-
   <!-- ÉCRAN GÉNÉRATEUR -->
-  <div id="ecran-gen" class="hidden">
-    <button onclick="montrer('ecran-choix')" style="background:#fff;border:1px solid var(--line);border-radius:6px;color:var(--ink);font-size:.85rem;font-weight:600;padding:.5rem .9rem;margin-bottom:1.25rem;cursor:pointer">← Retour à l'accueil</button>
-    <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:1.75rem">
-      <span style="width:7px;height:7px;border-radius:50%;background:var(--teal)"></span>
-      <span class="mono" id="gen-origine" style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)"></span>
+  <div id="ecran-gen" class="hidden" style="max-width:760px;margin:0 auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
+      <div style="display:flex;align-items:center;gap:.6rem">
+        <span style="width:7px;height:7px;border-radius:50%;background:var(--teal)"></span>
+        <span class="mono" id="gen-origine" style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)"></span>
+      </div>
+      <button onclick="montrer('ecran-choix')" data-i18n="retour" class="mono" style="background:none;border:none;color:var(--muted);font-size:.8rem">← Retour</button>
     </div>
-    <div style="display:grid;grid-template-columns:320px 1fr;gap:2rem;align-items:start">
-      <div>
-        <p class="label-mono">Choisir un programme</p>
-        <div id="gen-programmes" style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:1.25rem"></div>
-        <p class="label-mono" style="color:var(--coral)">Personnalisation obligatoire <span style="color:var(--coral)">*</span></p>
-        <p style="font-size:.78rem;color:var(--muted);margin-bottom:.6rem;line-height:1.5">Pour sécuriser vos tickets, chaque carte porte le nom de votre tournoi et la date. Ces 3 champs sont requis.</p>
-        <input id="perso-evenement" placeholder="Nom du client / association *">
-        <input id="perso-titre" placeholder="Nom du tournoi *">
-        <input id="perso-datelieu" placeholder="Date du tournoi *">
-        <input id="perso-telephone" placeholder="Téléphone du responsable *">
-        <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.9rem">
-          <label style="font-size:.82rem;color:var(--muted)">Couleur principale :</label>
-          <input id="perso-couleur" type="color" value="#2D6E63" style="width:44px;height:32px;padding:2px;margin-bottom:0;cursor:pointer">
-          <button onclick="document.getElementById('perso-couleur').value='';majApercuCouleur()" style="background:none;border:1px solid var(--line);border-radius:4px;padding:.3rem .6rem;font-size:.75rem;color:var(--muted);cursor:pointer">Arc-en-ciel</button>
-        </div>
 
-        <p class="label-mono">Nombre de cartes</p>
-        <input id="gen-nb" type="number" min="1" max="1000" value="10">
-        <p class="label-mono">Couleur d'impression</p>
-        <div style="display:flex;gap:.5rem;margin-bottom:1rem">
-          <button id="btn-couleur" onclick="setCouleur(true)" style="flex:1;padding:.6rem;border:1px solid var(--teal);border-radius:4px;background:var(--teal);color:#fff;font-weight:600;font-size:.82rem">Couleur — 10 F/feuille</button>
-          <button id="btn-nb" onclick="setCouleur(false)" style="flex:1;padding:.6rem;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink);font-weight:600;font-size:.82rem">Noir & blanc — 5 F/feuille</button>
-        </div>
+    <!-- 1. Jeu -->
+    <p class="label-mono" data-i18n="gen_prog">Choisir un jeu</p>
+    <div id="gen-programmes" style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:1.25rem"></div>
 
-        <!-- BLOC ESSAI -->
-        <div style="background:var(--sand);border-radius:6px;padding:1rem;margin-bottom:1rem">
-          <p style="font-weight:600;font-size:.9rem;margin-bottom:.3rem">Essai gratuit</p>
-          <p style="font-size:.8rem;color:var(--muted);line-height:1.5;margin-bottom:.7rem">Générez 1 feuille d'aperçu pour valider votre personnalisation. <span id="essai-compteur" style="font-weight:600;color:var(--teal)">3 essais restants</span>.</p>
-          <button class="btn" id="essai-btn" onclick="faireEssai()" style="background:var(--coral)">Générer un essai (1 feuille)</button>
-          <p id="essai-msg" style="margin-top:.6rem;font-size:.82rem;color:var(--muted)"></p>
-        </div>
+    <!-- 2. (La couleur est déterminée par le jeu choisi : version Couleur ou N&B) -->
 
-        <!-- BLOC COMMANDE -->
-        <div style="border:1px solid var(--line);border-radius:6px;padding:1rem">
-          <p style="font-weight:600;font-size:.9rem;margin-bottom:.7rem">Commander la production complète</p>
-          <label style="display:block;font-size:.8rem;color:var(--muted);margin-bottom:.3rem">Nombre de feuilles A4 (10 tickets par feuille)</label>
-          <input id="cmd-feuilles" type="number" min="1" max="5000" value="500" oninput="majPrix()" style="margin-bottom:.6rem">
-          <div style="background:var(--paper);border-radius:4px;padding:.7rem .9rem;margin-bottom:.8rem;display:flex;justify-content:space-between;align-items:center">
-            <span style="font-size:.85rem;color:var(--muted)">Total à payer</span>
-            <span id="cmd-total" class="mono" style="font-weight:700;font-size:1.1rem;color:var(--teal)">5 000 XPF</span>
-          </div>
-          <label style="display:block;font-size:.8rem;color:var(--muted);margin-bottom:.4rem">Mode de paiement</label>
-          <div style="display:flex;gap:.5rem;margin-bottom:.9rem">
-            <button id="pay-stripe" onclick="setPaiement('stripe')" style="flex:1;padding:.55rem;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink);font-size:.8rem;font-weight:600">Carte bancaire</button>
-            <button id="pay-manuel" onclick="setPaiement('manuel')" style="flex:1;padding:.55rem;border:1px solid var(--teal);border-radius:4px;background:var(--teal);color:#fff;font-size:.8rem;font-weight:600">Sur place / virement</button>
-          </div>
-          <button class="btn" id="cmd-btn" onclick="passerCommande()">Passer la commande</button>
-          <p id="cmd-msg" style="margin-top:.7rem;font-size:.82rem;color:var(--muted);line-height:1.5"></p>
-        </div>
+    <!-- 3. Personnalisation -->
+    <p class="label-mono" data-i18n="gen_perso">Personnalisation (obligatoire)</p>
+    <div class="sec">
+      <label class="field-label" data-i18n="lbl_evenement">Nom du client / association</label>
+      <input id="gen-evenement" data-i18n-ph="ph_evenement" placeholder="Ex : Association Heiva Tahiti">
+      <label class="field-label" data-i18n="lbl_titre">Nom du tournoi / jeu</label>
+      <input id="gen-titre" data-i18n-ph="ph_titre" placeholder="Ex : Grand Loto de Noël">
+      <label class="field-label" data-i18n="lbl_datelieu">Date et lieu</label>
+      <input id="gen-datelieu" data-i18n-ph="ph_datelieu" placeholder="Ex : 24 déc. 2026 — Papeete">
+      <label class="field-label" data-i18n="lbl_tel">Téléphone du responsable</label>
+      <input id="gen-tel" data-i18n-ph="ph_tel" placeholder="Ex : 87 12 34 56">
+      <label class="field-label" data-i18n="lbl_couleurperso">Couleur dominante <span class="opt" data-i18n="opt_facult">(optionnel)</span></label>
+      <input id="gen-couleurperso" data-i18n-ph="ph_couleurperso" placeholder="Ex : bleu lagon">
+      <label class="field-label" data-i18n="lbl_theme">Thème <span class="opt" data-i18n="opt_facult">(optionnel)</span></label>
+      <input id="gen-theme" data-i18n-ph="ph_theme" placeholder="Ex : ambiance plage tropicale" style="margin-bottom:0">
+    </div>
+
+    <!-- 4. Essai gratuit -->
+    <div class="sec">
+      <p style="font-weight:600;font-size:.95rem;margin-bottom:.3rem" data-i18n="essai_titre">Essai gratuit</p>
+      <p style="font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:.9rem" data-i18n="essai_desc">1 feuille d'aperçu, gratuite. 3 essais toutes les 5 minutes.</p>
+      <button class="btn btn-out" id="gen-essai-btn" data-i18n="btn_essai" onclick="essaiPDF()">Générer un essai gratuit</button>
+      <p id="gen-essai-msg" style="margin-top:.8rem;font-size:.85rem"></p>
+    </div>
+
+    <!-- 5. Commande -->
+    <div class="sec">
+      <p style="font-weight:600;font-size:.95rem;margin-bottom:.9rem" data-i18n="cmd_titre">Commander mes feuilles</p>
+      <label class="field-label" data-i18n="lbl_nbfeuilles">Nombre de feuilles</label>
+      <input id="gen-nb-feuilles" type="number" min="1" max="5000" value="10" oninput="majPrix()">
+      <p id="gen-prix" style="font-size:.95rem;font-weight:600;color:var(--teal-d);margin-bottom:.9rem"></p>
+
+      <div id="gen-part-wrap" class="hidden" style="margin-bottom:.9rem">
+        <label class="field-label" data-i18n="lbl_partenaire">Choisir une machine Pacific Ink</label>
+        <select id="gen-partenaire" onchange="majPartInfo()" style="margin-bottom:0">
+          <option value="" data-i18n="part_self">Je télécharge le PDF moi-même</option>
+        </select>
+        <p id="gen-part-info" style="font-size:.8rem;color:var(--muted);margin-top:.45rem;line-height:1.5"></p>
       </div>
-      <div id="gen-apercu" style="height:420px;border:1px dashed var(--line);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.9rem">
-        Votre PDF sera généré et téléchargé automatiquement
+
+      <button class="btn" id="gen-cmd-btn" data-i18n="btn_commander" onclick="commander()">Passer commande</button>
+      <p id="gen-cmd-msg" style="margin-top:.8rem;font-size:.85rem;line-height:1.6"></p>
+    </div>
+
+    <!-- 6. Récupérer une commande validée -->
+    <div class="sec">
+      <p style="font-weight:600;font-size:.95rem;margin-bottom:.3rem" data-i18n="recup_titre">Récupérer une commande validée</p>
+      <p style="font-size:.82rem;color:var(--muted);line-height:1.6;margin-bottom:.9rem" data-i18n="recup_desc">Une fois ta commande validée par 2KEA, entre son numéro pour télécharger ton PDF.</p>
+      <div style="display:flex;gap:.6rem">
+        <input id="gen-cmd-id" type="number" data-i18n-ph="ph_cmdid" placeholder="N° de commande" style="margin-bottom:0">
+        <button class="btn btn-d" style="width:auto;padding:0 1.3rem;white-space:nowrap" data-i18n="btn_recup" onclick="recupererCommande()">Télécharger</button>
       </div>
+      <p id="gen-recup-msg" style="margin-top:.8rem;font-size:.85rem"></p>
     </div>
   </div>
 
-  <!-- ÉCRAN ADMIN -->
-  <div id="ecran-admin" class="hidden" style="max-width:560px;margin:0 auto">
-    <button onclick="montrer('ecran-choix')" style="background:#fff;border:1px solid var(--line);border-radius:6px;color:var(--ink);font-size:.85rem;font-weight:600;padding:.5rem .9rem;margin-bottom:1.5rem;cursor:pointer">← Retour à l'accueil</button>
+  <!-- ÉCRAN GESTION (interne, français) -->
+  <div id="ecran-admin" class="hidden" style="max-width:620px;margin:0 auto">
+    <button onclick="montrer('ecran-choix')" class="mono" style="background:none;border:none;color:var(--muted);font-size:.85rem;margin-bottom:1.5rem">← Retour</button>
     <div id="admin-login">
       <h2 class="display" style="font-size:1.5rem;margin-bottom:.6rem">Espace gestion</h2>
-      <p style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;line-height:1.6">Entrez le code de gestion pour gérer les clients et machines.</p>
+      <p style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;line-height:1.6">Entrez le code de gestion.</p>
       <input id="admin-code" type="password" placeholder="Code de gestion">
       <button class="btn" onclick="adminLogin()">Accéder</button>
       <p id="admin-login-msg" style="margin-top:1rem;font-size:.85rem;color:var(--coral)"></p>
     </div>
     <div id="admin-panel" class="hidden">
-      <h2 class="display" style="font-size:1.5rem;margin-bottom:.4rem">Numéros Pacific Ink confirmés</h2>
-      <p style="color:var(--muted);font-size:.88rem;margin-bottom:1.5rem;line-height:1.6">Ajoutez le numéro d'un client dès que sa machine est installée.</p>
+      <!-- Commandes -->
+      <h2 class="display" style="font-size:1.4rem;margin-bottom:.4rem">Commandes à valider</h2>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem;line-height:1.6">Valider = paiement reçu. Si « FUN AND CO », le PDF leur est envoyé automatiquement.</p>
+      <div id="admin-commandes" style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:2rem"></div>
+      <!-- Clients PI -->
+      <h2 class="display" style="font-size:1.4rem;margin-bottom:.4rem">Numéros Pacific Ink confirmés</h2>
       <div style="display:flex;gap:.6rem;margin-bottom:1rem">
         <input id="admin-num" placeholder="Numéro — ex : 87 12 34 56" style="margin-bottom:0">
         <input id="admin-nom" placeholder="Nom" style="margin-bottom:0">
@@ -200,228 +225,306 @@
       </div>
       <p id="admin-msg" style="font-size:.82rem;color:var(--teal);margin-bottom:1rem"></p>
       <div id="admin-liste" style="display:flex;flex-direction:column;gap:.4rem"></div>
-
-      <h2 class="display" style="font-size:1.3rem;margin:2rem 0 .4rem">Commandes à valider</h2>
-      <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem;line-height:1.6">Validez une commande une fois le paiement reçu. Le client pourra alors générer sa production.</p>
-      <div id="admin-commandes" style="display:flex;flex-direction:column;gap:.4rem"></div>
     </div>
   </div>
 
 </div>
 
 <script>
-const PROGRAMMES = [
-  {id:"triple_action",nom:"TRIPLE ACTION 75",couleur:"#E53935",desc:"Ticket 10/feuille"},
-  {id:"aloha75",nom:"ALOHA 75",couleur:"#D4663D",desc:"5 colonnes · 12/feuille"},
-  {id:"p6_marathon",nom:"P6 MARATHON",couleur:"#2D6E63",desc:"Grille 5×5 · 6/feuille"},
-  {id:"bingo_ball",nom:"BINGO BALL",couleur:"#1E88E5",desc:"Croix · 10/feuille"},
-];
-let progChoisi = "triple_action";
+// ── Générateur universel : la liste des jeux vient du registre (/api/jeux) ──
+let PROGRAMMES = [];
+const PALETTE = ["#2D6E63","#D4663D","#1A4A42","#8B5A2B","#7C3AED","#0EA5E9","#DB2777","#65A30D"];
+// Tarifs XPF / feuille (couleur, N&B) selon le profil — identiques au moteur
+const TARIFS = {
+  pacific_ink:  {c:10,  nb:5},
+  polynesien:   {c:3,   nb:1.5},
+  international: {c:6,   nb:3},
+};
+let progChoisi = "";
 let origineAcces = "";
-let couleurChoisie = true;
+let LANG = "fr";
 
-function setCouleur(val){
-  couleurChoisie = val;
-  const bc = document.getElementById('btn-couleur'), bnb = document.getElementById('btn-nb');
-  if(val){
-    bc.style.background="var(--teal)"; bc.style.color="#fff"; bc.style.borderColor="var(--teal)";
-    bnb.style.background="#fff"; bnb.style.color="var(--ink)"; bnb.style.borderColor="var(--line)";
-  } else {
-    bnb.style.background="var(--ink)"; bnb.style.color="#fff"; bnb.style.borderColor="var(--ink)";
-    bc.style.background="#fff"; bc.style.color="var(--ink)"; bc.style.borderColor="var(--line)";
-  }
-  if(document.getElementById('cmd-total')) majPrix();
-}
+const T = {
+ nav_sub:{fr:"Générateur de cartes",en:"Card generator"},
+ badge_pi:{fr:"4 machines Pacific à placer",en:"4 Pacific machines to install"},
+ h1:{fr:"Le générateur de cartes MANAPRINT.",en:"The MANAPRINT bingo card generator."},
+ intro:{fr:"Génération de cartes de bingo personnalisées. Choisissez votre accès.",en:"Custom bingo card generation. Choose your access."},
+ pi_label:{fr:"Polynésie · Pacific Ink",en:"Polynesia · Pacific Ink"},
+ pi_titre:{fr:"Machine à placer de chez Pacific Ink",en:"Pacific Ink machine to install"},
+ pi_desc:{fr:"Il y a 4 machines à placer.",en:"4 machines available to install."},
+ poly_label:{fr:"Polynésie · sans machine",en:"Polynesia · no machine"},
+ poly_titre:{fr:"Client Polynésien",en:"Polynesian Client"},
+ poly_desc:{fr:"Générez vos fichiers au tarif local. Pour l'impression, nous avons des partenaires d'impression qui vous facturent les charges de feuille et d'encre.",en:"Generate your files at the local rate. For printing, we have print partners who bill you for paper and ink costs."},
+ intl_label:{fr:"Hors Polynésie",en:"Outside Polynesia"},
+ intl_titre:{fr:"Client international",en:"International Client"},
+ intl_desc:{fr:"Générez vos cartes, téléchargez le PDF, imprimez où vous voulez.",en:"Generate your cards, download the PDF, print anywhere."},
+ part_titre:{fr:"Machines Pacific Ink à placer",en:"Pacific Ink machines"},
+ part_pi:{fr:"— machines installées",en:"— installed machines"},
+ part_funco:{fr:"— presqu'île (Tahiti Iti)",en:"— peninsula (Tahiti Iti)"},
+ part_raiatea:{fr:"— Îles Sous-le-Vent",en:"— Leeward Islands"},
+ part_papeete:{fr:"— Tahiti",en:"— Tahiti"},
+ lbl_partenaire:{fr:"Choisir une machine Pacific Ink",en:"Choose a Pacific Ink machine"},
+ part_self:{fr:"Je télécharge le PDF moi-même",en:"I download the PDF myself"},
+ part_info:{fr:"Après validation, ton PDF est envoyé à",en:"After approval, your PDF is sent to"},
+ crosslink:{fr:"Tu organises des tournois ? Joue en ligne sur Ticket Bingo",en:"Running tournaments? Play online on Ticket Bingo"},
+ gestion:{fr:"Espace gestion",en:"Management area"},
+ retour:{fr:"← Retour",en:"← Back"},
+ pi_verif_t:{fr:"Je souhaite avoir une machine",en:"I would like a machine"},
+ pi_verif_d:{fr:"Laissez-nous vos coordonnées, nous vous recontactons pour l'installation d'une machine.",en:"Leave us your details and we'll get back to you about installing a machine."},
+ btn_verifier:{fr:"Vérifier mon accès",en:"Verify my access"},
+ btn_demander:{fr:"Envoyer ma demande",en:"Send my request"},
+ poly_form_t:{fr:"Client Polynésien",en:"Polynesian Client"},
+ poly_form_d:{fr:"Vos informations pour accéder au générateur (tarif local).",en:"Your details to access the generator (local rate)."},
+ intl_form_t:{fr:"Client international",en:"International Client"},
+ intl_form_d:{fr:"Vos informations pour accéder au générateur.",en:"Your details to access the generator."},
+ ph_nom:{fr:"Votre nom",en:"Your name"},
+ ph_pays:{fr:"Pays (optionnel)",en:"Country (optional)"},
+ btn_acceder:{fr:"Accéder au générateur",en:"Access the generator"},
+ gen_prog:{fr:"Choisir un jeu",en:"Choose a game"},
+ gen_couleur:{fr:"Cartes en couleur (sinon noir & blanc, moins cher)",en:"Color cards (otherwise black & white, cheaper)"},
+ gen_perso:{fr:"Personnalisation (obligatoire)",en:"Personalization (required)"},
+ lbl_evenement:{fr:"Nom du client / association",en:"Client / organization name"},
+ ph_evenement:{fr:"Ex : Association Heiva Tahiti",en:"e.g. Sunrise Charity"},
+ lbl_titre:{fr:"Nom du tournoi / jeu",en:"Tournament / game name"},
+ ph_titre:{fr:"Ex : Grand Loto de Noël",en:"e.g. Christmas Bingo Night"},
+ lbl_datelieu:{fr:"Date et lieu",en:"Date and place"},
+ ph_datelieu:{fr:"Ex : 24 déc. 2026 — Papeete",en:"e.g. Dec 24, 2026 — Community Hall"},
+ lbl_tel:{fr:"Téléphone du responsable",en:"Organizer phone number"},
+ ph_tel:{fr:"Ex : 87 12 34 56",en:"e.g. +1 555 123 4567"},
+ lbl_couleurperso:{fr:"Couleur dominante",en:"Main color"},
+ ph_couleurperso:{fr:"Ex : bleu lagon",en:"e.g. lagoon blue"},
+ lbl_theme:{fr:"Thème",en:"Theme"},
+ ph_theme:{fr:"Ex : ambiance plage tropicale",en:"e.g. tropical beach vibe"},
+ opt_facult:{fr:"(optionnel)",en:"(optional)"},
+ essai_titre:{fr:"Essai gratuit",en:"Free trial"},
+ essai_desc:{fr:"1 feuille d'aperçu, gratuite. 3 essais toutes les 5 minutes.",en:"1 free preview sheet. 3 trials every 5 minutes."},
+ btn_essai:{fr:"Générer un essai gratuit",en:"Generate a free trial"},
+ cmd_titre:{fr:"Commander mes feuilles",en:"Order my sheets"},
+ lbl_nbfeuilles:{fr:"Nombre de feuilles",en:"Number of sheets"},
+ funco_choice:{fr:"Imprimer chez <b>FUN AND CO</b> (presqu'île). Après validation, ton PDF leur est envoyé pour impression.",en:"Print at <b>FUN AND CO</b> (peninsula). After approval, your PDF is sent to them for printing."},
+ btn_commander:{fr:"Passer commande",en:"Place order"},
+ recup_titre:{fr:"Récupérer une commande validée",en:"Retrieve an approved order"},
+ recup_desc:{fr:"Une fois ta commande validée par 2KEA, entre son numéro pour télécharger ton PDF.",en:"Once your order is approved by 2KEA, enter its number to download your PDF."},
+ ph_cmdid:{fr:"N° de commande",en:"Order number"},
+ btn_recup:{fr:"Télécharger",en:"Download"},
+ // messages dynamiques
+ gen_loading:{fr:"Génération…",en:"Generating…"},
+ msg_erreur:{fr:"Erreur",en:"Error"},
+ msg_erreur_reseau:{fr:"Erreur réseau",en:"Network error"},
+ msg_champs:{fr:"Merci de remplir : nom du client, nom du tournoi, date/lieu et téléphone.",en:"Please fill in: client name, tournament name, date/place and phone."},
+ msg_pi_nonconfirme:{fr:"Ce numéro n'est pas confirmé. Contactez Pacific Ink.",en:"This number is not confirmed. Contact Pacific Ink."},
+ msg_infos_requises:{fr:"Nom et email valides requis.",en:"Valid name and email required."},
+ essai_ok:{fr:"Essai téléchargé.",en:"Trial downloaded."},
+ essais_restants:{fr:"essai(s) restant(s)",en:"trial(s) left"},
+ acces_pi:{fr:"Accès Pacific Ink",en:"Pacific Ink access"},
+ acces_poly:{fr:"Accès Polynésien",en:"Polynesian access"},
+ acces_intl:{fr:"Accès international",en:"International access"},
+ cmd_envoi:{fr:"Envoi…",en:"Sending…"},
+ nb_invalide:{fr:"Indiquez un nombre de feuilles valide.",en:"Enter a valid number of sheets."},
+};
 
-function majApercuCouleur(){
-  // Bouton "Arc-en-ciel" : vide le sélecteur pour repasser en arc-en-ciel
+function t(k){ return (T[k] && T[k][LANG]!=null) ? T[k][LANG] : (T[k]?T[k].fr:k); }
+
+function setLang(lang){
+  LANG = lang;
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach(function(el){ var k=el.getAttribute("data-i18n"); if(T[k]&&T[k][lang]!=null) el.innerHTML=T[k][lang]; });
+  document.querySelectorAll("[data-i18n-ph]").forEach(function(el){ var k=el.getAttribute("data-i18n-ph"); if(T[k]&&T[k][lang]!=null) el.setAttribute("placeholder",T[k][lang]); });
+  var bt=document.getElementById("lang-toggle"); if(bt) bt.textContent=(lang==="fr")?"🇬🇧 English":"🇫🇷 Français";
+  try{ localStorage.setItem("manaprint_lang",lang); }catch(e){}
+  var g=document.getElementById("ecran-gen"); if(g && !g.classList.contains("hidden")){ rendreProgrammes(); majOrigine(); majPrix(); }
 }
+function toggleLang(){ setLang(LANG==="fr"?"en":"fr"); }
 
 function montrer(id){
-  document.querySelectorAll('.wrap > div').forEach(d=>d.classList.add('hidden'));
+  document.querySelectorAll('.wrap > div').forEach(function(d){ d.classList.add('hidden'); });
   document.getElementById(id).classList.remove('hidden');
 }
 
-async function verifierPI(){
-  const num = document.getElementById('pi-numero').value;
-  const btn = document.getElementById('pi-btn'), msg = document.getElementById('pi-msg');
-  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
-  try{
-    const r = await fetch('/api/verifier-pacific-ink',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({numero:num})});
-    const d = await r.json();
-    if(d.ok){ origineAcces="pacific_ink"; ouvrirGenerateur(); }
-    else { msg.style.color="var(--coral)"; msg.textContent="Ce numéro n'est pas confirmé. Contactez Pacific Ink pour l'ajouter."; }
-  }catch(e){ msg.textContent="Erreur réseau"; }
-  btn.disabled=false; btn.textContent="Vérifier mon accès";
-}
-
-async function accederIntl(){
-  const nom=document.getElementById('intl-nom').value, email=document.getElementById('intl-email').value, pays=document.getElementById('intl-pays').value;
-  const btn=document.getElementById('intl-btn'), msg=document.getElementById('intl-msg');
-  if(!nom||!email.includes('@')){ msg.style.color="var(--coral)"; msg.textContent="Nom et email valides requis."; return; }
+// ── Accès ──
+async function demanderMachine(){
+  const tel=document.getElementById('pi-tel').value.trim();
+  const email=document.getElementById('pi-email').value.trim();
+  const btn=document.getElementById('pi-btn'), msg=document.getElementById('pi-msg');
+  if(!tel && !email){ msg.style.color="var(--coral)"; msg.textContent="Entrez votre téléphone ou votre email."; return; }
   btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
   try{
-    const r=await fetch('/api/client-international',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom,email,pays})});
+    const r=await fetch('/api/demande-machine',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telephone:tel,email:email})});
     const d=await r.json();
-    if(d.ok){ origineAcces="international"; ouvrirGenerateur(); }
-    else msg.textContent=d.message;
-  }catch(e){ msg.textContent="Erreur réseau"; }
-  btn.disabled=false; btn.textContent="Accéder au générateur";
+    if(d.ok){ msg.style.color="var(--teal)"; msg.textContent="Merci ! Votre demande a bien été envoyée. Nous vous recontactons très vite."; btn.style.display='none'; }
+    else{ msg.style.color="var(--coral)"; msg.textContent=(d.message||"Une erreur est survenue, réessayez."); btn.disabled=false; btn.textContent="Envoyer ma demande"; }
+  }catch(e){ msg.style.color="var(--coral)"; msg.textContent="Erreur réseau, réessayez."; btn.disabled=false; btn.textContent="Envoyer ma demande"; }
 }
-
 async function accederPoly(){
   const nom=document.getElementById('poly-nom').value, email=document.getElementById('poly-email').value;
   const btn=document.getElementById('poly-btn'), msg=document.getElementById('poly-msg');
-  if(!nom||!email.includes('@')){ msg.style.color="var(--coral)"; msg.textContent="Nom et email valides requis."; return; }
+  if(!nom||!email.includes('@')){ msg.style.color="var(--coral)"; msg.textContent=t("msg_infos_requises"); return; }
   btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
   try{
     const r=await fetch('/api/client-polynesien',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom,email})});
     const d=await r.json();
-    if(d.ok){ origineAcces="polynesien"; ouvrirGenerateur(); }
-    else msg.textContent=d.message;
-  }catch(e){ msg.textContent="Erreur réseau"; }
-  btn.disabled=false; btn.textContent="Accéder au générateur";
+    if(d.ok){ origineAcces="polynesien"; ouvrirGenerateur(); } else msg.textContent=d.message;
+  }catch(e){ msg.textContent=t("msg_erreur_reseau"); }
+  btn.disabled=false; btn.textContent=t("btn_acceder");
+}
+async function accederIntl(){
+  const nom=document.getElementById('intl-nom').value, email=document.getElementById('intl-email').value, pays=document.getElementById('intl-pays').value;
+  const btn=document.getElementById('intl-btn'), msg=document.getElementById('intl-msg');
+  if(!nom||!email.includes('@')){ msg.style.color="var(--coral)"; msg.textContent=t("msg_infos_requises"); return; }
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
+  try{
+    const r=await fetch('/api/client-international',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom,email,pays})});
+    const d=await r.json();
+    if(d.ok){ origineAcces="international"; ouvrirGenerateur(); } else msg.textContent=d.message;
+  }catch(e){ msg.textContent=t("msg_erreur_reseau"); }
+  btn.disabled=false; btn.textContent=t("btn_acceder");
 }
 
+// ── Générateur ──
 function ouvrirGenerateur(){
   montrer('ecran-gen');
-  document.getElementById('gen-origine').textContent = origineAcces==="pacific_ink" ? "Accès Pacific Ink confirmé" : origineAcces==="polynesien" ? "Accès Client Polynésien" : "Accès Client International";
-  const cont = document.getElementById('gen-programmes');
-  cont.innerHTML = "";
-  PROGRAMMES.forEach(p=>{
+  majOrigine();
+  chargerJeux();
+  // menu partenaires d'impression : visible pour les clients polynésiens (presqu'île, îles…)
+  const pw=document.getElementById('gen-part-wrap');
+  pw.classList.toggle('hidden', origineAcces!=="polynesien");
+  if(origineAcces==="polynesien") chargerPartenaires();
+  majPrix();
+  majEssais();
+}
+function majOrigine(){
+  var k = origineAcces==="pacific_ink" ? "acces_pi" : (origineAcces==="polynesien" ? "acces_poly" : "acces_intl");
+  document.getElementById('gen-origine').textContent = t(k);
+}
+let PARTENAIRES_LIST = [];
+async function chargerPartenaires(){
+  const sel=document.getElementById('gen-partenaire');
+  try{
+    const r=await fetch('/api/partenaires'); const d=await r.json();
+    PARTENAIRES_LIST = d.partenaires||[];
+  }catch(e){ PARTENAIRES_LIST=[]; }
+  const garder = sel.value;
+  sel.innerHTML='<option value="">'+t('part_self')+'</option>';
+  PARTENAIRES_LIST.forEach(function(p){
+    const o=document.createElement('option');
+    o.value=p.id; o.textContent=p.nom+" — "+p.zone;
+    sel.appendChild(o);
+  });
+  sel.value=garder;
+  majPartInfo();
+}
+function majPartInfo(){
+  const sel=document.getElementById('gen-partenaire');
+  const info=document.getElementById('gen-part-info');
+  const p=PARTENAIRES_LIST.find(function(x){ return x.id===sel.value; });
+  if(p){ info.textContent = t('part_info')+" "+p.nom+(p.tel?(" · 📞 "+p.tel):"")+". "; }
+  else { info.textContent=""; }
+}
+async function chargerJeux(){
+  if(!PROGRAMMES.length){
+    try{
+      const r=await fetch('/api/jeux'); const d=await r.json();
+      PROGRAMMES=(d.jeux||[]).map(function(j,i){ return {id:j.id,nom:j.nom,emoji:j.emoji||"",cpf:j.cartes_par_feuille||10,couleur:j.couleur,teinte:PALETTE[i%PALETTE.length]}; });
+    }catch(e){ PROGRAMMES=[]; }
+    if(!progChoisi && PROGRAMMES.length) progChoisi=PROGRAMMES[0].id;
+  }
+  rendreProgrammes();
+}
+function rendreProgrammes(){
+  const cont=document.getElementById('gen-programmes'); cont.innerHTML="";
+  PROGRAMMES.forEach(function(p){
     const b=document.createElement('button');
-    b.style.cssText=`display:flex;align-items:center;gap:.6rem;padding:.65rem .85rem;border-radius:4px;text-align:left;border:1px solid ${progChoisi===p.id?p.couleur:'var(--line)'};background:${progChoisi===p.id?p.couleur+'12':'#fff'}`;
-    b.innerHTML=`<div style="width:8px;height:8px;border-radius:50%;background:${p.couleur};flex-shrink:0"></div><div><div style="font-weight:600;font-size:.85rem">${p.nom}</div><div style="font-size:.7rem;color:var(--muted)">${p.desc}</div></div>`;
-    b.onclick=()=>{ progChoisi=p.id; ouvrirGenerateur(); };
+    const on=progChoisi===p.id;
+    const desc=p.cpf+(LANG==='en'?" cards / sheet":" cartes / feuille");
+    b.style.cssText="display:flex;align-items:center;gap:.6rem;padding:.65rem .85rem;border-radius:4px;text-align:left;width:100%;border:1px solid "+(on?p.teinte:'var(--line)')+";background:"+(on?p.teinte+'12':'#fff');
+    b.innerHTML='<div style="width:8px;height:8px;border-radius:50%;background:'+p.teinte+';flex-shrink:0"></div><div><div style="font-weight:600;font-size:.85rem">'+(p.emoji?p.emoji+" ":"")+p.nom+'</div><div style="font-size:.7rem;color:var(--muted)">'+desc+'</div></div>';
+    b.onclick=function(){ progChoisi=p.id; rendreProgrammes(); majPrix(); };
     cont.appendChild(b);
   });
-  chargerEssaisRestants();
-  majPrix();
 }
-
-let modePaiement = "manuel";
-// Tarifs par profil (XPF/feuille) — doivent correspondre au backend
-const TARIFS = {
-  pacific_ink:  {couleur: 10,  nb: 5},
-  polynesien:   {couleur: 3,   nb: 1.5},
-  international: {couleur: 6,   nb: 3},
-};
-function tarifProfil(couleur){
-  const t = TARIFS[origineAcces] || TARIFS.pacific_ink;
-  return couleur ? t.couleur : t.nb;
+function majPrix(){
+  const nb=parseInt(document.getElementById('gen-nb-feuilles').value)||0;
+  const jeu=PROGRAMMES.find(function(p){ return p.id===progChoisi; });
+  const couleur = jeu ? jeu.couleur : true;
+  const tar=TARIFS[origineAcces]||TARIFS.pacific_ink;
+  const prix=couleur?tar.c:tar.nb;
+  const total=nb*prix;
+  const el=document.getElementById('gen-prix');
+  if(nb>0){ el.textContent = nb+" × "+prix+" XPF = "+total+" XPF"; } else { el.textContent=""; }
 }
-function fmtPrix(v){
-  // 1.5 -> "1,5"  ;  10 -> "10"
-  return (v % 1 === 0) ? String(v) : v.toString().replace('.', ',');
-}
-
-function getPersoParams(){
+function collectPerso(msgEl){
+  const ev=document.getElementById('gen-evenement').value.trim();
+  const ti=document.getElementById('gen-titre').value.trim();
+  const dl=document.getElementById('gen-datelieu').value.trim();
+  const tel=document.getElementById('gen-tel').value.trim();
+  if(!ev||!ti||!dl||!tel){ if(msgEl){ msgEl.style.color="var(--coral)"; msgEl.textContent=t("msg_champs"); } return null; }
   return {
-    programme: progChoisi,
-    couleur: couleurChoisie,
-    nom_evenement: document.getElementById('perso-evenement').value,
-    titre_jeu: document.getElementById('perso-titre').value,
-    date_lieu: document.getElementById('perso-datelieu').value,
-    telephone: document.getElementById('perso-telephone').value,
-    couleur_perso: document.getElementById('perso-couleur').value,
+    nom_evenement:ev, titre_jeu:ti, date_lieu:dl, telephone:tel,
+    couleur_perso:document.getElementById('gen-couleurperso').value.trim(),
+    theme:document.getElementById('gen-theme').value.trim(),
   };
 }
-
-function persoManquante(){
-  const ev=document.getElementById('perso-evenement').value.trim();
-  const ti=document.getElementById('perso-titre').value.trim();
-  const da=document.getElementById('perso-datelieu').value.trim();
-  const te=document.getElementById('perso-telephone').value.trim();
-  return (!ev || !ti || !da || !te);
+function telecharger(blob, nom){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=nom; a.click();
+  URL.revokeObjectURL(url);
 }
-
-function majPrix(){
-  const f = Math.max(1, parseInt(document.getElementById('cmd-feuilles').value)||1);
-  const prix = tarifProfil(couleurChoisie);
-  document.getElementById('cmd-total').textContent = (f*prix).toLocaleString('fr-FR') + " XPF";
-  // mettre à jour les libellés des boutons couleur/N&B selon le profil
-  const bc=document.getElementById('btn-couleur'), bnb=document.getElementById('btn-nb');
-  if(bc) bc.textContent = "Couleur — " + fmtPrix(tarifProfil(true)) + " F/feuille";
-  if(bnb) bnb.textContent = "Noir & blanc — " + fmtPrix(tarifProfil(false)) + " F/feuille";
-}
-
-function setPaiement(mode){
-  modePaiement = mode;
-  const s=document.getElementById('pay-stripe'), m=document.getElementById('pay-manuel');
-  if(mode==='stripe'){
-    s.style.background="var(--teal)"; s.style.color="#fff"; s.style.borderColor="var(--teal)";
-    m.style.background="#fff"; m.style.color="var(--ink)"; m.style.borderColor="var(--line)";
-  } else {
-    m.style.background="var(--teal)"; m.style.color="#fff"; m.style.borderColor="var(--teal)";
-    s.style.background="#fff"; s.style.color="var(--ink)"; s.style.borderColor="var(--line)";
-  }
-}
-
-async function chargerEssaisRestants(){
+async function majEssais(){
   try{
-    const r=await fetch('/api/essais-restants');
-    const d=await r.json();
-    if(d.ok){
-      const c=document.getElementById('essai-compteur');
-      c.textContent = d.restants + " essai" + (d.restants>1?"s":"") + " restant" + (d.restants>1?"s":"");
-      if(d.restants<=0){
-        c.textContent="Essais épuisés";
-        document.getElementById('essai-btn').disabled=true;
-      }
-    }
+    const r=await fetch('/api/essais-restants'); const d=await r.json();
+    if(d.ok){ const m=document.getElementById('gen-essai-msg'); m.style.color="var(--muted)"; m.textContent=d.restants+" "+t("essais_restants"); }
   }catch(e){}
 }
-
-async function faireEssai(){
-  const btn=document.getElementById('essai-btn'), msg=document.getElementById('essai-msg');
-  if(persoManquante()){
-    msg.style.color="var(--coral)";
-    msg.textContent="Remplissez d'abord le nom du client, le nom du tournoi, la date et le téléphone du responsable (champs obligatoires).";
-    return;
-  }
-  btn.disabled=true; btn.innerHTML='<span class="spin"></span> Génération…';
+async function essaiPDF(){
+  const msg=document.getElementById('gen-essai-msg');
+  const perso=collectPerso(msg); if(!perso) return;
+  const btn=document.getElementById('gen-essai-btn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> '+t("gen_loading");
   try{
-    const r=await fetch('/api/essai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(getPersoParams())});
-    if(r.ok){
-      const blob=await r.blob();
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a'); a.href=url; a.download='ESSAI_manaprint.pdf'; a.click();
-      URL.revokeObjectURL(url);
-      const restants=r.headers.get('X-Essais-Restants');
-      msg.style.color="var(--teal)";
-      msg.textContent="Essai téléchargé. "+(restants!==null?restants+" essai(s) restant(s).":"");
-      chargerEssaisRestants();
+    const body=Object.assign({programme:progChoisi},perso);
+    const r=await fetch('/api/essai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const ct=r.headers.get('Content-Type')||'';
+    if(r.ok && ct.indexOf('pdf')!==-1){
+      const blob=await r.blob(); telecharger(blob,'ESSAI_'+progChoisi+'.pdf');
+      const rest=r.headers.get('X-Essais-Restants');
+      msg.style.color="var(--teal)"; msg.textContent=t("essai_ok")+(rest!=null?(" "+rest+" "+t("essais_restants")):"");
     } else {
-      const d=await r.json();
-      msg.style.color="var(--coral)"; msg.textContent=d.message;
-      chargerEssaisRestants();
+      const d=await r.json(); msg.style.color="var(--coral)"; msg.textContent=d.message||t("msg_erreur");
     }
-  }catch(e){ msg.textContent="Erreur réseau"; }
-  btn.disabled=false; btn.textContent="Générer un essai (1 feuille)";
+  }catch(e){ msg.style.color="var(--coral)"; msg.textContent=t("msg_erreur_reseau"); }
+  btn.disabled=false; btn.textContent=t("btn_essai");
 }
-
-async function passerCommande(){
-  const btn=document.getElementById('cmd-btn'), msg=document.getElementById('cmd-msg');
-  if(persoManquante()){
-    msg.style.color="var(--coral)";
-    msg.textContent="Remplissez d'abord le nom du client, le nom du tournoi, la date et le téléphone du responsable (champs obligatoires).";
-    return;
-  }
-  const nb_feuilles=Math.max(1, parseInt(document.getElementById('cmd-feuilles').value)||1);
-  btn.disabled=true; btn.innerHTML='<span class="spin"></span> Envoi…';
+async function commander(){
+  const msg=document.getElementById('gen-cmd-msg');
+  const perso=collectPerso(msg); if(!perso) return;
+  const nb=parseInt(document.getElementById('gen-nb-feuilles').value)||0;
+  if(nb<1){ msg.style.color="var(--coral)"; msg.textContent=t("nb_invalide"); return; }
+  const sel=document.getElementById('gen-partenaire');
+  const partenaire=sel?sel.value:"";
+  const btn=document.getElementById('gen-cmd-btn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> '+t("cmd_envoi");
   try{
-    const params={...getPersoParams(), nb_feuilles, mode_paiement:modePaiement};
-    const r=await fetch('/api/commander',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(params)});
+    const body=Object.assign({programme:progChoisi,nb_feuilles:nb,mode_paiement:'manuel',partenaire:partenaire},perso);
+    const r=await fetch('/api/commander',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const d=await r.json();
-    if(d.ok){
-      msg.style.color="var(--teal)"; msg.textContent=d.message;
-    } else {
-      msg.style.color="var(--coral)"; msg.textContent=d.message;
-    }
-  }catch(e){ msg.textContent="Erreur réseau"; }
-  btn.disabled=false; btn.textContent="Passer la commande";
+    if(d.ok){ msg.style.color="var(--teal)"; msg.textContent=d.message; }
+    else{ msg.style.color="var(--coral)"; msg.textContent=d.message||t("msg_erreur"); }
+  }catch(e){ msg.style.color="var(--coral)"; msg.textContent=t("msg_erreur_reseau"); }
+  btn.disabled=false; btn.textContent=t("btn_commander");
+}
+async function recupererCommande(){
+  const id=document.getElementById('gen-cmd-id').value;
+  const msg=document.getElementById('gen-recup-msg');
+  if(!id){ return; }
+  try{
+    const r=await fetch('/api/generer-commande/'+encodeURIComponent(id),{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    const ct=r.headers.get('Content-Type')||'';
+    if(r.ok && ct.indexOf('pdf')!==-1){ const blob=await r.blob(); telecharger(blob,'manaprint_cmd'+id+'.pdf'); msg.style.color="var(--teal)"; msg.textContent="✓ PDF"; }
+    else{ const d=await r.json(); msg.style.color="var(--coral)"; msg.textContent=d.message||t("msg_erreur"); }
+  }catch(e){ msg.style.color="var(--coral)"; msg.textContent=t("msg_erreur_reseau"); }
 }
 
+// ── Gestion (interne) ──
 async function adminLogin(){
   const code=document.getElementById('admin-code').value;
   const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
@@ -429,21 +532,42 @@ async function adminLogin(){
   if(d.ok){ document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-panel').classList.remove('hidden'); chargerClients(); chargerCommandes(); }
   else document.getElementById('admin-login-msg').textContent="Code incorrect.";
 }
-
+async function chargerCommandes(){
+  const cont=document.getElementById('admin-commandes');
+  try{
+    const r=await fetch('/api/admin/commandes'); const d=await r.json();
+    const cmds=(d.commandes||[]).filter(function(c){ return c.statut==='en_attente'; });
+    if(cmds.length===0){ cont.innerHTML='<p style="color:var(--muted);font-style:italic;font-size:.85rem">Aucune commande en attente.</p>'; return; }
+    cont.innerHTML="";
+    cmds.forEach(function(c){
+      var funco=""; try{ funco=JSON.parse(c.params_perso||"{}").fun_and_co?' · 🖨️ FUN AND CO':''; }catch(e){}
+      const div=document.createElement('div');
+      div.style.cssText="display:flex;justify-content:space-between;align-items:center;padding:.7rem 1rem;border:1px solid var(--line);border-radius:6px;background:#fff;gap:.6rem";
+      div.innerHTML='<span style="font-size:.85rem">#'+c.id+' · '+c.programme+' · '+c.nb_feuilles+' f. · <b>'+c.montant+' XPF</b><span style="color:var(--coral)">'+funco+'</span></span>'
+        +'<button class="btn" style="width:auto;padding:.4rem 1rem;white-space:nowrap" onclick="validerCommande('+c.id+',this)">Valider</button>';
+      cont.appendChild(div);
+    });
+  }catch(e){ cont.innerHTML='<p style="color:var(--coral);font-size:.85rem">Erreur de chargement.</p>'; }
+}
+async function validerCommande(id,btn){
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
+  try{
+    const r=await fetch('/api/admin/commandes/'+id+'/valider',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    const d=await r.json();
+    alert(d.message||'OK'); chargerCommandes();
+  }catch(e){ alert('Erreur réseau'); btn.disabled=false; btn.textContent='Valider'; }
+}
 async function chargerClients(){
-  const r=await fetch('/api/admin/clients-pi');
-  const d=await r.json();
-  const liste=document.getElementById('admin-liste');
-  liste.innerHTML="";
-  if(d.clients.length===0){ liste.innerHTML='<p style="color:var(--muted);font-style:italic;font-size:.88rem">Aucun numéro confirmé.</p>'; return; }
-  d.clients.forEach(c=>{
+  const r=await fetch('/api/admin/clients-pi'); const d=await r.json();
+  const liste=document.getElementById('admin-liste'); liste.innerHTML="";
+  if(!d.clients||d.clients.length===0){ liste.innerHTML='<p style="color:var(--muted);font-style:italic;font-size:.85rem">Aucun numéro confirmé.</p>'; return; }
+  d.clients.forEach(function(c){
     const div=document.createElement('div');
     div.style.cssText="display:flex;justify-content:space-between;align-items:center;padding:.7rem 1rem;border:1px solid var(--line);border-radius:4px;background:#fff";
-    div.innerHTML=`<span><span class="mono" style="font-size:.9rem">${c.numero}</span> ${c.nom?'<span style="color:var(--muted);font-size:.82rem">— '+c.nom+'</span>':''}</span><button onclick="adminRetirer('${c.numero}')" style="background:none;border:none;color:var(--coral);font-size:.8rem;font-weight:500">Retirer</button>`;
+    div.innerHTML='<span><span class="mono" style="font-size:.9rem">'+c.numero+'</span> '+(c.nom?'<span style="color:var(--muted);font-size:.82rem">— '+c.nom+'</span>':'')+'</span><button onclick="adminRetirer(\''+c.numero+'\')" style="background:none;border:none;color:var(--coral);font-size:.8rem;font-weight:500">Retirer</button>';
     liste.appendChild(div);
   });
 }
-
 async function adminAjouter(){
   const numero=document.getElementById('admin-num').value, nom=document.getElementById('admin-nom').value;
   const msg=document.getElementById('admin-msg');
@@ -452,43 +576,13 @@ async function adminAjouter(){
   msg.textContent=d.message; msg.style.color=d.ok?"var(--teal)":"var(--coral)";
   if(d.ok){ document.getElementById('admin-num').value=""; document.getElementById('admin-nom').value=""; chargerClients(); }
 }
-
 async function adminRetirer(num){
   await fetch('/api/admin/clients-pi/'+encodeURIComponent(num),{method:'DELETE'});
   chargerClients();
 }
 
-async function chargerCommandes(){
-  const r=await fetch('/api/admin/commandes');
-  const d=await r.json();
-  const liste=document.getElementById('admin-commandes');
-  liste.innerHTML="";
-  if(!d.commandes || d.commandes.length===0){ liste.innerHTML='<p style="color:var(--muted);font-style:italic;font-size:.88rem">Aucune commande.</p>'; return; }
-  d.commandes.forEach(c=>{
-    const coul = c.couleur ? "Couleur" : "N&B";
-    const div=document.createElement('div');
-    div.style.cssText="display:flex;justify-content:space-between;align-items:center;padding:.7rem 1rem;border:1px solid var(--line);border-radius:4px;background:#fff";
-    let badge, action;
-    if(c.statut==="en_attente"){
-      badge='<span style="font-size:.72rem;color:var(--coral);font-weight:600">EN ATTENTE</span>';
-      action=`<button onclick="validerCommande(${c.id})" style="background:var(--teal);border:none;color:#fff;font-size:.78rem;font-weight:600;padding:.4rem .8rem;border-radius:4px">Valider le paiement</button>`;
-    } else if(c.statut==="payee"){
-      badge='<span style="font-size:.72rem;color:var(--teal);font-weight:600">PAYÉE ✓</span>';
-      action='<span style="font-size:.75rem;color:var(--muted)">En attente de génération</span>';
-    } else {
-      badge='<span style="font-size:.72rem;color:var(--muted);font-weight:600">GÉNÉRÉE</span>';
-      action='';
-    }
-    div.innerHTML=`<div><div style="font-size:.85rem;font-weight:600">#${c.id} — ${c.nb_feuilles} feuilles ${coul}</div><div style="font-size:.78rem;color:var(--muted)"><span class="mono">${c.montant.toLocaleString('fr-FR')} XPF</span> · ${c.mode_paiement} · ${c.identifiant} · ${badge}</div></div><div>${action}</div>`;
-    liste.appendChild(div);
-  });
-}
-
-async function validerCommande(id){
-  const r=await fetch('/api/admin/commandes/'+id+'/valider',{method:'POST'});
-  const d=await r.json();
-  if(d.ok) chargerCommandes();
-}
+// ── Init ──
+(function(){ var l="fr"; try{ l=localStorage.getItem("manaprint_lang")||"fr"; }catch(e){} setLang(l); })();
 </script>
 </body>
 </html>
