@@ -66,7 +66,7 @@
         <button class="card-choice" onclick="montrer('ecran-poly')">
           <p class="label-mono" data-i18n="poly_label" style="color:var(--teal)">Polynésie · sans machine</p>
           <h3 class="display" data-i18n="poly_titre" style="font-size:1.2rem;margin-bottom:.6rem">Client Polynésien</h3>
-          <p data-i18n="poly_desc" style="font-size:.85rem;color:var(--muted);line-height:1.6">Générez vos fichiers au tarif local. Pour l'impression, nous avons des partenaires d'impression qui vous facturent les charges de feuille et d'encre.</p>
+          <p data-i18n="poly_desc" style="font-size:.85rem;color:var(--muted);line-height:1.6">2 étapes : 1) générez votre PDF de jeu au tarif local ; 2) imprimez chez un partenaire d'impression — il ne facture que le papier et l'encre, à 3 F la feuille.</p>
         </button>
         <button class="card-choice" onclick="montrer('ecran-intl')">
           <p class="label-mono" data-i18n="intl_label" style="color:var(--teal)">Hors Polynésie</p>
@@ -155,11 +155,7 @@
       <label class="field-label" data-i18n="lbl_datelieu">Date et lieu</label>
       <input id="gen-datelieu" data-i18n-ph="ph_datelieu" placeholder="Ex : 24 déc. 2026 — Papeete">
       <label class="field-label" data-i18n="lbl_tel">Téléphone du responsable</label>
-      <input id="gen-tel" data-i18n-ph="ph_tel" placeholder="Ex : 87 12 34 56">
-      <label class="field-label" data-i18n="lbl_couleurperso">Couleur dominante <span class="opt" data-i18n="opt_facult">(optionnel)</span></label>
-      <input id="gen-couleurperso" data-i18n-ph="ph_couleurperso" placeholder="Ex : bleu lagon">
-      <label class="field-label" data-i18n="lbl_theme">Thème <span class="opt" data-i18n="opt_facult">(optionnel)</span></label>
-      <input id="gen-theme" data-i18n-ph="ph_theme" placeholder="Ex : ambiance plage tropicale" style="margin-bottom:0">
+      <input id="gen-tel" data-i18n-ph="ph_tel" placeholder="Ex : 87 12 34 56" style="margin-bottom:0">
     </div>
 
     <!-- 4. Essai gratuit -->
@@ -178,7 +174,7 @@
       <p id="gen-prix" style="font-size:.95rem;font-weight:600;color:var(--teal-d);margin-bottom:.9rem"></p>
 
       <div id="gen-part-wrap" class="hidden" style="margin-bottom:.9rem">
-        <label class="field-label" data-i18n="lbl_partenaire">Choisir une machine Pacific Ink</label>
+        <label class="field-label" data-i18n="lbl_partenaire">Choisir un partenaire d'impression</label>
         <select id="gen-partenaire" onchange="majPartInfo()" style="margin-bottom:0">
           <option value="" data-i18n="part_self">Je télécharge le PDF moi-même</option>
         </select>
@@ -254,7 +250,7 @@ const T = {
  pi_desc:{fr:"Il y a 4 machines à placer.",en:"4 machines available to install."},
  poly_label:{fr:"Polynésie · sans machine",en:"Polynesia · no machine"},
  poly_titre:{fr:"Client Polynésien",en:"Polynesian Client"},
- poly_desc:{fr:"Générez vos fichiers au tarif local. Pour l'impression, nous avons des partenaires d'impression qui vous facturent les charges de feuille et d'encre.",en:"Generate your files at the local rate. For printing, we have print partners who bill you for paper and ink costs."},
+ poly_desc:{fr:"2 étapes : 1) générez votre PDF de jeu au tarif local ; 2) imprimez chez un partenaire d'impression — il ne facture que le papier et l'encre, à 3 F la feuille.",en:"2 steps: 1) generate your game PDF at the local rate; 2) print at a print partner — they only charge for paper and ink, at 3 F per sheet."},
  intl_label:{fr:"Hors Polynésie",en:"Outside Polynesia"},
  intl_titre:{fr:"Client international",en:"International Client"},
  intl_desc:{fr:"Générez vos cartes, téléchargez le PDF, imprimez où vous voulez.",en:"Generate your cards, download the PDF, print anywhere."},
@@ -263,7 +259,7 @@ const T = {
  part_funco:{fr:"— presqu'île (Tahiti Iti)",en:"— peninsula (Tahiti Iti)"},
  part_raiatea:{fr:"— Îles Sous-le-Vent",en:"— Leeward Islands"},
  part_papeete:{fr:"— Tahiti",en:"— Tahiti"},
- lbl_partenaire:{fr:"Choisir une machine Pacific Ink",en:"Choose a Pacific Ink machine"},
+ lbl_partenaire:{fr:"Choisir un partenaire d'impression",en:"Choose a print partner"},
  part_self:{fr:"Je télécharge le PDF moi-même",en:"I download the PDF myself"},
  part_info:{fr:"Après validation, ton PDF est envoyé à",en:"After approval, your PDF is sent to"},
  crosslink:{fr:"Tu organises des tournois ? Joue en ligne sur Ticket Bingo",en:"Running tournaments? Play online on Ticket Bingo"},
@@ -460,8 +456,8 @@ function collectPerso(msgEl){
   if(!ev||!ti||!dl||!tel){ if(msgEl){ msgEl.style.color="var(--coral)"; msgEl.textContent=t("msg_champs"); } return null; }
   return {
     nom_evenement:ev, titre_jeu:ti, date_lieu:dl, telephone:tel,
-    couleur_perso:document.getElementById('gen-couleurperso').value.trim(),
-    theme:document.getElementById('gen-theme').value.trim(),
+    couleur_perso:"",
+    theme:"",
   };
 }
 function telecharger(blob, nom){
