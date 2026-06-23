@@ -98,10 +98,11 @@
   <!-- ÉCRAN PACIFIC INK -->
   <div id="ecran-pi" class="hidden" style="max-width:460px;margin:0 auto">
     <button onclick="montrer('ecran-choix')" data-i18n="retour" class="mono" style="background:none;border:none;color:var(--muted);font-size:.85rem;margin-bottom:1.5rem">← Retour</button>
-    <h2 class="display" data-i18n="pi_verif_t" style="font-size:1.5rem;margin-bottom:.6rem">Vérification Pacific Ink</h2>
-    <p data-i18n="pi_verif_d" style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;line-height:1.6">Entrez le numéro de client lié à votre machine Pacific Ink.</p>
-    <input id="pi-numero" placeholder="89 22 03 05">
-    <button class="btn" id="pi-btn" data-i18n="btn_verifier" onclick="verifierPI()">Vérifier mon accès</button>
+    <h2 class="display" data-i18n="pi_verif_t" style="font-size:1.5rem;margin-bottom:.6rem">Je souhaite avoir une machine</h2>
+    <p data-i18n="pi_verif_d" style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;line-height:1.6">Laissez-nous vos coordonnées, nous vous recontactons pour l'installation d'une machine.</p>
+    <input id="pi-tel" placeholder="Numéro de téléphone">
+    <input id="pi-email" type="email" placeholder="vous@email.com">
+    <button class="btn" id="pi-btn" data-i18n="btn_demander" onclick="demanderMachine()">Envoyer ma demande</button>
     <p id="pi-msg" style="margin-top:1rem;font-size:.88rem"></p>
   </div>
 
@@ -268,9 +269,10 @@ const T = {
  crosslink:{fr:"Tu organises des tournois ? Joue en ligne sur Ticket Bingo",en:"Running tournaments? Play online on Ticket Bingo"},
  gestion:{fr:"Espace gestion",en:"Management area"},
  retour:{fr:"← Retour",en:"← Back"},
- pi_verif_t:{fr:"Vérification Pacific Ink",en:"Pacific Ink Verification"},
- pi_verif_d:{fr:"Entrez le numéro de client lié à votre machine Pacific Ink.",en:"Enter the client number linked to your Pacific Ink machine."},
+ pi_verif_t:{fr:"Je souhaite avoir une machine",en:"I would like a machine"},
+ pi_verif_d:{fr:"Laissez-nous vos coordonnées, nous vous recontactons pour l'installation d'une machine.",en:"Leave us your details and we'll get back to you about installing a machine."},
  btn_verifier:{fr:"Vérifier mon accès",en:"Verify my access"},
+ btn_demander:{fr:"Envoyer ma demande",en:"Send my request"},
  poly_form_t:{fr:"Client Polynésien",en:"Polynesian Client"},
  poly_form_d:{fr:"Vos informations pour accéder au générateur (tarif local).",en:"Your details to access the generator (local rate)."},
  intl_form_t:{fr:"Client international",en:"International Client"},
@@ -340,17 +342,18 @@ function montrer(id){
 }
 
 // ── Accès ──
-async function verifierPI(){
-  const num=document.getElementById('pi-numero').value;
+async function demanderMachine(){
+  const tel=document.getElementById('pi-tel').value.trim();
+  const email=document.getElementById('pi-email').value.trim();
   const btn=document.getElementById('pi-btn'), msg=document.getElementById('pi-msg');
+  if(!tel && !email){ msg.style.color="var(--coral)"; msg.textContent="Entrez votre téléphone ou votre email."; return; }
   btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
   try{
-    const r=await fetch('/api/verifier-pacific-ink',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({numero:num})});
+    const r=await fetch('/api/demande-machine',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telephone:tel,email:email})});
     const d=await r.json();
-    if(d.ok){ origineAcces="pacific_ink"; ouvrirGenerateur(); }
-    else{ msg.style.color="var(--coral)"; msg.textContent=t("msg_pi_nonconfirme"); }
-  }catch(e){ msg.textContent=t("msg_erreur_reseau"); }
-  btn.disabled=false; btn.textContent=t("btn_verifier");
+    if(d.ok){ msg.style.color="var(--teal)"; msg.textContent="Merci ! Votre demande a bien été envoyée. Nous vous recontactons très vite."; btn.style.display='none'; }
+    else{ msg.style.color="var(--coral)"; msg.textContent=(d.message||"Une erreur est survenue, réessayez."); btn.disabled=false; btn.textContent="Envoyer ma demande"; }
+  }catch(e){ msg.style.color="var(--coral)"; msg.textContent="Erreur réseau, réessayez."; btn.disabled=false; btn.textContent="Envoyer ma demande"; }
 }
 async function accederPoly(){
   const nom=document.getElementById('poly-nom').value, email=document.getElementById('poly-email').value;
