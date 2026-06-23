@@ -78,6 +78,26 @@ def envoyer_email_pdf(destinataire, sujet, corps, pdf_io, nom_fichier, copie=Non
     except Exception as e:
         return False, "Echec email : " + str(e)
 
+
+def envoyer_email_simple(destinataire, sujet, corps, copie=None):
+    """Envoie un email texte simple (SMTP Gmail). Renvoie (ok, message)."""
+    if not SMTP_USER or not SMTP_PASS:
+        return False, "Email non configuré (SMTP_USER / SMTP_PASS manquants sur Railway)"
+    try:
+        msg = EmailMessage()
+        msg["Subject"] = sujet
+        msg["From"] = SMTP_USER
+        msg["To"] = destinataire
+        if copie:
+            msg["Cc"] = copie
+        msg.set_content(corps)
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
+            s.login(SMTP_USER, SMTP_PASS)
+            s.send_message(msg)
+        return True, "Email envoyé"
+    except Exception as e:
+        return False, "Echec email : " + str(e)
+
 # Code de gestion — À DÉFINIR via variable d'environnement en production
 CODE_ADMIN = os.environ.get("MANAPRINT_ADMIN_CODE", "2KEA-MOOREA")
 
@@ -294,6 +314,26 @@ def verifier_pi():
         session["identifiant"] = db.normalize_num(numero)
         return jsonify({"ok": True})
     return jsonify({"ok": False, "message": "Numéro non confirmé"}), 404
+
+
+@app.route("/api/demande-machine", methods=["POST"])
+def demande_machine():
+    """Reçoit une demande de machine (téléphone + email) et l'envoie par email à la plateforme."""
+    data = request.get_json(force=True)
+    tel = (data.get("telephone") or "").strip()
+    email = (data.get("email") or "").strip()
+    if not tel and not email:
+        return jsonify({"ok": False, "message": "Téléphone ou email requis"}), 400
+    corps = (
+        "Nouvelle demande de machine — MANAPRINT\n\n"
+        "Téléphone : " + (tel or "—") + "\n"
+        "Email : " + (email or "—") + "\n"
+    )
+    dest = SMTP_USER or "directionvaikeashop@gmail.com"
+    ok, m = envoyer_email_simple(dest, "MANAPRINT — Demande de machine", corps)
+    if ok:
+        return jsonify({"ok": True})
+    return jsonify({"ok": False, "message": m}), 500
 
 
 # ── ACCÈS CLIENT INTERNATIONAL ────────────────────────────────────────────────
