@@ -48,11 +48,11 @@ PARTENAIRES = {
         "zone": "Presqu'île (Tahiti Iti)",
         "tel": "87 26 73 24",
     },
-    "2kea_raiatea": {
-        "nom": "2KEA & Associé — Raiatea",
-        "email": os.environ.get("RAIATEA_EMAIL", "vaikeashop04@gmail.com"),
-        "zone": "Raiatea (Îles Sous-le-Vent)",
-        "tel": "87 77 34 26",
+    "cocotie_mer": {
+        "nom": "COCOTIE MER",
+        "email": os.environ.get("COCOTIE_MER_EMAIL", "teagai10.fariki08@gmail.com"),
+        "zone": "Faaa (Tahiti)",
+        "tel": "",
     },
 }
 
