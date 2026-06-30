@@ -29,7 +29,7 @@ RAINBOW = [
 ]
 NOIR = colors.black
 GRIS = colors.Color(0.42, 0.42, 0.42)
-GRIS40 = colors.Color(0.60, 0.60, 0.60)   # gris 40% (économie d'encre) — pour les chiffres
+GRIS40 = colors.Color(0.50, 0.50, 0.50)   # gris 50% (un peu plus fort) — pour les chiffres
 GRIS_CLAIR = colors.Color(0.80, 0.80, 0.80)
 
 PAGE_W, PAGE_H = A4
@@ -92,14 +92,14 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
     grid_bot = y0 + 6 * mm
     grid_h = grid_top - grid_bot
     row_h = grid_h / 5
-    r_cercle = min(cell_w, row_h) * 0.35
+    r_cercle = min(cell_w, row_h) * 0.42
 
     for j in range(5):          # rangées (0 = haut)
         cy = grid_top - (j + 0.5) * row_h
         for i, (lettre, a, b) in enumerate(PLAGES):
             cell_x = x0 + i * cell_w
-            cxc = cell_x + cell_w * 0.33   # centre du rond (gros numéro)
-            cx2 = cell_x + cell_w * 0.74   # petit numéro
+            cxc = cell_x + cell_w * 0.30   # centre du rond (gros numéro)
+            cx2 = cell_x + cell_w * 0.79   # petit numéro
 
             # séparateurs de colonnes
             if i > 0:
@@ -124,11 +124,11 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
             # Gros numéro entouré
             c.setStrokeColor(col); c.setLineWidth(1.0)
             c.circle(cxc, cy, r_cercle, stroke=1, fill=0)
-            c.setFillColor(GRIS40); c.setFont(POLICE, 32)
-            c.drawCentredString(cxc, cy - 11, str(n1))
+            c.setFillColor(GRIS40); c.setFont(POLICE, 42)
+            c.drawCentredString(cxc, cy - 14, str(n1))
             # Petit numéro
-            c.setFillColor(GRIS40); c.setFont(POLICE, 28)
-            c.drawCentredString(cx2, cy - 10, str(n2))
+            c.setFillColor(GRIS40); c.setFont(POLICE, 36)
+            c.drawCentredString(cx2, cy - 12, str(n2))
 
         # séparateur de rangée
         if j > 0:
