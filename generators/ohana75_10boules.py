@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 """
 MANAPRINT — Générateur OHANA 75 · 10 BOULES (format A4)
@@ -17,6 +16,17 @@ from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+
+# SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne : si le module securite
+# est absent, les cartons sortent normalement, simplement sans microtexte.
+try:
+    from generators import securite as _sec
+except Exception:
+    try:
+        import securite as _sec
+    except Exception:
+        _sec = None
+
 
 try:
     pdfmetrics.registerFont(TTFont("DJL", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
@@ -61,6 +71,8 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     # Bordure
     c.setStrokeColor(col); c.setLineWidth(0.8)
     c.roundRect(x0, y0, CARD_W, CARD_H, 1.2 * mm, stroke=1, fill=0)
+    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
+        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.9 * mm)
 
     # ---- En-tête ----
     htxt_y = y0 + CARD_H - 4.3 * mm
@@ -93,22 +105,28 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
         small_val = nums[2 * p + 1][0]
         # gros chiffre
         bx = pleft + pair_w * 0.30
-        c.setFillColor(GRIS40); c.setFont(POLICE, 44)
-        c.drawCentredString(bx, cy - 15, str(big_val))
+        if _sec:  # chiffres "billet de banque" remplis de microtexte
+            _sec.chiffre_micro(c, big_val, bx, cy - 15, 44, GRIS40, POLICE)
+        else:
+            c.setFillColor(GRIS40); c.setFont(POLICE, 44)
+            c.drawCentredString(bx, cy - 15, str(big_val))
         # petit chiffre dans rond pointillé (collé au gros)
         sx = pleft + pair_w * 0.74
         c.setStrokeColor(col); c.setLineWidth(0.7)
         c.setDash([1.4, 1.4])
         c.circle(sx, cy, 6.3 * mm, stroke=1, fill=0)
         c.setDash([])
-        c.setFillColor(GRIS40); c.setFont(POLICE, 26)
-        c.drawCentredString(sx, cy - 9, str(small_val))
+        if _sec:
+            _sec.chiffre_micro(c, small_val, sx, cy - 9, 26, GRIS40, POLICE)
+        else:
+            c.setFillColor(GRIS40); c.setFont(POLICE, 26)
+            c.drawCentredString(sx, cy - 9, str(small_val))
 
 
 def generer_pdf(nb_cartes=9, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone=""):
     buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=A4)
+    c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
     nb_cartes = max(1, min(int(nb_cartes), 10000))
     nb_pages = (nb_cartes + CARTES_PAGE - 1) // CARTES_PAGE
