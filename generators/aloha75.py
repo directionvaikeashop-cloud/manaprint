@@ -12,6 +12,17 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 
+# SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne : si le module securite
+# est absent, les cartons sortent normalement, simplement sans microtexte.
+try:
+    from generators import securite as _sec
+except Exception:
+    try:
+        import securite as _sec
+    except Exception:
+        _sec = None
+
+
 RAINBOW = [
     "#E53935", "#FF7043", "#FB8C00", "#F9A825",
     "#43A047", "#00ACC1", "#1E88E5", "#3949AB",
@@ -54,6 +65,8 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
     c.setStrokeColor(col)
     c.setLineWidth(0.8)
     c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
+    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
+        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
 
     # Mini-bandeau : nom du jeu + nom du tournoi (sécurité, sur chaque grille)
     bandeau = nom_jeu
@@ -76,10 +89,14 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
     zone_h = (CARD_H - 2.5 * mm) - HDR_H - FOOT_H
     for i, nums in enumerate(carte):
         cx = x0 + (i + 0.5) * cell_w
-        c.setFillColor(encre)
-        c.setFont("Helvetica-Bold", 26)
-        c.drawCentredString(cx, y0 + FOOT_H + zone_h * 0.55, str(nums[0]))
-        c.drawCentredString(cx, y0 + FOOT_H + zone_h * 0.12, str(nums[1]))
+        if _sec:  # chiffres "billet de banque" remplis de microtexte
+            _sec.chiffre_micro(c, nums[0], cx, y0 + FOOT_H + zone_h * 0.55, 26, encre, "Helvetica-Bold")
+            _sec.chiffre_micro(c, nums[1], cx, y0 + FOOT_H + zone_h * 0.12, 26, encre, "Helvetica-Bold")
+        else:
+            c.setFillColor(encre)
+            c.setFont("Helvetica-Bold", 26)
+            c.drawCentredString(cx, y0 + FOOT_H + zone_h * 0.55, str(nums[0]))
+            c.drawCentredString(cx, y0 + FOOT_H + zone_h * 0.12, str(nums[1]))
         if i > 0:
             c.setStrokeColor(colors.Color(0.85, 0.85, 0.85))
             c.setLineWidth(0.3)
@@ -99,7 +116,7 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone=""):
     buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=A4)
+    c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
     nb_cartes = max(1, min(int(nb_cartes), 10000))
     par_page = COLS_PAGE * ROWS_PAGE
