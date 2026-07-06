@@ -17,6 +17,17 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
+# SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne : si le module securite
+# est absent, les cartons sortent normalement, simplement sans microtexte.
+try:
+    from generators import securite as _sec
+except Exception:
+    try:
+        import securite as _sec
+    except Exception:
+        _sec = None
+
+
 try:
     pdfmetrics.registerFont(TTFont("DJL", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
     POLICE = "DJL"
@@ -60,6 +71,8 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     # Bordure
     c.setStrokeColor(col); c.setLineWidth(0.8)
     c.roundRect(x0, y0, CARD_W, CARD_H, 1.2 * mm, stroke=1, fill=0)
+    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
+        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.9 * mm)
 
     # ---- En-tête ----
     htxt_y = y0 + CARD_H - 4.3 * mm
@@ -94,18 +107,24 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
             c.setDash([1.4, 1.4])
             c.circle(x, cy, 6.6 * mm, stroke=1, fill=0)
             c.setDash([])
-            c.setFillColor(GRIS40); c.setFont(POLICE, 28)
-            c.drawCentredString(x, cy - 10, str(val))
+            if _sec:  # chiffres "billet de banque" remplis de microtexte
+                _sec.chiffre_micro(c, val, x, cy - 10, 28, GRIS40, POLICE)
+            else:
+                c.setFillColor(GRIS40); c.setFont(POLICE, 28)
+                c.drawCentredString(x, cy - 10, str(val))
         else:
             # gros chiffre
-            c.setFillColor(GRIS40); c.setFont(POLICE, 40)
-            c.drawCentredString(x, cy - 13.5, str(val))
+            if _sec:
+                _sec.chiffre_micro(c, val, x, cy - 13.5, 40, GRIS40, POLICE)
+            else:
+                c.setFillColor(GRIS40); c.setFont(POLICE, 40)
+                c.drawCentredString(x, cy - 13.5, str(val))
 
 
 def generer_pdf(nb_cartes=9, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone=""):
     buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=A4)
+    c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
     nb_cartes = max(1, min(int(nb_cartes), 10000))
     nb_pages = (nb_cartes + CARTES_PAGE - 1) // CARTES_PAGE
