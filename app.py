@@ -324,6 +324,95 @@ def api_verifier_carton():
     return jsonify(res)
 
 
+@app.route("/caller")
+@app.route("/caller/<evenement_id>")
+def caller(evenement_id=None):
+    """MANAPRINT CALLER : tirage des boules + vérification QR intégrée."""
+    return render_template("caller.html")
+
+
+@app.route("/caller-qr")
+def caller_qr():
+    """Page imprimable : un QR code qui ouvre le CALLER. À coller sur la table de l'organisateur."""
+    base = os.environ.get("MANAPRINT_BASE_URL", request.host_url.rstrip("/"))
+    url_caller = base + "/caller"
+    # QR en SVG (aucune dépendance externe : marche partout, imprimable net à toute taille)
+    qr_svg = ""
+    try:
+        from reportlab.graphics.barcode import qr as _qr
+        w = _qr.QrCodeWidget(url_caller); w.barLevel = "M"
+        code = w.qr
+        code.make()
+        n = code.getModuleCount()
+        cell = 280.0 / n
+        rects = []
+        for r in range(n):
+            for cidx in range(n):
+                if code.isDark(r, cidx):
+                    x = cidx * cell
+                    y = r * cell
+                    rects.append('<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f"/>' % (x, y, cell + 0.4, cell + 0.4))
+        qr_svg = ('<svg xmlns="http://www.w3.org/2000/svg" width="280" height="280" '
+                  'viewBox="0 0 280 280" fill="#000"><rect width="280" height="280" fill="#fff"/>'
+                  + "".join(rects) + "</svg>")
+    except Exception:
+        qr_svg = ""
+
+    return Response("""<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QR CALLER — MANAPRINT</title>
+<style>@media print{.noprint{display:none}}</style></head>
+<body style="margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#fff;color:#0f172a;text-align:center;padding:30px">
+  <div style="max-width:420px;margin:0 auto;border:2px solid #0f172a;border-radius:18px;padding:28px">
+    <div style="font-size:1.5rem;font-weight:800">&#127921; MANAPRINT CALLER</div>
+    <div style="color:#475569;font-size:.85rem;margin-top:4px">Scannez pour ouvrir le tirage &amp; la v&eacute;rification</div>
+    <div style="width:280px;height:280px;margin:20px auto">%s</div>
+    <div style="font-size:.8rem;color:#475569;word-break:break-all">%s</div>
+    <div style="margin-top:16px;font-size:.75rem;color:#94a3b8">2KEA &amp; Associ&eacute; &mdash; Tirage s&eacute;curis&eacute;</div>
+  </div>
+  <button class="noprint" onclick="window.print()" style="margin-top:22px;padding:14px 26px;font-size:1rem;font-weight:700;background:#0f172a;color:#fff;border:none;border-radius:12px;cursor:pointer">&#128424; Imprimer cette affichette</button>
+</body></html>""" % (qr_svg or "QR indisponible", url_caller), mimetype="text/html")
+
+
+# Plages de boules par jeu (le serveur est la seule autorité — l'organisateur ne choisit rien)
+_PLAGES_CALLER = {
+    "aloha75": (1, 75), "ohana75": (1, 75), "brown8": (1, 75), "p6_marathon": (1, 75),
+    "triple": (1, 75), "bingo_ball": (1, 75), "quatre_coin": (1, 75),
+    "kai": (1, 29), "flash90": (1, 90), "quines90": (1, 90),
+}
+
+
+@app.route("/api/caller/tirer", methods=["POST"])
+def api_caller_tirer():
+    """Tire UNE boule côté serveur (imprévisible, horodatée, journalisée).
+    L'organisateur ne peut ni choisir ni deviner la boule suivante."""
+    import secrets
+    d = request.get_json(force=True, silent=True) or {}
+    jeu = d.get("jeu", "aloha75")
+    if jeu not in _PLAGES_CALLER:
+        return jsonify({"ok": False, "message": "Jeu inconnu."}), 400
+    bmin, bmax = _PLAGES_CALLER[jeu]
+
+    partie_id = (d.get("partie_id") or "").strip()
+    if not partie_id:
+        # nouvelle partie : identifiant aléatoire non devinable
+        partie_id = "P" + secrets.token_hex(6).upper()
+        db.creer_partie(partie_id, jeu, bmin, bmax)
+
+    boule = db.tirer_boule(partie_id, bmin, bmax)
+    if boule is None:
+        return jsonify({"ok": False, "message": "Toutes les boules sont sorties.",
+                        "partie_id": partie_id, "tirees": db.boules_tirees(partie_id)}), 409
+    return jsonify({"ok": True, "partie_id": partie_id, "boule": boule,
+                    "tirees": db.boules_tirees(partie_id)})
+
+
+@app.route("/api/caller/journal/<partie_id>")
+def api_caller_journal(partie_id):
+    """Journal horodaté d'une partie (preuve infalsifiable de l'ordre des tirages)."""
+    return jsonify({"ok": True, "partie_id": partie_id, "journal": db.journal_partie(partie_id)})
+
+
 @app.route("/evenement/<evenement_id>")
 def tableau_evenement(evenement_id):
     """Tableau de bord organisateur : suivi des cartons réclamés pour un événement."""
