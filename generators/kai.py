@@ -96,7 +96,7 @@ def _gen_carte(rng):
     return grille
 
 
-def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telephone="", style="eco"):
+def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
     ncols = 3
@@ -155,10 +155,18 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
     c.setFillColor(col); c.setFont(POLICE, 7)
     c.drawRightString(x0 + CARD_W - 2 * mm, y0 + 2 * mm, "%06d" % serie)
 
+    # QR de vérification par grille (anti-duplication) — coin bas-droit
+    if _sec and evenement_id:
+        try:
+            _q = 8.0 * mm
+            _sec.carton_qr(c, x0 + CARD_W - _q - 1.5 * mm, y0 + 1.5 * mm, _q, evenement_id, serie)
+        except Exception:
+            pass
+
 
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco"):
+                style="eco", evenement_id=""):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
@@ -188,7 +196,7 @@ def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
                 grille = _gen_carte(rng)
                 coul = (couleur_perso if (couleur and couleur_perso)
                         else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
-                _dessiner_carte(c, x0, y0, grille, coul, serie, titre_jeu, telephone, style=style)
+                _dessiner_carte(c, x0, y0, grille, coul, serie, titre_jeu, telephone, style=style, evenement_id=evenement_id)
                 serie += 1
                 faites += 1
 
