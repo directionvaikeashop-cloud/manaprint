@@ -166,8 +166,9 @@ _enregistrer_paire("quatre_coin",   "4 COIN","🎯", 6,  quatre_coin.generer_pdf
 CARTES_PAR_FEUILLE = {jid: j["cartes_par_feuille"] for jid, j in REGISTRE_JEUX.items()}
 
 
-def generer_jeu(programme, nb_cartes, couleur, perso):
-    """Génère le PDF A4 de N'IMPORTE QUEL jeu du registre. perso = champs de personnalisation."""
+def generer_jeu(programme, nb_cartes, couleur, perso, evenement_id=""):
+    """Génère le PDF A4 de N'IMPORTE QUEL jeu du registre. perso = champs de personnalisation.
+    evenement_id (optionnel) : active le QR de vérification par carton."""
     jeu = REGISTRE_JEUX.get(programme) or REGISTRE_JEUX.get("triple_action")
     kwargs = {
         jeu["kwarg_nb"]: nb_cartes, "serie_start": 1, "theme": "", "couleur": couleur,
@@ -175,7 +176,16 @@ def generer_jeu(programme, nb_cartes, couleur, perso):
         "couleur_perso": perso.get("couleur_perso", ""), "date_lieu": perso.get("date_lieu", ""),
         "telephone": perso.get("telephone", ""),
     }
+    if evenement_id:
+        kwargs["evenement_id"] = evenement_id
     return jeu["generer"](**kwargs)
+
+
+def _nouvel_evenement_id(programme):
+    """Génère un identifiant d'événement court, lisible et unique (ex. TK7QK2)."""
+    import secrets
+    table = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    return "TK" + "".join(secrets.choice(table) for _ in range(6))
 
 
 def contient_nom_reserve(*champs):
@@ -227,6 +237,129 @@ def accueil():
     except Exception:
         pass
     return render_template("index.html")
+
+
+# ══ VÉRIFICATION DES CARTONS (scan du QR par l'organisateur) ══════════════════
+
+def _page_verif(statut, message, evenement_id, serie, code, ev=None, extra=""):
+    """Page mobile simple et lisible : gros bandeau coloré VALIDE / COPIE / etc."""
+    couleurs = {
+        "VALIDE": ("#16a34a", "✅", "CARTON VALIDE"),
+        "DEJA_RECLAME": ("#dc2626", "🚫", "DÉJÀ RÉCLAMÉ"),
+        "INCONNU": ("#dc2626", "❌", "CARTON NON RECONNU"),
+        "HORS_LOT": ("#d97706", "⚠️", "HORS DE CE LOT"),
+    }
+    coul, emoji, titre = couleurs.get(statut, ("#334155", "❔", statut))
+    nom_ev = (ev or {}).get("nom") or evenement_id or "—"
+    bouton = ""
+    if statut == "VALIDE":
+        bouton = (
+            '<form method="POST" action="/v/%s/%06d/%s/reclamer" style="margin-top:22px">'
+            '<button style="width:100%%;padding:16px;font-size:1.1rem;font-weight:700;'
+            'background:#16a34a;color:#fff;border:none;border-radius:12px">'
+            'VALIDER LE GAIN (marquer réclamé)</button></form>'
+            % (evenement_id, int(serie), code)
+        )
+    return Response("""<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vérification MANAPRINT</title></head>
+<body style="margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#0f172a;color:#f1f5f9;padding:0">
+<div style="max-width:460px;margin:0 auto;padding:20px">
+  <p style="text-align:center;letter-spacing:.2em;font-size:.7rem;color:#94a3b8;text-transform:uppercase">MANAPRINT · Vérification</p>
+  <div style="background:%s;border-radius:18px;padding:28px 20px;text-align:center;margin-top:10px">
+    <div style="font-size:3rem;line-height:1">%s</div>
+    <div style="font-size:1.5rem;font-weight:800;margin-top:8px">%s</div>
+  </div>
+  <div style="background:#1e293b;border-radius:14px;padding:18px;margin-top:16px;line-height:1.7">
+    <div style="font-size:.95rem;color:#cbd5e1">%s</div>
+    <hr style="border:none;border-top:1px solid #334155;margin:14px 0">
+    <div style="font-size:.85rem;color:#94a3b8">Événement</div>
+    <div style="font-weight:700">%s</div>
+    <div style="font-size:.85rem;color:#94a3b8;margin-top:8px">Carton N°</div>
+    <div style="font-weight:700">%06d · code %s</div>
+    %s
+  </div>
+  %s
+  <p style="text-align:center;font-size:.72rem;color:#64748b;margin-top:22px">
+    Sécurité 2KEA & Associé — un carton ne peut être validé qu'une seule fois.</p>
+</div></body></html>""" % (
+        coul, emoji, titre, message, nom_ev, int(serie), code, extra, bouton
+    ), mimetype="text/html")
+
+
+@app.route("/v/<evenement_id>/<int:serie>/<code>")
+def verifier_carton_page(evenement_id, serie, code):
+    """Page ouverte quand l'organisateur scanne le QR d'un carton."""
+    res = db.verifier_carton(evenement_id, serie, code)
+    return _page_verif(res["statut"], res["message"], evenement_id, serie, code,
+                       ev=res.get("evenement"))
+
+
+@app.route("/v/<evenement_id>/<int:serie>/<code>/reclamer", methods=["POST"])
+def reclamer_carton_page(evenement_id, serie, code):
+    """Valide le gain : marque le carton réclamé (après vérif du code)."""
+    # revérifier le code avant d'agir (empêche une réclamation forgée)
+    res = db.verifier_carton(evenement_id, serie, code)
+    if res["statut"] == "DEJA_RECLAME":
+        return _page_verif("DEJA_RECLAME", res["message"], evenement_id, serie, code,
+                           ev=res.get("evenement"))
+    if res["statut"] != "VALIDE":
+        return _page_verif(res["statut"], res["message"], evenement_id, serie, code,
+                           ev=res.get("evenement"))
+    rec = db.reclamer_carton(evenement_id, serie)
+    if rec.get("deja"):
+        return _page_verif("DEJA_RECLAME", "Carton déjà réclamé entre-temps.",
+                           evenement_id, serie, code, ev=res.get("evenement"))
+    return _page_verif("VALIDE", "✔ Gain validé. Ce carton est maintenant marqué comme réclamé "
+                       "et ne pourra plus être validé une seconde fois.",
+                       evenement_id, serie, code, ev=res.get("evenement"),
+                       extra='<div style="margin-top:10px;color:#16a34a;font-weight:700">RÉCLAMÉ ✓</div>')
+
+
+@app.route("/api/verifier-carton", methods=["POST"])
+def api_verifier_carton():
+    """Version API (pour une future app de scan)."""
+    d = request.get_json(force=True, silent=True) or {}
+    res = db.verifier_carton(d.get("evenement_id", ""), d.get("serie", 0), d.get("code", ""))
+    return jsonify(res)
+
+
+@app.route("/evenement/<evenement_id>")
+def tableau_evenement(evenement_id):
+    """Tableau de bord organisateur : suivi des cartons réclamés pour un événement."""
+    st = db.stats_evenement(evenement_id)
+    if not st:
+        return Response("<p style='font-family:sans-serif;padding:20px'>Événement inconnu.</p>",
+                        mimetype="text/html")
+    ev = st["evenement"]
+    return Response("""<!doctype html><html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>%s — MANAPRINT</title></head>
+<body style="margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#0f172a;color:#f1f5f9">
+<div style="max-width:460px;margin:0 auto;padding:22px">
+  <p style="text-align:center;letter-spacing:.2em;font-size:.7rem;color:#94a3b8;text-transform:uppercase">MANAPRINT · Événement</p>
+  <h1 style="font-size:1.3rem;text-align:center;margin:4px 0 2px">%s</h1>
+  <p style="text-align:center;color:#94a3b8;font-size:.8rem">Code événement : <b style="color:#f1f5f9">%s</b></p>
+  <div style="display:flex;gap:12px;margin-top:18px">
+    <div style="flex:1;background:#1e293b;border-radius:14px;padding:16px;text-align:center">
+      <div style="font-size:2rem;font-weight:800">%d</div>
+      <div style="font-size:.78rem;color:#94a3b8">cartons du lot</div>
+    </div>
+    <div style="flex:1;background:#16a34a22;border:1px solid #16a34a55;border-radius:14px;padding:16px;text-align:center">
+      <div style="font-size:2rem;font-weight:800;color:#4ade80">%d</div>
+      <div style="font-size:.78rem;color:#94a3b8">gains validés</div>
+    </div>
+  </div>
+  <p style="font-size:.8rem;color:#94a3b8;line-height:1.7;margin-top:20px">
+    Pour vérifier un carton gagnant, scannez son QR code avec l'appareil photo de votre téléphone.
+    La page affichera <b style="color:#4ade80">VALIDE</b>, <b style="color:#f87171">DÉJÀ RÉCLAMÉ</b> (photocopie)
+    ou <b style="color:#f87171">NON RECONNU</b> (faux carton).</p>
+  <p style="text-align:center;font-size:.72rem;color:#64748b;margin-top:22px">
+    Sécurité 2KEA & Associé</p>
+</div></body></html>""" % (
+        ev["nom"] or evenement_id, ev["nom"] or evenement_id, evenement_id,
+        st["total"], st["reclames"]
+    ), mimetype="text/html")
 
 
 def _detecter_source():
@@ -549,7 +682,23 @@ def generer_commande(commande_id):
 
     cartes_par_feuille = CARTES_PAR_FEUILLE.get(programme, 10)
     nb_cartes = nb_feuilles * cartes_par_feuille
-    pdf = generer_jeu(programme, nb_cartes, couleur, perso)
+
+    # ── Mode événement : on crée un événement + QR de vérification pour ce lot ──
+    evenement_id = ""
+    try:
+        evenement_id = _nouvel_evenement_id(programme)
+        db.creer_evenement(
+            evenement_id=evenement_id,
+            nom=perso.get("titre_jeu", "") or perso.get("nom_evenement", "") or "Événement",
+            identifiant=cmd["identifiant"],
+            programme=programme,
+            serie_min=1,
+            serie_max=nb_cartes,
+        )
+    except Exception:
+        evenement_id = ""  # anti-panne : en cas d'échec, on génère sans QR
+
+    pdf = generer_jeu(programme, nb_cartes, couleur, perso, evenement_id=evenement_id)
 
     db.enregistrer_impression(
         origine=cmd["origine"], identifiant=cmd["identifiant"],
@@ -558,8 +707,9 @@ def generer_commande(commande_id):
     )
     db.marquer_commande_generee(commande_id)
 
+    nom_fichier = "manaprint_%s%s.pdf" % (programme, ("_" + evenement_id) if evenement_id else "")
     return send_file(pdf, mimetype="application/pdf", as_attachment=True,
-                     download_name=f"manaprint_{programme}.pdf")
+                     download_name=nom_fichier)
 
 
 # ── ESPACE GESTION (2KEA & Associé) ───────────────────────────────────────────
@@ -634,7 +784,19 @@ def admin_valider_commande(commande_id):
         try:
             cpf = CARTES_PAR_FEUILLE.get(cmd["programme"], 10)
             nb_cartes = cmd["nb_feuilles"] * cpf
-            pdf = generer_jeu(cmd["programme"], nb_cartes, bool(cmd["couleur"]), perso)
+            evenement_id = ""
+            try:
+                evenement_id = _nouvel_evenement_id(cmd["programme"])
+                db.creer_evenement(
+                    evenement_id=evenement_id,
+                    nom=perso.get("titre_jeu", "") or perso.get("nom_evenement", "") or "Événement",
+                    identifiant=cmd["identifiant"], programme=cmd["programme"],
+                    serie_min=1, serie_max=nb_cartes,
+                )
+            except Exception:
+                evenement_id = ""
+            pdf = generer_jeu(cmd["programme"], nb_cartes, bool(cmd["couleur"]), perso,
+                              evenement_id=evenement_id)
             sujet = f"MANAPRINT — Commande #{commande_id} à imprimer"
             corps = (
                 f"Bonjour {part['nom']},\n\n"
