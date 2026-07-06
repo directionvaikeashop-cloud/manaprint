@@ -126,6 +126,32 @@ def init_db():
         except Exception:
             pass
 
+        # ── SYSTÈME DE VÉRIFICATION DES CARTONS (anti-duplication / QR) ──
+        # Un événement = un lot de cartons généré pour un tournoi.
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS evenements (
+                id           TEXT PRIMARY KEY,          -- ex. TEMANU2026
+                nom          TEXT,                       -- nom du tournoi/association
+                identifiant  TEXT,                       -- qui a généré (num/email)
+                programme    TEXT,                       -- jeu
+                serie_min    INTEGER,
+                serie_max    INTEGER,
+                statut       TEXT DEFAULT 'actif',       -- actif / cloture
+                cree_le      TEXT NOT NULL
+            )
+        """)
+        # Un carton réclamé = un gain déjà validé (empêche la 2e réclamation).
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS cartons_reclames (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                evenement_id TEXT NOT NULL,
+                serie        INTEGER NOT NULL,
+                reclame_le   TEXT NOT NULL,
+                note         TEXT,
+                UNIQUE(evenement_id, serie)
+            )
+        """)
+
         conn.commit()
 def normalize_num(n):
     n = (n or "").replace(" ", "").replace(".", "").replace("-", "")
@@ -387,3 +413,115 @@ if __name__ == "__main__":
     init_machines(4)
     print("Base de données initialisée :", DB_PATH)
     print("Machines :", len(lister_machines()))
+
+# ── VÉRIFICATION DES CARTONS (anti-duplication / QR) ──────────────────────────
+
+def creer_evenement(evenement_id, nom, identifiant, programme, serie_min, serie_max):
+    """Enregistre un lot de cartons généré (un tournoi). Idempotent sur l'id."""
+    with get_db() as conn:
+        conn.execute(
+            """INSERT OR REPLACE INTO evenements
+               (id, nom, identifiant, programme, serie_min, serie_max, statut, cree_le)
+               VALUES (?,?,?,?,?,?, 'actif', ?)""",
+            (evenement_id, nom, identifiant, programme, int(serie_min), int(serie_max),
+             datetime.utcnow().isoformat())
+        )
+    return evenement_id
+
+
+def get_evenement(evenement_id):
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM evenements WHERE id = ?", (evenement_id,)).fetchone()
+        return dict(row) if row else None
+
+
+def verifier_carton(evenement_id, serie, code):
+    """Vérifie un carton scanné. Retourne un dict avec un statut clair :
+       - INCONNU        : événement absent, ou code invalide (faux carton)
+       - HORS_LOT       : série hors de la plage générée pour cet événement
+       - DEJA_RECLAME   : ce carton a déjà gagné (photocopie détectée !)
+       - VALIDE         : carton authentique, jamais réclamé
+    Ne réclame PAS le carton (lecture seule) — la réclamation est une action séparée.
+    """
+    try:
+        serie = int(serie)
+    except Exception:
+        return {"statut": "INCONNU", "message": "Numéro de carton invalide."}
+
+    # 1) le code doit être cryptographiquement valide (sinon = faux)
+    code_ok = False
+    try:
+        from generators import qr_verif as _qr
+        code_ok = _qr.verifier(evenement_id, serie, code)
+    except Exception:
+        code_ok = None  # module absent : on ne peut pas juger le code
+    if code_ok is False:
+        return {"statut": "INCONNU", "message": "Code de sécurité invalide — carton non authentique."}
+
+    # 2) l'événement doit exister
+    ev = get_evenement(evenement_id)
+    if not ev:
+        return {"statut": "INCONNU", "message": "Événement inconnu.", "evenement": evenement_id}
+
+    # 3) la série doit être dans la plage générée
+    if serie < ev["serie_min"] or serie > ev["serie_max"]:
+        return {"statut": "HORS_LOT",
+                "message": "Ce numéro ne fait pas partie des cartons générés pour cet événement.",
+                "evenement": ev}
+
+    # 4) déjà réclamé ?
+    with get_db() as conn:
+        r = conn.execute(
+            "SELECT * FROM cartons_reclames WHERE evenement_id = ? AND serie = ?",
+            (evenement_id, serie)).fetchone()
+    if r:
+        return {"statut": "DEJA_RECLAME",
+                "message": "Carton déjà réclamé — probable photocopie.",
+                "evenement": ev, "reclame_le": r["reclame_le"]}
+
+    return {"statut": "VALIDE", "message": "Carton authentique, non réclamé.",
+            "evenement": ev, "serie": serie}
+
+
+def reclamer_carton(evenement_id, serie, note=""):
+    """Marque un carton comme réclamé (gain validé). Retourne :
+       - {'ok': True}                 si la réclamation est enregistrée
+       - {'ok': False, 'deja': True}  si le carton était déjà réclamé
+    """
+    try:
+        serie = int(serie)
+    except Exception:
+        return {"ok": False, "message": "Numéro invalide."}
+    with get_db() as conn:
+        deja = conn.execute(
+            "SELECT 1 FROM cartons_reclames WHERE evenement_id = ? AND serie = ?",
+            (evenement_id, serie)).fetchone()
+        if deja:
+            return {"ok": False, "deja": True, "message": "Carton déjà réclamé."}
+        conn.execute(
+            """INSERT INTO cartons_reclames (evenement_id, serie, reclame_le, note)
+               VALUES (?,?,?,?)""",
+            (evenement_id, serie, datetime.utcnow().isoformat(), note or ""))
+    return {"ok": True, "message": "Gain validé et carton marqué comme réclamé."}
+
+
+def annuler_reclamation(evenement_id, serie):
+    """Annule une réclamation (erreur de scan). Réservé à l'organisateur."""
+    with get_db() as conn:
+        conn.execute(
+            "DELETE FROM cartons_reclames WHERE evenement_id = ? AND serie = ?",
+            (evenement_id, int(serie)))
+    return {"ok": True}
+
+
+def stats_evenement(evenement_id):
+    """Petit résumé pour l'organisateur : combien de cartons réclamés."""
+    ev = get_evenement(evenement_id)
+    if not ev:
+        return None
+    with get_db() as conn:
+        n = conn.execute(
+            "SELECT COUNT(*) AS n FROM cartons_reclames WHERE evenement_id = ?",
+            (evenement_id,)).fetchone()["n"]
+    total = ev["serie_max"] - ev["serie_min"] + 1
+    return {"evenement": ev, "reclames": n, "total": total}
