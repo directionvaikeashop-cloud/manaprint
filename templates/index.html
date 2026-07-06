@@ -216,11 +216,11 @@
 // ── Générateur universel : la liste des jeux vient du registre (/api/jeux) ──
 let PROGRAMMES = [];
 const PALETTE = ["#2D6E63","#D4663D","#1A4A42","#8B5A2B","#7C3AED","#0EA5E9","#DB2777","#65A30D"];
-// Tarifs XPF / feuille (couleur, N&B) selon le profil — identiques au moteur
+// Tarifs XPF / feuille selon le profil ET la gamme (ÉCO / PREMIUM) — identiques au moteur
 const TARIFS = {
-  pacific_ink:  {c:10,  nb:5},
-  polynesien:   {c:3,   nb:1.5},
-  international: {c:6,   nb:3},
+  pacific_ink:   { eco:{c:7, nb:3},   p15:{c:10, nb:8} },   // produit fini imprimé (Accès ECO LASER)
+  polynesien:    { eco:{c:3, nb:1.5}, p15:{c:3,  nb:2} },   // génération du fichier PDF
+  international: { eco:{c:6, nb:3},   p15:{c:6,  nb:3} },   // fichier PDF uniquement (sans impression)
 };
 let progChoisi = "";
 let origineAcces = "";
@@ -429,7 +429,9 @@ function majPrix(){
   const nb=parseInt(document.getElementById('gen-nb-feuilles').value)||0;
   const jeu=PROGRAMMES.find(function(p){ return p.id===progChoisi; });
   const couleur = jeu ? jeu.couleur : true;
-  const tar=TARIFS[origineAcces]||TARIFS.pacific_ink;
+  const gamme = (progChoisi||"").indexOf("_p15")>=0 ? "p15" : "eco";
+  const prof=TARIFS[origineAcces]||TARIFS.pacific_ink;
+  const tar=prof[gamme]||prof.eco;
   const prix=couleur?tar.c:tar.nb;
   const total=nb*prix;
   const el=document.getElementById('gen-prix');
