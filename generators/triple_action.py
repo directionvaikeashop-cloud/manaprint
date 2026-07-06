@@ -12,6 +12,17 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 
+# SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne : si le module securite
+# est absent, les cartons sortent normalement, simplement sans microtexte.
+try:
+    from generators import securite as _sec
+except Exception:
+    try:
+        import securite as _sec
+    except Exception:
+        _sec = None
+
+
 RAINBOW = [
     "#E53935", "#FF7043", "#FB8C00", "#F9A825",
     "#43A047", "#00ACC1", "#1E88E5", "#3949AB",
@@ -50,6 +61,8 @@ def _dessiner_ticket(c, x0, y0, grille, couleur_hex, serie, couleur=True, titre_
     c.setStrokeColor(col)
     c.setLineWidth(0.9)
     c.roundRect(x0, y0, CARD_W, CARD_H, 2 * mm, stroke=1, fill=0)
+    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
+        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
 
     hdr_y = y0 + CARD_H - HDR_H
     c.setFillColor(col)
@@ -89,18 +102,27 @@ def _dessiner_ticket(c, x0, y0, grille, couleur_hex, serie, couleur=True, titre_
         c.setStrokeColor(col)
         c.setLineWidth(0.9)
         c.circle(cercle_x, cercle_y, rayon, stroke=1, fill=0)
-        c.setFillColor(encre)
-        c.setFont("Helvetica-Bold", 26)
-        c.drawCentredString(cercle_x, cercle_y - 9, str(num_cercle))
+        if _sec:  # chiffres "billet de banque" remplis de microtexte
+            _sec.chiffre_micro(c, num_cercle, cercle_x, cercle_y - 9, 26, encre, "Helvetica-Bold")
+        else:
+            c.setFillColor(encre)
+            c.setFont("Helvetica-Bold", 26)
+            c.drawCentredString(cercle_x, cercle_y - 9, str(num_cercle))
 
         grand_x = x0 + CARD_W * 0.70
-        c.setFillColor(encre)
-        c.setFont("Helvetica-Bold", 26)
-        c.drawCentredString(grand_x, cercle_y - 9, str(num_grand))
+        if _sec:
+            _sec.chiffre_micro(c, num_grand, grand_x, cercle_y - 9, 26, encre, "Helvetica-Bold")
+        else:
+            c.setFillColor(encre)
+            c.setFont("Helvetica-Bold", 26)
+            c.drawCentredString(grand_x, cercle_y - 9, str(num_grand))
 
-        c.setFillColor(encre)
-        c.setFont("Helvetica-Bold", 26)
-        c.drawCentredString(cx, gy + group_h * 0.04, str(num_petit))
+        if _sec:
+            _sec.chiffre_micro(c, num_petit, cx, gy + group_h * 0.04, 26, encre, "Helvetica-Bold")
+        else:
+            c.setFillColor(encre)
+            c.setFont("Helvetica-Bold", 26)
+            c.drawCentredString(cx, gy + group_h * 0.04, str(num_petit))
 
         if gi < 4:
             c.setStrokeColor(colors.Color(0.85, 0.85, 0.85))
@@ -111,7 +133,7 @@ def _dessiner_ticket(c, x0, y0, grille, couleur_hex, serie, couleur=True, titre_
 def generer_pdf(nb_tickets=10, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone=""):
     buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=A4)
+    c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
     nb_tickets = max(1, min(int(nb_tickets), 1000))
     par_page = COLS * ROWS
