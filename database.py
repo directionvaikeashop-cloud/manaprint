@@ -151,6 +151,29 @@ def init_db():
                 UNIQUE(evenement_id, serie)
             )
         """)
+        # ── JOURNAL DE TIRAGE (anti-triche organisateur) ──
+        # Une partie = une session de tirage. Les boules sont tirées par le serveur.
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS parties (
+                id        TEXT PRIMARY KEY,           -- identifiant de partie
+                jeu       TEXT,
+                bmin      INTEGER,
+                bmax      INTEGER,
+                cree_le   TEXT NOT NULL
+            )
+        """)
+        # Chaque boule tirée est horodatée et ordonnée : personne ne peut réécrire l'ordre.
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS tirages (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                partie_id  TEXT NOT NULL,
+                ordre      INTEGER NOT NULL,          -- 1er, 2e, 3e tirage...
+                boule      INTEGER NOT NULL,
+                tire_le    TEXT NOT NULL,
+                UNIQUE(partie_id, boule),
+                UNIQUE(partie_id, ordre)
+            )
+        """)
 
         conn.commit()
 def normalize_num(n):
@@ -525,3 +548,48 @@ def stats_evenement(evenement_id):
             (evenement_id,)).fetchone()["n"]
     total = ev["serie_max"] - ev["serie_min"] + 1
     return {"evenement": ev, "reclames": n, "total": total}
+
+
+# ── JOURNAL DE TIRAGE (anti-triche : le serveur tire, l'organisateur ne choisit rien) ──
+
+def creer_partie(partie_id, jeu, bmin, bmax):
+    with get_db() as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO parties (id, jeu, bmin, bmax, cree_le) VALUES (?,?,?,?,?)",
+            (partie_id, jeu, int(bmin), int(bmax), datetime.utcnow().isoformat()))
+    return partie_id
+
+
+def boules_tirees(partie_id):
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT boule FROM tirages WHERE partie_id = ? ORDER BY ordre", (partie_id,)).fetchall()
+    return [r["boule"] for r in rows]
+
+
+def tirer_boule(partie_id, bmin, bmax):
+    """Tire UNE boule au hasard parmi les non-sorties. Tirage fait par le serveur avec
+    une source cryptographique (secrets), donc imprévisible ET non choisissable par
+    l'organisateur. Enregistré horodaté dans le journal. Retourne la boule ou None si fini."""
+    import secrets
+    with get_db() as conn:
+        deja = set(r["boule"] for r in conn.execute(
+            "SELECT boule FROM tirages WHERE partie_id = ?", (partie_id,)).fetchall())
+        dispo = [n for n in range(int(bmin), int(bmax) + 1) if n not in deja]
+        if not dispo:
+            return None
+        boule = dispo[secrets.randbelow(len(dispo))]
+        ordre = len(deja) + 1
+        conn.execute(
+            "INSERT INTO tirages (partie_id, ordre, boule, tire_le) VALUES (?,?,?,?)",
+            (partie_id, ordre, boule, datetime.utcnow().isoformat()))
+    return boule
+
+
+def journal_partie(partie_id):
+    """Renvoie le journal horodaté complet (preuve infalsifiable de l'ordre des tirages)."""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT ordre, boule, tire_le FROM tirages WHERE partie_id = ? ORDER BY ordre",
+            (partie_id,)).fetchall()
+    return [dict(r) for r in rows]
