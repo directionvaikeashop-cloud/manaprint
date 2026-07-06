@@ -124,19 +124,28 @@ def _enregistrer_jeu(jeu_id, nom, emoji, cartes_par_feuille, generer, kwarg_nb="
     except Exception as e:
         print(f"[JEU A4 ABSENT] {nom} : {e}")
 
-def _variante(fn, couleur_force):
-    """Crée une version d'un générateur qui force la couleur (True/False)."""
+def _variante(fn, couleur_force, style_force="eco"):
+    """Crée une version d'un générateur qui force la couleur (True/False) et la gamme."""
     def _w(**kwargs):
         kwargs["couleur"] = couleur_force
+        kwargs["style"] = style_force
         return fn(**kwargs)
     return _w
 
 def _enregistrer_paire(base_id, nom, emoji, cpf, fn, kwarg_nb="nb_cartes"):
-    """Enregistre les 2 variantes d'un jeu : (Couleur) et (N&B). 1 ligne = 2 entrées."""
-    _enregistrer_jeu(base_id + "_couleur", nom + " (Couleur)", emoji, cpf,
-                     _variante(fn, True),  kwarg_nb=kwarg_nb, couleur=True)
-    _enregistrer_jeu(base_id + "_nb",      nom + " (N&B)",     emoji, cpf,
-                     _variante(fn, False), kwarg_nb=kwarg_nb, couleur=False)
+    """Enregistre les 4 variantes d'un jeu — vision 2 gammes :
+    ÉCO (écriture fine, économie de toner)  et  PREMIUM P15 (écriture grasse).
+    Chacune en (Couleur) et (N&B). 1 ligne = 4 entrées au menu.
+    Les identifiants historiques (…_couleur / …_nb) restent sur la gamme ÉCO :
+    les anciennes commandes se régénèrent à l'identique."""
+    _enregistrer_jeu(base_id + "_couleur", nom + " · ÉCO (Couleur)", emoji, cpf,
+                     _variante(fn, True, "eco"),  kwarg_nb=kwarg_nb, couleur=True)
+    _enregistrer_jeu(base_id + "_nb",      nom + " · ÉCO (N&B)",     emoji, cpf,
+                     _variante(fn, False, "eco"), kwarg_nb=kwarg_nb, couleur=False)
+    _enregistrer_jeu(base_id + "_p15_couleur", nom + " · PREMIUM P15 (Couleur)", emoji, cpf,
+                     _variante(fn, True, "p15"),  kwarg_nb=kwarg_nb, couleur=True)
+    _enregistrer_jeu(base_id + "_p15_nb",      nom + " · PREMIUM P15 (N&B)",     emoji, cpf,
+                     _variante(fn, False, "p15"), kwarg_nb=kwarg_nb, couleur=False)
 
 #                  id base          nom                 emoji  cartes/feuille  fonction
 _enregistrer_paire("triple_action", "Triple Action 75",  "🎯", 10, triple_action.generer_pdf, kwarg_nb="nb_tickets")
