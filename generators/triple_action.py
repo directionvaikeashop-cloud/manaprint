@@ -29,8 +29,31 @@ RAINBOW = [
     "#8E24AA", "#D81B60", "#6D4C41", "#546E7A",
 ]
 NOIR = colors.Color(0, 0, 0)
-GRIS40 = colors.Color(0.60, 0.60, 0.60)  # gris 40% (mode noir & blanc)
+GRIS40 = colors.Color(0.60, 0.60, 0.60)
+  # gris 40% (mode noir & blanc)
 GREY = colors.Color(0.42, 0.42, 0.42)
+
+
+# ══ DEUX GAMMES COMMERCIALES (vision Maeva) ══════════════════════════
+# ÉCO      : écriture fine DejaVu ExtraLight, gris 0,50 — économie de toner
+# PREMIUM  : écriture grasse Helvetica-Bold, gris 0,55 — style P15
+from reportlab.pdfbase import pdfmetrics as _pm
+from reportlab.pdfbase.ttfonts import TTFont as _TF
+try:
+    _pm.registerFont(_TF("DJLECO", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
+    _POLICE_ECO = "DJLECO"
+except Exception:
+    _POLICE_ECO = "Helvetica"
+_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
+_POLICE_P15 = "Helvetica-Bold"
+_GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
+
+def _style_chiffres(style):
+    """Retourne (police, gris) des chiffres selon la gamme choisie."""
+    if str(style).lower() in ("p15", "premium"):
+        return _POLICE_P15, _GRIS_P15
+    return _POLICE_ECO, _GRIS_ECO
+# ═════════════════════════════════════════════════════════════════════
 
 PAGE_W, PAGE_H = A4
 
@@ -54,7 +77,8 @@ def _gen_grille():
     return [sorted(random.sample(range(lo, hi + 1), 3)) for (lo, hi) in RANGES]
 
 
-def _dessiner_ticket(c, x0, y0, grille, couleur_hex, serie, couleur=True, titre_jeu="", telephone=""):
+def _dessiner_ticket(c, x0, y0, grille, couleur_hex, serie, couleur=True, titre_jeu="", telephone="", style="eco"):
+    police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
     encre = NOIR if couleur else GRIS40  # chiffres noirs en couleur, gris 40% en N&B
 
@@ -103,25 +127,25 @@ def _dessiner_ticket(c, x0, y0, grille, couleur_hex, serie, couleur=True, titre_
         c.setLineWidth(0.9)
         c.circle(cercle_x, cercle_y, rayon, stroke=1, fill=0)
         if _sec:  # chiffres "billet de banque" remplis de microtexte
-            _sec.chiffre_micro(c, num_cercle, cercle_x, cercle_y - 9, 26, encre, "Helvetica-Bold")
+            _sec.chiffre_micro(c, num_cercle, cercle_x, cercle_y - 9, 26, gris_ch, police_ch)
         else:
-            c.setFillColor(encre)
-            c.setFont("Helvetica-Bold", 26)
+            c.setFillColor(gris_ch)
+            c.setFont(police_ch, 26)
             c.drawCentredString(cercle_x, cercle_y - 9, str(num_cercle))
 
         grand_x = x0 + CARD_W * 0.70
         if _sec:
-            _sec.chiffre_micro(c, num_grand, grand_x, cercle_y - 9, 26, encre, "Helvetica-Bold")
+            _sec.chiffre_micro(c, num_grand, grand_x, cercle_y - 9, 26, gris_ch, police_ch)
         else:
-            c.setFillColor(encre)
-            c.setFont("Helvetica-Bold", 26)
+            c.setFillColor(gris_ch)
+            c.setFont(police_ch, 26)
             c.drawCentredString(grand_x, cercle_y - 9, str(num_grand))
 
         if _sec:
-            _sec.chiffre_micro(c, num_petit, cx, gy + group_h * 0.04, 26, encre, "Helvetica-Bold")
+            _sec.chiffre_micro(c, num_petit, cx, gy + group_h * 0.04, 26, gris_ch, police_ch)
         else:
-            c.setFillColor(encre)
-            c.setFont("Helvetica-Bold", 26)
+            c.setFillColor(gris_ch)
+            c.setFont(police_ch, 26)
             c.drawCentredString(cx, gy + group_h * 0.04, str(num_petit))
 
         if gi < 4:
@@ -131,7 +155,8 @@ def _dessiner_ticket(c, x0, y0, grille, couleur_hex, serie, couleur=True, titre_
 
 
 def generer_pdf(nb_tickets=10, serie_start=1, theme="", couleur=True,
-                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone=""):
+                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
+                style="eco"):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
@@ -171,7 +196,7 @@ def generer_pdf(nb_tickets=10, serie_start=1, theme="", couleur=True,
                     coul = couleur_perso
                 else:
                     coul = RAINBOW[(serie - 1) % len(RAINBOW)]
-                _dessiner_ticket(c, x0, y0, grille, coul, serie, couleur, titre_jeu, telephone)
+                _dessiner_ticket(c, x0, y0, grille, coul, serie, couleur, titre_jeu, telephone, style=style)
                 serie += 1
 
         cut_y = MARGIN_BOT + CARD_H + CUT_GAP / 2
