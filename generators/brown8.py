@@ -19,6 +19,17 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
+# SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne : si le module securite
+# est absent, les cartons sortent normalement, simplement sans microtexte.
+try:
+    from generators import securite as _sec
+except Exception:
+    try:
+        import securite as _sec
+    except Exception:
+        _sec = None
+
+
 try:
     pdfmetrics.registerFont(TTFont("DJL", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
     POLICE = "DJL"
@@ -63,6 +74,8 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, telephone="", titre_je
     # Bordure carte
     c.setStrokeColor(col); c.setLineWidth(0.8)
     c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
+    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
+        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
 
     # En-tête B R O W N
     hdr_y = y0 + CARD_H - 6 * mm
@@ -98,29 +111,39 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, telephone="", titre_je
     def cx(i):
         return x0 + (i + 0.5) * cell_w
 
-    c.setFont(POLICE, 32)
-    # rangée haute
-    for (i, lettre) in [(0, "B"), (2, "O"), (4, "N")]:
+    if _sec:  # chiffres "billet de banque" remplis de microtexte
+        for (i, lettre) in [(0, "B"), (2, "O"), (4, "N")]:
+            _sec.chiffre_micro(c, carte[lettre][0], cx(i), cy(0) - 11, 32, GRIS40, POLICE)
+        _sec.chiffre_micro(c, carte["R"][0], cx(1), cy(1) - 11, 32, GRIS40, POLICE)
+        _sec.chiffre_micro(c, carte["W"][0], cx(3), cy(1) - 11, 32, GRIS40, POLICE)
+    else:
+        c.setFont(POLICE, 32)
+        # rangée haute
+        for (i, lettre) in [(0, "B"), (2, "O"), (4, "N")]:
+            c.setFillColor(GRIS40)
+            c.drawCentredString(cx(i), cy(0) - 11, str(carte[lettre][0]))
+        # rangée milieu : R et W
         c.setFillColor(GRIS40)
-        c.drawCentredString(cx(i), cy(0) - 11, str(carte[lettre][0]))
-    # rangée milieu : R et W
-    c.setFillColor(GRIS40)
-    c.drawCentredString(cx(1), cy(1) - 11, str(carte["R"][0]))
-    c.drawCentredString(cx(3), cy(1) - 11, str(carte["W"][0]))
+        c.drawCentredString(cx(1), cy(1) - 11, str(carte["R"][0]))
+        c.drawCentredString(cx(3), cy(1) - 11, str(carte["W"][0]))
     # centre = série
     c.setFillColor(GRIS); c.setFont(POLICE, 6)
     c.drawCentredString(cx(2), cy(1) - 2, "%06d" % serie)
     # rangée basse
-    c.setFont(POLICE, 32)
-    for (i, lettre) in [(0, "B"), (2, "O"), (4, "N")]:
-        c.setFillColor(GRIS40)
-        c.drawCentredString(cx(i), cy(2) - 11, str(carte[lettre][1]))
+    if _sec:
+        for (i, lettre) in [(0, "B"), (2, "O"), (4, "N")]:
+            _sec.chiffre_micro(c, carte[lettre][1], cx(i), cy(2) - 11, 32, GRIS40, POLICE)
+    else:
+        c.setFont(POLICE, 32)
+        for (i, lettre) in [(0, "B"), (2, "O"), (4, "N")]:
+            c.setFillColor(GRIS40)
+            c.drawCentredString(cx(i), cy(2) - 11, str(carte[lettre][1]))
 
 
 def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone=""):
     buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=A4)
+    c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
     nb_cartes = max(1, min(int(nb_cartes), 10000))
     par_page = COLS_PAGE * ROWS_PAGE
