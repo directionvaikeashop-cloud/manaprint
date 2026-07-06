@@ -15,6 +15,17 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 
+# SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne : si le module securite
+# est absent, les cartons sortent normalement, simplement sans microtexte.
+try:
+    from generators import securite as _sec
+except Exception:
+    try:
+        import securite as _sec
+    except Exception:
+        _sec = None
+
+
 RAINBOW = [
     "#E53935", "#FF7043", "#FB8C00", "#F9A825",
     "#43A047", "#00ACC1", "#1E88E5", "#3949AB",
@@ -57,6 +68,8 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
     # Cadre extérieur de toute la carte (visuel fini)
     c.setStrokeColor(col); c.setLineWidth(1.2)
     c.roundRect(x0, y0, CARD_W, CARD_H, 2.5 * mm, stroke=1, fill=0)
+    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
+        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
 
     # 5 cases de la ligne horizontale
     cell_w = CARD_W / 5
@@ -76,19 +89,28 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
     c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 4 * mm, titre_aff)
     c.setFillColor(GREY); c.setFont("Helvetica", 4.5)
     c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 6.5 * mm, f"N° {serie:06d}")
-    c.setFillColor(encre); c.setFont("Helvetica-Bold", 30)
-    c.drawCentredString(cx_centre + cell_w / 2, haut_y + cell_h * 0.30, str(haut))
+    if _sec:
+        _sec.chiffre_micro(c, haut, cx_centre + cell_w / 2, haut_y + cell_h * 0.30, 30, encre, "Helvetica-Bold")
+    else:
+        c.setFillColor(encre); c.setFont("Helvetica-Bold", 30)
+        c.drawCentredString(cx_centre + cell_w / 2, haut_y + cell_h * 0.30, str(haut))
 
     # --- ligne horizontale de 5 numéros (sans cadres internes) ---
     for i, num in enumerate(ligne):
         cx = x0 + i * cell_w
-        c.setFillColor(encre); c.setFont("Helvetica-Bold", 30)
-        c.drawCentredString(cx + cell_w / 2, ligne_y + cell_h * 0.30, str(num))
+        if _sec:
+            _sec.chiffre_micro(c, num, cx + cell_w / 2, ligne_y + cell_h * 0.30, 30, encre, "Helvetica-Bold")
+        else:
+            c.setFillColor(encre); c.setFont("Helvetica-Bold", 30)
+            c.drawCentredString(cx + cell_w / 2, ligne_y + cell_h * 0.30, str(num))
 
     # --- numéro du bas (sans cadre interne) ---
     bas_y = ligne_y - cell_h
-    c.setFillColor(encre); c.setFont("Helvetica-Bold", 30)
-    c.drawCentredString(cx_centre + cell_w / 2, bas_y + cell_h * 0.30, str(bas))
+    if _sec:
+        _sec.chiffre_micro(c, bas, cx_centre + cell_w / 2, bas_y + cell_h * 0.30, 30, encre, "Helvetica-Bold")
+    else:
+        c.setFillColor(encre); c.setFont("Helvetica-Bold", 30)
+        c.drawCentredString(cx_centre + cell_w / 2, bas_y + cell_h * 0.30, str(bas))
 
     # --- responsable en bas de la carte ---
     if telephone:
@@ -99,7 +121,7 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
 def generer_pdf(nb_cartes=10, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone=""):
     buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=A4)
+    c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
     nb_cartes = max(1, min(int(nb_cartes), 10000))
     par_page = COLS_PAGE * ROWS_PAGE
