@@ -33,7 +33,30 @@ RAINBOW = [
 ]
 NOIR = colors.Color(0, 0, 0)
 GRIS40 = colors.Color(0.60, 0.60, 0.60)
+
 GREY = colors.Color(0.42, 0.42, 0.42)
+
+
+# ══ DEUX GAMMES COMMERCIALES (vision Maeva) ══════════════════════════
+# ÉCO      : écriture fine DejaVu ExtraLight, gris 0,50 — économie de toner
+# PREMIUM  : écriture grasse Helvetica-Bold, gris 0,55 — style P15
+from reportlab.pdfbase import pdfmetrics as _pm
+from reportlab.pdfbase.ttfonts import TTFont as _TF
+try:
+    _pm.registerFont(_TF("DJLECO", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
+    _POLICE_ECO = "DJLECO"
+except Exception:
+    _POLICE_ECO = "Helvetica"
+_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
+_POLICE_P15 = "Helvetica-Bold"
+_GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
+
+def _style_chiffres(style):
+    """Retourne (police, gris) des chiffres selon la gamme choisie."""
+    if str(style).lower() in ("p15", "premium"):
+        return _POLICE_P15, _GRIS_P15
+    return _POLICE_ECO, _GRIS_ECO
+# ═════════════════════════════════════════════════════════════════════
 
 PAGE_W, PAGE_H = A4
 
@@ -61,7 +84,8 @@ def _gen_carte():
     return ligne, haut, bas
 
 
-def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", titre_jeu=""):
+def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", titre_jeu="", style="eco"):
+    police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
     ligne, haut, bas = carte
 
@@ -90,26 +114,26 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
     c.setFillColor(GREY); c.setFont("Helvetica", 4.5)
     c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 6.5 * mm, f"N° {serie:06d}")
     if _sec:
-        _sec.chiffre_micro(c, haut, cx_centre + cell_w / 2, haut_y + cell_h * 0.30, 30, encre, "Helvetica-Bold")
+        _sec.chiffre_micro(c, haut, cx_centre + cell_w / 2, haut_y + cell_h * 0.30, 30, gris_ch, police_ch)
     else:
-        c.setFillColor(encre); c.setFont("Helvetica-Bold", 30)
+        c.setFillColor(gris_ch); c.setFont(police_ch, 30)
         c.drawCentredString(cx_centre + cell_w / 2, haut_y + cell_h * 0.30, str(haut))
 
     # --- ligne horizontale de 5 numéros (sans cadres internes) ---
     for i, num in enumerate(ligne):
         cx = x0 + i * cell_w
         if _sec:
-            _sec.chiffre_micro(c, num, cx + cell_w / 2, ligne_y + cell_h * 0.30, 30, encre, "Helvetica-Bold")
+            _sec.chiffre_micro(c, num, cx + cell_w / 2, ligne_y + cell_h * 0.30, 30, gris_ch, police_ch)
         else:
-            c.setFillColor(encre); c.setFont("Helvetica-Bold", 30)
+            c.setFillColor(gris_ch); c.setFont(police_ch, 30)
             c.drawCentredString(cx + cell_w / 2, ligne_y + cell_h * 0.30, str(num))
 
     # --- numéro du bas (sans cadre interne) ---
     bas_y = ligne_y - cell_h
     if _sec:
-        _sec.chiffre_micro(c, bas, cx_centre + cell_w / 2, bas_y + cell_h * 0.30, 30, encre, "Helvetica-Bold")
+        _sec.chiffre_micro(c, bas, cx_centre + cell_w / 2, bas_y + cell_h * 0.30, 30, gris_ch, police_ch)
     else:
-        c.setFillColor(encre); c.setFont("Helvetica-Bold", 30)
+        c.setFillColor(gris_ch); c.setFont(police_ch, 30)
         c.drawCentredString(cx_centre + cell_w / 2, bas_y + cell_h * 0.30, str(bas))
 
     # --- responsable en bas de la carte ---
@@ -119,7 +143,8 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
 
 
 def generer_pdf(nb_cartes=10, serie_start=1, theme="", couleur=True,
-                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone=""):
+                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
+                style="eco"):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
@@ -150,7 +175,7 @@ def generer_pdf(nb_cartes=10, serie_start=1, theme="", couleur=True,
                 carte = _gen_carte()
                 coul = (couleur_perso if (couleur and couleur_perso)
                         else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#999999")
-                _dessiner_carte(c, x0, y0, carte, coul, serie, encre, telephone, titre_jeu)
+                _dessiner_carte(c, x0, y0, carte, coul, serie, encre, telephone, titre_jeu, style=style)
                 serie += 1
 
         c.showPage()
