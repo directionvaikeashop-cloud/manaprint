@@ -79,7 +79,7 @@ def _gen_carte():
     return [sorted(random.sample(range(lo, hi + 1), 2)) for (lo, hi) in RANGES]
 
 
-def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", titre_jeu="", nom_jeu="ALOHA 75", style="eco"):
+def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", titre_jeu="", nom_jeu="ALOHA 75", style="eco", evenement_id=""):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
     ncols = len(LETTERS)
@@ -136,10 +136,18 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
     if telephone:
         c.drawRightString(x0 + CARD_W - 1.5 * mm, y0 + 1.3 * mm, f"Resp. {telephone}")
 
+    # QR de vérification par grille (anti-duplication) — coin bas-droit
+    if _sec and evenement_id:
+        try:
+            _q = 7.0 * mm
+            _sec.carton_qr(c, x0 + CARD_W - _q - 1.5 * mm, y0 + 1.5 * mm, _q, evenement_id, serie)
+        except Exception:
+            pass
+
 
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco"):
+                style="eco", evenement_id=""):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
@@ -171,7 +179,7 @@ def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
                 carte = _gen_carte()
                 coul = (couleur_perso if (couleur and couleur_perso)
                         else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#999999")
-                _dessiner_carte(c, x0, y0, carte, coul, serie, encre, telephone, titre_jeu, "ALOHA 75", style=style)
+                _dessiner_carte(c, x0, y0, carte, coul, serie, encre, telephone, titre_jeu, "ALOHA 75", style=style, evenement_id=evenement_id)
                 serie += 1
 
         c.showPage()
