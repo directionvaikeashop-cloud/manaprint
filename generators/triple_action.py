@@ -77,7 +77,7 @@ def _gen_grille():
     return [sorted(random.sample(range(lo, hi + 1), 3)) for (lo, hi) in RANGES]
 
 
-def _dessiner_ticket(c, x0, y0, grille, couleur_hex, serie, couleur=True, titre_jeu="", telephone="", style="eco"):
+def _dessiner_ticket(c, x0, y0, grille, couleur_hex, serie, couleur=True, titre_jeu="", telephone="", style="eco", evenement_id=""):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
     encre = NOIR if couleur else GRIS40  # chiffres noirs en couleur, gris 40% en N&B
@@ -153,10 +153,18 @@ def _dessiner_ticket(c, x0, y0, grille, couleur_hex, serie, couleur=True, titre_
             c.setLineWidth(0.3)
             c.line(x0 + 3 * mm, gy, x0 + CARD_W - 3 * mm, gy)
 
+    # QR de vérification par grille (anti-duplication) — coin bas-droit
+    if _sec and evenement_id:
+        try:
+            _q = 8.0 * mm
+            _sec.carton_qr(c, x0 + CARD_W - _q - 1.5 * mm, y0 + 1.5 * mm, _q, evenement_id, serie)
+        except Exception:
+            pass
+
 
 def generer_pdf(nb_tickets=10, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco"):
+                style="eco", evenement_id=""):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
@@ -196,7 +204,7 @@ def generer_pdf(nb_tickets=10, serie_start=1, theme="", couleur=True,
                     coul = couleur_perso
                 else:
                     coul = RAINBOW[(serie - 1) % len(RAINBOW)]
-                _dessiner_ticket(c, x0, y0, grille, coul, serie, couleur, titre_jeu, telephone, style=style)
+                _dessiner_ticket(c, x0, y0, grille, coul, serie, couleur, titre_jeu, telephone, style=style, evenement_id=evenement_id)
                 serie += 1
 
         cut_y = MARGIN_BOT + CARD_H + CUT_GAP / 2
