@@ -83,12 +83,11 @@ def _cle_couleur(couleur):
 
 
 def _encre_remplissage(couleur):
-    """Encre du microtexte intérieur : la couleur du chiffre, assombrie de 45 %.
-    Chiffres noirs → remplissage noir (densité préservée) ;
-    chiffres gris 40 % → remplissage ~0,27 (comme avant)."""
+    """Encre du microtexte intérieur : la couleur du chiffre, assombrie de 55 %
+    pour compenser les vides de la trame (réglage validé sur le style P15)."""
     try:
         r, g, b = couleur.rgb()
-        return colors.Color(r * 0.55, g * 0.55, b * 0.55)
+        return colors.Color(r * 0.45, g * 0.45, b * 0.45)
     except Exception:
         return ENCRE_REMPLISSAGE
 
