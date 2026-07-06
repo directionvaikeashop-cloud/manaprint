@@ -217,24 +217,35 @@ def installer_machine(machine_id, client_nom, client_num, ile):
 
 
 # ── IMPRESSIONS / FACTURATION ─────────────────────────────────────────────────
-# Tarifs par profil (XPF par feuille A4)
+# Tarifs par profil (XPF par feuille A4) — VISION 2 GAMMES (Maeva, juil. 2026) :
+#   eco : écriture fine, économie de toner (la 1re proposition, préservée)
+#   p15 : écriture grasse PREMIUM style P15
 TARIFS = {
-    "pacific_ink":  {"couleur": 10,  "nb": 5},     # produit fini imprimé
-    "polynesien":   {"couleur": 3,   "nb": 1.5},   # fichier seul
-    "international": {"couleur": 6,   "nb": 3},     # fichier + frais de transfert
+    #                       ── gamme ÉCO ──          ── gamme PREMIUM P15 ──
+    "produit_imprime": {"eco": {"couleur": 7,  "nb": 3},   "p15": {"couleur": 10, "nb": 8}},   # produit fini imprimé (encre/toner + papier) — Accès ECO LASER
+    "polynesien":      {"eco": {"couleur": 3,  "nb": 1.5}, "p15": {"couleur": 3,  "nb": 2}},   # génération du fichier PDF
+    "international":   {"eco": {"couleur": 6,  "nb": 3},   "p15": {"couleur": 6,  "nb": 3}},   # fichier PDF uniquement (sans impression) — tarif unique, gammes confondues
 }
+# Compatibilité : les anciennes commandes/sessions utilisent encore l'ancien identifiant interne.
+TARIFS["pacific_ink"] = TARIFS["produit_imprime"]
 PRIX_COULEUR = 10  # défaut (compatibilité)
 PRIX_NB = 5
 
 
-def prix_feuille_profil(origine, couleur):
-    """Retourne le prix d'une feuille selon le profil et le mode couleur/N&B."""
-    t = TARIFS.get(origine, TARIFS["pacific_ink"])
-    return t["couleur"] if couleur else t["nb"]
+def _gamme_du_programme(programme):
+    """Détecte la gamme depuis l'identifiant du jeu : ..._p15_... = PREMIUM, sinon ÉCO."""
+    return "p15" if "_p15" in str(programme or "") else "eco"
+
+
+def prix_feuille_profil(origine, couleur, gamme="eco"):
+    """Retourne le prix d'une feuille selon le profil, le mode couleur/N&B et la gamme."""
+    t = TARIFS.get(origine, TARIFS["produit_imprime"])
+    g = t.get(gamme, t["eco"])
+    return g["couleur"] if couleur else g["nb"]
 
 
 def enregistrer_impression(origine, identifiant, programme, theme, nb_feuilles=1, couleur=True, machine_id=None):
-    prix_feuille = prix_feuille_profil(origine, couleur)
+    prix_feuille = prix_feuille_profil(origine, couleur, _gamme_du_programme(programme))
     montant_total = prix_feuille * nb_feuilles
     with get_db() as conn:
         conn.execute(
@@ -285,7 +296,7 @@ def incrementer_essai(identifiant):
 
 # ── COMMANDES ─────────────────────────────────────────────────────────────────
 def creer_commande(identifiant, origine, programme, couleur, nb_feuilles, mode_paiement, params_perso=""):
-    prix_feuille = prix_feuille_profil(origine, couleur)
+    prix_feuille = prix_feuille_profil(origine, couleur, _gamme_du_programme(programme))
     montant = prix_feuille * nb_feuilles
     statut = "en_attente"
     with get_db() as conn:
