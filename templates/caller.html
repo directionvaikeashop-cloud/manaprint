@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>MANAPRINT CALLER — Tirage & Vérification</title>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: #0b1120; --panel: #1e293b; --panel2: #172033;
+    --line: #334155; --muted: #94a3b8; --txt: #f1f5f9;
+    --accent: #38bdf8; --green: #22c55e; --red: #ef4444; --amber: #f59e0b;
+  }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+         background: var(--bg); color: var(--txt); padding: 14px; max-width: 820px; margin: 0 auto; }
+  h1 { font-size: 1.15rem; text-align: center; margin: 4px 0 2px; letter-spacing: .02em; }
+  .sub { text-align: center; color: var(--muted); font-size: .72rem; letter-spacing: .18em;
+         text-transform: uppercase; margin-bottom: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+          padding: 16px; margin-bottom: 14px; }
+  label { display: block; font-size: .78rem; color: var(--muted); margin-bottom: 6px; }
+  select, input { width: 100%; padding: 12px; font-size: 1rem; border-radius: 10px;
+                  border: 1px solid var(--line); background: var(--panel2); color: var(--txt); }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+  button { border: none; border-radius: 12px; padding: 14px; font-size: 1rem; font-weight: 700;
+           cursor: pointer; color: #06121f; }
+  .btn-tirer { background: var(--accent); width: 100%; font-size: 1.15rem; }
+  .btn-sec { background: var(--panel2); color: var(--txt); border: 1px solid var(--line); font-weight: 600; }
+  .btn-green { background: var(--green); }
+  .btn-red { background: var(--red); color: #fff; }
+  .boule-actuelle { text-align: center; margin: 10px 0; }
+  .boule-big { display: inline-flex; align-items: center; justify-content: center;
+               width: 130px; height: 130px; border-radius: 50%;
+               background: radial-gradient(circle at 35% 30%, #7dd3fc, var(--accent));
+               color: #06121f; font-size: 3.4rem; font-weight: 800;
+               box-shadow: 0 8px 30px rgba(56,189,248,.35); }
+  .boule-lettre { font-size: 1rem; color: var(--muted); margin-top: 6px; letter-spacing: .3em; }
+  .compteur { text-align: center; color: var(--muted); font-size: .8rem; margin-top: 4px; }
+  .historique { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .pastille { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center;
+              justify-content: center; font-size: .8rem; font-weight: 700;
+              background: var(--panel2); border: 1px solid var(--line); }
+  .pastille.derniere { background: var(--accent); color: #06121f; border-color: var(--accent); }
+  .grille-nums { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin-top: 10px; }
+  .num-case { aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+              font-size: .72rem; border-radius: 6px; background: var(--panel2);
+              border: 1px solid var(--line); color: var(--muted); }
+  .num-case.sorti { background: var(--accent); color: #06121f; font-weight: 800; border-color: var(--accent); }
+  #lecteur-qr { width: 100%; border-radius: 12px; overflow: hidden; margin-top: 10px; }
+  .verdict { text-align: center; border-radius: 14px; padding: 20px; margin-top: 12px; display: none; }
+  .verdict .emoji { font-size: 2.6rem; }
+  .verdict .titre { font-size: 1.3rem; font-weight: 800; margin-top: 4px; }
+  .verdict .detail { font-size: .85rem; margin-top: 8px; color: rgba(255,255,255,.9); }
+  .v-ok { background: var(--green); color: #06121f; }
+  .v-no { background: var(--red); color: #fff; }
+  .v-warn { background: var(--amber); color: #06121f; }
+  .mini { font-size: .72rem; color: var(--muted); text-align: center; margin-top: 16px; line-height: 1.6; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+  <h1>🎱 MANAPRINT CALLER</h1>
+  <div class="sub">Tirage & Vérification — 2KEA & Associé</div>
+
+  <!-- Choix du jeu -->
+  <div class="card">
+    <label>Jeu (définit les boules à tirer)</label>
+    <select id="jeu" onchange="changerJeu()"></select>
+    <p style="font-size:.74rem;color:var(--muted);margin:10px 0 0;line-height:1.5">
+      🔒 Tirage 100% automatique et imprévisible. L'organisateur ne peut pas choisir la boule
+      suivante. Chaque tirage est horodaté et enregistré (journal infalsifiable).
+    </p>
+  </div>
+
+  <!-- Tirage -->
+  <div class="card">
+    <div class="boule-actuelle">
+      <div class="boule-big" id="boule-big">—</div>
+      <div class="boule-lettre" id="boule-lettre"></div>
+    </div>
+    <div class="compteur" id="compteur">Aucune boule tirée</div>
+    <div style="margin-top:12px">
+      <button class="btn-tirer" id="btn-tirer" onclick="tirer()">TIRER UNE BOULE</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn-sec" onclick="reinitialiser()">🔄 Nouvelle partie</button>
+    </div>
+    <div class="historique" id="historique"></div>
+    <div class="grille-nums" id="grille-nums"></div>
+  </div>
+
+  <!-- Historique détaillé (anti-contestation) -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <label style="margin:0">📋 Historique du tirage</label>
+      <button class="btn-sec" style="padding:8px 14px;font-size:.8rem" onclick="toggleHistorique()" id="btn-histo">Afficher</button>
+    </div>
+    <div id="panneau-histo" class="hidden" style="margin-top:12px">
+      <div id="histo-vide" style="color:var(--muted);font-size:.85rem;text-align:center;padding:8px">
+        Aucune boule tirée pour le moment.
+      </div>
+      <table id="histo-table" style="width:100%;border-collapse:collapse;font-size:.85rem;display:none">
+        <thead>
+          <tr style="color:var(--muted);text-align:left">
+            <th style="padding:6px 4px;border-bottom:1px solid var(--line)">Ordre</th>
+            <th style="padding:6px 4px;border-bottom:1px solid var(--line)">Boule</th>
+            <th style="padding:6px 4px;border-bottom:1px solid var(--line)">Heure</th>
+          </tr>
+        </thead>
+        <tbody id="histo-corps"></tbody>
+      </table>
+      <p style="font-size:.72rem;color:var(--muted);margin-top:10px;line-height:1.5" id="histo-code"></p>
+    </div>
+  </div>
+
+  <!-- Vérification QR -->
+  <div class="card">
+    <label>Vérifier un carton gagnant</label>
+    <button class="btn-sec" id="btn-scan" onclick="toggleScan()">📷 Scanner le QR du carton</button>
+    <div id="lecteur-qr"></div>
+    <div class="verdict" id="verdict">
+      <div class="emoji" id="v-emoji"></div>
+      <div class="titre" id="v-titre"></div>
+      <div class="detail" id="v-detail"></div>
+    </div>
+    <div class="mini">
+      Le scan indique si le carton est <b>authentique</b>, une <b>photocopie</b> (déjà réclamé) ou un <b>faux</b>.
+      Comparez ensuite ses numéros avec les boules tirées ci-dessus.
+    </div>
+  </div>
+
+  <div class="mini">MANAPRINT · Sécurité 2KEA & Associé — un carton ne peut être validé qu'une seule fois.</div>
+
+<script>
+// Plages de boules par jeu (min..max)
+const JEUX = {
+  "aloha75":     { nom: "ALOHA 75",            min: 1, max: 75, lettres: "ALOHA" },
+  "ohana75":     { nom: "OHANA 75 / BINGO",    min: 1, max: 75, lettres: "BINGO" },
+  "brown8":      { nom: "BROWN 8",             min: 1, max: 75, lettres: "BROWN" },
+  "p6_marathon": { nom: "P6 / P15 MARATHON",   min: 1, max: 75, lettres: "BINGO" },
+  "triple":      { nom: "TRIPLE ACTION 75",    min: 1, max: 75, lettres: "TRIPL" },
+  "bingo_ball":  { nom: "BINGO BALL",          min: 1, max: 75, lettres: "BINGO" },
+  "quatre_coin": { nom: "4 COIN",              min: 1, max: 75, lettres: "4COIN" },
+  "kai":         { nom: "KAI 7 boules",        min: 1, max: 29, lettres: "" },
+  "flash90":     { nom: "FLASH QUINES 90",     min: 1, max: 90, lettres: "" },
+  "quines90":    { nom: "QUINES 90",           min: 1, max: 90, lettres: "" },
+};
+
+let jeuActuel = "aloha75";
+let tirees = [];       // ordre de tirage
+let partieId = "";     // identifiant de partie (journal serveur)
+let scanActif = false;
+let lecteur = null;
+let enCours = false;
+
+function initJeux() {
+  const sel = document.getElementById("jeu");
+  for (const k in JEUX) {
+    const o = document.createElement("option");
+    o.value = k; o.textContent = JEUX[k].nom + "  (1–" + JEUX[k].max + ")";
+    sel.appendChild(o);
+  }
+  changerJeu();
+}
+
+function changerJeu() {
+  jeuActuel = document.getElementById("jeu").value;
+  reinitialiser();
+}
+
+function lettrePour(n) {
+  const j = JEUX[jeuActuel];
+  if (!j.lettres || j.max !== 75) return "";
+  const idx = Math.floor((n - 1) / 15);
+  return j.lettres[idx] || "";
+}
+
+// Tirage 100% SERVEUR : l'organisateur ne choisit rien, tout est horodaté et journalisé.
+function tirer() {
+  if (enCours) return;
+  enCours = true;
+  const btn = document.getElementById("btn-tirer");
+  btn.textContent = "…"; btn.disabled = true;
+  fetch("/api/caller/tirer", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ partie_id: partieId, jeu: jeuActuel })
+  }).then(r => r.json()).then(res => {
+    if (!res.ok) { alert(res.message || "Tirage impossible."); return; }
+    partieId = res.partie_id;
+    tirees = res.tirees;
+    const n = res.boule;
+    document.getElementById("boule-big").textContent = n;
+    document.getElementById("boule-lettre").textContent = lettrePour(n);
+    maj();
+  }).catch(() => alert("Erreur de connexion — réessayez."))
+    .finally(() => { enCours = false; btn.textContent = "TIRER UNE BOULE"; btn.disabled = false; });
+}
+
+function reinitialiser() {
+  // Nouvelle partie = nouveau journal serveur (l'ancienne partie reste archivée)
+  tirees = [];
+  partieId = "";
+  document.getElementById("boule-big").textContent = "—";
+  document.getElementById("boule-lettre").textContent = "";
+  maj();
+  if (histoOuvert) chargerHistorique();
+}
+
+function maj() {
+  const j = JEUX[jeuActuel];
+  document.getElementById("compteur").textContent =
+    tirees.length + " / " + (j.max - j.min + 1) + " boules tirées";
+  // historique (ordre de tirage, plus récent d'abord)
+  const h = document.getElementById("historique");
+  h.innerHTML = "";
+  [...tirees].reverse().forEach((n, i) => {
+    const d = document.createElement("div");
+    d.className = "pastille" + (i === 0 ? " derniere" : "");
+    d.textContent = n;
+    h.appendChild(d);
+  });
+  // grille complète des numéros
+  const g = document.getElementById("grille-nums");
+  g.innerHTML = "";
+  for (let n = j.min; n <= j.max; n++) {
+    const c = document.createElement("div");
+    c.className = "num-case" + (tirees.includes(n) ? " sorti" : "");
+    c.textContent = n;
+    g.appendChild(c);
+  }
+  // si le panneau historique est ouvert, le rafraîchir
+  if (histoOuvert) chargerHistorique();
+}
+
+// ── Historique détaillé (journal serveur horodaté) ──
+let histoOuvert = false;
+
+function toggleHistorique() {
+  histoOuvert = !histoOuvert;
+  document.getElementById("panneau-histo").classList.toggle("hidden", !histoOuvert);
+  document.getElementById("btn-histo").textContent = histoOuvert ? "Masquer" : "Afficher";
+  if (histoOuvert) chargerHistorique();
+}
+
+function chargerHistorique() {
+  const vide = document.getElementById("histo-vide");
+  const table = document.getElementById("histo-table");
+  const codeP = document.getElementById("histo-code");
+  if (!partieId) {
+    vide.style.display = "block"; table.style.display = "none"; codeP.textContent = "";
+    return;
+  }
+  fetch("/api/caller/journal/" + partieId).then(r => r.json()).then(res => {
+    const j = (res && res.journal) || [];
+    if (j.length === 0) {
+      vide.style.display = "block"; table.style.display = "none"; codeP.textContent = "";
+      return;
+    }
+    vide.style.display = "none"; table.style.display = "table";
+    const corps = document.getElementById("histo-corps");
+    corps.innerHTML = "";
+    // plus récent en haut
+    [...j].reverse().forEach(t => {
+      const heure = (t.tire_le || "").replace("T", " ").slice(11, 19);
+      const tr = document.createElement("tr");
+      tr.innerHTML = "<td style='padding:6px 4px;border-bottom:1px solid var(--line)'>" + t.ordre +
+        "</td><td style='padding:6px 4px;border-bottom:1px solid var(--line);font-weight:700;color:var(--accent)'>" +
+        t.boule + " " + lettrePour(t.boule) +
+        "</td><td style='padding:6px 4px;border-bottom:1px solid var(--line);color:var(--muted)'>" + heure + "</td>";
+      corps.appendChild(tr);
+    });
+    codeP.textContent = "Réf. partie : " + partieId + " — journal horodaté (preuve infalsifiable en cas de litige).";
+  }).catch(() => {});
+}
+
+// ── Vérification QR ──
+function toggleScan() {
+  if (scanActif) { stopScan(); return; }
+  document.getElementById("verdict").style.display = "none";
+  lecteur = new Html5Qrcode("lecteur-qr");
+  lecteur.start({ facingMode: "environment" }, { fps: 10, qrbox: 220 },
+    onScan, () => {}).then(() => {
+      scanActif = true;
+      document.getElementById("btn-scan").textContent = "✖ Arrêter le scan";
+    }).catch(e => alert("Caméra indisponible : " + e));
+}
+
+function stopScan() {
+  if (lecteur) { lecteur.stop().then(() => lecteur.clear()); }
+  scanActif = false;
+  document.getElementById("btn-scan").textContent = "📷 Scanner le QR du carton";
+}
+
+function onScan(texte) {
+  stopScan();
+  // le QR contient une URL .../v/<ev>/<serie>/<code> ; on interroge l'API
+  let ev = "", serie = "", code = "";
+  const m = texte.match(/\/v\/([^\/]+)\/(\d+)\/([^\/\?]+)/);
+  if (m) { ev = m[1]; serie = parseInt(m[2]); code = m[3]; }
+  else { montrerVerdict("v-no", "❌", "QR NON RECONNU", "Ce QR n'est pas un carton MANAPRINT."); return; }
+
+  fetch("/api/verifier-carton", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ evenement_id: ev, serie: serie, code: code })
+  }).then(r => r.json()).then(res => {
+    const map = {
+      "VALIDE":       ["v-ok", "✅", "CARTON VALIDE"],
+      "DEJA_RECLAME": ["v-no", "🚫", "DÉJÀ RÉCLAMÉ"],
+      "INCONNU":      ["v-no", "❌", "NON RECONNU"],
+      "HORS_LOT":     ["v-warn", "⚠️", "HORS DE CE LOT"],
+    };
+    const [cls, emo, tit] = map[res.statut] || ["v-no", "❔", res.statut];
+    let detail = res.message || "";
+    if (res.statut === "VALIDE") {
+      detail += " Comparez ses numéros avec les " + tirees.length + " boules tirées.";
+    }
+    montrerVerdict(cls, emo, tit, detail);
+  }).catch(() => montrerVerdict("v-no", "⚠️", "ERREUR", "Impossible de vérifier (connexion ?)."));
+}
+
+function montrerVerdict(cls, emoji, titre, detail) {
+  const v = document.getElementById("verdict");
+  v.className = "verdict " + cls; v.style.display = "block";
+  document.getElementById("v-emoji").textContent = emoji;
+  document.getElementById("v-titre").textContent = titre;
+  document.getElementById("v-detail").textContent = detail;
+}
+
+initJeux();
+</script>
+</body>
+</html>
