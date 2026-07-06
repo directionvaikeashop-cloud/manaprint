@@ -36,6 +36,26 @@ GRIS_MICRO = colors.Color(0.42, 0.42, 0.42)      # cadre
 ENCRE_REMPLISSAGE = colors.Color(0.25, 0.25, 0.25)  # intérieur des chiffres (soutenu)
 MICRO_GENERIQUE = "MANAPRINT*ORIGINAL*"
 
+# QR de vérification (anti-duplication) — anti-panne : optionnel
+try:
+    from generators import qr_verif as _qr
+except Exception:
+    try:
+        import qr_verif as _qr
+    except Exception:
+        _qr = None
+
+
+def carton_qr(c, x, y, taille, evenement_id, serie):
+    """Dessine le QR de vérification si le module est disponible. Renvoie True/False."""
+    if _qr is None:
+        return False
+    try:
+        return _qr.dessiner_qr(c, x, y, taille, evenement_id, serie)
+    except Exception:
+        return False
+
+
 
 def _chaine_serie(serie):
     """Texte de sécurité unique par carte (contient le N° de série)."""
