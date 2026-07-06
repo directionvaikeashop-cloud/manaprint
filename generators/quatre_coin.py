@@ -118,7 +118,7 @@ def _boule(c, cx, cy, r, telephone):
     c.drawCentredString(cx, cy - r * 0.50, tel)
 
 
-def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, telephone="", style="eco"):
+def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, telephone="", style="eco", evenement_id=""):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
 
@@ -177,10 +177,18 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, telephone="", style="e
     c.setFillColor(col); c.setFont(POLICE, 5)
     c.drawRightString(x0 + CARD_W - 2.5 * mm, y0 + 0.8 * mm, "%06d" % serie)
 
+    # QR de vérification par grille (anti-duplication) — coin bas-droit
+    if _sec and evenement_id:
+        try:
+            _q = 8.0 * mm
+            _sec.carton_qr(c, x0 + CARD_W - _q - 1.5 * mm, y0 + 1.5 * mm, _q, evenement_id, serie)
+        except Exception:
+            pass
+
 
 def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco"):
+                style="eco", evenement_id=""):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
@@ -207,7 +215,7 @@ def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
                 carte = _gen_carte(rng)
                 coul = (couleur_perso if (couleur and couleur_perso)
                         else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
-                _dessiner_carte(c, x0, y0, carte, coul, serie, telephone, style=style)
+                _dessiner_carte(c, x0, y0, carte, coul, serie, telephone, style=style, evenement_id=evenement_id)
                 serie += 1
                 faites += 1
 
