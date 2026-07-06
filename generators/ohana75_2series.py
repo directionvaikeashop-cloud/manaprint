@@ -45,6 +45,29 @@ GRIS = colors.Color(0.42, 0.42, 0.42)
 GRIS40 = colors.Color(0.50, 0.50, 0.50)   # gris 50% (un peu plus fort) — pour les chiffres
 GRIS_CLAIR = colors.Color(0.80, 0.80, 0.80)
 
+
+
+# ══ DEUX GAMMES COMMERCIALES (vision Maeva) ══════════════════════════
+# ÉCO      : écriture fine DejaVu ExtraLight, gris 0,50 — économie de toner
+# PREMIUM  : écriture grasse Helvetica-Bold, gris 0,55 — style P15
+from reportlab.pdfbase import pdfmetrics as _pm
+from reportlab.pdfbase.ttfonts import TTFont as _TF
+try:
+    _pm.registerFont(_TF("DJLECO", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
+    _POLICE_ECO = "DJLECO"
+except Exception:
+    _POLICE_ECO = "Helvetica"
+_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
+_POLICE_P15 = "Helvetica-Bold"
+_GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
+
+def _style_chiffres(style):
+    """Retourne (police, gris) des chiffres selon la gamme choisie."""
+    if str(style).lower() in ("p15", "premium"):
+        return _POLICE_P15, _GRIS_P15
+    return _POLICE_ECO, _GRIS_ECO
+# ═════════════════════════════════════════════════════════════════════
+
 PAGE_W, PAGE_H = A4
 PLAGES = [("B", 1, 15), ("I", 16, 30), ("N", 31, 45), ("G", 46, 60), ("O", 61, 75)]
 
@@ -68,7 +91,8 @@ def _gen_carte(rng):
 
 
 def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
-                    telephone="", titre_jeu="", no_page=1):
+                    telephone="", titre_jeu="", no_page=1, style="eco"):
+    police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
     ncols = 5
     cell_w = CARD_W / ncols
@@ -140,13 +164,13 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
             c.setStrokeColor(col); c.setLineWidth(1.0)
             c.circle(cxc, cy, r_cercle, stroke=1, fill=0)
             if _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, n1, cxc, cy - 14, 42, GRIS40, POLICE)
-                _sec.chiffre_micro(c, n2, cx2, cy - 12, 36, GRIS40, POLICE)
+                _sec.chiffre_micro(c, n1, cxc, cy - 14, 42, gris_ch, police_ch)
+                _sec.chiffre_micro(c, n2, cx2, cy - 12, 36, gris_ch, police_ch)
             else:
-                c.setFillColor(GRIS40); c.setFont(POLICE, 42)
+                c.setFillColor(gris_ch); c.setFont(police_ch, 42)
                 c.drawCentredString(cxc, cy - 14, str(n1))
                 # Petit numéro
-                c.setFillColor(GRIS40); c.setFont(POLICE, 36)
+                c.setFillColor(gris_ch); c.setFont(police_ch, 36)
                 c.drawCentredString(cx2, cy - 12, str(n2))
 
         # séparateur de rangée
@@ -165,7 +189,8 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
 
 
 def generer_pdf(nb_cartes=2, serie_start=1, theme="", couleur=True,
-                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone=""):
+                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
+                style="eco"):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
@@ -200,7 +225,7 @@ def generer_pdf(nb_cartes=2, serie_start=1, theme="", couleur=True,
             carte = _gen_carte(rng)
             coul = (couleur_perso if (couleur and couleur_perso)
                     else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
-            _dessiner_carte(c, x0, y0, carte, coul, serie, encre, telephone, titre_jeu, no_page)
+            _dessiner_carte(c, x0, y0, carte, coul, serie, encre, telephone, titre_jeu, no_page, style=style)
             serie += 1
             faites += 1
 
