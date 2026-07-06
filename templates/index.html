@@ -57,7 +57,7 @@
         <button class="card-choice" onclick="montrer('ecran-poly')">
           <p class="label-mono" data-i18n="poly_label" style="color:var(--teal)">Polynésie · sans machine</p>
           <h3 class="display" data-i18n="poly_titre" style="font-size:1.2rem;margin-bottom:.6rem">Client Polynésien</h3>
-          <p data-i18n="poly_desc" style="font-size:.85rem;color:var(--muted);line-height:1.6">2 étapes : 1) générez votre PDF de jeu au tarif local ; 2) imprimez chez un partenaire d'impression — il ne facture que le papier et l'encre, à 3 F la feuille.</p>
+          <p data-i18n="poly_desc" style="font-size:.85rem;color:var(--muted);line-height:1.6">2 étapes : 1) générez votre PDF de jeu au tarif local ; 2) imprimez chez un partenaire d'impression — il ne facture que le papier et l'encre : gamme ÉCO 3 F (N&B) / 7 F (Couleur), gamme PREMIUM 8 F (N&B) / 10 F (Couleur) la feuille.</p>
         </button>
         <button class="card-choice" onclick="montrer('ecran-intl')">
           <p class="label-mono" data-i18n="intl_label" style="color:var(--teal)">Hors Polynésie</p>
@@ -164,7 +164,7 @@
           <option value="" data-i18n="part_self">Je télécharge le PDF moi-même</option>
         </select>
         <p id="gen-part-info" style="font-size:.8rem;color:var(--muted);margin-top:.45rem;line-height:1.5"></p>
-        <p style="font-size:.8rem;color:var(--teal-d);margin-top:.4rem;line-height:1.5;font-weight:500">💡 <span data-i18n="part_3f">Les partenaires d'impression ne facturent que le papier et l'encre, à 3 F la feuille.</span></p>
+        <p style="font-size:.8rem;color:var(--teal-d);margin-top:.4rem;line-height:1.5;font-weight:500">💡 <span data-i18n="part_3f">Les partenaires d'impression ne facturent que le papier et l'encre : ÉCO 3 F (N&B) / 7 F (Couleur) · PREMIUM 8 F (N&B) / 10 F (Couleur) la feuille.</span></p>
       </div>
 
       <button class="btn" id="gen-cmd-btn" data-i18n="btn_commander" onclick="commander()">Passer commande</button>
@@ -236,7 +236,7 @@ const T = {
  pi_desc:{fr:"Il y a 4 machines à placer.",en:"4 machines available to install."},
  poly_label:{fr:"Polynésie · sans machine",en:"Polynesia · no machine"},
  poly_titre:{fr:"Client Polynésien",en:"Polynesian Client"},
- poly_desc:{fr:"2 étapes : 1) générez votre PDF de jeu au tarif local ; 2) imprimez chez un partenaire d'impression — il ne facture que le papier et l'encre, à 3 F la feuille.",en:"2 steps: 1) generate your game PDF at the local rate; 2) print at a print partner — they only charge for paper and ink, at 3 F per sheet."},
+ poly_desc:{fr:"2 étapes : 1) générez votre PDF de jeu au tarif local ; 2) imprimez chez un partenaire d'impression — il ne facture que le papier et l'encre : ÉCO 3 F (N&B) / 7 F (Couleur), PREMIUM 8 F (N&B) / 10 F (Couleur) la feuille.",en:"2 steps: 1) generate your game PDF at the local rate; 2) print at a print partner — they only charge for paper and ink: ECO 3 F (B&W) / 7 F (Color), PREMIUM 8 F (B&W) / 10 F (Color) per sheet."},
  intl_label:{fr:"Hors Polynésie",en:"Outside Polynesia"},
  intl_titre:{fr:"Client international",en:"International Client"},
  intl_desc:{fr:"Générez vos cartes, téléchargez le PDF, imprimez où vous voulez.",en:"Generate your cards, download the PDF, print anywhere."},
@@ -247,7 +247,7 @@ const T = {
  lbl_partenaire:{fr:"Choisir un partenaire d'impression",en:"Choose a print partner"},
  part_self:{fr:"Je télécharge le PDF moi-même",en:"I download the PDF myself"},
  part_info:{fr:"Après validation, ton PDF est envoyé à",en:"After approval, your PDF is sent to"},
- part_3f:{fr:"Les partenaires d'impression ne facturent que le papier et l'encre, à 3 F la feuille.",en:"Print partners only charge for paper and ink, at 3 F per sheet."},
+ part_3f:{fr:"Les partenaires d'impression ne facturent que le papier et l'encre : ÉCO 3 F (N&B) / 7 F (Couleur) · PREMIUM 8 F (N&B) / 10 F (Couleur) la feuille.",en:"Print partners only charge for paper and ink: ECO 3 F (B&W) / 7 F (Color) · PREMIUM 8 F (B&W) / 10 F (Color) per sheet."},
  crosslink:{fr:"Tu organises des tournois ? Joue en ligne sur Ticket Bingo",en:"Running tournaments? Play online on Ticket Bingo"},
  gestion:{fr:"Espace gestion",en:"Management area"},
  retour:{fr:"← Retour",en:"← Back"},
