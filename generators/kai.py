@@ -18,6 +18,17 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
+# SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne : si le module securite
+# est absent, les cartons sortent normalement, simplement sans microtexte.
+try:
+    from generators import securite as _sec
+except Exception:
+    try:
+        import securite as _sec
+    except Exception:
+        _sec = None
+
+
 try:
     pdfmetrics.registerFont(TTFont("DJL", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
     POLICE = "DJL"
@@ -69,6 +80,8 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
     # Bordure carte
     c.setStrokeColor(col); c.setLineWidth(0.8)
     c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
+    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
+        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
 
     # En-tête
     hdr_y = y0 + CARD_H - 4 * mm
@@ -106,6 +119,8 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
                 c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.5)
                 c.line(cell_x + m, cyc - row_h / 2 + m, cell_x + cell_w - m, cyc + row_h / 2 - m)
                 c.line(cell_x + m, cyc + row_h / 2 - m, cell_x + cell_w - m, cyc - row_h / 2 + m)
+            elif _sec:  # chiffres "billet de banque" remplis de microtexte
+                _sec.chiffre_micro(c, val, cx, cyc - 11, 32, GRIS40, POLICE)
             else:
                 c.setFillColor(GRIS40); c.setFont(POLICE, 32)
                 c.drawCentredString(cx, cyc - 11, str(val))
@@ -120,7 +135,7 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone=""):
     buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=A4)
+    c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
     nb_cartes = max(1, min(int(nb_cartes), 10000))
     par_page = COLS_PAGE * ROWS_PAGE
