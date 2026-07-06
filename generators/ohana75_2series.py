@@ -6,6 +6,9 @@ Chaque carte : grille 5×5 B·I·N·G·O, 2 numéros par case (un grand entouré
 case centrale FREE avec le N° de série. Règle MARATHON.
 Plages : B 1-15, I 16-30, N 31-45, G 46-60, O 61-75.
 Couleur arc-en-ciel (par carte) ou gris (économie d'encre). Personnalisation + responsable.
+SÉCURITÉ ANTI-PHOTOCOPIE (module generators/securite.py) : cadre intérieur en
+microtexte + chiffres remplis de microtexte (technique billet de banque).
+Vérification à la loupe x10 : lettres nettes = original, trait flou = photocopie.
 """
 import io
 import random
@@ -15,6 +18,16 @@ from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+
+# SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne : si le module securite
+# est absent, les cartons sortent normalement, simplement sans microtexte.
+try:
+    from generators import securite as _sec
+except Exception:
+    try:
+        import securite as _sec
+    except Exception:
+        _sec = None
 
 # Police fine (look OHANA) avec repli Helvetica
 try:
@@ -64,6 +77,8 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
     c.setStrokeColor(col)
     c.setLineWidth(1.0)
     c.roundRect(x0, y0, CARD_W, CARD_H, 2 * mm, stroke=1, fill=0)
+    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
+        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.5 * mm)
 
     # Bandeau haut (sécurité : nom du jeu + tournoi + n° carte, sur chaque grille)
     bandeau = "OHANA 75"
@@ -124,11 +139,15 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
             # Gros numéro entouré
             c.setStrokeColor(col); c.setLineWidth(1.0)
             c.circle(cxc, cy, r_cercle, stroke=1, fill=0)
-            c.setFillColor(GRIS40); c.setFont(POLICE, 42)
-            c.drawCentredString(cxc, cy - 14, str(n1))
-            # Petit numéro
-            c.setFillColor(GRIS40); c.setFont(POLICE, 36)
-            c.drawCentredString(cx2, cy - 12, str(n2))
+            if _sec:  # chiffres "billet de banque" remplis de microtexte
+                _sec.chiffre_micro(c, n1, cxc, cy - 14, 42, GRIS40, POLICE)
+                _sec.chiffre_micro(c, n2, cx2, cy - 12, 36, GRIS40, POLICE)
+            else:
+                c.setFillColor(GRIS40); c.setFont(POLICE, 42)
+                c.drawCentredString(cxc, cy - 14, str(n1))
+                # Petit numéro
+                c.setFillColor(GRIS40); c.setFont(POLICE, 36)
+                c.drawCentredString(cx2, cy - 12, str(n2))
 
         # séparateur de rangée
         if j > 0:
@@ -148,7 +167,7 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
 def generer_pdf(nb_cartes=2, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone=""):
     buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=A4)
+    c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
     nb_cartes = max(1, min(int(nb_cartes), 10000))
     par_page = 2
