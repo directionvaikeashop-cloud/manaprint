@@ -138,7 +138,17 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
         for cc in range(ncols):
             val = grille[r][cc]
             if val is None:
-                continue  # case centrale vide
+                # case centrale vide -> on y place le QR de vérification
+                if _sec and evenement_id:
+                    try:
+                        cx = x0 + (cc + 0.5) * cell_w
+                        cy = grid_top - (r + 0.5) * row_h
+                        _q = min(cell_w, row_h) - 2.0 * mm
+                        _q = max(5.0 * mm, _q)
+                        _sec.carton_qr(c, cx - _q / 2, cy - _q / 2, _q, evenement_id, serie)
+                    except Exception:
+                        pass
+                continue
             cx = x0 + (cc + 0.5) * cell_w
             cy = grid_top - (r + 0.5) * row_h - 3.5
             if _sec:
@@ -154,14 +164,6 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
     c.drawString(x0 + 1.5 * mm, y0 + 1.3 * mm, "N° SÉRIE")
     c.setFillColor(col); c.setFont("Helvetica", 6)
     c.drawRightString(x0 + CARD_W - 1.5 * mm, y0 + 1.3 * mm, "%06d" % serie)
-
-    # QR de vérification par grille — coin bas-droit (au-dessus du pied)
-    if _sec and evenement_id:
-        try:
-            _q = 6.5 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 1.5 * mm, y0 + FOOT_H + 0.5 * mm, _q, evenement_id, serie)
-        except Exception:
-            pass
 
 
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
