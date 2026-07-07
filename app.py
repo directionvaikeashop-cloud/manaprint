@@ -21,6 +21,7 @@ from generators import kai
 from generators import ohana75_8boules
 from generators import ohana75_10boules
 from generators import quatre_coin
+from generators import pol
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
@@ -159,6 +160,7 @@ _enregistrer_paire("kai",           "KAI 7 boules",       "🍽️", 12, kai.gen
 _enregistrer_paire("ohana75_8b",    "OHANA 75 · 8 boules","🌺", 9,  ohana75_8boules.generer_pdf)
 _enregistrer_paire("ohana75_10b",   "OHANA 75 · 10 boules","🌺", 9,  ohana75_10boules.generer_pdf)
 _enregistrer_paire("quatre_coin",   "4 COIN","🎯", 6,  quatre_coin.generer_pdf)
+_enregistrer_paire("pol",           "POL 6 boules","🎲", 12, pol.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
 
@@ -379,6 +381,7 @@ _PLAGES_CALLER = {
     "aloha75": (1, 75), "ohana75": (1, 75), "brown8": (1, 75), "p6_marathon": (1, 75),
     "triple": (1, 75), "bingo_ball": (1, 75), "quatre_coin": (1, 75),
     "kai": (1, 29), "flash90": (1, 90), "quines90": (1, 90),
+    "pol": (30, 60),
 }
 
 
