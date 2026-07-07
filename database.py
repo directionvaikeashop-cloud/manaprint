@@ -567,15 +567,21 @@ def boules_tirees(partie_id):
     return [r["boule"] for r in rows]
 
 
-def tirer_boule(partie_id, bmin, bmax):
+def tirer_boule(partie_id, bmin, bmax, boules_valides=None):
     """Tire UNE boule au hasard parmi les non-sorties. Tirage fait par le serveur avec
     une source cryptographique (secrets), donc imprévisible ET non choisissable par
-    l'organisateur. Enregistré horodaté dans le journal. Retourne la boule ou None si fini."""
+    l'organisateur. Enregistré horodaté dans le journal. Retourne la boule ou None si fini.
+    Si boules_valides est fourni (liste), on tire uniquement dans cette liste
+    (utile pour les jeux à colonnes non contiguës comme BNO : 1-15, 31-45, 61-75)."""
     import secrets
     with get_db() as conn:
         deja = set(r["boule"] for r in conn.execute(
             "SELECT boule FROM tirages WHERE partie_id = ?", (partie_id,)).fetchall())
-        dispo = [n for n in range(int(bmin), int(bmax) + 1) if n not in deja]
+        if boules_valides:
+            univers = [int(n) for n in boules_valides]
+        else:
+            univers = list(range(int(bmin), int(bmax) + 1))
+        dispo = [n for n in univers if n not in deja]
         if not dispo:
             return None
         boule = dispo[secrets.randbelow(len(dispo))]
