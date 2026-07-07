@@ -28,6 +28,7 @@ from generators import win
 from generators import rubis90
 from generators import vai
 from generators import wow4
+from generators import bno
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
@@ -173,6 +174,7 @@ _enregistrer_paire("win",           "WIN 9 boules","🏆", 12, win.generer_pdf)
 _enregistrer_paire("rubis90",       "RUBIS 90","💎", 12, rubis90.generer_pdf)
 _enregistrer_paire("vai",           "VAI 9 boules","🌊", 12, vai.generer_pdf)
 _enregistrer_paire("wow4",          "WOW 4","🎆", 12, wow4.generer_pdf)
+_enregistrer_paire("bno",           "BNO 8 boules","🎯", 12, bno.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
 
@@ -400,6 +402,13 @@ _PLAGES_CALLER = {
     "rubis90": (1, 90),
     "vai": (61, 90),
     "wow4": (30, 60),
+    "bno": (1, 75),
+}
+
+
+# Jeux à colonnes NON contiguës : liste explicite des boules valides
+_BOULES_CALLER = {
+    "bno": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(61, 76)],
 }
 
 
@@ -413,6 +422,7 @@ def api_caller_tirer():
     if jeu not in _PLAGES_CALLER:
         return jsonify({"ok": False, "message": "Jeu inconnu."}), 400
     bmin, bmax = _PLAGES_CALLER[jeu]
+    boules_valides = _BOULES_CALLER.get(jeu)
 
     partie_id = (d.get("partie_id") or "").strip()
     if not partie_id:
@@ -420,7 +430,7 @@ def api_caller_tirer():
         partie_id = "P" + secrets.token_hex(6).upper()
         db.creer_partie(partie_id, jeu, bmin, bmax)
 
-    boule = db.tirer_boule(partie_id, bmin, bmax)
+    boule = db.tirer_boule(partie_id, bmin, bmax, boules_valides)
     if boule is None:
         return jsonify({"ok": False, "message": "Toutes les boules sont sorties.",
                         "partie_id": partie_id, "tirees": db.boules_tirees(partie_id)}), 409
