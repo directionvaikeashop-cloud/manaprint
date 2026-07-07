@@ -26,6 +26,7 @@ from generators import sun
 from generators import pow as powgen
 from generators import win
 from generators import rubis90
+from generators import vai
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
@@ -169,6 +170,7 @@ _enregistrer_paire("sun",           "SUN 8 boules","☀️", 12, sun.generer_pdf
 _enregistrer_paire("pow",           "POW 9 boules","💥", 12, powgen.generer_pdf)
 _enregistrer_paire("win",           "WIN 9 boules","🏆", 12, win.generer_pdf)
 _enregistrer_paire("rubis90",       "RUBIS 90","💎", 12, rubis90.generer_pdf)
+_enregistrer_paire("vai",           "VAI 9 boules","🌊", 12, vai.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
 
@@ -394,6 +396,7 @@ _PLAGES_CALLER = {
     "pow": (1, 27),
     "win": (1, 45),
     "rubis90": (1, 90),
+    "vai": (61, 90),
 }
 
 
