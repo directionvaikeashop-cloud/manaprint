@@ -29,6 +29,7 @@ from generators import rubis90
 from generators import vai
 from generators import wow4
 from generators import bno
+from generators import ngo
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
@@ -175,6 +176,7 @@ _enregistrer_paire("rubis90",       "RUBIS 90","💎", 12, rubis90.generer_pdf)
 _enregistrer_paire("vai",           "VAI 9 boules","🌊", 12, vai.generer_pdf)
 _enregistrer_paire("wow4",          "WOW 4","🎆", 12, wow4.generer_pdf)
 _enregistrer_paire("bno",           "BNO 8 boules","🎯", 12, bno.generer_pdf)
+_enregistrer_paire("ngo",           "NGO 8 boules","🎳", 12, ngo.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
 
@@ -403,6 +405,7 @@ _PLAGES_CALLER = {
     "vai": (61, 90),
     "wow4": (30, 60),
     "bno": (1, 75),
+    "ngo": (31, 75),
 }
 
 
