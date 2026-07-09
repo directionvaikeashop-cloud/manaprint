@@ -32,6 +32,7 @@ from generators import bno
 from generators import ngo
 from generators import diamant
 from generators import rui
+from generators import tureia
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
@@ -181,6 +182,7 @@ _enregistrer_paire("bno",           "BNO 8 boules","🎯", 12, bno.generer_pdf)
 _enregistrer_paire("ngo",           "NGO 8 boules","🎳", 12, ngo.generer_pdf)
 _enregistrer_paire("diamant",       "DIAMANT","💎", 6,  diamant.generer_pdf)
 _enregistrer_paire("rui",           "RUI","🎴", 12, rui.generer_pdf)
+_enregistrer_paire("tureia",        "TUREIA","🔶", 6,  tureia.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
 
