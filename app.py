@@ -33,6 +33,7 @@ from generators import ngo
 from generators import diamant
 from generators import rui
 from generators import tureia
+from generators import champagne
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
@@ -183,6 +184,7 @@ _enregistrer_paire("ngo",           "NGO 8 boules","🎳", 12, ngo.generer_pdf)
 _enregistrer_paire("diamant",       "DIAMANT","💎", 6,  diamant.generer_pdf)
 _enregistrer_paire("rui",           "RUI","🎴", 12, rui.generer_pdf)
 _enregistrer_paire("tureia",        "TUREIA","🔶", 6,  tureia.generer_pdf)
+_enregistrer_paire("champagne",     "CHAMPAGNE","🥂", 6,  champagne.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
 
@@ -910,43 +912,54 @@ def admin_valider_commande(commande_id):
     info = ""
     if pid and pid in PARTENAIRES:
         part = PARTENAIRES[pid]
-        try:
-            cpf = CARTES_PAR_FEUILLE.get(cmd["programme"], 10)
-            nb_cartes = cmd["nb_feuilles"] * cpf
-            evenement_id = ""
+
+        # 🏭 FABRICATION EN ARRIÈRE-PLAN : les grosses commandes (des centaines de
+        # feuilles + microtexte de sécurité) prennent plusieurs minutes. On répond
+        # IMMÉDIATEMENT au navigateur (fini « Erreur réseau ») et la fabrication +
+        # l'envoi au partenaire continuent tranquillement côté serveur.
+        def _fabriquer_et_envoyer():
             try:
-                evenement_id = _nouvel_evenement_id(cmd["programme"])
-                db.creer_evenement(
-                    evenement_id=evenement_id,
-                    nom=perso.get("titre_jeu", "") or perso.get("nom_evenement", "") or "Événement",
-                    identifiant=cmd["identifiant"], programme=cmd["programme"],
-                    serie_min=1, serie_max=nb_cartes,
-                )
-            except Exception:
+                cpf = CARTES_PAR_FEUILLE.get(cmd["programme"], 10)
+                nb_cartes = cmd["nb_feuilles"] * cpf
                 evenement_id = ""
-            pdf = generer_jeu(cmd["programme"], nb_cartes, bool(cmd["couleur"]), perso,
-                              evenement_id=evenement_id)
-            sujet = f"MANAPRINT — Commande #{commande_id} à imprimer"
-            corps = (
-                f"Bonjour {part['nom']},\n\n"
-                f"Une nouvelle commande validée est à imprimer ({part['zone']}) :\n\n"
-                f"  • Client : {cmd['identifiant']}\n"
-                f"  • Événement : {perso.get('nom_evenement','')}\n"
-                f"  • Jeu : {cmd['programme']} — {cmd['nb_feuilles']} feuille(s)\n"
-                f"  • Téléphone du responsable : {perso.get('telephone','')}\n\n"
-                "Le PDF prêt à imprimer est en pièce jointe.\n\n"
-                "— MANAPRINT / 2KEA & Associé"
-            )
-            ok, m = envoyer_email_pdf(part["email"], sujet, corps, pdf,
-                                      f"manaprint_cmd{commande_id}.pdf",
-                                      copie=SMTP_USER or None)
-            if ok:
-                db.marquer_commande_generee(commande_id)
-                info = f" Le PDF a été envoyé à {part['nom']} pour impression."
-            else:
-                info = f" ATTENTION : envoi à {part['nom']} échoué — " + m
-        except Exception as e:
-            info = f" ATTENTION : erreur génération/envoi {part['nom']} — " + str(e)
+                try:
+                    evenement_id = _nouvel_evenement_id(cmd["programme"])
+                    db.creer_evenement(
+                        evenement_id=evenement_id,
+                        nom=perso.get("titre_jeu", "") or perso.get("nom_evenement", "") or "Événement",
+                        identifiant=cmd["identifiant"], programme=cmd["programme"],
+                        serie_min=1, serie_max=nb_cartes,
+                    )
+                except Exception:
+                    evenement_id = ""
+                pdf = generer_jeu(cmd["programme"], nb_cartes, bool(cmd["couleur"]), perso,
+                                  evenement_id=evenement_id)
+                sujet = f"MANAPRINT — Commande #{commande_id} à imprimer"
+                corps = (
+                    f"Bonjour {part['nom']},\n\n"
+                    f"Une nouvelle commande validée est à imprimer ({part['zone']}) :\n\n"
+                    f"  • Client : {cmd['identifiant']}\n"
+                    f"  • Événement : {perso.get('nom_evenement','')}\n"
+                    f"  • Jeu : {cmd['programme']} — {cmd['nb_feuilles']} feuille(s)\n"
+                    f"  • Téléphone du responsable : {perso.get('telephone','')}\n\n"
+                    "Le PDF prêt à imprimer est en pièce jointe.\n\n"
+                    "— MANAPRINT / 2KEA & Associé"
+                )
+                ok, m = envoyer_email_pdf(part["email"], sujet, corps, pdf,
+                                          f"manaprint_cmd{commande_id}.pdf",
+                                          copie=SMTP_USER or None)
+                if ok:
+                    db.marquer_commande_generee(commande_id)
+                    print(f"[FABRICATION OK] commande {commande_id} envoyée à {part['nom']}")
+                else:
+                    print(f"[FABRICATION ECHEC ENVOI] commande {commande_id} : {m}")
+            except Exception as e:
+                print(f"[FABRICATION ERREUR] commande {commande_id} : {e}")
+
+        import threading as _th
+        _th.Thread(target=_fabriquer_et_envoyer, daemon=True).start()
+        info = (f" Le PDF est en fabrication et sera envoyé automatiquement à {part['nom']}"
+                " (plusieurs minutes pour les grosses commandes).")
     return jsonify({"ok": True, "message": "Commande validée." + info})
 
 
