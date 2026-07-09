@@ -353,7 +353,15 @@ function toggleScan() {
   if (scanActif) { stopScan(); return; }
   document.getElementById("verdict").style.display = "none";
   lecteur = new Html5Qrcode("lecteur-qr");
-  lecteur.start({ facingMode: "environment" }, { fps: 10, qrbox: 220 },
+  // 🔬 Lecteur MUSCLÉ : caméra en HAUTE définition + détecteur natif du
+  // téléphone (BarcodeDetector) + fenêtre de visée large -> accroche les QR
+  // beaucoup plus vite et de plus loin, même les petits.
+  lecteur.start({ facingMode: "environment" }, {
+      fps: 12,
+      qrbox: function(w, h) { var t = Math.floor(Math.min(w, h) * 0.8); return { width: t, height: t }; },
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+      videoConstraints: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } }
+    },
     onScan, () => {}).then(() => {
       scanActif = true;
       document.getElementById("btn-scan").textContent = "✖ Arrêter le scan";
