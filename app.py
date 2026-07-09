@@ -414,12 +414,17 @@ _PLAGES_CALLER = {
     "wow4": (30, 60),
     "bno": (1, 75),
     "ngo": (31, 75),
+    "diamant": (1, 75),
+    "rui": (30, 59),
+    "tureia": (1, 75),
+    "champagne": (1, 75),
 }
 
 
 # Jeux à colonnes NON contiguës : liste explicite des boules valides
 _BOULES_CALLER = {
     "bno": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(61, 76)],
+    "tureia": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # colonne 31-45 morte
 }
 
 
