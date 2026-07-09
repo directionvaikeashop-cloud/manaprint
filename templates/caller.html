@@ -83,6 +83,7 @@
     <div class="compteur" id="compteur">Aucune boule tirée</div>
     <div style="margin-top:12px">
       <button class="btn-tirer" id="btn-tirer" onclick="tirer()">TIRER UNE BOULE</button>
+      <button class="btn-sec" id="btn-voix" onclick="basculerVoix()" style="margin-top:8px;width:100%">🔊 Voix : ACTIVE</button>
     </div>
     <div class="row" style="margin-top:10px">
       <button class="btn-sec" onclick="reinitialiser()">🔄 Nouvelle partie</button>
@@ -211,7 +212,42 @@ function lettrePour(n) {
 }
 
 // Tirage 100% SERVEUR : l'organisateur ne choisit rien, tout est horodaté et journalisé.
+// ══ VOIX DU CALLER ═══════════════════════════════════════════════
+// Annonce chaque boule à voix haute (synthèse vocale du téléphone/PC).
+// Réveil spécial mobiles : la première annonce doit partir d'un geste
+// de l'utilisateur (le clic TIRER) — on chauffe le moteur au 1er clic.
+let voixActive = true;
+let voixChaude = false;
+
+function basculerVoix() {
+  voixActive = !voixActive;
+  const b = document.getElementById("btn-voix");
+  b.textContent = voixActive ? "\ud83d\udd0a Voix : ACTIVE" : "\ud83d\udd07 Voix : COUP\u00c9E";
+  if (voixActive) chaufferVoix();
+}
+
+function chaufferVoix() {
+  try {
+    if (voixChaude || !("speechSynthesis" in window)) return;
+    const u = new SpeechSynthesisUtterance(" ");
+    u.volume = 0; u.lang = "fr-FR";
+    window.speechSynthesis.speak(u);
+    voixChaude = true;
+  } catch (e) {}
+}
+
+function parlerBoule(n) {
+  try {
+    if (!voixActive || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();  // ne pas empiler si on tire vite
+    const u = new SpeechSynthesisUtterance(String(n) + " . . " + String(n));
+    u.lang = "fr-FR"; u.rate = 0.85; u.pitch = 1.0; u.volume = 1.0;
+    window.speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
 function tirer() {
+  chaufferVoix();
   if (enCours) return;
   enCours = true;
   const btn = document.getElementById("btn-tirer");
@@ -226,6 +262,7 @@ function tirer() {
     const n = res.boule;
     document.getElementById("boule-big").textContent = n;
     document.getElementById("boule-lettre").textContent = lettrePour(n);
+    parlerBoule(n);
     maj();
   }).catch(() => alert("Erreur de connexion — réessayez."))
     .finally(() => { enCours = false; btn.textContent = "TIRER UNE BOULE"; btn.disabled = false; });
