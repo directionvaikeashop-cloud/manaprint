@@ -319,8 +319,21 @@ def _page_verif(statut, message, evenement_id, serie, code, ev=None, extra=""):
 def verifier_carton_page(evenement_id, serie, code):
     """Page ouverte quand l'organisateur scanne le QR d'un carton."""
     res = db.verifier_carton(evenement_id, serie, code)
+    # 🎨 Couleur officielle du carton (imprimée en N&B, prouvée ici en couleur)
+    extra = ""
+    if res["statut"] in ("VALIDE", "DEJA_RECLAME"):
+        try:
+            from generators import qr_verif as _qrv
+            nom_c, hex_c = _qrv.couleur_carton(evenement_id, serie)
+            extra = (
+                '<div style="font-size:.85rem;color:#94a3b8;margin-top:8px">Couleur du carton</div>'
+                '<div style="display:inline-block;margin-top:4px;padding:8px 22px;border-radius:10px;'
+                'font-weight:800;font-size:1.05rem;background:%s;color:#fff">%s</div>' % (hex_c, nom_c)
+            )
+        except Exception:
+            extra = ""
     return _page_verif(res["statut"], res["message"], evenement_id, serie, code,
-                       ev=res.get("evenement"))
+                       ev=res.get("evenement"), extra=extra)
 
 
 @app.route("/v/<evenement_id>/<int:serie>/<code>/reclamer", methods=["POST"])
