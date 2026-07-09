@@ -34,6 +34,7 @@ from generators import diamant
 from generators import rui
 from generators import tureia
 from generators import champagne
+from generators import fan90
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
@@ -185,6 +186,7 @@ _enregistrer_paire("diamant",       "DIAMANT","💎", 6,  diamant.generer_pdf)
 _enregistrer_paire("rui",           "RUI","🎴", 12, rui.generer_pdf)
 _enregistrer_paire("tureia",        "TUREIA","🔶", 6,  tureia.generer_pdf)
 _enregistrer_paire("champagne",     "CHAMPAGNE","🥂", 6,  champagne.generer_pdf)
+_enregistrer_paire("fan90",         "FAN 90","☀️", 8,  fan90.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
 
@@ -418,6 +420,7 @@ _PLAGES_CALLER = {
     "rui": (30, 59),
     "tureia": (1, 75),
     "champagne": (1, 75),
+    "fan90": (1, 90),
 }
 
 
@@ -425,6 +428,7 @@ _PLAGES_CALLER = {
 _BOULES_CALLER = {
     "bno": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(61, 76)],
     "tureia": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # colonne 31-45 morte
+    "fan90": [n for n in range(1, 11)] + [n for n in range(20, 91)],   # sans le 11 à 19
 }
 
 
