@@ -72,7 +72,8 @@ CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_
 
 RANGES = [(30, 39), (40, 49), (50, 59)]
 LETTRES = ["R", "u", "i"]
-FOOT_H = 3 * mm
+FOOT_H = 17 * mm  # 📏 bande réservée en bas : QR 14 mm + série,
+                  # le jeu vit AU-DESSUS, plus aucun recouvrement
 BANDEAU_H = 2.6 * mm
 HDR_H = 3.4 * mm
 GRID_N = 3  # 3x3
@@ -164,13 +165,13 @@ def _dessiner_carte(c, x0, y0, donnees, couleur_hex, serie, encre,
     c.setFillColor(GREY); c.setFont("Helvetica", 4.5)
     c.drawString(x0 + 1.5 * mm, y0 + 1.3 * mm, f"N\u00b0 {serie:06d}")
     if telephone:
-        c.drawRightString(x0 + CARD_W - 1.5 * mm, y0 + 1.3 * mm, f"Resp. {telephone}")
+        c.drawString(x0 + 1.5 * mm, y0 + 4.6 * mm, f"Resp. {telephone}")
 
     # QR de vérification par grille (anti-duplication) — coin bas-droit
     if _sec and evenement_id:
         try:
-            _q = 7.0 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 1.5 * mm, y0 + 1.5 * mm, _q, evenement_id, serie)
+            _q = 14.0 * mm
+            _sec.carton_qr(c, x0 + CARD_W - _q - 2.0 * mm, y0 + 6.2 * mm, _q, evenement_id, serie)
         except Exception:
             pass
 
