@@ -67,7 +67,8 @@ GUTTER_Y = 3 * mm
 CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
 CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
 
-FOOT_H = 3 * mm
+FOOT_H = 17 * mm  # 📏 bande réservée en bas : QR 14 mm + série,
+                  # le jeu vit AU-DESSUS, plus aucun recouvrement
 
 # Les 7 places de l'éventail : (plage, position x, position y, décor)
 #   positions en fractions de la carte ; décor : "soleil", "cercle" ou ""
@@ -156,13 +157,13 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, encre,
     c.setFillColor(GREY); c.setFont("Helvetica", 4.5)
     c.drawString(x0 + 1.5 * mm, y0 + 1.3 * mm, f"N\u00b0 {serie:06d}")
     if telephone:
-        c.drawRightString(x0 + CARD_W - 1.5 * mm, y0 + 1.3 * mm, f"Resp. {telephone}")
+        c.drawString(x0 + 1.5 * mm, y0 + 4.6 * mm, f"Resp. {telephone}")
 
     # QR de vérification par grille (anti-duplication) — coin bas-droit
     if _sec and evenement_id:
         try:
-            _q = 7.0 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 1.5 * mm, y0 + 1.5 * mm, _q, evenement_id, serie)
+            _q = 14.0 * mm
+            _sec.carton_qr(c, x0 + CARD_W - _q - 2.0 * mm, y0 + 6.2 * mm, _q, evenement_id, serie)
         except Exception:
             pass
 
