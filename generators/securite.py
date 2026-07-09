@@ -35,6 +35,7 @@ except Exception:
 GRIS_MICRO = colors.Color(0.42, 0.42, 0.42)      # cadre
 ENCRE_REMPLISSAGE = colors.Color(0.25, 0.25, 0.25)  # intérieur des chiffres (soutenu)
 MICRO_GENERIQUE = "MANAPRINT*ORIGINAL*"
+_POLICE_RAPIDE = "DJLECO"  # la police de la gamme ÉCO -> rendu simple et rapide
 
 # QR de vérification (anti-duplication) — anti-panne : optionnel
 try:
@@ -85,7 +86,7 @@ def ligne_micro(c, x, y, longueur, serie, taille=0.55, angle=0, couleur=GRIS_MIC
 
 
 def cadre_micro(c, x0, y0, largeur, hauteur, serie,
-                retrait=1.5 * mm, taille=0.55, couleur=GRIS_MICRO):
+                retrait=1.5 * mm, taille=0.70, couleur=GRIS_MICRO):
     """Cadre intérieur en microtexte sur les 4 côtés d'une carte."""
     d = retrait
     ligne_micro(c, x0 + d, y0 + d - 0.4, largeur - 2 * d, serie, taille, 0, couleur)    # bas
@@ -161,7 +162,19 @@ def _form_chiffre(c, ch, police, taille, taille_micro, couleur):
 
 def chiffre_micro(c, texte, x_centre, y_bas, taille, couleur, police, taille_micro=None):
     """Dessine un nombre centré (équivalent drawCentredString) dont chaque
-    chiffre est rempli de microtexte. taille >= 24 pt recommandé."""
+    chiffre est rempli de microtexte. taille >= 24 pt recommandé.
+
+    ⚡ GAMME ÉCO (police fine DJLECO) : chiffres simples SANS remplissage
+    microtexte -> PDF ultra-légers, impression RAPIDE (retour terrain).
+    La sécurité ÉCO reste assurée par le cadre microtexte + le QR unique.
+    🏦 GAMME PREMIUM (Bold) : chiffres "billet de banque" complets."""
+    if police == _POLICE_RAPIDE:
+        c.saveState()
+        c.setFillColor(couleur)
+        c.setFont(police, taille)
+        c.drawCentredString(x_centre, y_bas, str(texte))
+        c.restoreState()
+        return
     if taille_micro is None:
         # taille du microtexte proportionnée au chiffre (0,45 à 0,70 pt)
         taille_micro = max(0.45, min(0.70, taille * 0.015))
