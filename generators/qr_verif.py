@@ -36,6 +36,25 @@ _BASE_URL = os.environ.get("MANAPRINT_BASE_URL", "https://manaprint.app")
 _TABLE = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
 
+# 🎨 COULEUR OFFICIELLE du carton — calculée avec le SECRET (infalsifiable).
+# Imprimée en noir & blanc sous le QR, et affichée EN COULEUR au scan.
+_PALETTE = [
+    ("ROUGE",  "#dc2626"),
+    ("BLEU",   "#2563eb"),
+    ("VERT",   "#16a34a"),
+    ("JAUNE",  "#ca8a04"),
+    ("VIOLET", "#9333ea"),
+    ("ORANGE", "#ea580c"),
+]
+
+def couleur_carton(evenement_id, serie):
+    """(nom, code_hexa) de la couleur officielle d'un carton. Dérivée du secret :
+    un fraudeur ne peut ni la prédire ni la recalculer."""
+    base = "%s|COULEUR|%s|%s" % (_SECRET, evenement_id or "GEN", serie)
+    h = hashlib.sha256(base.encode("utf-8")).hexdigest()
+    return _PALETTE[int(h[:8], 16) % len(_PALETTE)]
+
+
 def code_verif(evenement_id, serie):
     """Code court unique et infalsifiable (6 caractères) pour un carton."""
     base = "%s|%s|%s" % (_SECRET, evenement_id or "GEN", serie)
@@ -76,7 +95,7 @@ def dessiner_qr(c, x, y, taille, evenement_id, serie, avec_code=True,
     # ⬜ CARRÉ BLANC DE FOND (zone de silence) : le QR est posé sur un carré vide,
     # isolé du microtexte et des décors -> contraste maximal pour le scan.
     marge = 1.4 * mm
-    zone_code = (taille * 0.18 + 1.2 * mm) if avec_code else 0.6 * mm
+    zone_code = (taille * 0.34 + 1.4 * mm) if avec_code else 0.6 * mm
     c.saveState()
     c.setFillColor(colors.white)
     c.setStrokeColor(colors.Color(0.75, 0.75, 0.75))
@@ -96,7 +115,10 @@ def dessiner_qr(c, x, y, taille, evenement_id, serie, avec_code=True,
     renderPDF.draw(d, c, x, y)
     if avec_code:
         code = code_verif(evenement_id, serie)
+        nom_coul, _hex = couleur_carton(evenement_id, serie)
         c.setFillColor(couleur_texte)
         c.setFont("Helvetica", max(4.5, taille * 0.11))
-        c.drawCentredString(x + taille / 2, y - taille * 0.14, code)
+        c.drawCentredString(x + taille / 2, y - taille * 0.13, code)
+        c.setFont("Helvetica-Bold", max(4.5, taille * 0.11))
+        c.drawCentredString(x + taille / 2, y - taille * 0.28, nom_coul)
     return True
