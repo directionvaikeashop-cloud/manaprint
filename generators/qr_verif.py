@@ -30,7 +30,7 @@ except Exception:
 _SECRET = os.environ.get("MANAPRINT_QR_SECRET", "TUKEA-2KEA-MANAPRINT-DEFAUT")
 
 # Base publique des liens de vérification (ajustable via env).
-_BASE_URL = os.environ.get("MANAPRINT_BASE_URL", "https://manaprint.up.railway.app")
+_BASE_URL = os.environ.get("MANAPRINT_BASE_URL", "https://manaprint.app")
 
 # Alphabet lisible : sans 0/O ni 1/I pour éviter les confusions à l'œil.
 _TABLE = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -64,6 +64,27 @@ def dessiner_qr(c, x, y, taille, evenement_id, serie, avec_code=True,
     Renvoie True si dessiné, False si le QR n'est pas disponible (anti-panne)."""
     if not _QR_OK:
         return False
+    # 📏 TAILLE MINIMALE SCANNABLE : quel que soit ce que demande le générateur,
+    # le QR fait au moins 12 mm (retour terrain : en dessous, les téléphones ne
+    # scannent pas les impressions laser). On grandit vers la GAUCHE et le HAUT
+    # pour que le coin bas-droit reste à sa place dans la carte.
+    MIN_QR = 12 * mm
+    if taille < MIN_QR:
+        x = x + taille - MIN_QR
+        taille = MIN_QR
+
+    # ⬜ CARRÉ BLANC DE FOND (zone de silence) : le QR est posé sur un carré vide,
+    # isolé du microtexte et des décors -> contraste maximal pour le scan.
+    marge = 1.4 * mm
+    zone_code = (taille * 0.18 + 1.2 * mm) if avec_code else 0.6 * mm
+    c.saveState()
+    c.setFillColor(colors.white)
+    c.setStrokeColor(colors.Color(0.75, 0.75, 0.75))
+    c.setLineWidth(0.4)
+    c.roundRect(x - marge, y - zone_code, taille + 2 * marge,
+                taille + zone_code + marge, 1.0 * mm, stroke=1, fill=1)
+    c.restoreState()
+
     data = url_verif(evenement_id, serie)
     widget = qr.QrCodeWidget(data)
     widget.barLevel = "M"  # ~15% de correction d'erreur : robuste à l'impression laser
@@ -76,6 +97,6 @@ def dessiner_qr(c, x, y, taille, evenement_id, serie, avec_code=True,
     if avec_code:
         code = code_verif(evenement_id, serie)
         c.setFillColor(couleur_texte)
-        c.setFont("Helvetica", max(4.5, taille * 0.09))
+        c.setFont("Helvetica", max(4.5, taille * 0.11))
         c.drawCentredString(x + taille / 2, y - taille * 0.14, code)
     return True
