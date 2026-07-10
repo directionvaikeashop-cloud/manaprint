@@ -137,9 +137,15 @@ def init_db():
                 serie_min    INTEGER,
                 serie_max    INTEGER,
                 statut       TEXT DEFAULT 'actif',       -- actif / cloture
-                cree_le      TEXT NOT NULL
+                cree_le      TEXT NOT NULL,
+                date_tournoi TEXT DEFAULT ''              -- 🔐 QR actif ce jour-là
             )
         """)
+        # Migration douce : ajoute la colonne date_tournoi aux bases existantes
+        try:
+            c.execute("ALTER TABLE evenements ADD COLUMN date_tournoi TEXT DEFAULT ''")
+        except Exception:
+            pass
         # Un carton réclamé = un gain déjà validé (empêche la 2e réclamation).
         c.execute("""
             CREATE TABLE IF NOT EXISTS cartons_reclames (
@@ -439,15 +445,17 @@ if __name__ == "__main__":
 
 # ── VÉRIFICATION DES CARTONS (anti-duplication / QR) ──────────────────────────
 
-def creer_evenement(evenement_id, nom, identifiant, programme, serie_min, serie_max):
-    """Enregistre un lot de cartons généré (un tournoi). Idempotent sur l'id."""
+def creer_evenement(evenement_id, nom, identifiant, programme, serie_min, serie_max,
+                    date_tournoi=""):
+    """Enregistre un lot de cartons généré (un tournoi). Idempotent sur l'id.
+    date_tournoi (AAAA-MM-JJ, optionnel) : le QR ne sera actif que ce jour-là."""
     with get_db() as conn:
         conn.execute(
             """INSERT OR REPLACE INTO evenements
-               (id, nom, identifiant, programme, serie_min, serie_max, statut, cree_le)
-               VALUES (?,?,?,?,?,?, 'actif', ?)""",
+               (id, nom, identifiant, programme, serie_min, serie_max, statut, cree_le, date_tournoi)
+               VALUES (?,?,?,?,?,?, 'actif', ?, ?)""",
             (evenement_id, nom, identifiant, programme, int(serie_min), int(serie_max),
-             datetime.utcnow().isoformat())
+             datetime.utcnow().isoformat(), (date_tournoi or "").strip())
         )
     return evenement_id
 
