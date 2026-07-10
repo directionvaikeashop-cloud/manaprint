@@ -47,12 +47,13 @@ except Exception:
         _qr = None
 
 
-def carton_qr(c, x, y, taille, evenement_id, serie):
-    """Dessine le QR de vérification si le module est disponible. Renvoie True/False."""
+def carton_qr(c, x, y, taille, evenement_id, serie, **options):
+    """Dessine le QR de vérification si le module est disponible. Renvoie True/False.
+    options : position_code="bas" (défaut) ou "droite"."""
     if _qr is None:
         return False
     try:
-        return _qr.dessiner_qr(c, x, y, taille, evenement_id, serie)
+        return _qr.dessiner_qr(c, x, y, taille, evenement_id, serie, **options)
     except Exception:
         return False
 
