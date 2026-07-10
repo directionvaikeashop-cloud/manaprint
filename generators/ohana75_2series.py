@@ -147,12 +147,16 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
 
             # Case centrale = FREE + série
             if i == 2 and j == 2:
-                c.setFillColor(col); c.setFont(POLICE, 7)
-                c.drawCentredString(cell_x + cell_w / 2, cy + 3.2 * mm, "FREE")
-                c.setFillColor(GRIS); c.setFont(POLICE, 6)
-                c.drawCentredString(cell_x + cell_w / 2, cy - 0.3 * mm, "%05d" % serie)
-                c.setFillColor(col); c.setFont(POLICE, 7)
-                c.drawCentredString(cell_x + cell_w / 2, cy - 4 * mm, "SPACE")
+                # 🎯 Case centrale FREE : elle accueille le QR de sécurité
+                c.setFillColor(col); c.setFont(POLICE, 6.5)
+                c.drawCentredString(cell_x + cell_w / 2, cy + row_h / 2 - 3.4 * mm, "FREE SPACE")
+                if _sec and evenement_id:
+                    try:
+                        _q = 13.0 * mm
+                        _sec.carton_qr(c, cell_x + (cell_w - _q) / 2,
+                                       cy - row_h / 2 + 5.2 * mm, _q, evenement_id, serie)
+                    except Exception:
+                        pass
                 continue
 
             # 2 numéros de la case
@@ -190,7 +194,7 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
     # QR de vérification (anti-duplication) — coin bas-droit, discret
     if _sec and evenement_id:
         try:
-            _sec.carton_qr(c, x0 + CARD_W - 15 * mm, y0 + 4 * mm, 11 * mm, evenement_id, serie)
+            pass  # le QR vit désormais dans la case centrale FREE
         except Exception:
             pass
 
