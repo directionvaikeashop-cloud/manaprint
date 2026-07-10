@@ -139,6 +139,8 @@
       <input id="gen-titre" data-i18n-ph="ph_titre" placeholder="Ex : Grand Loto de Noël">
       <label class="field-label" data-i18n="lbl_datelieu">Date et lieu</label>
       <input id="gen-datelieu" data-i18n-ph="ph_datelieu" placeholder="Ex : 24 déc. 2026 — Papeete">
+      <label class="field-label">🔐 Date précise du tournoi (optionnel — le QR ne sera actif que ce jour-là)</label>
+      <input id="gen-datetournoi" type="date">
       <label class="field-label" data-i18n="lbl_tel">Téléphone du responsable</label>
       <input id="gen-tel" data-i18n-ph="ph_tel" placeholder="Ex : 87 12 34 56" style="margin-bottom:0">
     </div>
@@ -443,8 +445,10 @@ function collectPerso(msgEl){
   const dl=document.getElementById('gen-datelieu').value.trim();
   const tel=document.getElementById('gen-tel').value.trim();
   if(!ev||!ti||!dl||!tel){ if(msgEl){ msgEl.style.color="var(--coral)"; msgEl.textContent=t("msg_champs"); } return null; }
+  const dtq=document.getElementById('gen-datetournoi').value;
   return {
     nom_evenement:ev, titre_jeu:ti, date_lieu:dl, telephone:tel,
+    date_tournoi:dtq||"",
     couleur_perso:"",
     theme:"",
   };
