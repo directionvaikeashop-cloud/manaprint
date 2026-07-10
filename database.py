@@ -138,12 +138,17 @@ def init_db():
                 serie_max    INTEGER,
                 statut       TEXT DEFAULT 'actif',       -- actif / cloture
                 cree_le      TEXT NOT NULL,
-                date_tournoi TEXT DEFAULT ''              -- 🔐 QR actif ce jour-là
+                date_tournoi TEXT DEFAULT '',             -- 🔐 QR actif ce jour-là
+                couleur_qr   TEXT DEFAULT ''              -- 🎨 couleur choisie pour le lot
             )
         """)
-        # Migration douce : ajoute la colonne date_tournoi aux bases existantes
+        # Migration douce : ajoute les colonnes aux bases existantes
         try:
             c.execute("ALTER TABLE evenements ADD COLUMN date_tournoi TEXT DEFAULT ''")
+        except Exception:
+            pass
+        try:
+            c.execute("ALTER TABLE evenements ADD COLUMN couleur_qr TEXT DEFAULT ''")
         except Exception:
             pass
         # Un carton réclamé = un gain déjà validé (empêche la 2e réclamation).
@@ -447,16 +452,18 @@ if __name__ == "__main__":
 # ── VÉRIFICATION DES CARTONS (anti-duplication / QR) ──────────────────────────
 
 def creer_evenement(evenement_id, nom, identifiant, programme, serie_min, serie_max,
-                    date_tournoi=""):
+                    date_tournoi="", couleur_qr=""):
     """Enregistre un lot de cartons généré (un tournoi). Idempotent sur l'id.
-    date_tournoi (AAAA-MM-JJ, optionnel) : le QR ne sera actif que ce jour-là."""
+    date_tournoi (AAAA-MM-JJ, optionnel) : le QR ne sera actif que ce jour-là.
+    couleur_qr (optionnel) : couleur unique choisie pour tout le lot (sinon loterie)."""
     with get_db() as conn:
         conn.execute(
             """INSERT OR REPLACE INTO evenements
-               (id, nom, identifiant, programme, serie_min, serie_max, statut, cree_le, date_tournoi)
-               VALUES (?,?,?,?,?,?, 'actif', ?, ?)""",
+               (id, nom, identifiant, programme, serie_min, serie_max, statut, cree_le, date_tournoi, couleur_qr)
+               VALUES (?,?,?,?,?,?, 'actif', ?, ?, ?)""",
             (evenement_id, nom, identifiant, programme, int(serie_min), int(serie_max),
-             datetime.utcnow().isoformat(), (date_tournoi or "").strip())
+             datetime.utcnow().isoformat(), (date_tournoi or "").strip(),
+             (couleur_qr or "").strip().upper())
         )
     return evenement_id
 
