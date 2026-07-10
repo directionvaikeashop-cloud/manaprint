@@ -119,7 +119,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     cy = (zone_top + zone_bot) / 2
 
     gauche = x0 + 10 * mm
-    droite = x0 + CARD_W - 6 * mm
+    droite = x0 + CARD_W - 24 * mm  # 24 mm réservés à droite : la maison du QR
     usable = droite - gauche
     pair_w = usable / 5.0
 
@@ -149,8 +149,11 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     # QR de vérification par grille (anti-duplication) — coin bas-droit
     if _sec and evenement_id:
         try:
-            _q = 8.0 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 1.5 * mm, y0 + 1.5 * mm, _q, evenement_id, serie)
+            # 🎯 QR dans la zone droite réservée (aucun chiffre dérangé)
+            _q = 12.0 * mm
+            _xq = x0 + CARD_W - _q - 4.5 * mm
+            _yq = y0 + (CARD_H - _q - 3.4 * mm) / 2 + 3.4 * mm
+            _sec.carton_qr(c, _xq, _yq, _q, evenement_id, serie)
         except Exception:
             pass
 
