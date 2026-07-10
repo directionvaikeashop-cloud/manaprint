@@ -315,6 +315,40 @@ def _page_verif(statut, message, evenement_id, serie, code, ev=None, extra=""):
     ), mimetype="text/html")
 
 
+@app.route("/api/verifier-carton-code", methods=["POST"])
+def api_verifier_carton_code():
+    """Vérification MANUELLE (plan B des tournois) : N° de carton + code 6
+    lettres, SANS scanner. L'événement est retrouvé automatiquement."""
+    d = request.get_json(force=True, silent=True) or {}
+    try:
+        serie = int(d.get("serie", 0) or 0)
+    except Exception:
+        serie = 0
+    code = (d.get("code", "") or "").strip().upper()
+    if serie <= 0 or len(code) != 6:
+        return jsonify({"statut": "INCONNU",
+                        "message": "Entre le N\u00b0 du carton et son code \u00e0 6 lettres."})
+    try:
+        from generators import qr_verif as _qrv
+        with db.get_db() as conn:
+            evs = [r[0] for r in conn.execute(
+                "SELECT id FROM evenements ORDER BY rowid DESC LIMIT 300")]
+        for ev in evs:
+            if _qrv.code_verif(ev, serie) == code:
+                res = db.verifier_carton(ev, serie, code)
+                res["evenement_id"] = ev
+                try:
+                    if res.get("statut") in ("VALIDE", "DEJA_RECLAME"):
+                        res["couleur_nom"], res["couleur_hex"] = _qrv.couleur_carton(ev, serie)
+                except Exception:
+                    pass
+                return jsonify(res)
+    except Exception as e:
+        return jsonify({"statut": "INCONNU", "message": "Erreur de v\u00e9rification : %s" % e})
+    return jsonify({"statut": "INCONNU",
+                    "message": "Aucun carton ne correspond \u00e0 ce N\u00b0 + code."})
+
+
 @app.route("/v/<evenement_id>/<int:serie>/<code>")
 def verifier_carton_page(evenement_id, serie, code):
     """Page ouverte quand l'organisateur scanne le QR d'un carton."""
@@ -362,6 +396,13 @@ def api_verifier_carton():
     """Version API (pour une future app de scan)."""
     d = request.get_json(force=True, silent=True) or {}
     res = db.verifier_carton(d.get("evenement_id", ""), d.get("serie", 0), d.get("code", ""))
+    # 🎨 la couleur officielle accompagne le verdict (pastille au caller)
+    try:
+        from generators import qr_verif as _qrv
+        if res.get("statut") in ("VALIDE", "DEJA_RECLAME"):
+            res["couleur_nom"], res["couleur_hex"] = _qrv.couleur_carton(evenement_id, serie)
+    except Exception:
+        pass
     return jsonify(res)
 
 
