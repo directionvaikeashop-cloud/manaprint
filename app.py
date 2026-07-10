@@ -36,6 +36,7 @@ from generators import tureia
 from generators import champagne
 from generators import fan90
 from generators import oaoa
+from generators import lagoon
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
@@ -189,6 +190,7 @@ _enregistrer_paire("tureia",        "TUREIA","🔶", 6,  tureia.generer_pdf)
 _enregistrer_paire("champagne",     "CHAMPAGNE","🥂", 6,  champagne.generer_pdf)
 _enregistrer_paire("fan90",         "FAN 90","☀️", 8,  fan90.generer_pdf)
 _enregistrer_paire("oaoa",          "OAOA","⭕", 12, oaoa.generer_pdf)
+_enregistrer_paire("lagoon",        "LAGOON 5 boules","🏝️", 12, lagoon.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
 
@@ -478,6 +480,7 @@ _PLAGES_CALLER = {
     "champagne": (1, 75),
     "fan90": (1, 90),
     "oaoa": (16, 75),
+    "lagoon": (1, 50),
 }
 
 
