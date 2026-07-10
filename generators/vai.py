@@ -116,7 +116,7 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
 
     # Zone grille 3×3
     grid_top = hdr_y - 6.5 * mm
-    grid_bot = y0 + 2.5 * mm
+    grid_bot = y0 + 21 * mm  # 📏 bande dédiée en bas : le QR y vit, la grille au-dessus
     cell_w = CARD_W / ncols
     grid_h = grid_top - grid_bot
     row_h = grid_h / 3
@@ -144,8 +144,9 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
     # QR de vérification par grille (anti-duplication) — coin bas-droit
     if _sec and evenement_id:
         try:
-            _q = 7.0 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 1.5 * mm, y0 + 1.0 * mm, _q, evenement_id, serie)
+            # 🎯 QR dans la bande dédiée (aucun chiffre dérangé)
+            _q = 13.0 * mm
+            _sec.carton_qr(c, x0 + CARD_W - _q - 2.0 * mm, y0 + 6.0 * mm, _q, evenement_id, serie)
         except Exception:
             pass
 
