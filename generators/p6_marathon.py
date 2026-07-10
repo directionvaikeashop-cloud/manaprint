@@ -123,9 +123,7 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
             cy = y0 + FOOT_H + (GRID_N - 1 - ri) * cell_h + cell_h * 0.30
             # case centrale (colonne N=2, ligne du milieu ri=2) = MARATHON
             if ci == 2 and ri == 2:
-                c.setFillColor(col); c.setFont("Helvetica-Bold", 5)
-                c.drawCentredString(cx, cy + cell_h * 0.14, "MARA")
-                c.drawCentredString(cx, cy - cell_h * 0.14, "THON")
+                pass  # case libre : elle accueille le QR de sécurité (dessiné plus bas)
             elif _sec:  # chiffres "billet de banque" remplis de microtexte
                 _sec.chiffre_micro(c, nums[ri], cx, cy, 27, gris_ch, police_ch)
             else:
@@ -146,8 +144,11 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
     # QR de vérification par grille (anti-duplication) — coin bas-droit
     if _sec and evenement_id:
         try:
-            _q = 8.0 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 1.5 * mm, y0 + 1.5 * mm, _q, evenement_id, serie)
+            # 🎯 QR intégré : dans la case centrale MARATHON (libre par nature)
+            _q = 11.5 * mm
+            _xq = x0 + 2 * cell_w + (cell_w - _q) / 2
+            _yq = y0 + FOOT_H + 2 * cell_h + (cell_h - _q - 3.4 * mm) / 2 + 3.4 * mm
+            _sec.carton_qr(c, _xq, _yq, _q, evenement_id, serie)
         except Exception:
             pass
 
