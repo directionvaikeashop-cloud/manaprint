@@ -113,10 +113,10 @@ def _dessiner_ticket(c, x0, y0, grille, couleur_hex, serie, couleur=True, titre_
     c.setLineWidth(0.5)
     c.line(x0 + 2 * mm, hdr_y - 0.6 * mm, x0 + CARD_W - 2 * mm, hdr_y - 0.6 * mm)
 
-    body_h = CARD_H - HDR_H
+    body_h = CARD_H - HDR_H - 22 * mm  # 22 mm réservés en bas : la maison du QR
     group_h = body_h / 5
     for gi, nums in enumerate(grille):
-        gy = y0 + body_h - (gi + 1) * group_h
+        gy = y0 + 22 * mm + body_h - (gi + 1) * group_h
         cx = x0 + CARD_W / 2
         num_cercle, num_grand, num_petit = nums
 
@@ -156,8 +156,9 @@ def _dessiner_ticket(c, x0, y0, grille, couleur_hex, serie, couleur=True, titre_
     # QR de vérification par grille (anti-duplication) — coin bas-droit
     if _sec and evenement_id:
         try:
-            _q = 8.0 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 1.5 * mm, y0 + 1.5 * mm, _q, evenement_id, serie)
+            # 🎯 QR dans la bande basse réservée (aucun chiffre dérangé)
+            _q = 13.0 * mm
+            _sec.carton_qr(c, x0 + (CARD_W - _q) / 2, y0 + 6.0 * mm, _q, evenement_id, serie)
         except Exception:
             pass
 
