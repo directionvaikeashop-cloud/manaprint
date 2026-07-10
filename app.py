@@ -40,6 +40,7 @@ from generators import lagoon
 from generators import havai
 from generators import flash_debout
 from generators import dual_dab
+from generators import cerf_volant
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
@@ -197,6 +198,7 @@ _enregistrer_paire("lagoon",        "LAGOON 5 boules","🏝️", 12, lagoon.gene
 _enregistrer_paire("havai",         "HAVAI","🌋", 6,  havai.generer_pdf)
 _enregistrer_paire("flash_debout",  "FLASH QUINES DEBOUT","⚡", 8,  flash_debout.generer_pdf)
 _enregistrer_paire("dual_dab",      "DUAL DAB 75","🤜", 6,  dual_dab.generer_pdf)
+_enregistrer_paire("cerf_volant",   "CERF VOLANT","🪁", 6,  cerf_volant.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
 
@@ -490,6 +492,7 @@ _PLAGES_CALLER = {
     "havai": (1, 75),
     "flash_debout": (1, 90),
     "dual_dab": (1, 75),
+    "cerf_volant": (1, 75),
 }
 
 
@@ -499,6 +502,7 @@ _BOULES_CALLER = {
     "tureia": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # colonne 31-45 morte
     "fan90": [n for n in range(1, 11)] + [n for n in range(20, 91)],   # sans le 11 à 19
     "oaoa": [n for n in range(16, 31)] + [n for n in range(61, 76)],   # O 16-30 et A 61-75
+    "cerf_volant": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # sans le 31-45
 }
 
 
