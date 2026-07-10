@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-MANAPRINT — Générateur POW 9 BOULES (format A4)
+MANAPRINT — Générateur POW 8 BOULES (format A4)
 12 cartes par feuille A4 (3 colonnes × 4 rangées).
-Chaque carte : grille 3×3 PLEINE. 9 numéros (aucune case vide).
+Chaque carte : 8 numéros + 1 case vide (bas-milieu) qui accueille le QR de sécurité.
 Numéro de série EN HAUT sous l'en-tête ("Carte N° 00001").
 Colonnes : col1 = 1-9, col2 = 10-18, col3 = 19-27.
 Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
@@ -64,7 +64,7 @@ def _style_chiffres(style):
 # ═════════════════════════════════════════════════════════════════════
 
 PAGE_W, PAGE_H = A4
-# (min, max) par colonne — POW 9 boules
+# (min, max) par colonne — POW 8 boules
 PLAGES = [(1, 9), (10, 18), (19, 27)]
 
 COLS_PAGE = 3
@@ -83,12 +83,12 @@ def _gen_carte(rng):
     """9 numéros : col1 = 3 nums (1-9), col2 = 3 nums (10-18), col3 = 3 nums (19-27).
     Grille 3×3 entièrement remplie."""
     col1 = sorted(rng.sample(range(PLAGES[0][0], PLAGES[0][1] + 1), 3))
-    col2 = sorted(rng.sample(range(PLAGES[1][0], PLAGES[1][1] + 1), 3))
+    col2 = sorted(rng.sample(range(PLAGES[1][0], PLAGES[1][1] + 1), 2))
     col3 = sorted(rng.sample(range(PLAGES[2][0], PLAGES[2][1] + 1), 3))
     grille = [
         [col1[0], col2[0], col3[0]],
         [col1[1], col2[1], col3[1]],
-        [col1[2], col2[2], col3[2]],
+        [col1[2], None,    col3[2]],   # bas-milieu = case du QR
     ]
     return grille
 
@@ -106,7 +106,7 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
 
     # En-tête (2 lignes : titre + N° carte)
     hdr_y = y0 + CARD_H - 3.5 * mm
-    titre = (titre_jeu or "POW 9 boules")
+    titre = (titre_jeu or "POW 8 boules")
     if telephone:
         titre += " by TUKEA " + telephone
     c.setFillColor(col); c.setFont(POLICE, 5)
@@ -129,12 +129,14 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
         yy = grid_top - r * row_h
         c.line(x0 + 1.5 * mm, yy, x0 + CARD_W - 1.5 * mm, yy)
 
-    # contenu des cellules (toutes pleines)
+    # contenu des cellules (la case bas-milieu reste vide pour le QR)
     for r in range(3):
         for cc in range(3):
             cx = x0 + (cc + 0.5) * cell_w
             cyc = grid_top - (r + 0.5) * row_h
             val = grille[r][cc]
+            if val is None:
+                continue  # case du QR
             if _sec:  # chiffres "billet de banque" remplis de microtexte
                 _sec.chiffre_micro(c, val, cx, cyc - 11, 32, gris_ch, police_ch)
             else:
@@ -144,8 +146,11 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
     # QR de vérification par grille (anti-duplication) — coin bas-droit
     if _sec and evenement_id:
         try:
-            _q = 7.0 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 1.5 * mm, y0 + 1.0 * mm, _q, evenement_id, serie)
+            # 🎯 QR intégré : dans la case vide bas-milieu (aucun chiffre dérangé)
+            _q = 12.0 * mm
+            _xq = x0 + cell_w + (cell_w - _q) / 2
+            _yq = grid_bot + (row_h - _q - 3.4 * mm) / 2 + 3.4 * mm
+            _sec.carton_qr(c, _xq, _yq, _q, evenement_id, serie)
         except Exception:
             pass
 
@@ -196,8 +201,8 @@ def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
 
 if __name__ == "__main__":
     pdf = generer_pdf(nb_cartes=12, couleur=True,
-                      nom_evenement="ASSOCIATION TE MANU", titre_jeu="POW 9 boules",
+                      nom_evenement="ASSOCIATION TE MANU", titre_jeu="POW 8 boules",
                       telephone="89.22.23.05")
     with open("test_pow.pdf", "wb") as f:
         f.write(pdf.read())
-    print("POW 9 boules généré")
+    print("POW 8 boules généré")
