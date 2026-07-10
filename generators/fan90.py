@@ -67,8 +67,7 @@ GUTTER_Y = 3 * mm
 CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
 CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
 
-FOOT_H = 17 * mm  # 📏 bande réservée en bas : QR 14 mm + série,
-                  # le jeu vit AU-DESSUS, plus aucun recouvrement
+FOOT_H = 3 * mm
 
 # Les 7 places de l'éventail : (plage, position x, position y, décor)
 #   positions en fractions de la carte ; décor : "soleil", "cercle" ou ""
@@ -149,7 +148,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, encre,
     if titre_jeu:
         bandeau += "  \u2014  " + titre_jeu
     c.setFillColor(GREY); c.setFont("Helvetica", 4)
-    c.drawString(x0 + 2 * mm, y0 + FOOT_H + 1.0 * mm, bandeau[:64])
+    c.drawString(x0 + CARD_W * 0.42, y0 + FOOT_H + 1.0 * mm, bandeau[:52])
 
     # Pied : N° série + responsable
     c.setStrokeColor(col); c.setLineWidth(0.4)
@@ -157,13 +156,14 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, encre,
     c.setFillColor(GREY); c.setFont("Helvetica", 4.5)
     c.drawString(x0 + 1.5 * mm, y0 + 1.3 * mm, f"N\u00b0 {serie:06d}")
     if telephone:
-        c.drawString(x0 + 1.5 * mm, y0 + 4.6 * mm, f"Resp. {telephone}")
+        c.drawRightString(x0 + CARD_W - 1.5 * mm, y0 + 1.3 * mm, f"Resp. {telephone}")
 
-    # QR de vérification par grille (anti-duplication) — coin bas-droit
+    # 🎯 QR intégré : coin bas-gauche libre de l'éventail (aucun chiffre dérangé)
     if _sec and evenement_id:
         try:
             _q = 14.0 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 2.0 * mm, y0 + 6.2 * mm, _q, evenement_id, serie)
+            _sec.carton_qr(c, x0 + 3.5 * mm, y0 + FOOT_H + 2.2 * mm, _q, evenement_id, serie,
+                           position_code="droite")
         except Exception:
             pass
 
