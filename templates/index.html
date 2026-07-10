@@ -225,6 +225,20 @@
       </div>
       <p id="admin-msg" style="font-size:.82rem;color:var(--teal);margin-bottom:1rem"></p>
       <div id="admin-liste" style="display:flex;flex-direction:column;gap:.4rem"></div>
+      <!-- 🚑 Résurrection d'événement -->
+      <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">🚑 Résurrection d'événement</h2>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem;line-height:1.6">Un carton dit « Événement inconnu » ? Son lot a disparu de la base. L'identifiant est dans son QR (manaprint.app/v/<b>IDENTIFIANT</b>/…). Re-déclare-le ici : tout le lot revit instantanément.</p>
+      <div style="display:flex;gap:.6rem;margin-bottom:.6rem;flex-wrap:wrap">
+        <input id="resc-id" placeholder="Identifiant — ex : TK7QK2" style="margin-bottom:0;flex:1;min-width:140px">
+        <input id="resc-min" type="number" min="1" value="1" placeholder="Série min" style="margin-bottom:0;width:110px">
+        <input id="resc-max" type="number" min="1" placeholder="Série max" style="margin-bottom:0;width:110px">
+      </div>
+      <div style="display:flex;gap:.6rem;margin-bottom:.8rem;flex-wrap:wrap">
+        <input id="resc-nom" placeholder="Nom du lot (optionnel)" style="margin-bottom:0;flex:1;min-width:140px">
+        <input id="resc-date" type="date" title="Date du tournoi — VIDE pour les cartons boutique (QR à vie)" style="margin-bottom:0;width:170px">
+        <button class="btn" style="width:auto;padding:0 1.4rem;white-space:nowrap" onclick="adminRessusciter()">Ressusciter</button>
+      </div>
+      <p id="resc-msg" style="font-size:.82rem;color:var(--teal);margin-bottom:1rem"></p>
     </div>
   </div>
 
@@ -536,6 +550,20 @@ async function recupererCommande(){
 }
 
 // ── Gestion (interne) ──
+async function adminRessusciter(){
+  const id=document.getElementById('resc-id').value.trim().toUpperCase();
+  const smin=parseInt(document.getElementById('resc-min').value||'1');
+  const smax=parseInt(document.getElementById('resc-max').value||'0');
+  const msg=document.getElementById('resc-msg');
+  if(!id||!smax){ msg.style.color='var(--coral)'; msg.textContent="Entre l'identifiant (dans le QR) et la série max du lot."; return; }
+  const r=await fetch('/api/admin/evenements/redeclarer',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({evenement_id:id,serie_min:smin,serie_max:smax,
+      nom:document.getElementById('resc-nom').value.trim(),
+      date_tournoi:document.getElementById('resc-date').value||''})});
+  const d=await r.json();
+  msg.style.color=d.ok?'var(--teal)':'var(--coral)';
+  msg.textContent=d.message||'';
+}
 async function adminLogin(){
   const code=document.getElementById('admin-code').value;
   const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
