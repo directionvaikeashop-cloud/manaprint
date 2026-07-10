@@ -37,6 +37,24 @@ ENCRE_REMPLISSAGE = colors.Color(0.25, 0.25, 0.25)  # intérieur des chiffres (s
 MICRO_GENERIQUE = "MANAPRINT*ORIGINAL*"
 _POLICE_RAPIDE = "DJLECO"  # la police de la gamme ÉCO -> rendu simple et rapide
 
+# 🖨️ MODE BOUTIQUE RAPIDE (Maeva, juil. 2026) : cartons SANS microtexte pour les
+# étagères boutique — le microtexte sature le processeur des imprimantes en
+# impression directe (clé USB) : pause toutes les ~5 feuilles. En mode rapide,
+# le cadre devient un fin trait simple et les chiffres sont pleins : PDF léger,
+# impression d'une traite. La sécurité reste assurée par le QR unique + code.
+# Interrupteur isolé par thread (chaque fabrication tourne dans son propre thread).
+import threading as _threading
+_mode_local = _threading.local()
+
+
+def activer_mode_rapide(actif=True):
+    """Active/désactive le mode boutique rapide pour le thread de fabrication courant."""
+    _mode_local.rapide = bool(actif)
+
+
+def mode_rapide_actif():
+    return getattr(_mode_local, "rapide", False)
+
 # QR de vérification (anti-duplication) — anti-panne : optionnel
 try:
     from generators import qr_verif as _qr
@@ -68,7 +86,19 @@ def _chaine_serie(serie):
 
 
 def ligne_micro(c, x, y, longueur, serie, taille=0.55, angle=0, couleur=GRIS_MICRO):
-    """Trace une ligne de microtexte de la longueur demandée (points PDF)."""
+    """Trace une ligne de microtexte de la longueur demandée (points PDF).
+    🖨️ Mode boutique rapide : un fin trait simple à la place (même allure à
+    l'œil nu, mille fois plus léger pour le processeur de l'imprimante)."""
+    if mode_rapide_actif():
+        c.saveState()
+        c.setStrokeColor(couleur)
+        c.setLineWidth(0.3)
+        c.translate(x, y)
+        if angle:
+            c.rotate(angle)
+        c.line(0, taille * 0.35, longueur, taille * 0.35)
+        c.restoreState()
+        return
     base = _chaine_serie(serie)
     l_base = pdfmetrics.stringWidth(base, POLICE_MICRO, taille)
     if l_base <= 0 or longueur <= 0:
@@ -168,8 +198,9 @@ def chiffre_micro(c, texte, x_centre, y_bas, taille, couleur, police, taille_mic
     ⚡ GAMME ÉCO (police fine DJLECO) : chiffres simples SANS remplissage
     microtexte -> PDF ultra-légers, impression RAPIDE (retour terrain).
     La sécurité ÉCO reste assurée par le cadre microtexte + le QR unique.
-    🏦 GAMME PREMIUM (Bold) : chiffres "billet de banque" complets."""
-    if police == _POLICE_RAPIDE:
+    🏦 GAMME PREMIUM (Bold) : chiffres "billet de banque" complets.
+    🖨️ Mode boutique rapide : chiffres pleins pour TOUTES les gammes."""
+    if police == _POLICE_RAPIDE or mode_rapide_actif():
         c.saveState()
         c.setFillColor(couleur)
         c.setFont(police, taille)
