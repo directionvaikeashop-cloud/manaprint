@@ -175,7 +175,7 @@ _enregistrer_paire("ohana75_10b",   "OHANA 75 · 10 boules","🌺", 9,  ohana75_
 _enregistrer_paire("quatre_coin",   "4 COIN","🎯", 6,  quatre_coin.generer_pdf)
 _enregistrer_paire("pol",           "POL 6 boules","🎲", 12, pol.generer_pdf)
 _enregistrer_paire("sun",           "SUN 8 boules","☀️", 12, sun.generer_pdf)
-_enregistrer_paire("pow",           "POW 9 boules","💥", 12, powgen.generer_pdf)
+_enregistrer_paire("pow",           "POW 8 boules","💥", 12, powgen.generer_pdf)
 _enregistrer_paire("win",           "WIN 9 boules","🏆", 12, win.generer_pdf)
 _enregistrer_paire("rubis90",       "RUBIS 90","💎", 12, rubis90.generer_pdf)
 _enregistrer_paire("vai",           "VAI 9 boules","🌊", 12, vai.generer_pdf)
