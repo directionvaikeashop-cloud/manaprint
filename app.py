@@ -975,6 +975,15 @@ def commander():
         "telephone": telephone,
         "partenaire": partenaire,
         "fun_and_co": (partenaire == "fun_and_co"),
+        # 🐛 RÉPARATION (juil. 2026) : ces 3 champs étaient envoyés par le
+        # formulaire mais jamais sauvegardés -> date-serrure, couleur choisie
+        # et rapport confidentiel par email ne fonctionnaient pas en commande.
+        "date_tournoi": (data.get("date_tournoi", "") or "").strip(),
+        "couleur_qr": (data.get("couleur_qr", "") or "").strip(),
+        "email_organisateur": (data.get("email_organisateur", "") or "").strip(),
+        # 🖨️ MODE BOUTIQUE RAPIDE : cartons sans microtexte (QR conservé),
+        # pour l'impression directe par clé USB sans pause.
+        "impression_rapide": bool(data.get("impression_rapide")),
     })
 
     commande_id, montant = db.creer_commande(
@@ -1038,11 +1047,25 @@ def generer_commande(commande_id):
             programme=programme,
             serie_min=1,
             serie_max=nb_cartes,
+            date_tournoi=perso.get("date_tournoi", ""),
+            couleur_qr=perso.get("couleur_qr", ""),
         )
     except Exception:
         evenement_id = ""  # anti-panne : en cas d'échec, on génère sans QR
 
-    pdf = generer_jeu(programme, nb_cartes, couleur, perso, evenement_id=evenement_id)
+    # 🖨️ MODE BOUTIQUE RAPIDE : sans microtexte (QR conservé) si demandé.
+    try:
+        from generators import securite as _secs
+        _secs.activer_mode_rapide(bool(perso.get("impression_rapide")))
+    except Exception:
+        pass
+    try:
+        pdf = generer_jeu(programme, nb_cartes, couleur, perso, evenement_id=evenement_id)
+    finally:
+        try:
+            _secs.activer_mode_rapide(False)
+        except Exception:
+            pass
 
     db.enregistrer_impression(
         origine=cmd["origine"], identifiant=cmd["identifiant"],
@@ -1147,8 +1170,21 @@ def admin_valider_commande(commande_id):
                     )
                 except Exception:
                     evenement_id = ""
-                pdf = generer_jeu(cmd["programme"], nb_cartes, bool(cmd["couleur"]), perso,
-                                  evenement_id=evenement_id)
+                # 🖨️ MODE BOUTIQUE RAPIDE : sans microtexte (QR conservé) si demandé.
+                # Le drapeau est isolé au thread de fabrication -> aucune fuite ailleurs.
+                try:
+                    from generators import securite as _secm
+                    _secm.activer_mode_rapide(bool(perso.get("impression_rapide")))
+                except Exception:
+                    pass
+                try:
+                    pdf = generer_jeu(cmd["programme"], nb_cartes, bool(cmd["couleur"]), perso,
+                                      evenement_id=evenement_id)
+                finally:
+                    try:
+                        _secm.activer_mode_rapide(False)
+                    except Exception:
+                        pass
                 sujet = f"MANAPRINT — Commande #{commande_id} à imprimer"
                 corps = (
                     f"Bonjour {part['nom']},\n\n"
