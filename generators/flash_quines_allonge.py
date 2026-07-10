@@ -108,7 +108,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, libelle_gauche="", titr
     y_bas = cymid - 2.3 * mm
 
     gauche = x0 + 9 * mm
-    droite = x0 + CARD_W - 11 * mm
+    droite = x0 + CARD_W - 26 * mm  # 26 mm réservés à droite : boîte série + QR
     pas = (droite - gauche) / 8.0
     xs = [gauche + i * pas for i in range(9)]
     ys = [y_haut if i % 2 == 0 else y_bas for i in range(9)]
@@ -126,8 +126,8 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, libelle_gauche="", titr
 
     # Boîte série (bas droite)
     bw2, bh2 = 14 * mm, 4.6 * mm
-    bx = x0 + CARD_W - bw2 - 1.5 * mm
-    by = y0 + 1.2 * mm
+    bx = x0 + CARD_W - bw2 - 3.5 * mm
+    by = y0 + CARD_H - bh2 - 2.0 * mm  # boîte série remontée en haut-droite
     c.setStrokeColor(col); c.setLineWidth(0.5)
     c.roundRect(bx, by, bw2, bh2, 0.8 * mm, stroke=1, fill=0)
     c.setFillColor(GRIS); c.setFont(POLICE, 6.5)
@@ -136,8 +136,9 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, libelle_gauche="", titr
     # QR de vérification par grille (anti-duplication) — coin bas-droit
     if _sec and evenement_id:
         try:
-            _q = 7.0 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 1.5 * mm, y0 + 1.5 * mm, _q, evenement_id, serie)
+            # 🎯 QR dans la zone droite réservée (aucun rond dérangé)
+            _q = 12.0 * mm
+            _sec.carton_qr(c, x0 + CARD_W - _q - 4.5 * mm, y0 + 5.6 * mm, _q, evenement_id, serie)
         except Exception:
             pass
 
