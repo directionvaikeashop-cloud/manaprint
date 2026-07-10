@@ -47,9 +47,36 @@ _PALETTE = [
     ("ORANGE", "#ea580c"),
 ]
 
+_CACHE_COULEUR_EV = {}
+
+def _couleur_choisie(evenement_id):
+    """🎨 Couleur choisie par le client pour tout l'événement (sinon None)."""
+    if not evenement_id:
+        return None
+    if evenement_id in _CACHE_COULEUR_EV:
+        return _CACHE_COULEUR_EV[evenement_id]
+    val = None
+    try:
+        import database as _dbm
+        ev = _dbm.get_evenement(evenement_id) or {}
+        nom = (ev.get("couleur_qr") or "").strip().upper()
+        for n, hexa in _PALETTE:
+            if n == nom:
+                val = (n, hexa)
+                break
+    except Exception:
+        val = None
+    _CACHE_COULEUR_EV[evenement_id] = val
+    return val
+
+
 def couleur_carton(evenement_id, serie):
-    """(nom, code_hexa) de la couleur officielle d'un carton. Dérivée du secret :
-    un fraudeur ne peut ni la prédire ni la recalculer."""
+    """(nom, code_hexa) de la couleur officielle d'un carton.
+    Si le client a CHOISI une couleur pour l'événement : tous les cartons la
+    portent. Sinon : loterie dérivée du secret (imprévisible, infalsifiable)."""
+    choisie = _couleur_choisie(evenement_id)
+    if choisie:
+        return choisie
     base = "%s|COULEUR|%s|%s" % (_SECRET, evenement_id or "GEN", serie)
     h = hashlib.sha256(base.encode("utf-8")).hexdigest()
     return _PALETTE[int(h[:8], 16) % len(_PALETTE)]
@@ -96,7 +123,7 @@ def dessiner_qr(c, x, y, taille, evenement_id, serie, avec_code=True,
     # isolé du microtexte et des décors -> contraste maximal pour le scan.
     marge = 1.4 * mm
     a_droite = (avec_code and position_code == "droite")
-    zone_code = 0.6 * mm if a_droite else ((taille * 0.34 + 1.4 * mm) if avec_code else 0.6 * mm)
+    zone_code = 0.6 * mm if a_droite else ((taille * 0.18 + 1.2 * mm) if avec_code else 0.6 * mm)
     zone_droite = (16 * mm) if a_droite else 0
     c.saveState()
     c.setFillColor(colors.white)
@@ -116,19 +143,16 @@ def dessiner_qr(c, x, y, taille, evenement_id, serie, avec_code=True,
     d.add(widget)
     renderPDF.draw(d, c, x, y)
     if avec_code:
+        # 🤫 SÉCURITÉ SILENCIEUSE : la couleur officielle N'EST PAS imprimée.
+        # Les joueurs ne voient que le code — la couleur n'apparaît qu'au SCAN
+        # de l'organisateur (pastille). Un faussaire ignore jusqu'à son existence.
         code = code_verif(evenement_id, serie)
-        nom_coul, _hex = couleur_carton(evenement_id, serie)
         c.setFillColor(couleur_texte)
         f = max(4.5, taille * 0.11)
         if a_droite:
-            # code + couleur À DROITE du QR (pour les rangées horizontales vides)
             c.setFont("Helvetica", f)
-            c.drawString(x + taille + 2.2 * mm, y + taille * 0.56, code)
-            c.setFont("Helvetica-Bold", f)
-            c.drawString(x + taille + 2.2 * mm, y + taille * 0.24, nom_coul)
+            c.drawString(x + taille + 2.2 * mm, y + taille * 0.42, code)
         else:
             c.setFont("Helvetica", f)
-            c.drawCentredString(x + taille / 2, y - taille * 0.13, code)
-            c.setFont("Helvetica-Bold", f)
-            c.drawCentredString(x + taille / 2, y - taille * 0.28, nom_coul)
+            c.drawCentredString(x + taille / 2, y - taille * 0.14, code)
     return True
