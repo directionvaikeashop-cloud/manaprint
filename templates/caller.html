@@ -121,6 +121,16 @@
     <label>Vérifier un carton gagnant</label>
     <button class="btn-sec" id="btn-scan" onclick="toggleScan()">📷 Scanner le QR du carton</button>
     <div id="lecteur-qr"></div>
+    <!-- 🔎 Plan B : vérification SANS scanner (N° + code imprimés sous le QR) -->
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <input id="man-serie" type="number" inputmode="numeric" placeholder="N\u00b0 carton (ex : 2)"
+             style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);font-size:1rem">
+      <input id="man-code" maxlength="6" placeholder="Code (ex : UKGVRZ)" autocapitalize="characters"
+             style="flex:1.2;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);font-size:1rem;text-transform:uppercase">
+    </div>
+    <button class="btn-sec" style="width:100%;margin-top:8px" onclick="verifManuel()">\ud83d\udd0e V\u00e9rifier sans scanner</button>
+    <input type="file" id="man-photo" accept="image/*" capture="environment" style="display:none" onchange="scanPhoto(this)">
+    <button class="btn-sec" style="width:100%;margin-top:8px" onclick="document.getElementById('man-photo').click()">\ud83d\udcf8 Photographier le QR (le plus fiable)</button>
     <div class="verdict" id="verdict">
       <div class="emoji" id="v-emoji"></div>
       <div class="titre" id="v-titre"></div>
@@ -374,8 +384,22 @@ function stopScan() {
   document.getElementById("btn-scan").textContent = "📷 Scanner le QR du carton";
 }
 
+function scanPhoto(inp) {
+  const f = inp.files && inp.files[0];
+  if (!f) return;
+  const l = new Html5Qrcode("lecteur-qr");
+  l.scanFile(f, true).then(function (texte) {
+    inp.value = "";
+    onScan(texte);
+  }).catch(function () {
+    inp.value = "";
+    montrerVerdict("v-warn", "\ud83d\udcf8", "PHOTO ILLISIBLE",
+                   "Reprends la photo : QR bien NET, bien cadr\u00e9, bonne lumi\u00e8re.");
+  });
+}
+
 function onScan(texte) {
-  stopScan();
+  if (scanActif) stopScan();
   // le QR contient une URL .../v/<ev>/<serie>/<code> ; on interroge l'API
   let ev = "", serie = "", code = "";
   const m = texte.match(/\/v\/([^\/]+)\/(\d+)\/([^\/\?]+)/);
@@ -399,6 +423,36 @@ function onScan(texte) {
     }
     montrerVerdict(cls, emo, tit, detail);
   }).catch(() => montrerVerdict("v-no", "⚠️", "ERREUR", "Impossible de vérifier (connexion ?)."));
+}
+
+function afficherResultat(res) {
+  const map = {
+    "VALIDE":       ["v-ok", "\u2705", "CARTON VALIDE"],
+    "DEJA_RECLAME": ["v-no", "\ud83d\udeab", "D\u00c9J\u00c0 R\u00c9CLAM\u00c9"],
+    "INCONNU":      ["v-no", "\u274c", "NON RECONNU"],
+    "HORS_LOT":     ["v-warn", "\u26a0\ufe0f", "HORS DE CE LOT"],
+  };
+  const [cls, emo, tit] = map[res.statut] || ["v-no", "\u2754", res.statut];
+  let detail = res.message || "";
+  if (res.statut === "VALIDE") {
+    detail += " Comparez ses num\u00e9ros avec les " + tirees.length + " boules tir\u00e9es.";
+  }
+  montrerVerdict(cls, emo, tit, detail);
+}
+
+function verifManuel() {
+  const serie = parseInt(document.getElementById("man-serie").value || "0");
+  const code = (document.getElementById("man-code").value || "").trim().toUpperCase();
+  if (!serie || code.length !== 6) {
+    montrerVerdict("v-warn", "\u270f\ufe0f", "\u00c0 COMPL\u00c9TER",
+                   "Entre le N\u00b0 du carton ET son code \u00e0 6 lettres (imprim\u00e9s sous le QR).");
+    return;
+  }
+  fetch("/api/verifier-carton-code", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ serie: serie, code: code })
+  }).then(r => r.json()).then(afficherResultat)
+    .catch(() => montrerVerdict("v-no", "\u26a0\ufe0f", "ERREUR", "Impossible de v\u00e9rifier (connexion ?)."));
 }
 
 function montrerVerdict(cls, emoji, titre, detail) {
