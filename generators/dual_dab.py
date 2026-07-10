@@ -124,7 +124,7 @@ def _dessiner_carte(c, x0, y0, donnees, couleur_hex, serie, encre,
     droite = f"by TUKEA {telephone}" if telephone else "by TUKEA"
     c.drawRightString(x0 + CARD_W - 3 * mm, hdr_y + 2.0 * mm, droite)
 
-    taille = 22
+    taille = 30  # GROS chiffres — les cartes sont spacieuses, on en profite !
 
     def num(n, xx, yy):
         if _sec:
@@ -158,7 +158,7 @@ def _dessiner_carte(c, x0, y0, donnees, couleur_hex, serie, encre,
     ccy = y0 + CARD_H * 0.42
     c.setStrokeColor(col); c.setLineWidth(0.7)
     c.setDash(1.6, 1.8)
-    c.circle(ccx, ccy + taille * 0.16, 8.2 * mm, stroke=1, fill=0)
+    c.circle(ccx, ccy + taille * 0.16, 10.0 * mm, stroke=1, fill=0)
     c.setDash()
     num(centre, ccx, ccy)
 
