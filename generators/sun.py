@@ -86,7 +86,7 @@ def _gen_carte(rng):
     col3 = sorted(rng.sample(range(PLAGES[2][0], PLAGES[2][1] + 1), 3))
     col2_nums = sorted(rng.sample(range(PLAGES[1][0], PLAGES[1][1] + 1), 2))
     # position de la case vide dans la colonne du milieu (rangée 0, 1 ou 2)
-    vide = rng.randint(0, 2)
+    vide = 2  # case vide TOUJOURS en bas-milieu : elle accueille le QR de sécurité
     col2 = []
     it = iter(col2_nums)
     for r in range(3):
@@ -154,8 +154,11 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
     # QR de vérification par grille (anti-duplication) — coin bas-gauche
     if _sec and evenement_id:
         try:
-            _q = 7.0 * mm
-            _sec.carton_qr(c, x0 + 1.5 * mm, y0 + 1.0 * mm, _q, evenement_id, serie)
+            # 🎯 QR intégré : dans la case vide bas-milieu (aucun chiffre dérangé)
+            _q = 12.0 * mm
+            _xq = x0 + cell_w + (cell_w - _q) / 2
+            _yq = grid_bot + (row_h - _q - 3.4 * mm) / 2 + 3.4 * mm
+            _sec.carton_qr(c, _xq, _yq, _q, evenement_id, serie)
         except Exception:
             pass
 
