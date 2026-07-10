@@ -77,9 +77,11 @@ PARTENAIRES = {
     },
 }
 
-def envoyer_email_pdf(destinataire, sujet, corps, pdf_io, nom_fichier, copie=None):
+def envoyer_email_pdf(destinataire, sujet, corps, pdf_io, nom_fichier, copie=None,
+                      pdf2_io=None, nom2_fichier=None):
     """Envoie un email avec un PDF en pièce jointe (SMTP Gmail). Renvoie (ok, message).
-    copie : adresse mise en copie (CC), ex. la plateforme pour garder une trace."""
+    copie : adresse mise en copie (CC), ex. la plateforme pour garder une trace.
+    pdf2_io/nom2_fichier : 2e pièce jointe optionnelle (rapport confidentiel)."""
     if not SMTP_USER or not SMTP_PASS:
         return False, "Email non configuré (SMTP_USER / SMTP_PASS manquants sur Railway)"
     try:
@@ -92,6 +94,10 @@ def envoyer_email_pdf(destinataire, sujet, corps, pdf_io, nom_fichier, copie=Non
         msg.set_content(corps)
         pdf_io.seek(0)
         msg.add_attachment(pdf_io.read(), maintype="application", subtype="pdf", filename=nom_fichier)
+        if pdf2_io is not None and nom2_fichier:
+            pdf2_io.seek(0)
+            msg.add_attachment(pdf2_io.read(), maintype="application", subtype="pdf",
+                               filename=nom2_fichier)
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
             s.login(SMTP_USER, SMTP_PASS)
             s.send_message(msg)
@@ -282,6 +288,87 @@ def accueil():
 
 
 # ══ VÉRIFICATION DES CARTONS (scan du QR par l'organisateur) ══════════════════
+
+def _rapport_confidentiel(commande_id, cmd, perso, evenement_id, nb_cartes):
+    """📋🤫 COMPTE-RENDU CONFIDENTIEL de l'organisatrice : la carte secrète
+    série -> couleur de tout le lot (+ date, événement). À NE PAS montrer
+    aux joueurs — c'est la grille de contrôle des couleurs fantômes."""
+    import io as _io
+    from reportlab.pdfgen import canvas as _cv
+    from reportlab.lib.pagesizes import A4 as _A4
+    from reportlab.lib import colors as _co
+    from reportlab.lib.units import mm as _mm
+    from generators import qr_verif as _qrv
+
+    buf = _io.BytesIO()
+    c = _cv.Canvas(buf, pagesize=_A4, pageCompression=1)
+    W, H = _A4
+    HEXA = dict(_qrv._PALETTE)
+
+    def entete(page):
+        c.setFillColor(_co.HexColor("#dc2626"))
+        c.rect(0, H - 16 * _mm, W, 16 * _mm, stroke=0, fill=1)
+        c.setFillColor(_co.white)
+        c.setFont("Helvetica-Bold", 13)
+        c.drawCentredString(W / 2, H - 7 * _mm,
+                            "CONFIDENTIEL — R\u00c9SERV\u00c9 \u00c0 L'ORGANISATRICE")
+        c.setFont("Helvetica", 8)
+        c.drawCentredString(W / 2, H - 12.5 * _mm,
+                            "Grille de contr\u00f4le des couleurs — ne pas montrer aux joueurs")
+        c.setFillColor(_co.HexColor("#1F2937"))
+        c.setFont("Helvetica-Bold", 10)
+        c.drawString(15 * _mm, H - 23 * _mm,
+                     "Commande #%s  \u00b7  %s  \u00b7  \u00c9v\u00e9nement %s" % (
+                         commande_id, cmd.get("programme", ""), evenement_id))
+        c.setFont("Helvetica", 8.5)
+        infos = "%s  \u00b7  %s carton(s), s\u00e9ries %06d \u00e0 %06d" % (
+            perso.get("nom_evenement", ""), nb_cartes, 1, nb_cartes)
+        if perso.get("date_tournoi"):
+            infos += "  \u00b7  \ud83d\udd10 actif le %s" % perso["date_tournoi"]
+        c.drawString(15 * _mm, H - 28 * _mm, infos)
+        c.setFillColor(_co.HexColor("#6b7280")); c.setFont("Helvetica", 7)
+        c.drawRightString(W - 12 * _mm, H - 23 * _mm, "page %d" % page)
+
+    choix = (perso.get("couleur_qr") or "").strip().upper()
+    if choix and choix in HEXA:
+        entete(1)
+        c.setFillColor(_co.HexColor("#1F2937")); c.setFont("Helvetica-Bold", 14)
+        c.drawString(15 * _mm, H - 45 * _mm, "Couleur choisie pour TOUT le lot :")
+        c.setFillColor(_co.HexColor(HEXA[choix]))
+        c.roundRect(15 * _mm, H - 62 * _mm, 60 * _mm, 12 * _mm, 3 * _mm, stroke=0, fill=1)
+        c.setFillColor(_co.white); c.setFont("Helvetica-Bold", 13)
+        c.drawCentredString(45 * _mm, H - 58 * _mm, choix)
+        c.setFillColor(_co.HexColor("#6b7280")); c.setFont("Helvetica", 9)
+        c.drawString(15 * _mm, H - 70 * _mm,
+                     "Chaque scan de carton de ce lot doit afficher cette pastille.")
+    else:
+        # Loterie : la table s\u00e9rie -> couleur, en colonnes compactes
+        COLS, LIGNES = 6, 44
+        par_page = COLS * LIGNES
+        page = 1
+        entete(page)
+        y_top = H - 38 * _mm
+        col_w = (W - 24 * _mm) / COLS
+        i = 0
+        for serie in range(1, nb_cartes + 1):
+            if i == par_page:
+                c.showPage(); page += 1; entete(page); i = 0
+            colu = i // LIGNES
+            lig = i % LIGNES
+            x = 12 * _mm + colu * col_w
+            y = y_top - lig * 5.2 * _mm
+            nom, hx = _qrv.couleur_carton(evenement_id, serie)
+            c.setFillColor(_co.HexColor(hx))
+            c.rect(x, y - 0.6 * _mm, 3.2 * _mm, 3.2 * _mm, stroke=0, fill=1)
+            c.setFillColor(_co.HexColor("#1F2937")); c.setFont("Helvetica", 7.5)
+            c.drawString(x + 4.4 * _mm, y, "%06d" % serie)
+            c.setFont("Helvetica-Bold", 7.5)
+            c.drawString(x + 15.5 * _mm, y, nom)
+            i += 1
+    c.save()
+    buf.seek(0)
+    return buf
+
 
 def _aujourdhui_tahiti():
     """La date du jour en Polynésie (UTC-10)."""
@@ -1055,6 +1142,7 @@ def admin_valider_commande(commande_id):
                         identifiant=cmd["identifiant"], programme=cmd["programme"],
                         serie_min=1, serie_max=nb_cartes,
                         date_tournoi=perso.get("date_tournoi", ""),
+                        couleur_qr=perso.get("couleur_qr", ""),
                     )
                 except Exception:
                     evenement_id = ""
@@ -1068,12 +1156,22 @@ def admin_valider_commande(commande_id):
                     f"  • Événement : {perso.get('nom_evenement','')}\n"
                     f"  • Jeu : {cmd['programme']} — {cmd['nb_feuilles']} feuille(s)\n"
                     f"  • Téléphone du responsable : {perso.get('telephone','')}\n\n"
-                    "Le PDF prêt à imprimer est en pièce jointe.\n\n"
+                    "Le PDF prêt à imprimer est en pièce jointe.\n"
+                    "\u26a0\ufe0f 2e pièce jointe CONFIDENTIELLE : la grille des couleurs\n"
+                    "de contrôle — réservée à l'organisatrice, à ne pas montrer aux joueurs.\n\n"
                     "— MANAPRINT / 2KEA & Associé"
                 )
+                # 📋🤫 le compte-rendu confidentiel série -> couleur
+                try:
+                    rapport = _rapport_confidentiel(commande_id, cmd, perso,
+                                                    evenement_id, nb_cartes)
+                except Exception:
+                    rapport = None
                 ok, m = envoyer_email_pdf(part["email"], sujet, corps, pdf,
                                           f"manaprint_cmd{commande_id}.pdf",
-                                          copie=SMTP_USER or None)
+                                          copie=SMTP_USER or None,
+                                          pdf2_io=rapport,
+                                          nom2_fichier=f"CONFIDENTIEL_couleurs_cmd{commande_id}.pdf")
                 if ok:
                     db.marquer_commande_generee(commande_id)
                     print(f"[FABRICATION OK] commande {commande_id} envoyée à {part['nom']}")
