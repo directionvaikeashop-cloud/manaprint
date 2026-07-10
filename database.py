@@ -272,19 +272,20 @@ def installer_machine(machine_id, client_nom, client_num, ile):
 
 
 # ── IMPRESSIONS / FACTURATION ─────────────────────────────────────────────────
-# Tarifs par profil (XPF par feuille A4) — VISION 2 GAMMES (Maeva, juil. 2026) :
+# Tarifs par profil (XPF par feuille A4) — GRILLE TOUT COMPRIS PDF + IMPRESSION (Maeva, juil. 2026) :
 #   eco : écriture fine, économie de toner (la 1re proposition, préservée)
 #   p15 : écriture grasse PREMIUM style P15
+# Le prix inclut la génération du PDF ET l'impression chez le partenaire (plus d'auto-impression).
 TARIFS = {
     #                       ── gamme ÉCO ──          ── gamme PREMIUM P15 ──
-    "produit_imprime": {"eco": {"couleur": 7,  "nb": 3},   "p15": {"couleur": 10, "nb": 8}},   # produit fini imprimé (encre/toner + papier) — Accès ECO LASER
-    "polynesien":      {"eco": {"couleur": 3,  "nb": 1.5}, "p15": {"couleur": 3,  "nb": 2}},   # génération du fichier PDF
+    "produit_imprime": {"eco": {"couleur": 10, "nb": 6},   "p15": {"couleur": 14, "nb": 10}},  # tout compris PDF + impression — Accès ECO LASER
+    "polynesien":      {"eco": {"couleur": 10, "nb": 6},   "p15": {"couleur": 14, "nb": 10}},  # tout compris PDF + impression chez un partenaire
     "international":   {"eco": {"couleur": 6,  "nb": 3},   "p15": {"couleur": 6,  "nb": 3}},   # fichier PDF uniquement (sans impression) — tarif unique, gammes confondues
 }
 # Compatibilité : les anciennes commandes/sessions utilisent encore l'ancien identifiant interne.
 TARIFS["pacific_ink"] = TARIFS["produit_imprime"]
 PRIX_COULEUR = 10  # défaut (compatibilité)
-PRIX_NB = 5
+PRIX_NB = 6
 
 
 def _gamme_du_programme(programme):
