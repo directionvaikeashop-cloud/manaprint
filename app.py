@@ -1156,9 +1156,7 @@ def admin_valider_commande(commande_id):
                     f"  • Événement : {perso.get('nom_evenement','')}\n"
                     f"  • Jeu : {cmd['programme']} — {cmd['nb_feuilles']} feuille(s)\n"
                     f"  • Téléphone du responsable : {perso.get('telephone','')}\n\n"
-                    "Le PDF prêt à imprimer est en pièce jointe.\n"
-                    "\u26a0\ufe0f 2e pièce jointe CONFIDENTIELLE : la grille des couleurs\n"
-                    "de contrôle — réservée à l'organisatrice, à ne pas montrer aux joueurs.\n\n"
+                    "Le PDF prêt à imprimer est en pièce jointe.\n\n"
                     "— MANAPRINT / 2KEA & Associé"
                 )
                 # 📋🤫 le compte-rendu confidentiel série -> couleur
@@ -1167,11 +1165,38 @@ def admin_valider_commande(commande_id):
                                                     evenement_id, nb_cartes)
                 except Exception:
                     rapport = None
-                ok, m = envoyer_email_pdf(part["email"], sujet, corps, pdf,
-                                          f"manaprint_cmd{commande_id}.pdf",
-                                          copie=SMTP_USER or None,
-                                          pdf2_io=rapport,
-                                          nom2_fichier=f"CONFIDENTIEL_couleurs_cmd{commande_id}.pdf")
+                email_cli = (perso.get("email_organisateur") or "").strip()
+                if email_cli and rapport is not None:
+                    # 🖨️ l'imprimeur ne reçoit QUE les cartons...
+                    ok, m = envoyer_email_pdf(part["email"], sujet, corps, pdf,
+                                              f"manaprint_cmd{commande_id}.pdf",
+                                              copie=SMTP_USER or None)
+                    # 📧 ...et l'ORGANISATEUR reçoit son rapport confidentiel
+                    corps_cli = (
+                        f"Bonjour,\n\n"
+                        f"Votre commande MANAPRINT #{commande_id} est validée "
+                        f"({cmd['programme']} — {cmd['nb_feuilles']} feuille(s)).\n\n"
+                        "\u26a0\ufe0f En pièce jointe : votre RAPPORT CONFIDENTIEL — la grille\n"
+                        "de contrôle des couleurs de vos cartons.\n"
+                        "\u00c0 garder pour vous : ne le montrez JAMAIS aux joueurs.\n"
+                        "Au scan de chaque carton gagnant, la pastille de couleur affichée\n"
+                        "doit correspondre à cette grille.\n\n"
+                        "— MANAPRINT / 2KEA & Associé — manaprint.app"
+                    )
+                    ok2, m2 = envoyer_email_pdf(
+                        email_cli,
+                        f"MANAPRINT — Rapport CONFIDENTIEL — commande #{commande_id}",
+                        corps_cli, rapport,
+                        f"CONFIDENTIEL_couleurs_cmd{commande_id}.pdf",
+                        copie=SMTP_USER or None)
+                    print(f"[RAPPORT CONFIDENTIEL] cmd {commande_id} -> {email_cli} : {ok2} ({m2})")
+                else:
+                    # repli (pas d'email client) : le rapport voyage avec les cartons
+                    ok, m = envoyer_email_pdf(part["email"], sujet, corps, pdf,
+                                              f"manaprint_cmd{commande_id}.pdf",
+                                              copie=SMTP_USER or None,
+                                              pdf2_io=rapport,
+                                              nom2_fichier=f"CONFIDENTIEL_couleurs_cmd{commande_id}.pdf")
                 if ok:
                     db.marquer_commande_generee(commande_id)
                     print(f"[FABRICATION OK] commande {commande_id} envoyée à {part['nom']}")
