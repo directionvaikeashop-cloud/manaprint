@@ -534,7 +534,12 @@ def reclamer_carton_page(evenement_id, serie, code):
 def api_verifier_carton():
     """Version API (pour une future app de scan)."""
     d = request.get_json(force=True, silent=True) or {}
-    res = db.verifier_carton(d.get("evenement_id", ""), d.get("serie", 0), d.get("code", ""))
+    # 🐛 RÉPARATION (juil. 2026) : les variables restaient dans le JSON ->
+    # NameError -> erreur 500 -> « impossible de vérifier » au scan du caller.
+    evenement_id = d.get("evenement_id", "")
+    serie = d.get("serie", 0)
+    code = d.get("code", "")
+    res = db.verifier_carton(evenement_id, serie, code)
     res = _appliquer_date_tournoi(res, evenement_id)
     # 🎨 la couleur officielle accompagne le verdict (pastille au caller)
     try:
