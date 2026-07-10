@@ -958,13 +958,14 @@ def commander():
         return jsonify({"ok": False, "message": "Ce nom est réservé et ne peut pas être utilisé dans la personnalisation. Merci d'indiquer le nom de votre propre événement."}), 400
 
     import json as _json
-    # Partenaire d'impression choisi (ex. "fun_and_co", "vaikea_raiatea"). Vide = le client télécharge lui-même.
+    # 🖨️ Partenaire d'impression OBLIGATOIRE : plus d'auto-impression.
+    # Toutes les commandes passent par le réseau d'imprimeurs partenaires.
     partenaire = (data.get("partenaire", "") or "").strip()
-    if partenaire and partenaire not in PARTENAIRES:
-        partenaire = ""
-    # Compatibilité ancienne case "fun_and_co"
     if not partenaire and data.get("fun_and_co"):
-        partenaire = "fun_and_co"
+        partenaire = "fun_and_co"  # compatibilité ancienne case
+    if partenaire not in PARTENAIRES:
+        return jsonify({"ok": False,
+                        "message": "Choisis un imprimeur partenaire dans la liste."}), 400
     params_perso = _json.dumps({
         "theme": data.get("theme", ""),
         "nom_evenement": nom_evenement,
