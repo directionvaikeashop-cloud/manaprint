@@ -180,8 +180,11 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, telephone="", style="e
     # QR de vérification par grille (anti-duplication) — coin bas-droit
     if _sec and evenement_id:
         try:
-            _q = 8.0 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 1.5 * mm, y0 + 1.5 * mm, _q, evenement_id, serie)
+            # 🎯 QR intégré : au CENTRE de la croix vide (aucun chiffre dérangé)
+            _q = 13.0 * mm
+            _xq = gx0 + 2 * cell_w + (cell_w - _q) / 2
+            _yq = grid_bot + 2 * cell_h + (cell_h - _q) / 2
+            _sec.carton_qr(c, _xq, _yq, _q, evenement_id, serie, position_code="droite")
         except Exception:
             pass
 
