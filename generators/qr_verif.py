@@ -78,7 +78,7 @@ def verifier(evenement_id, serie, code):
 
 
 def dessiner_qr(c, x, y, taille, evenement_id, serie, avec_code=True,
-                couleur_texte=colors.Color(0.42, 0.42, 0.42)):
+                couleur_texte=colors.Color(0.42, 0.42, 0.42), position_code="bas"):
     """Dessine le QR (taille x taille, coin bas-gauche en x,y) + le code court dessous.
     Renvoie True si dessiné, False si le QR n'est pas disponible (anti-panne)."""
     if not _QR_OK:
@@ -95,12 +95,14 @@ def dessiner_qr(c, x, y, taille, evenement_id, serie, avec_code=True,
     # ⬜ CARRÉ BLANC DE FOND (zone de silence) : le QR est posé sur un carré vide,
     # isolé du microtexte et des décors -> contraste maximal pour le scan.
     marge = 1.4 * mm
-    zone_code = (taille * 0.34 + 1.4 * mm) if avec_code else 0.6 * mm
+    a_droite = (avec_code and position_code == "droite")
+    zone_code = 0.6 * mm if a_droite else ((taille * 0.34 + 1.4 * mm) if avec_code else 0.6 * mm)
+    zone_droite = (16 * mm) if a_droite else 0
     c.saveState()
     c.setFillColor(colors.white)
     c.setStrokeColor(colors.Color(0.75, 0.75, 0.75))
     c.setLineWidth(0.4)
-    c.roundRect(x - marge, y - zone_code, taille + 2 * marge,
+    c.roundRect(x - marge, y - zone_code, taille + 2 * marge + zone_droite,
                 taille + zone_code + marge, 1.0 * mm, stroke=1, fill=1)
     c.restoreState()
 
@@ -117,8 +119,16 @@ def dessiner_qr(c, x, y, taille, evenement_id, serie, avec_code=True,
         code = code_verif(evenement_id, serie)
         nom_coul, _hex = couleur_carton(evenement_id, serie)
         c.setFillColor(couleur_texte)
-        c.setFont("Helvetica", max(4.5, taille * 0.11))
-        c.drawCentredString(x + taille / 2, y - taille * 0.13, code)
-        c.setFont("Helvetica-Bold", max(4.5, taille * 0.11))
-        c.drawCentredString(x + taille / 2, y - taille * 0.28, nom_coul)
+        f = max(4.5, taille * 0.11)
+        if a_droite:
+            # code + couleur À DROITE du QR (pour les rangées horizontales vides)
+            c.setFont("Helvetica", f)
+            c.drawString(x + taille + 2.2 * mm, y + taille * 0.56, code)
+            c.setFont("Helvetica-Bold", f)
+            c.drawString(x + taille + 2.2 * mm, y + taille * 0.24, nom_coul)
+        else:
+            c.setFont("Helvetica", f)
+            c.drawCentredString(x + taille / 2, y - taille * 0.13, code)
+            c.setFont("Helvetica-Bold", f)
+            c.drawCentredString(x + taille / 2, y - taille * 0.28, nom_coul)
     return True
