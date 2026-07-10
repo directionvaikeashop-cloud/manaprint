@@ -158,8 +158,11 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
     # QR de vérification par grille (anti-duplication) — coin bas-droit
     if _sec and evenement_id:
         try:
-            _q = 8.0 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 1.5 * mm, y0 + 1.5 * mm, _q, evenement_id, serie)
+            # 🎯 QR intégré : dans la case barrée bas-gauche (aucun chiffre dérangé)
+            _q = 12.5 * mm
+            _xq = x0 + (cell_w - _q) / 2
+            _yq = grid_bot + (row_h - _q - 3.6 * mm) / 2 + 3.6 * mm
+            _sec.carton_qr(c, _xq, _yq, _q, evenement_id, serie)
         except Exception:
             pass
 
