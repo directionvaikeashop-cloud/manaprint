@@ -39,6 +39,7 @@ from generators import oaoa
 from generators import lagoon
 from generators import havai
 from generators import flash_debout
+from generators import dual_dab
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
@@ -195,6 +196,7 @@ _enregistrer_paire("oaoa",          "OAOA","⭕", 12, oaoa.generer_pdf)
 _enregistrer_paire("lagoon",        "LAGOON 5 boules","🏝️", 12, lagoon.generer_pdf)
 _enregistrer_paire("havai",         "HAVAI","🌋", 6,  havai.generer_pdf)
 _enregistrer_paire("flash_debout",  "FLASH QUINES DEBOUT","⚡", 8,  flash_debout.generer_pdf)
+_enregistrer_paire("dual_dab",      "DUAL DAB 75","🤜", 6,  dual_dab.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
 
@@ -487,6 +489,7 @@ _PLAGES_CALLER = {
     "lagoon": (1, 50),
     "havai": (1, 75),
     "flash_debout": (1, 90),
+    "dual_dab": (1, 75),
 }
 
 
