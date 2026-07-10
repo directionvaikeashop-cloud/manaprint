@@ -141,6 +141,18 @@
       <input id="gen-datelieu" data-i18n-ph="ph_datelieu" placeholder="Ex : 24 déc. 2026 — Papeete">
       <label class="field-label">🔐 Date précise du tournoi (optionnel — le QR ne sera actif que ce jour-là)</label>
       <input id="gen-datetournoi" type="date">
+      <label class="field-label">🎨 Couleur officielle des cartons (vérifiée au scan)</label>
+      <select id="gen-couleurqr">
+        <option value="">Loterie automatique — chaque carton sa couleur surprise</option>
+        <option value="ROUGE">🔴 ROUGE — tout le lot</option>
+        <option value="BLEU">🔵 BLEU — tout le lot</option>
+        <option value="VERT">🟢 VERT — tout le lot</option>
+        <option value="JAUNE">🟡 JAUNE — tout le lot</option>
+        <option value="VIOLET">🟣 VIOLET — tout le lot</option>
+        <option value="ORANGE">🟠 ORANGE — tout le lot</option>
+      </select>
+      <label class="field-label">📧 Email de l'organisateur (reçoit le rapport confidentiel des couleurs)</label>
+      <input id="gen-email" type="email" placeholder="Ex : monasso@gmail.com">
       <label class="field-label" data-i18n="lbl_tel">Téléphone du responsable</label>
       <input id="gen-tel" data-i18n-ph="ph_tel" placeholder="Ex : 87 12 34 56" style="margin-bottom:0">
     </div>
@@ -446,9 +458,13 @@ function collectPerso(msgEl){
   const tel=document.getElementById('gen-tel').value.trim();
   if(!ev||!ti||!dl||!tel){ if(msgEl){ msgEl.style.color="var(--coral)"; msgEl.textContent=t("msg_champs"); } return null; }
   const dtq=document.getElementById('gen-datetournoi').value;
+  const cqr=document.getElementById('gen-couleurqr').value;
+  const eml=document.getElementById('gen-email').value.trim();
   return {
     nom_evenement:ev, titre_jeu:ti, date_lieu:dl, telephone:tel,
+    email_organisateur:eml||"",
     date_tournoi:dtq||"",
+    couleur_qr:cqr||"",
     couleur_perso:"",
     theme:"",
   };
