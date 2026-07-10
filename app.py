@@ -41,6 +41,7 @@ from generators import havai
 from generators import flash_debout
 from generators import dual_dab
 from generators import cerf_volant
+from generators import ohana75_20boules
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
@@ -199,6 +200,7 @@ _enregistrer_paire("havai",         "HAVAI","🌋", 6,  havai.generer_pdf)
 _enregistrer_paire("flash_debout",  "FLASH QUINES DEBOUT","⚡", 8,  flash_debout.generer_pdf)
 _enregistrer_paire("dual_dab",      "DUAL DAB 75","🤜", 6,  dual_dab.generer_pdf)
 _enregistrer_paire("cerf_volant",   "CERF VOLANT","🪁", 6,  cerf_volant.generer_pdf)
+_enregistrer_paire("ohana20b",      "OHANA 75 · 20 boules","🌺", 5,  ohana75_20boules.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
 
@@ -281,6 +283,39 @@ def accueil():
 
 # ══ VÉRIFICATION DES CARTONS (scan du QR par l'organisateur) ══════════════════
 
+def _aujourdhui_tahiti():
+    """La date du jour en Polynésie (UTC-10)."""
+    from datetime import datetime, timedelta
+    return (datetime.utcnow() - timedelta(hours=10)).date()
+
+
+def _appliquer_date_tournoi(res, evenement_id):
+    """🔐 QR À DATE : si l'événement porte une date de tournoi, le carton n'est
+    ACTIF que ce jour-là (+ le lendemain, pour les tournois qui finissent tard).
+    Avant -> PAS_ACTIF · Après -> TERMINE (carton expiré, gain non réclamable)."""
+    try:
+        if res.get("statut") != "VALIDE":
+            return res
+        ev = db.get_evenement(evenement_id) or {}
+        dt = (ev.get("date_tournoi") or "").strip()
+        if not dt:
+            return res
+        from datetime import datetime, timedelta
+        jour = datetime.strptime(dt, "%Y-%m-%d").date()
+        auj = _aujourdhui_tahiti()
+        if auj < jour:
+            res["statut"] = "PAS_ACTIF"
+            res["message"] = ("Carton du tournoi du %s — le QR ne sera actif que ce jour-l\u00e0."
+                              % jour.strftime("%d/%m/%Y"))
+        elif auj > jour + timedelta(days=1):
+            res["statut"] = "TERMINE"
+            res["message"] = ("Le tournoi du %s est termin\u00e9 — carton expir\u00e9."
+                              % jour.strftime("%d/%m/%Y"))
+    except Exception:
+        pass
+    return res
+
+
 def _page_verif(statut, message, evenement_id, serie, code, ev=None, extra=""):
     """Page mobile simple et lisible : gros bandeau coloré VALIDE / COPIE / etc."""
     couleurs = {
@@ -288,6 +323,8 @@ def _page_verif(statut, message, evenement_id, serie, code, ev=None, extra=""):
         "DEJA_RECLAME": ("#dc2626", "🚫", "DÉJÀ RÉCLAMÉ"),
         "INCONNU": ("#dc2626", "❌", "CARTON NON RECONNU"),
         "HORS_LOT": ("#d97706", "⚠️", "HORS DE CE LOT"),
+        "PAS_ACTIF": ("#d97706", "🕒", "PAS ENCORE ACTIF"),
+        "TERMINE": ("#dc2626", "⛔", "TOURNOI TERMINÉ"),
     }
     coul, emoji, titre = couleurs.get(statut, ("#334155", "❔", statut))
     nom_ev = (ev or {}).get("nom") or evenement_id or "—"
@@ -349,6 +386,7 @@ def api_verifier_carton_code():
             if _qrv.code_verif(ev, serie) == code:
                 res = db.verifier_carton(ev, serie, code)
                 res["evenement_id"] = ev
+                res = _appliquer_date_tournoi(res, ev)
                 try:
                     if res.get("statut") in ("VALIDE", "DEJA_RECLAME"):
                         res["couleur_nom"], res["couleur_hex"] = _qrv.couleur_carton(ev, serie)
@@ -365,6 +403,7 @@ def api_verifier_carton_code():
 def verifier_carton_page(evenement_id, serie, code):
     """Page ouverte quand l'organisateur scanne le QR d'un carton."""
     res = db.verifier_carton(evenement_id, serie, code)
+    res = _appliquer_date_tournoi(res, evenement_id)
     # 🎨 Couleur officielle du carton (imprimée en N&B, prouvée ici en couleur)
     extra = ""
     if res["statut"] in ("VALIDE", "DEJA_RECLAME"):
@@ -387,6 +426,7 @@ def reclamer_carton_page(evenement_id, serie, code):
     """Valide le gain : marque le carton réclamé (après vérif du code)."""
     # revérifier le code avant d'agir (empêche une réclamation forgée)
     res = db.verifier_carton(evenement_id, serie, code)
+    res = _appliquer_date_tournoi(res, evenement_id)
     if res["statut"] == "DEJA_RECLAME":
         return _page_verif("DEJA_RECLAME", res["message"], evenement_id, serie, code,
                            ev=res.get("evenement"))
@@ -408,6 +448,7 @@ def api_verifier_carton():
     """Version API (pour une future app de scan)."""
     d = request.get_json(force=True, silent=True) or {}
     res = db.verifier_carton(d.get("evenement_id", ""), d.get("serie", 0), d.get("code", ""))
+    res = _appliquer_date_tournoi(res, evenement_id)
     # 🎨 la couleur officielle accompagne le verdict (pastille au caller)
     try:
         from generators import qr_verif as _qrv
@@ -493,6 +534,7 @@ _PLAGES_CALLER = {
     "flash_debout": (1, 90),
     "dual_dab": (1, 75),
     "cerf_volant": (1, 75),
+    "ohana20b": (1, 75),
 }
 
 
@@ -1012,6 +1054,7 @@ def admin_valider_commande(commande_id):
                         nom=perso.get("titre_jeu", "") or perso.get("nom_evenement", "") or "Événement",
                         identifiant=cmd["identifiant"], programme=cmd["programme"],
                         serie_min=1, serie_max=nb_cartes,
+                        date_tournoi=perso.get("date_tournoi", ""),
                     )
                 except Exception:
                     evenement_id = ""
