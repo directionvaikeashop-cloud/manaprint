@@ -83,7 +83,7 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
     ncols = len(LETTERS)
-    cell_w = CARD_W / ncols
+    cell_w = (CARD_W - 17 * mm) / ncols  # 17 mm réservés à droite : la maison du QR
 
     # Bordure
     c.setStrokeColor(col)
@@ -139,8 +139,11 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
     # QR de vérification par grille (anti-duplication) — coin bas-droit
     if _sec and evenement_id:
         try:
-            _q = 7.0 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 1.5 * mm, y0 + 1.5 * mm, _q, evenement_id, serie)
+            # 🎯 QR dans la marge droite réservée (aucun chiffre dérangé)
+            _q = 12.0 * mm
+            _xq = x0 + CARD_W - _q - 3.0 * mm
+            _yq = y0 + (CARD_H - _q - 3.4 * mm) / 2 + 3.4 * mm
+            _sec.carton_qr(c, _xq, _yq, _q, evenement_id, serie)
         except Exception:
             pass
 
