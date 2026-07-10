@@ -121,6 +121,11 @@
     <label>Vérifier un carton gagnant</label>
     <button class="btn-sec" id="btn-scan" onclick="toggleScan()">📷 Scanner le QR du carton</button>
     <div id="lecteur-qr"></div>
+    <div id="zoom-bar" style="display:none;gap:8px;margin-top:8px;justify-content:center">
+      <button class="btn-sec" onclick="reglerZoom(1)">🔍 1×</button>
+      <button class="btn-sec" onclick="reglerZoom(2)">🔍 2×</button>
+      <button class="btn-sec" onclick="reglerZoom(3)">🔍 3×</button>
+    </div>
     <!-- 🔎 Plan B : vérification SANS scanner (N° + code imprimés sous le QR) -->
     <div style="display:flex;gap:8px;margin-top:10px">
       <input id="man-serie" type="number" inputmode="numeric" placeholder="N\u00b0 carton (ex : 2)"
@@ -134,6 +139,7 @@
     <div class="verdict" id="verdict">
       <div class="emoji" id="v-emoji"></div>
       <div class="titre" id="v-titre"></div>
+      <div id="v-couleur" style="display:none;margin:8px auto 2px;padding:7px 20px;border-radius:9px;font-weight:800;color:#fff;width:fit-content"></div>
       <div class="detail" id="v-detail"></div>
     </div>
     <div class="mini">
@@ -375,6 +381,7 @@ function toggleScan() {
     onScan, () => {}).then(() => {
       scanActif = true;
       document.getElementById("btn-scan").textContent = "✖ Arrêter le scan";
+      document.getElementById("zoom-bar").style.display = "flex";
     }).catch(e => alert("Caméra indisponible : " + e));
 }
 
@@ -382,6 +389,7 @@ function stopScan() {
   if (lecteur) { lecteur.stop().then(() => lecteur.clear()); }
   scanActif = false;
   document.getElementById("btn-scan").textContent = "📷 Scanner le QR du carton";
+  const zb = document.getElementById("zoom-bar"); if (zb) zb.style.display = "none";
 }
 
 function scanPhoto(inp) {
@@ -396,6 +404,16 @@ function scanPhoto(inp) {
     montrerVerdict("v-warn", "\ud83d\udcf8", "PHOTO ILLISIBLE",
                    "Reprends la photo : QR bien NET, bien cadr\u00e9, bonne lumi\u00e8re.");
   });
+}
+
+function reglerZoom(niveau) {
+  // 🔍 Zoom caméra (si le téléphone le permet)
+  try {
+    lecteur.applyVideoConstraints({ advanced: [{ zoom: niveau }] })
+      .catch(function () { alert("Zoom non supporté par cette caméra — utilise 📸 Photographier."); });
+  } catch (e) {
+    alert("Zoom non supporté — utilise 📸 Photographier le QR.");
+  }
 }
 
 function onScan(texte) {
@@ -438,6 +456,13 @@ function afficherResultat(res) {
     detail += " Comparez ses num\u00e9ros avec les " + tirees.length + " boules tir\u00e9es.";
   }
   montrerVerdict(cls, emo, tit, detail);
+  // 🎨 pastille de la couleur officielle du carton
+  if (res.couleur_nom && res.couleur_hex) {
+    const pc = document.getElementById("v-couleur");
+    pc.style.display = "inline-block";
+    pc.style.background = res.couleur_hex;
+    pc.textContent = res.couleur_nom;
+  }
 }
 
 function verifManuel() {
@@ -461,6 +486,8 @@ function montrerVerdict(cls, emoji, titre, detail) {
   document.getElementById("v-emoji").textContent = emoji;
   document.getElementById("v-titre").textContent = titre;
   document.getElementById("v-detail").textContent = detail;
+  const pc = document.getElementById("v-couleur");
+  if (pc) pc.style.display = "none";
 }
 
 initJeux();
