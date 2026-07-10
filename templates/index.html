@@ -175,7 +175,7 @@
       <div id="gen-part-wrap" class="hidden" style="margin-bottom:.9rem">
         <label class="field-label" data-i18n="lbl_partenaire">Choisir un partenaire d'impression</label>
         <select id="gen-partenaire" onchange="majPartInfo()" style="margin-bottom:0">
-          <option value="" data-i18n="part_self">Je télécharge le PDF moi-même</option>
+          <option value="" data-i18n="part_self">— Choisis ton imprimeur partenaire —</option>
         </select>
         <p id="gen-part-info" style="font-size:.8rem;color:var(--muted);margin-top:.45rem;line-height:1.5"></p>
         <p style="font-size:.8rem;color:var(--teal-d);margin-top:.4rem;line-height:1.5;font-weight:500">💡 <span data-i18n="part_3f">Les partenaires d'impression ne facturent que le papier et l'encre : ÉCO 3 F (N&B) / 7 F (Couleur) · PREMIUM 8 F (N&B) / 10 F (Couleur) la feuille.</span></p>
@@ -259,7 +259,7 @@ const T = {
  part_raiatea:{fr:"— Faaa",en:"— Faaa"},
  part_papeete:{fr:"— Tahiti",en:"— Tahiti"},
  lbl_partenaire:{fr:"Choisir un partenaire d'impression",en:"Choose a print partner"},
- part_self:{fr:"Je télécharge le PDF moi-même",en:"I download the PDF myself"},
+ part_self:{fr:"— Choisis ton imprimeur partenaire —",en:"— Choose your print partner —"},
  part_info:{fr:"Après validation, ton PDF est envoyé à",en:"After approval, your PDF is sent to"},
  part_3f:{fr:"Les partenaires d'impression ne facturent que le papier et l'encre : ÉCO 3 F (N&B) / 7 F (Couleur) · PREMIUM 8 F (N&B) / 10 F (Couleur) la feuille.",en:"Print partners only charge for paper and ink: ECO 3 F (B&W) / 7 F (Color) · PREMIUM 8 F (B&W) / 10 F (Color) per sheet."},
  crosslink:{fr:"Tu organises des tournois ? Joue en ligne sur Ticket Bingo",en:"Running tournaments? Play online on Ticket Bingo"},
@@ -506,6 +506,7 @@ async function commander(){
   if(nb<1){ msg.style.color="var(--coral)"; msg.textContent=t("nb_invalide"); return; }
   const sel=document.getElementById('gen-partenaire');
   const partenaire=sel?sel.value:"";
+  if(!partenaire){ msg.style.color="var(--coral)"; msg.textContent="Choisis un imprimeur partenaire dans la liste."; return; }
   const btn=document.getElementById('gen-cmd-btn');
   btn.disabled=true; btn.innerHTML='<span class="spin"></span> '+t("cmd_envoi");
   try{
