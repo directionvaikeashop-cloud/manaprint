@@ -788,7 +788,7 @@ def commander():
     data = request.get_json(force=True)
     programme = data.get("programme", "triple_action")
     couleur = REGISTRE_JEUX.get(programme, {}).get("couleur", True)
-    nb_feuilles = max(1, min(int(data.get("nb_feuilles", 500)), 5000))
+    nb_feuilles = max(1, min(int(data.get("nb_feuilles", 10)), 250))  # plafond : 250 feuilles par commande
     mode_paiement = data.get("mode_paiement", "manuel")  # 'stripe' | 'manuel'
 
     # Personnalisation OBLIGATOIRE (sécurité)
