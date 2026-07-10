@@ -1254,6 +1254,40 @@ def admin_valider_commande(commande_id):
     return jsonify({"ok": True, "message": "Commande validée." + info})
 
 
+@app.route("/api/admin/evenements/redeclarer", methods=["POST"])
+@admin_requis
+def admin_redeclarer_evenement():
+    """🚑 RÉSURRECTION D'ÉVÉNEMENT : re-déclare un lot de cartons déjà imprimés
+    dont la fiche a disparu de la base (ex. base non persistante lors d'un
+    redéploiement). L'identifiant est dans le QR du carton (manaprint.app/v/ID/...)
+    et les codes 6 lettres se recalculent avec le secret : re-déclarer l'événement
+    suffit à faire revivre TOUS les cartons du lot. Idempotent (INSERT OR REPLACE)."""
+    d = request.get_json(force=True, silent=True) or {}
+    evenement_id = (d.get("evenement_id", "") or "").strip().upper()
+    if not evenement_id:
+        return jsonify({"ok": False, "message": "Identifiant d'événement manquant (il est dans le QR : manaprint.app/v/IDENTIFIANT/...)."}), 400
+    try:
+        serie_min = int(d.get("serie_min", 1) or 1)
+        serie_max = int(d.get("serie_max", 0) or 0)
+    except Exception:
+        return jsonify({"ok": False, "message": "Séries min/max invalides."}), 400
+    if serie_max < serie_min or serie_min < 1:
+        return jsonify({"ok": False, "message": "La série max doit être ≥ à la série min (≥ 1)."}), 400
+    db.creer_evenement(
+        evenement_id=evenement_id,
+        nom=(d.get("nom", "") or "Événement ressuscité").strip(),
+        identifiant="gestion",
+        programme=(d.get("programme", "") or "").strip(),
+        serie_min=serie_min,
+        serie_max=serie_max,
+        date_tournoi=(d.get("date_tournoi", "") or "").strip(),
+        couleur_qr=(d.get("couleur_qr", "") or "").strip(),
+    )
+    return jsonify({"ok": True,
+                    "message": "Événement %s re-déclaré (séries %d à %d) — les cartons de ce lot sont de nouveau vérifiables." % (
+                        evenement_id, serie_min, serie_max)})
+
+
 @app.route("/api/admin/machines/installer", methods=["POST"])
 @admin_requis
 def admin_installer_machine():
