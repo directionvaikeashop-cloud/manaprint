@@ -434,20 +434,8 @@ function onScan(texte) {
   fetch("/api/verifier-carton", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ evenement_id: ev, serie: serie, code: code })
-  }).then(r => r.json()).then(res => {
-    const map = {
-      "VALIDE":       ["v-ok", "✅", "CARTON VALIDE"],
-      "DEJA_RECLAME": ["v-no", "🚫", "DÉJÀ RÉCLAMÉ"],
-      "INCONNU":      ["v-no", "❌", "NON RECONNU"],
-      "HORS_LOT":     ["v-warn", "⚠️", "HORS DE CE LOT"],
-    };
-    const [cls, emo, tit] = map[res.statut] || ["v-no", "❔", res.statut];
-    let detail = res.message || "";
-    if (res.statut === "VALIDE") {
-      detail += " Comparez ses numéros avec les " + tirees.length + " boules tirées.";
-    }
-    montrerVerdict(cls, emo, tit, detail);
-  }).catch(() => montrerVerdict("v-no", "⚠️", "ERREUR", "Impossible de vérifier (connexion ?)."));
+  }).then(r => r.json()).then(afficherResultat)
+    .catch(() => montrerVerdict("v-no", "⚠️", "ERREUR", "Impossible de vérifier (connexion ?)."));
 }
 
 function afficherResultat(res) {
