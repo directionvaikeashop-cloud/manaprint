@@ -105,7 +105,26 @@ def init_db():
                 mode_paiement TEXT,                 -- 'stripe' | 'manuel'
                 statut      TEXT DEFAULT 'en_attente', -- 'en_attente' | 'payee' | 'generee'
                 params_perso TEXT,                  -- personnalisation en JSON
+                panier_id   INTEGER,                -- 🛒 panier d'achat (NULL = commande seule)
                 cree_le     TEXT NOT NULL
+            )
+        """)
+        # Migration douce : ajoute la colonne panier_id aux bases existantes
+        try:
+            c.execute("ALTER TABLE commandes ADD COLUMN panier_id INTEGER")
+        except Exception:
+            pass
+
+        # 🛒 PANIERS D'ACHAT : un panier regroupe plusieurs commandes payées ensemble
+        # (paiement carte Stripe ou validation manuelle en boutique).
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS paniers (
+                id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                identifiant    TEXT,
+                statut         TEXT DEFAULT 'en_attente',  -- en_attente | payee
+                total          INTEGER DEFAULT 0,
+                stripe_session TEXT,
+                cree_le        TEXT NOT NULL
             )
         """)
 
@@ -356,19 +375,67 @@ def incrementer_essai(identifiant):
 
 
 # ── COMMANDES ─────────────────────────────────────────────────────────────────
-def creer_commande(identifiant, origine, programme, couleur, nb_feuilles, mode_paiement, params_perso=""):
+def creer_commande(identifiant, origine, programme, couleur, nb_feuilles, mode_paiement, params_perso="", panier_id=None):
     prix_feuille = prix_feuille_profil(origine, couleur, _gamme_du_programme(programme))
     montant = prix_feuille * nb_feuilles
     statut = "en_attente"
     with get_db() as conn:
         cur = conn.execute(
             """INSERT INTO commandes
-               (identifiant, origine, programme, couleur, nb_feuilles, montant, mode_paiement, statut, params_perso, cree_le)
-               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+               (identifiant, origine, programme, couleur, nb_feuilles, montant, mode_paiement, statut, params_perso, panier_id, cree_le)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
             (identifiant, origine, programme, 1 if couleur else 0, nb_feuilles, montant,
-             mode_paiement, statut, params_perso, datetime.utcnow().isoformat())
+             mode_paiement, statut, params_perso, panier_id, datetime.utcnow().isoformat())
         )
         return cur.lastrowid, montant
+
+
+# ── 🛒 PANIERS D'ACHAT ────────────────────────────────────────────────────────
+def creer_panier(identifiant):
+    with get_db() as conn:
+        cur = conn.execute(
+            "INSERT INTO paniers (identifiant, statut, cree_le) VALUES (?, 'en_attente', ?)",
+            (identifiant, datetime.utcnow().isoformat()))
+        return cur.lastrowid
+
+
+def get_panier(panier_id):
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM paniers WHERE id = ?", (panier_id,)).fetchone()
+        return dict(row) if row else None
+
+
+def commandes_du_panier(panier_id):
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM commandes WHERE panier_id = ? ORDER BY id", (panier_id,)).fetchall()
+        return [dict(r) for r in rows]
+
+
+def maj_panier(panier_id, total=None, stripe_session=None):
+    with get_db() as conn:
+        if total is not None:
+            conn.execute("UPDATE paniers SET total = ? WHERE id = ?", (int(total), panier_id))
+        if stripe_session is not None:
+            conn.execute("UPDATE paniers SET stripe_session = ? WHERE id = ?", (stripe_session, panier_id))
+    return True
+
+
+def marquer_panier_payee(panier_id):
+    """Marque le panier ET toutes ses commandes comme payés.
+    Idempotent : retourne la liste des commandes seulement au PREMIER appel
+    (les webhooks Stripe peuvent arriver en double)."""
+    with get_db() as conn:
+        row = conn.execute("SELECT statut FROM paniers WHERE id = ?", (panier_id,)).fetchone()
+        if not row:
+            return None
+        if row["statut"] == "payee":
+            return []  # déjà traité — ne pas refabriquer
+        conn.execute("UPDATE paniers SET statut = 'payee' WHERE id = ?", (panier_id,))
+        conn.execute("UPDATE commandes SET statut = 'payee' WHERE panier_id = ? AND statut = 'en_attente'",
+                     (panier_id,))
+        rows = conn.execute("SELECT * FROM commandes WHERE panier_id = ?", (panier_id,)).fetchall()
+        return [dict(r) for r in rows]
 
 
 def get_commande(commande_id):
