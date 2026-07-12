@@ -104,13 +104,15 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
     if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
         _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
 
-    # En-tête (2 lignes : titre + N° carte)
+    # En-tête (2 lignes : titre + N° carte) — le nom du jeu apparaît TOUJOURS
     hdr_y = y0 + CARD_H - 3.5 * mm
-    titre = (titre_jeu or "WIN 9 boules")
+    titre = "WIN 9 boules"
+    if titre_jeu and titre_jeu.strip().upper() != titre.upper():
+        titre += "  —  " + titre_jeu.strip()
     if telephone:
         titre += " by TUKEA " + telephone
     c.setFillColor(col); c.setFont(POLICE, 5)
-    c.drawCentredString(x0 + CARD_W / 2, hdr_y, titre[:52])
+    c.drawCentredString(x0 + CARD_W / 2, hdr_y, titre[:60])
     c.setFillColor(col); c.setFont(POLICE, 6.5)
     c.drawCentredString(x0 + CARD_W / 2, hdr_y - 4 * mm, "Carte N° %05d" % serie)
 
