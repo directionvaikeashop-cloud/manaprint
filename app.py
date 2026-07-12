@@ -42,6 +42,7 @@ from generators import flash_debout
 from generators import dual_dab
 from generators import cerf_volant
 from generators import moorea
+from generators import triple_action_90
 from generators import ohana75_20boules
 
 app = Flask(__name__)
@@ -208,6 +209,7 @@ _enregistrer_paire("flash_debout",  "FLASH QUINES DEBOUT","⚡", 8,  flash_debou
 _enregistrer_paire("dual_dab",      "DUAL DAB 75","🤜", 6,  dual_dab.generer_pdf)
 _enregistrer_paire("cerf_volant",   "CERF VOLANT","🪁", 6,  cerf_volant.generer_pdf)
 _enregistrer_paire("moorea",        "MOOREA",     "🌴", 8,  moorea.generer_pdf)
+_enregistrer_paire("triple_action_90", "TRIPLE ACTION 90", "🎪", 10, triple_action_90.generer_pdf)
 _enregistrer_paire("ohana20b",      "OHANA 75 · 20 boules","🌺", 5,  ohana75_20boules.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
@@ -629,6 +631,7 @@ _PLAGES_CALLER = {
     "dual_dab": (1, 75),
     "cerf_volant": (1, 75),
     "moorea": (1, 75),
+    "triple90": (1, 90),
     "ohana20b": (1, 75),
 }
 
