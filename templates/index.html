@@ -486,8 +486,12 @@ function majPartInfo(){
   const sel=document.getElementById('gen-partenaire');
   const info=document.getElementById('gen-part-info');
   const p=PARTENAIRES_LIST.find(function(x){ return x.id===sel.value; });
-  if(p){ info.textContent = t('part_info')+" "+p.nom+(p.tel?(" · 📞 "+p.tel):"")+". "; }
+  if(p){
+    info.textContent = t('part_info')+" "+p.nom+(p.tel?(" · 📞 "+p.tel):"")+". ";
+    if(p.prix_pdf_seul){ info.textContent += "💡 Ici, 2KEA & Associé ne facture que le PDF ("+p.prix_pdf_seul+" F la feuille) — le tarif d'impression est à demander directement à "+p.nom+"."; }
+  }
   else { info.textContent=""; }
+  majPrix();
 }
 async function chargerJeux(){
   if(!PROGRAMMES.length){
@@ -511,17 +515,27 @@ function rendreProgrammes(){
     cont.appendChild(b);
   });
 }
-function majPrix(){
-  const nb=parseInt(document.getElementById('gen-nb-feuilles').value)||0;
-  const jeu=PROGRAMMES.find(function(p){ return p.id===progChoisi; });
+function prixFeuilleCourant(partId){
+  // 💡 partenaire à tarif spécial (ex. RANIHEI : PDF seul à 1,5 F)
+  const p=PARTENAIRES_LIST.find(function(x){ return x.id===partId; });
+  if(p && p.prix_pdf_seul) return p.prix_pdf_seul;
+  const jeu=PROGRAMMES.find(function(x){ return x.id===progChoisi; });
   const couleur = jeu ? jeu.couleur : true;
   const gamme = (progChoisi||"").indexOf("_p15")>=0 ? "p15" : "eco";
   const prof=TARIFS[origineAcces]||TARIFS.pacific_ink;
   const tar=prof[gamme]||prof.eco;
-  const prix=couleur?tar.c:tar.nb;
-  const total=nb*prix;
+  return couleur?tar.c:tar.nb;
+}
+function majPrix(){
+  const nb=parseInt(document.getElementById('gen-nb-feuilles').value)||0;
+  const sel=document.getElementById('gen-partenaire');
+  const prix=prixFeuilleCourant(sel?sel.value:"");
+  const total=Math.ceil(nb*prix);
   const el=document.getElementById('gen-prix');
-  if(nb>0){ el.textContent = nb+" × "+prix+" XPF = "+total+" XPF"; } else { el.textContent=""; }
+  if(nb>0){
+    el.textContent = nb+" × "+prix+" XPF = "+total+" XPF";
+    if(prix<6){ el.textContent += "  (PDF 2KEA & Associé — tarif d'impression à demander directement au partenaire)"; }
+  } else { el.textContent=""; }
 }
 function collectPerso(msgEl){
   const ev=document.getElementById('gen-evenement').value.trim();
@@ -581,6 +595,8 @@ function majBadgePanier(){
   if(b){ b.textContent=n; b.style.display=n>0?'block':'none'; }
 }
 function prixArticle(a){
+  const p=PARTENAIRES_LIST.find(function(x){ return x.id===a.partenaire; });
+  if(p && p.prix_pdf_seul) return Math.ceil(p.prix_pdf_seul*a.nb_feuilles);
   const gamme=(a.programme||"").indexOf("_p15")>=0?"p15":"eco";
   const prof=TARIFS[a.origine]||TARIFS.pacific_ink; const tar=prof[gamme]||prof.eco;
   return (a.couleur?tar.c:tar.nb)*a.nb_feuilles;
