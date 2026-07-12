@@ -92,13 +92,15 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, libelle_gauche="", titr
     if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
         _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.9 * mm)
 
-    # ---- En-tête (titre centré seulement) ----
+    # ---- En-tête (titre centré seulement) — le nom du jeu apparaît TOUJOURS ----
     htxt_y = y0 + CARD_H - 4.3 * mm
-    centre = (titre_jeu or "FLASH QUINES ALLONGÉ")
+    centre = "FLASH QUINES ALLONGÉ"
+    if titre_jeu and titre_jeu.strip().upper() != centre.upper():
+        centre += "  —  " + titre_jeu.strip()
     if telephone:
         centre += "   " + telephone
     c.setFillColor(col); c.setFont(POLICE, 6.5)
-    c.drawCentredString(x0 + CARD_W / 2, htxt_y, centre[:48])
+    c.drawCentredString(x0 + CARD_W / 2, htxt_y, centre[:60])
 
     # ---- Zone des numéros ----
     zone_top = htxt_y - 3 * mm
