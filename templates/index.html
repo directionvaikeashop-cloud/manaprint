@@ -257,6 +257,10 @@
       <p id="admin-msg" style="font-size:.82rem;color:var(--teal);margin-bottom:1rem"></p>
       <div id="admin-liste" style="display:flex;flex-direction:column;gap:.4rem"></div>
       <!-- 🚑 Résurrection d'événement -->
+      <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">📜 Historique des lots QR</h2>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:.8rem;line-height:1.6">Chaque génération inscrit son lot ici : identifiant, jeu, séries, date. C'est ton registre de résurrection vivant. <button onclick="adminHistorique()" style="background:none;border:none;color:var(--teal);text-decoration:underline;cursor:pointer;font-size:.85rem">Actualiser</button></p>
+      <div id="hist-liste" style="display:flex;flex-direction:column;gap:.35rem;margin-bottom:1.6rem;max-height:320px;overflow-y:auto"></div>
+
       <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">🚑 Résurrection d'événement</h2>
       <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem;line-height:1.6">Un carton dit « Événement inconnu » ? Son lot a disparu de la base. L'identifiant est dans son QR (manaprint.app/v/<b>IDENTIFIANT</b>/…). Re-déclare-le ici : tout le lot revit instantanément.</p>
       <div style="display:flex;gap:.6rem;margin-bottom:.6rem;flex-wrap:wrap">
@@ -690,6 +694,37 @@ async function recupererCommande(){
 }
 
 // ── Gestion (interne) ──
+async function adminHistorique(){
+  const liste=document.getElementById('hist-liste');
+  liste.innerHTML='<p style="color:var(--muted);font-size:.82rem">Chargement…</p>';
+  try{
+    const r=await fetch('/api/admin/evenements');
+    const d=await r.json();
+    if(!d.ok){ liste.innerHTML='<p style="color:var(--coral);font-size:.82rem">'+(d.message||'Erreur')+'</p>'; return; }
+    if(!d.evenements.length){ liste.innerHTML='<p style="color:var(--muted);font-size:.82rem">Aucun lot dans la base actuelle. (Après un redéploiement sans Volume, utilise tes rapports confidentiels ou ton registre papier pour ressusciter.)</p>'; return; }
+    liste.innerHTML='';
+    d.evenements.forEach(function(ev){
+      const div=document.createElement('div');
+      div.style.cssText='background:#fff;border:1px solid var(--line);border-radius:10px;padding:.55rem .8rem;display:flex;justify-content:space-between;align-items:center;gap:.6rem;font-size:.8rem';
+      div.innerHTML='<div style="min-width:0"><b style="color:var(--teal-d)">'+ev.id+'</b> · '+(ev.programme||'?')+
+        ' · séries '+ev.serie_min+' → '+ev.serie_max+
+        (ev.date_tournoi?' · 🔐 '+ev.date_tournoi:' · QR à vie')+
+        '<br><span style="color:var(--muted)">'+(ev.nom||'')+' · créé le '+(ev.cree_le||'').slice(0,10)+'</span></div>'+
+        '<button onclick="preRemplirResurrection(\''+ev.id+'\','+ev.serie_min+','+ev.serie_max+',\''+(ev.date_tournoi||'')+'\',\''+String(ev.nom||'').replace(/'/g,'')+'\')" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:.35rem .7rem;font-size:.72rem;cursor:pointer;flex-shrink:0">🚑 Pré-remplir</button>';
+      liste.appendChild(div);
+    });
+  }catch(e){ liste.innerHTML='<p style="color:var(--coral);font-size:.82rem">Erreur réseau</p>'; }
+}
+function preRemplirResurrection(id,smin,smax,dt,nom){
+  document.getElementById('resc-id').value=id;
+  document.getElementById('resc-min').value=smin;
+  document.getElementById('resc-max').value=smax;
+  document.getElementById('resc-date').value=dt||'';
+  document.getElementById('resc-nom').value=nom||'';
+  const msg=document.getElementById('resc-msg');
+  msg.style.color='var(--teal)'; msg.textContent='Formulaire pré-rempli pour '+id+' — clique « Ressusciter » pour confirmer.';
+  document.getElementById('resc-id').scrollIntoView({behavior:'smooth',block:'center'});
+}
 async function adminRessusciter(){
   const id=document.getElementById('resc-id').value.trim().toUpperCase();
   const smin=parseInt(document.getElementById('resc-min').value||'1');
@@ -708,7 +743,7 @@ async function adminLogin(){
   const code=document.getElementById('admin-code').value;
   const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
   const d=await r.json();
-  if(d.ok){ document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-panel').classList.remove('hidden'); chargerClients(); chargerCommandes(); }
+  if(d.ok){ document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-panel').classList.remove('hidden'); chargerClients(); chargerCommandes(); adminHistorique(); }
   else document.getElementById('admin-login-msg').textContent="Code incorrect.";
 }
 async function chargerCommandes(){
