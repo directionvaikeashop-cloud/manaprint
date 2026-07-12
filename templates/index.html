@@ -43,7 +43,10 @@
     <div class="display" style="font-size:1.4rem;font-weight:600"><span style="color:var(--teal)">Mana</span>print</div>
     <span class="mono" data-i18n="nav_sub" style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Générateur de cartes</span>
   </div>
-  <button id="lang-toggle" class="lang-btn" onclick="toggleLang()">🇬🇧 English</button>
+  <div style="display:flex;align-items:center;gap:.8rem">
+    <button onclick="afficherPanier()" title="Mon panier" style="background:none;border:none;cursor:pointer;font-size:1.25rem;position:relative;padding:.2rem">🛒<span id="panier-badge" style="display:none;position:absolute;top:-4px;right:-8px;background:var(--coral);color:#fff;border-radius:999px;font-size:.62rem;font-weight:700;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 3px">0</span></button>
+    <button id="lang-toggle" class="lang-btn" onclick="toggleLang()">🇬🇧 English</button>
+  </div>
 </nav>
 <div class="wrap">
 
@@ -193,7 +196,10 @@
         <p style="font-size:.8rem;color:var(--teal-d);margin-top:.4rem;line-height:1.5;font-weight:500">💡 <span data-i18n="part_3f">Prix tout compris PDF + impression chez ton partenaire : ÉCO 6 F (N&B) / 10 F (Couleur) · PREMIUM 10 F (N&B) / 14 F (Couleur) la feuille.</span></p>
       </div>
 
-      <button class="btn" id="gen-cmd-btn" data-i18n="btn_commander" onclick="commander()">Passer commande</button>
+      <div style="display:flex;gap:.7rem;flex-wrap:wrap">
+        <button class="btn" id="gen-cmd-btn" data-i18n="btn_commander" onclick="commander()" style="flex:1;min-width:170px">Passer commande</button>
+        <button class="btn" id="gen-panier-btn" data-i18n="btn_panier" onclick="ajouterPanier()" style="flex:1;min-width:170px;background:var(--coral)">🛒 Ajouter au panier</button>
+      </div>
       <p id="gen-cmd-msg" style="margin-top:.8rem;font-size:.85rem;line-height:1.6"></p>
     </div>
 
@@ -207,6 +213,23 @@
       </div>
       <p id="gen-recup-msg" style="margin-top:.8rem;font-size:.85rem"></p>
     </div>
+  </div>
+
+  <!-- 🛒 ÉCRAN PANIER -->
+  <div id="ecran-panier" class="hidden" style="max-width:620px;margin:0 auto">
+    <button onclick="montrer(panierRetour||'ecran-choix')" data-i18n="retour" class="mono" style="background:none;border:none;color:var(--muted);font-size:.85rem;margin-bottom:1.5rem">← Retour</button>
+    <h2 class="display" data-i18n="panier_titre" style="font-size:1.6rem;margin-bottom:.4rem">🛒 Mon panier</h2>
+    <p data-i18n="panier_sous" style="color:var(--muted);font-size:.88rem;margin-bottom:1.4rem;line-height:1.6">Plusieurs jeux, un seul paiement — chaque article garde sa personnalisation, sa date et son imprimeur partenaire.</p>
+    <div id="panier-liste" style="display:flex;flex-direction:column;gap:.6rem;margin-bottom:1rem"></div>
+    <p id="panier-vide" data-i18n="panier_vide" style="color:var(--muted);font-size:.9rem">Ton panier est vide — choisis un jeu et clique « 🛒 Ajouter au panier ».</p>
+    <div id="panier-pied" class="hidden">
+      <p style="font-weight:700;font-size:1.15rem;margin:.6rem 0 1.1rem;text-align:right"><span data-i18n="panier_total">Total</span> : <span id="panier-total" style="color:var(--teal)">0 XPF</span></p>
+      <div style="display:flex;gap:.7rem;flex-wrap:wrap">
+        <button class="btn" id="panier-carte-btn" onclick="payerPanier('stripe')" style="flex:1;min-width:180px" data-i18n="panier_carte">💳 Payer par carte</button>
+        <button class="btn" id="panier-manuel-btn" onclick="payerPanier('manuel')" style="flex:1;min-width:180px;background:var(--muted)" data-i18n="panier_boutique">🏪 Payer en boutique</button>
+      </div>
+    </div>
+    <p id="panier-msg" style="margin-top:1rem;font-size:.88rem;line-height:1.6"></p>
   </div>
 
   <!-- ÉCRAN GESTION (interne, français) -->
@@ -330,6 +353,21 @@ const T = {
  lbl_nbfeuilles:{fr:"Nombre de feuilles",en:"Number of sheets"},
  funco_choice:{fr:"Imprimer chez <b>FUN AND CO</b> (presqu'île). Après validation, ton PDF leur est envoyé pour impression.",en:"Print at <b>FUN AND CO</b> (peninsula). After approval, your PDF is sent to them for printing."},
  btn_commander:{fr:"Passer commande",en:"Place order"},
+ btn_panier:{fr:"🛒 Ajouter au panier",en:"🛒 Add to cart"},
+ panier_titre:{fr:"🛒 Mon panier",en:"🛒 My cart"},
+ panier_sous:{fr:"Plusieurs jeux, un seul paiement — chaque article garde sa personnalisation, sa date et son imprimeur partenaire.",en:"Several games, one single payment — each item keeps its customization, date and print partner."},
+ panier_vide:{fr:"Ton panier est vide — choisis un jeu et clique « 🛒 Ajouter au panier ».",en:"Your cart is empty — pick a game and click “🛒 Add to cart”."},
+ panier_total:{fr:"Total",en:"Total"},
+ panier_carte:{fr:"💳 Payer par carte",en:"💳 Pay by card"},
+ panier_boutique:{fr:"🏪 Payer en boutique",en:"🏪 Pay in store"},
+ panier_retirer:{fr:"Retirer",en:"Remove"},
+ panier_ajoute:{fr:"✓ Ajouté au panier !",en:"✓ Added to cart!"},
+ panier_plein:{fr:"Panier plein (10 articles max).",en:"Cart full (10 items max)."},
+ panier_envoi:{fr:"Préparation du paiement…",en:"Preparing payment…"},
+ panier_redirection:{fr:"Redirection vers le paiement sécurisé…",en:"Redirecting to secure payment…"},
+ panier_reconnecte:{fr:"reconnecte-toi via ton accès (Polynésien / International) puis reviens au panier.",en:"log back in via your access (Polynesian / International) then return to the cart."},
+ paiement_ok:{fr:"✅ Paiement reçu, māuruuru ! Tes commandes sont en fabrication — le PDF part chez ton imprimeur partenaire et ton rapport confidentiel arrive par email.",en:"✅ Payment received, thank you! Your orders are in production — the PDF goes to your print partner and your confidential report arrives by email."},
+ paiement_annule:{fr:"Paiement annulé — ton panier est toujours là, tu peux réessayer quand tu veux.",en:"Payment cancelled — your cart is still here, try again whenever you like."},
  recup_titre:{fr:"Récupérer une commande validée",en:"Retrieve an approved order"},
  recup_desc:{fr:"Une fois ta commande validée par 2KEA, entre son numéro pour télécharger ton PDF.",en:"Once your order is approved by 2KEA, enter its number to download your PDF."},
  ph_cmdid:{fr:"N° de commande",en:"Order number"},
@@ -530,6 +568,96 @@ async function essaiPDF(){
   }catch(e){ msg.style.color="var(--coral)"; msg.textContent=t("msg_erreur_reseau"); }
   btn.disabled=false; btn.textContent=t("btn_essai");
 }
+// ── 🛒 PANIER D'ACHAT ──
+let panierRetour = 'ecran-choix';
+function lirePanier(){ try{ return JSON.parse(localStorage.getItem('mp_panier')||'[]'); }catch(e){ return []; } }
+function ecrirePanier(p){ try{ localStorage.setItem('mp_panier', JSON.stringify(p)); }catch(e){} majBadgePanier(); }
+function majBadgePanier(){
+  const n=lirePanier().length, b=document.getElementById('panier-badge');
+  if(b){ b.textContent=n; b.style.display=n>0?'block':'none'; }
+}
+function prixArticle(a){
+  const gamme=(a.programme||"").indexOf("_p15")>=0?"p15":"eco";
+  const prof=TARIFS[a.origine]||TARIFS.pacific_ink; const tar=prof[gamme]||prof.eco;
+  return (a.couleur?tar.c:tar.nb)*a.nb_feuilles;
+}
+function ajouterPanier(){
+  const msg=document.getElementById('gen-cmd-msg');
+  const perso=collectPerso(msg); if(!perso) return;
+  const nb=parseInt(document.getElementById('gen-nb-feuilles').value)||0;
+  if(nb<1){ msg.style.color="var(--coral)"; msg.textContent=t("nb_invalide"); return; }
+  const sel=document.getElementById('gen-partenaire');
+  const partenaire=sel?sel.value:"";
+  if(!partenaire){ msg.style.color="var(--coral)"; msg.textContent="Choisis un imprimeur partenaire dans la liste."; return; }
+  const jeu=PROGRAMMES.find(function(p){ return p.id===progChoisi; });
+  const p=lirePanier();
+  if(p.length>=10){ msg.style.color="var(--coral)"; msg.textContent=t("panier_plein"); return; }
+  p.push(Object.assign({programme:progChoisi,nb_feuilles:nb,partenaire:partenaire,
+    nomJeu:(jeu?(jeu.emoji+" "+jeu.nom):progChoisi), couleur:(jeu?jeu.couleur:true),
+    origine:origineAcces, partenaireNom:(sel.options[sel.selectedIndex]||{}).text||partenaire}, perso));
+  ecrirePanier(p);
+  msg.style.color="var(--teal)"; msg.textContent=t("panier_ajoute")+" ("+p.length+")";
+}
+function afficherPanier(){
+  const courant=document.querySelector('.wrap > div:not(.hidden)');
+  if(courant && courant.id && courant.id!=='ecran-panier') panierRetour=courant.id;
+  montrer('ecran-panier'); rendrePanier();
+}
+function rendrePanier(){
+  const p=lirePanier(), liste=document.getElementById('panier-liste');
+  const vide=document.getElementById('panier-vide'), pied=document.getElementById('panier-pied');
+  liste.innerHTML=''; let total=0;
+  p.forEach(function(a,i){
+    const prix=prixArticle(a); total+=prix;
+    const div=document.createElement('div');
+    div.style.cssText='background:#fff;border:1px solid var(--line);border-radius:12px;padding:.8rem 1rem;display:flex;justify-content:space-between;align-items:center;gap:.8rem';
+    div.innerHTML='<div style="min-width:0"><p style="font-weight:600;font-size:.92rem">'+a.nomJeu+'</p>'+
+      '<p style="color:var(--muted);font-size:.78rem;line-height:1.5">'+a.nb_feuilles+' feuille(s) · '+(a.titre_jeu||'')+
+      (a.date_tournoi?' · 🔐 '+a.date_tournoi:'')+(a.impression_rapide?' · 🖨️ rapide':'')+' · '+(a.partenaireNom||'')+'</p></div>'+
+      '<div style="text-align:right;flex-shrink:0"><p style="font-weight:700;color:var(--teal)">'+prix+' XPF</p>'+
+      '<button onclick="retirerPanier('+i+')" style="background:none;border:none;color:var(--coral);font-size:.78rem;cursor:pointer;text-decoration:underline">'+t("panier_retirer")+'</button></div>';
+    liste.appendChild(div);
+  });
+  document.getElementById('panier-total').textContent=total+' XPF';
+  vide.classList.toggle('hidden', p.length>0);
+  pied.classList.toggle('hidden', p.length===0);
+}
+function retirerPanier(i){ const p=lirePanier(); p.splice(i,1); ecrirePanier(p); rendrePanier(); }
+async function payerPanier(mode){
+  const msg=document.getElementById('panier-msg');
+  const p=lirePanier(); if(!p.length) return;
+  const b1=document.getElementById('panier-carte-btn'), b2=document.getElementById('panier-manuel-btn');
+  b1.disabled=true; b2.disabled=true;
+  msg.style.color="var(--muted)"; msg.textContent=t("panier_envoi");
+  try{
+    const items=p.map(function(a){ const c=Object.assign({},a); delete c.nomJeu; delete c.couleur; delete c.origine; delete c.partenaireNom; return c; });
+    const r=await fetch('/api/panier/checkout',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({items:items,mode_paiement:mode})});
+    const d=await r.json();
+    if(d.ok && d.mode==='stripe' && d.url){ msg.textContent=t("panier_redirection"); location.href=d.url; return; }
+    if(d.ok){ ecrirePanier([]); rendrePanier(); msg.style.color="var(--teal)"; msg.textContent=d.message; }
+    else{ msg.style.color="var(--coral)"; msg.textContent=d.message||t("msg_erreur");
+      if(r.status===403){ msg.textContent+=" — "+t("panier_reconnecte"); } }
+  }catch(e){ msg.style.color="var(--coral)"; msg.textContent=t("msg_erreur_reseau"); }
+  b1.disabled=false; b2.disabled=false;
+}
+function retourPaiement(){
+  const q=new URLSearchParams(location.search);
+  if(q.get('paiement')==='succes'){
+    ecrirePanier([]);
+    afficherPanier();
+    const msg=document.getElementById('panier-msg');
+    msg.style.color="var(--teal)"; msg.textContent=t("paiement_ok");
+    history.replaceState(null,'',location.pathname);
+  } else if(q.get('paiement')==='annule'){
+    afficherPanier(); rendrePanier();
+    const msg=document.getElementById('panier-msg');
+    msg.style.color="var(--coral)"; msg.textContent=t("paiement_annule");
+    history.replaceState(null,'',location.pathname);
+  }
+}
+majBadgePanier(); retourPaiement();
+
 async function commander(){
   const msg=document.getElementById('gen-cmd-msg');
   const perso=collectPerso(msg); if(!perso) return;
