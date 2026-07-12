@@ -140,8 +140,8 @@ def _dessiner_carte(c, x0, y0, cols_paires, couleur_hex, serie, titre_jeu="", te
     c.setDash()
 
     # Les cases : cercle + petit numéro (colonne N : la case centrale = FREE SPACE)
-    rayon = min(cell_w, cell_h) * 0.30
-    t_cercle, t_petit = 15, 10.5
+    rayon = min(cell_w, cell_h) * 0.34
+    t_cercle, t_petit = 19, 19
     for ci, paires in enumerate(cols_paires):
         idx = 0
         for ri in range(5):
