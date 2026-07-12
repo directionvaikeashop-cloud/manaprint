@@ -48,6 +48,7 @@ from generators import huahine
 from generators import boules40
 from generators import tea
 from generators import ohana75_4series
+from generators import ohana90_4series
 from generators import ohana75_20boules
 
 app = Flask(__name__)
@@ -220,6 +221,7 @@ _enregistrer_paire("huahine",       "HUAHINE",    "⛵", 8,  huahine.generer_pdf
 _enregistrer_paire("boules40",      "40 BOULES",  "🎳", 12, boules40.generer_pdf)
 _enregistrer_paire("tea",           "TEA",        "🍵", 12, tea.generer_pdf)
 _enregistrer_paire("ohana75_4series", "OHANA 75 · 4 séries", "🌺", 4, ohana75_4series.generer_pdf)
+_enregistrer_paire("ohana90_4series", "OHANA 90 · 4 séries", "🌸", 4, ohana90_4series.generer_pdf)
 _enregistrer_paire("ohana20b",      "OHANA 75 · 20 boules","🌺", 5,  ohana75_20boules.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
@@ -646,6 +648,7 @@ _PLAGES_CALLER = {
     "huahine": (1, 90),
     "boules40": (1, 40),
     "tea": (35, 67),
+    "ohana90": (1, 90),
     "ohana20b": (1, 75),
 }
 
