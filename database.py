@@ -541,6 +541,15 @@ def get_evenement(evenement_id):
         return dict(row) if row else None
 
 
+def lister_evenements(limite=200):
+    """📜 L'historique des lots QR : tous les événements générés, du plus récent
+    au plus ancien — la mémoire vivante des générations (registre de résurrection)."""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM evenements ORDER BY cree_le DESC LIMIT ?", (int(limite),)).fetchall()
+        return [dict(r) for r in rows]
+
+
 def verifier_carton(evenement_id, serie, code):
     """Vérifie un carton scanné. Retourne un dict avec un statut clair :
        - INCONNU        : événement absent, ou code invalide (faux carton)
