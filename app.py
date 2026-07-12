@@ -44,6 +44,7 @@ from generators import cerf_volant
 from generators import moorea
 from generators import triple_action_90
 from generators import funday
+from generators import huahine
 from generators import ohana75_20boules
 
 app = Flask(__name__)
@@ -212,6 +213,7 @@ _enregistrer_paire("cerf_volant",   "CERF VOLANT","🪁", 6,  cerf_volant.genere
 _enregistrer_paire("moorea",        "MOOREA",     "🌴", 8,  moorea.generer_pdf)
 _enregistrer_paire("triple_action_90", "TRIPLE ACTION 90", "🎪", 10, triple_action_90.generer_pdf)
 _enregistrer_paire("funday",        "FUNDAY",     "🎈", 20, funday.generer_pdf)
+_enregistrer_paire("huahine",       "HUAHINE",    "⛵", 8,  huahine.generer_pdf)
 _enregistrer_paire("ohana20b",      "OHANA 75 · 20 boules","🌺", 5,  ohana75_20boules.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
@@ -635,6 +637,7 @@ _PLAGES_CALLER = {
     "moorea": (1, 75),
     "triple90": (1, 90),
     "funday": (1, 90),
+    "huahine": (1, 90),
     "ohana20b": (1, 75),
 }
 
@@ -646,6 +649,7 @@ _BOULES_CALLER = {
     "fan90": [n for n in range(1, 11)] + [n for n in range(20, 91)],   # sans le 11 à 19
     "oaoa": [n for n in range(16, 31)] + [n for n in range(61, 76)],   # O 16-30 et A 61-75
     "cerf_volant": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # sans le 31-45
+    "huahine": [n for n in range(1, 16)] + [n for n in range(46, 61)] + [n for n in range(76, 91)],  # 3 familles : 1-15, 46-60, 76-90
 }
 
 
