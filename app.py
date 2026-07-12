@@ -934,16 +934,14 @@ def api_partenaires():
 
 
 # ── COMMANDE — calcul du prix + création ──────────────────────────────────────
-@app.route("/api/commander", methods=["POST"])
-def commander():
-    if "acces" not in session:
-        return jsonify({"ok": False, "message": "Accès non autorisé"}), 403
-
-    data = request.get_json(force=True)
+def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
+    """Valide UNE commande (personnalisation, téléphone, noms réservés, partenaire)
+    et la crée en base. Utilisée par /api/commander (commande seule) ET par le
+    panier d'achat (chaque article du panier passe par les MÊMES contrôles).
+    Retourne (None, resultat) si ok, ou (reponse_json, code_http) si refus."""
     programme = data.get("programme", "triple_action")
     couleur = REGISTRE_JEUX.get(programme, {}).get("couleur", True)
     nb_feuilles = max(1, min(int(data.get("nb_feuilles", 10)), 250))  # plafond : 250 feuilles par commande
-    mode_paiement = data.get("mode_paiement", "manuel")  # 'stripe' | 'manuel'
 
     # Personnalisation OBLIGATOIRE (sécurité)
     nom_evenement = data.get("nom_evenement", "").strip()
@@ -951,16 +949,16 @@ def commander():
     date_lieu = data.get("date_lieu", "").strip()
     telephone = data.get("telephone", "").strip()
     if not nom_evenement or not titre_jeu or not date_lieu or not telephone:
-        return jsonify({"ok": False, "message": "Personnalisation obligatoire : nom du client/association, nom du tournoi, date et numéro de téléphone du responsable."}), 400
+        return (jsonify({"ok": False, "message": "Personnalisation obligatoire : nom du client/association, nom du tournoi, date et numéro de téléphone du responsable."}), 400), None
 
     # Profil polynésien : le téléphone doit être un numéro polynésien (87/88/89/40)
     if session.get("acces") == "polynesien" and not est_numero_polynesien(telephone):
-        return jsonify({"ok": False, "message": "Pour le tarif Polynésien, le téléphone du responsable doit être un numéro polynésien (87, 88, 89 ou 40). Si vous êtes hors Polynésie, utilisez l'accès Client International."}), 400
+        return (jsonify({"ok": False, "message": "Pour le tarif Polynésien, le téléphone du responsable doit être un numéro polynésien (87, 88, 89 ou 40). Si vous êtes hors Polynésie, utilisez l'accès Client International."}), 400), None
 
     # Noms réservés interdits dans la personnalisation
     reserve = contient_nom_reserve(nom_evenement, titre_jeu, date_lieu)
     if reserve:
-        return jsonify({"ok": False, "message": "Ce nom est réservé et ne peut pas être utilisé dans la personnalisation. Merci d'indiquer le nom de votre propre événement."}), 400
+        return (jsonify({"ok": False, "message": "Ce nom est réservé et ne peut pas être utilisé dans la personnalisation. Merci d'indiquer le nom de votre propre événement."}), 400), None
 
     import json as _json
     # 🖨️ Partenaire d'impression OBLIGATOIRE : plus d'auto-impression.
@@ -969,8 +967,8 @@ def commander():
     if not partenaire and data.get("fun_and_co"):
         partenaire = "fun_and_co"  # compatibilité ancienne case
     if partenaire not in PARTENAIRES:
-        return jsonify({"ok": False,
-                        "message": "Choisis un imprimeur partenaire dans la liste."}), 400
+        return (jsonify({"ok": False,
+                         "message": "Choisis un imprimeur partenaire dans la liste."}), 400), None
     params_perso = _json.dumps({
         "theme": data.get("theme", ""),
         "nom_evenement": nom_evenement,
@@ -999,25 +997,163 @@ def commander():
         nb_feuilles=nb_feuilles,
         mode_paiement=mode_paiement,
         params_perso=params_perso,
+        panier_id=panier_id,
     )
+    jeu = REGISTRE_JEUX.get(programme, {})
+    libelle = f"{jeu.get('emoji','')} {jeu.get('nom', programme)} — {nb_feuilles} feuille(s)".strip()
+    return None, {"commande_id": commande_id, "montant": int(montant), "libelle": libelle}
+
+
+# ── 💳 STRIPE (paiement par carte, comme sur Ticket Bingo) ────────────────────
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+
+
+def _base_url():
+    return os.environ.get("MANAPRINT_BASE_URL", request.host_url.rstrip("/"))
+
+
+def _session_stripe_panier(panier_id):
+    """Crée la session de paiement Stripe pour un panier (XPF = devise sans
+    décimales : les montants s'envoient tels quels). Retourne l'URL de paiement."""
+    import stripe
+    stripe.api_key = STRIPE_SECRET_KEY
+    cmds = db.commandes_du_panier(panier_id)
+    line_items, total = [], 0
+    for cmd in cmds:
+        jeu = REGISTRE_JEUX.get(cmd["programme"], {})
+        nom = f"{jeu.get('emoji','')} {jeu.get('nom', cmd['programme'])} — {cmd['nb_feuilles']} feuille(s)".strip()
+        montant = int(cmd["montant"])
+        total += montant
+        line_items.append({
+            "price_data": {"currency": "xpf", "unit_amount": montant,
+                           "product_data": {"name": nom}},
+            "quantity": 1,
+        })
+    s = stripe.checkout.Session.create(
+        mode="payment",
+        line_items=line_items,
+        success_url=_base_url() + "/?paiement=succes",
+        cancel_url=_base_url() + "/?paiement=annule",
+        metadata={"panier_id": str(panier_id)},
+    )
+    db.maj_panier(panier_id, total=total, stripe_session=s.id)
+    return s.url, total
+
+
+@app.route("/api/commander", methods=["POST"])
+def commander():
+    if "acces" not in session:
+        return jsonify({"ok": False, "message": "Accès non autorisé"}), 403
+    data = request.get_json(force=True)
+    mode_paiement = data.get("mode_paiement", "manuel")  # 'stripe' | 'manuel'
+    err, res = _valider_creer_commande(data, mode_paiement=mode_paiement)
+    if err:
+        return err
+    commande_id, montant = res["commande_id"], res["montant"]
 
     # Mode manuel : la commande est en attente de validation par 2KEA
-    montant_aff = int(montant) if float(montant).is_integer() else montant
     if mode_paiement == "manuel":
         return jsonify({
-            "ok": True, "commande_id": commande_id, "montant": montant_aff,
+            "ok": True, "commande_id": commande_id, "montant": montant,
             "mode": "manuel",
-            "message": f"Commande enregistrée ({montant_aff} XPF). Elle sera générée après validation du paiement par 2KEA & Associé.",
+            "message": f"Commande enregistrée ({montant} XPF). Elle sera générée après validation du paiement par 2KEA & Associé.",
         })
 
-    # Mode stripe : à brancher (emplacement prêt)
-    # TODO Stripe : créer une session de paiement et renvoyer l'URL de checkout
-    return jsonify({
-        "ok": True, "commande_id": commande_id, "montant": montant,
-        "mode": "stripe",
-        "message": "Paiement en ligne bientôt disponible. Pour l'instant, choisissez le paiement sur place.",
-        "stripe_pret": False,
-    })
+    # 💳 Mode stripe : mini-panier d'une seule commande -> paiement carte
+    if not STRIPE_SECRET_KEY:
+        return jsonify({"ok": False,
+                        "message": "Le paiement par carte n'est pas encore activé. Choisis le paiement en boutique."}), 400
+    try:
+        panier_id = db.creer_panier(session.get("identifiant"))
+        with db.get_db() as conn:
+            conn.execute("UPDATE commandes SET panier_id = ? WHERE id = ?", (panier_id, commande_id))
+        url, total = _session_stripe_panier(panier_id)
+        return jsonify({"ok": True, "mode": "stripe", "url": url, "montant": total})
+    except Exception as e:
+        print(f"[STRIPE ERREUR] commander : {e}")
+        return jsonify({"ok": False, "message": "Paiement carte momentanément indisponible. Choisis le paiement en boutique."}), 502
+
+
+@app.route("/api/panier/checkout", methods=["POST"])
+def panier_checkout():
+    """🛒 Le panier d'achat : plusieurs jeux, un seul paiement.
+    items = liste de commandes (mêmes champs que /api/commander).
+    mode_paiement = 'stripe' (carte) ou 'manuel' (boutique/virement)."""
+    if "acces" not in session:
+        return jsonify({"ok": False, "message": "Accès non autorisé"}), 403
+    data = request.get_json(force=True, silent=True) or {}
+    items = data.get("items") or []
+    mode_paiement = data.get("mode_paiement", "stripe")
+    if not isinstance(items, list) or not (1 <= len(items) <= 10):
+        return jsonify({"ok": False, "message": "Le panier doit contenir entre 1 et 10 articles."}), 400
+
+    panier_id = db.creer_panier(session.get("identifiant"))
+    resume, total = [], 0
+    for pos, item in enumerate(items, 1):
+        err, res = _valider_creer_commande(item, mode_paiement=mode_paiement, panier_id=panier_id)
+        if err:
+            corps, code = err
+            d = corps.get_json()
+            d["message"] = f"Article {pos} : " + (d.get("message") or "refusé")
+            d["article"] = pos
+            return jsonify(d), code
+        resume.append(res)
+        total += res["montant"]
+
+    if mode_paiement == "manuel":
+        return jsonify({
+            "ok": True, "mode": "manuel", "panier_id": panier_id, "montant": total,
+            "articles": resume,
+            "message": f"Panier enregistré ({len(resume)} article(s), {total} XPF). Il sera généré après validation du paiement par 2KEA & Associé.",
+        })
+
+    if not STRIPE_SECRET_KEY:
+        return jsonify({"ok": False,
+                        "message": "Le paiement par carte n'est pas encore activé. Choisis le paiement en boutique."}), 400
+    try:
+        url, total = _session_stripe_panier(panier_id)
+        return jsonify({"ok": True, "mode": "stripe", "url": url, "montant": total, "panier_id": panier_id})
+    except Exception as e:
+        print(f"[STRIPE ERREUR] checkout : {e}")
+        return jsonify({"ok": False, "message": "Paiement carte momentanément indisponible. Choisis le paiement en boutique."}), 502
+
+
+@app.route("/webhook/stripe", methods=["POST"])
+def webhook_stripe():
+    """💳 Stripe confirme le paiement -> le panier passe payé et la fabrication
+    démarre toute seule pour chaque article (PDF -> partenaire, rapport -> client).
+    Signature vérifiée : personne ne peut simuler un paiement. Idempotent."""
+    import stripe
+    if not STRIPE_WEBHOOK_SECRET:
+        return jsonify({"ok": False, "message": "webhook non configuré"}), 400
+    payload = request.get_data()
+    signature = request.headers.get("Stripe-Signature", "")
+    try:
+        event = stripe.Webhook.construct_event(payload, signature, STRIPE_WEBHOOK_SECRET)
+    except Exception as e:
+        print(f"[STRIPE WEBHOOK] signature refusée : {e}")
+        return jsonify({"ok": False}), 400
+
+    if event["type"] == "checkout.session.completed":
+        sess = event["data"]["object"]
+        # ⚠️ SDK Stripe v15 : StripeObject n'est plus un dict (.get = piège !) ->
+        # accès par CROCHETS uniquement (leçon apprise sur Ticket Bingo).
+        try:
+            panier_id = int(sess["metadata"]["panier_id"])
+        except Exception:
+            panier_id = 0
+        if panier_id:
+            cmds = db.marquer_panier_payee(panier_id)
+            if cmds is None:
+                print(f"[STRIPE WEBHOOK] panier {panier_id} introuvable")
+            elif not cmds:
+                print(f"[STRIPE WEBHOOK] panier {panier_id} déjà traité (webhook doublon)")
+            else:
+                for cmd in cmds:
+                    nom_part = lancer_fabrication(cmd["id"])
+                    print(f"[STRIPE PAYE] commande {cmd['id']} du panier {panier_id} -> fabrication ({nom_part or 'sans partenaire ?'})")
+    return jsonify({"ok": True})
 
 
 # ── GÉNÉRATION PAYÉE — réservée aux commandes validées ────────────────────────
@@ -1133,6 +1269,116 @@ def admin_machines():
 
 
 # ── COMMANDES À VALIDER (paiement manuel) ─────────────────────────────────────
+def lancer_fabrication(commande_id):
+    """🏭 FABRICATION EN ARRIÈRE-PLAN — partagée entre la validation manuelle (2KEA)
+    et le paiement par carte (webhook Stripe). Les grosses commandes (des centaines
+    de feuilles + sécurité) prennent plusieurs minutes : on fabrique dans un thread,
+    le PDF part chez le partenaire, le rapport confidentiel chez l'organisateur.
+    Retourne le nom du partenaire (ou '' si aucun partenaire valide)."""
+    import json as _json
+    cmd = db.get_commande(commande_id)
+    if not cmd:
+        return ""
+    perso = _json.loads(cmd["params_perso"] or "{}")
+    pid = perso.get("partenaire") or ("fun_and_co" if perso.get("fun_and_co") else "")
+    if not pid or pid not in PARTENAIRES:
+        return ""
+    part = PARTENAIRES[pid]
+
+    def _fabriquer_et_envoyer():
+        try:
+            cpf = CARTES_PAR_FEUILLE.get(cmd["programme"], 10)
+            nb_cartes = cmd["nb_feuilles"] * cpf
+            evenement_id = ""
+            try:
+                evenement_id = _nouvel_evenement_id(cmd["programme"])
+                db.creer_evenement(
+                    evenement_id=evenement_id,
+                    nom=perso.get("titre_jeu", "") or perso.get("nom_evenement", "") or "Événement",
+                    identifiant=cmd["identifiant"], programme=cmd["programme"],
+                    serie_min=1, serie_max=nb_cartes,
+                    date_tournoi=perso.get("date_tournoi", ""),
+                    couleur_qr=perso.get("couleur_qr", ""),
+                )
+            except Exception:
+                evenement_id = ""
+            # 🖨️ MODE BOUTIQUE RAPIDE : sans microtexte (QR conservé) si demandé.
+            # Le drapeau est isolé au thread de fabrication -> aucune fuite ailleurs.
+            try:
+                from generators import securite as _secm
+                _secm.activer_mode_rapide(bool(perso.get("impression_rapide")))
+            except Exception:
+                pass
+            try:
+                pdf = generer_jeu(cmd["programme"], nb_cartes, bool(cmd["couleur"]), perso,
+                                  evenement_id=evenement_id)
+            finally:
+                try:
+                    _secm.activer_mode_rapide(False)
+                except Exception:
+                    pass
+            sujet = f"MANAPRINT — Commande #{commande_id} à imprimer"
+            corps = (
+                f"Bonjour {part['nom']},\n\n"
+                f"Une nouvelle commande validée est à imprimer ({part['zone']}) :\n\n"
+                f"  • Client : {cmd['identifiant']}\n"
+                f"  • Événement : {perso.get('nom_evenement','')}\n"
+                f"  • Jeu : {cmd['programme']} — {cmd['nb_feuilles']} feuille(s)\n"
+                f"  • Téléphone du responsable : {perso.get('telephone','')}\n\n"
+                "Le PDF prêt à imprimer est en pièce jointe.\n\n"
+                "— MANAPRINT / 2KEA & Associé"
+            )
+            # 📋🤫 le compte-rendu confidentiel série -> couleur
+            try:
+                rapport = _rapport_confidentiel(commande_id, cmd, perso,
+                                                evenement_id, nb_cartes)
+            except Exception:
+                rapport = None
+            email_cli = (perso.get("email_organisateur") or "").strip()
+            if email_cli and rapport is not None:
+                # 🖨️ l'imprimeur ne reçoit QUE les cartons...
+                ok, m = envoyer_email_pdf(part["email"], sujet, corps, pdf,
+                                          f"manaprint_cmd{commande_id}.pdf",
+                                          copie=SMTP_USER or None)
+                # 📧 ...et l'ORGANISATEUR reçoit son rapport confidentiel
+                corps_cli = (
+                    f"Bonjour,\n\n"
+                    f"Votre commande MANAPRINT #{commande_id} est validée "
+                    f"({cmd['programme']} — {cmd['nb_feuilles']} feuille(s)).\n\n"
+                    "\u26a0\ufe0f En pièce jointe : votre RAPPORT CONFIDENTIEL — la grille\n"
+                    "de contrôle des couleurs de vos cartons.\n"
+                    "\u00c0 garder pour vous : ne le montrez JAMAIS aux joueurs.\n"
+                    "Au scan de chaque carton gagnant, la pastille de couleur affichée\n"
+                    "doit correspondre à cette grille.\n\n"
+                    "— MANAPRINT / 2KEA & Associé — manaprint.app"
+                )
+                ok2, m2 = envoyer_email_pdf(
+                    email_cli,
+                    f"MANAPRINT — Rapport CONFIDENTIEL — commande #{commande_id}",
+                    corps_cli, rapport,
+                    f"CONFIDENTIEL_couleurs_cmd{commande_id}.pdf",
+                    copie=SMTP_USER or None)
+                print(f"[RAPPORT CONFIDENTIEL] cmd {commande_id} -> {email_cli} : {ok2} ({m2})")
+            else:
+                # repli (pas d'email client) : le rapport voyage avec les cartons
+                ok, m = envoyer_email_pdf(part["email"], sujet, corps, pdf,
+                                          f"manaprint_cmd{commande_id}.pdf",
+                                          copie=SMTP_USER or None,
+                                          pdf2_io=rapport,
+                                          nom2_fichier=f"CONFIDENTIEL_couleurs_cmd{commande_id}.pdf")
+            if ok:
+                db.marquer_commande_generee(commande_id)
+                print(f"[FABRICATION OK] commande {commande_id} envoyée à {part['nom']}")
+            else:
+                print(f"[FABRICATION ECHEC ENVOI] commande {commande_id} : {m}")
+        except Exception as e:
+            print(f"[FABRICATION ERREUR] commande {commande_id} : {e}")
+
+    import threading as _th
+    _th.Thread(target=_fabriquer_et_envoyer, daemon=True).start()
+    return part["nom"]
+
+
 @app.route("/api/admin/commandes", methods=["GET"])
 @admin_requis
 def admin_commandes():
@@ -1146,111 +1392,9 @@ def admin_valider_commande(commande_id):
     if not cmd:
         return jsonify({"ok": False, "message": "Commande introuvable"}), 404
     db.marquer_commande_payee(commande_id)
-    # Impression chez un partenaire : générer le PDF et l'envoyer par email au partenaire choisi
-    import json as _json
-    perso = _json.loads(cmd["params_perso"] or "{}")
-    pid = perso.get("partenaire") or ("fun_and_co" if perso.get("fun_and_co") else "")
-    info = ""
-    if pid and pid in PARTENAIRES:
-        part = PARTENAIRES[pid]
-
-        # 🏭 FABRICATION EN ARRIÈRE-PLAN : les grosses commandes (des centaines de
-        # feuilles + microtexte de sécurité) prennent plusieurs minutes. On répond
-        # IMMÉDIATEMENT au navigateur (fini « Erreur réseau ») et la fabrication +
-        # l'envoi au partenaire continuent tranquillement côté serveur.
-        def _fabriquer_et_envoyer():
-            try:
-                cpf = CARTES_PAR_FEUILLE.get(cmd["programme"], 10)
-                nb_cartes = cmd["nb_feuilles"] * cpf
-                evenement_id = ""
-                try:
-                    evenement_id = _nouvel_evenement_id(cmd["programme"])
-                    db.creer_evenement(
-                        evenement_id=evenement_id,
-                        nom=perso.get("titre_jeu", "") or perso.get("nom_evenement", "") or "Événement",
-                        identifiant=cmd["identifiant"], programme=cmd["programme"],
-                        serie_min=1, serie_max=nb_cartes,
-                        date_tournoi=perso.get("date_tournoi", ""),
-                        couleur_qr=perso.get("couleur_qr", ""),
-                    )
-                except Exception:
-                    evenement_id = ""
-                # 🖨️ MODE BOUTIQUE RAPIDE : sans microtexte (QR conservé) si demandé.
-                # Le drapeau est isolé au thread de fabrication -> aucune fuite ailleurs.
-                try:
-                    from generators import securite as _secm
-                    _secm.activer_mode_rapide(bool(perso.get("impression_rapide")))
-                except Exception:
-                    pass
-                try:
-                    pdf = generer_jeu(cmd["programme"], nb_cartes, bool(cmd["couleur"]), perso,
-                                      evenement_id=evenement_id)
-                finally:
-                    try:
-                        _secm.activer_mode_rapide(False)
-                    except Exception:
-                        pass
-                sujet = f"MANAPRINT — Commande #{commande_id} à imprimer"
-                corps = (
-                    f"Bonjour {part['nom']},\n\n"
-                    f"Une nouvelle commande validée est à imprimer ({part['zone']}) :\n\n"
-                    f"  • Client : {cmd['identifiant']}\n"
-                    f"  • Événement : {perso.get('nom_evenement','')}\n"
-                    f"  • Jeu : {cmd['programme']} — {cmd['nb_feuilles']} feuille(s)\n"
-                    f"  • Téléphone du responsable : {perso.get('telephone','')}\n\n"
-                    "Le PDF prêt à imprimer est en pièce jointe.\n\n"
-                    "— MANAPRINT / 2KEA & Associé"
-                )
-                # 📋🤫 le compte-rendu confidentiel série -> couleur
-                try:
-                    rapport = _rapport_confidentiel(commande_id, cmd, perso,
-                                                    evenement_id, nb_cartes)
-                except Exception:
-                    rapport = None
-                email_cli = (perso.get("email_organisateur") or "").strip()
-                if email_cli and rapport is not None:
-                    # 🖨️ l'imprimeur ne reçoit QUE les cartons...
-                    ok, m = envoyer_email_pdf(part["email"], sujet, corps, pdf,
-                                              f"manaprint_cmd{commande_id}.pdf",
-                                              copie=SMTP_USER or None)
-                    # 📧 ...et l'ORGANISATEUR reçoit son rapport confidentiel
-                    corps_cli = (
-                        f"Bonjour,\n\n"
-                        f"Votre commande MANAPRINT #{commande_id} est validée "
-                        f"({cmd['programme']} — {cmd['nb_feuilles']} feuille(s)).\n\n"
-                        "\u26a0\ufe0f En pièce jointe : votre RAPPORT CONFIDENTIEL — la grille\n"
-                        "de contrôle des couleurs de vos cartons.\n"
-                        "\u00c0 garder pour vous : ne le montrez JAMAIS aux joueurs.\n"
-                        "Au scan de chaque carton gagnant, la pastille de couleur affichée\n"
-                        "doit correspondre à cette grille.\n\n"
-                        "— MANAPRINT / 2KEA & Associé — manaprint.app"
-                    )
-                    ok2, m2 = envoyer_email_pdf(
-                        email_cli,
-                        f"MANAPRINT — Rapport CONFIDENTIEL — commande #{commande_id}",
-                        corps_cli, rapport,
-                        f"CONFIDENTIEL_couleurs_cmd{commande_id}.pdf",
-                        copie=SMTP_USER or None)
-                    print(f"[RAPPORT CONFIDENTIEL] cmd {commande_id} -> {email_cli} : {ok2} ({m2})")
-                else:
-                    # repli (pas d'email client) : le rapport voyage avec les cartons
-                    ok, m = envoyer_email_pdf(part["email"], sujet, corps, pdf,
-                                              f"manaprint_cmd{commande_id}.pdf",
-                                              copie=SMTP_USER or None,
-                                              pdf2_io=rapport,
-                                              nom2_fichier=f"CONFIDENTIEL_couleurs_cmd{commande_id}.pdf")
-                if ok:
-                    db.marquer_commande_generee(commande_id)
-                    print(f"[FABRICATION OK] commande {commande_id} envoyée à {part['nom']}")
-                else:
-                    print(f"[FABRICATION ECHEC ENVOI] commande {commande_id} : {m}")
-            except Exception as e:
-                print(f"[FABRICATION ERREUR] commande {commande_id} : {e}")
-
-        import threading as _th
-        _th.Thread(target=_fabriquer_et_envoyer, daemon=True).start()
-        info = (f" Le PDF est en fabrication et sera envoyé automatiquement à {part['nom']}"
-                " (plusieurs minutes pour les grosses commandes).")
+    nom_part = lancer_fabrication(commande_id)
+    info = (f" Le PDF est en fabrication et sera envoyé automatiquement à {nom_part}"
+            " (plusieurs minutes pour les grosses commandes).") if nom_part else ""
     return jsonify({"ok": True, "message": "Commande validée." + info})
 
 
