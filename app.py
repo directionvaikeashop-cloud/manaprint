@@ -83,6 +83,15 @@ PARTENAIRES = {
         "zone": "Faaa (Tahiti)",
         "tel": "",
     },
+    "ranihei": {
+        "nom": "RANIHEI",
+        "email": os.environ.get("RANIHEI_EMAIL", "tetuanuiheini@gmail.com"),
+        "zone": "Raiatea",
+        "tel": "87 77 39 19 · 87 27 62 26",
+        # 💡 Modèle spécial : la plateforme ne facture que le PDF (1,5 F la feuille) —
+        # l'impression se règle DIRECTEMENT avec RANIHEI.
+        "prix_pdf_seul": 1.5,
+    },
 }
 
 def envoyer_email_pdf(destinataire, sujet, corps, pdf_io, nom_fichier, copie=None,
@@ -952,7 +961,8 @@ def api_jeux():
 def api_partenaires():
     """Liste des points d'impression partenaires (pour le menu déroulant)."""
     return jsonify({"ok": True, "partenaires": [
-        {"id": k, "nom": v["nom"], "zone": v["zone"], "tel": v["tel"]}
+        {"id": k, "nom": v["nom"], "zone": v["zone"], "tel": v["tel"],
+         "prix_pdf_seul": v.get("prix_pdf_seul")}
         for k, v in PARTENAIRES.items()
     ]})
 
@@ -1013,6 +1023,9 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
         "impression_rapide": bool(data.get("impression_rapide")),
     })
 
+    # 💡 Tarif spécial partenaire (ex. RANIHEI : PDF seul à 1,5 F —
+    # l'impression se règle directement avec le partenaire)
+    prix_special = PARTENAIRES[partenaire].get("prix_pdf_seul")
     commande_id, montant = db.creer_commande(
         identifiant=session.get("identifiant"),
         origine=session["acces"],
@@ -1022,6 +1035,7 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
         mode_paiement=mode_paiement,
         params_perso=params_perso,
         panier_id=panier_id,
+        prix_feuille=prix_special,
     )
     jeu = REGISTRE_JEUX.get(programme, {})
     libelle = f"{jeu.get('emoji','')} {jeu.get('nom', programme)} — {nb_feuilles} feuille(s)".strip()
