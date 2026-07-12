@@ -1398,6 +1398,13 @@ def admin_valider_commande(commande_id):
     return jsonify({"ok": True, "message": "Commande validée." + info})
 
 
+@app.route("/api/admin/evenements", methods=["GET"])
+@admin_requis
+def admin_evenements():
+    """📜 Historique des lots QR — le registre de résurrection, tout prêt."""
+    return jsonify({"ok": True, "evenements": db.lister_evenements()})
+
+
 @app.route("/api/admin/evenements/redeclarer", methods=["POST"])
 @admin_requis
 def admin_redeclarer_evenement():
