@@ -46,6 +46,7 @@ from generators import triple_action_90
 from generators import funday
 from generators import huahine
 from generators import boules40
+from generators import tea
 from generators import ohana75_20boules
 
 app = Flask(__name__)
@@ -216,6 +217,7 @@ _enregistrer_paire("triple_action_90", "TRIPLE ACTION 90", "🎪", 10, triple_ac
 _enregistrer_paire("funday",        "FUNDAY",     "🎈", 20, funday.generer_pdf)
 _enregistrer_paire("huahine",       "HUAHINE",    "⛵", 8,  huahine.generer_pdf)
 _enregistrer_paire("boules40",      "40 BOULES",  "🎳", 12, boules40.generer_pdf)
+_enregistrer_paire("tea",           "TEA",        "🍵", 12, tea.generer_pdf)
 _enregistrer_paire("ohana20b",      "OHANA 75 · 20 boules","🌺", 5,  ohana75_20boules.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
@@ -641,6 +643,7 @@ _PLAGES_CALLER = {
     "funday": (1, 90),
     "huahine": (1, 90),
     "boules40": (1, 40),
+    "tea": (35, 67),
     "ohana20b": (1, 75),
 }
 
