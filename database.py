@@ -375,9 +375,15 @@ def incrementer_essai(identifiant):
 
 
 # ── COMMANDES ─────────────────────────────────────────────────────────────────
-def creer_commande(identifiant, origine, programme, couleur, nb_feuilles, mode_paiement, params_perso="", panier_id=None):
-    prix_feuille = prix_feuille_profil(origine, couleur, _gamme_du_programme(programme))
-    montant = prix_feuille * nb_feuilles
+def creer_commande(identifiant, origine, programme, couleur, nb_feuilles, mode_paiement, params_perso="", panier_id=None,
+                   prix_feuille=None):
+    """prix_feuille : tarif imposé (ex. partenaire « PDF seul » à 1,5 F) —
+    sinon la grille normale du profil s'applique. Le montant est arrondi au
+    franc SUPÉRIEUR (le XPF n'a pas de centimes, et Stripe l'exige entier)."""
+    import math
+    if prix_feuille is None:
+        prix_feuille = prix_feuille_profil(origine, couleur, _gamme_du_programme(programme))
+    montant = int(math.ceil(prix_feuille * nb_feuilles))
     statut = "en_attente"
     with get_db() as conn:
         cur = conn.execute(
