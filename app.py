@@ -57,6 +57,7 @@ from generators import ohana75_20boules
 from generators import wiz
 from generators import wow6
 from generators import ino
+from generators import bi75
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
@@ -252,6 +253,7 @@ _enregistrer_paire("ohana20b",      "OHANA 75 · 20 boules","🌺", 5,  ohana75_
 _enregistrer_paire("wiz",           "WIZ 4 boules","🧙", 12, wiz.generer_pdf)
 _enregistrer_paire("wow6",          "WOW 6 boules","🌟", 12, wow6.generer_pdf)
 _enregistrer_paire("ino",           "INO 5 boules","🥥", 12, ino.generer_pdf)
+_enregistrer_paire("bi75",          "BI 75",       "💙", 18, bi75.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
 
@@ -686,6 +688,7 @@ _PLAGES_CALLER = {
     "wiz": (1, 45),
     "wow6": (30, 59),
     "ino": (16, 75),
+    "bi75": (1, 75),
 }
 
 
@@ -701,6 +704,7 @@ _BOULES_CALLER = {
     "igo": [n for n in range(16, 31)] + [n for n in range(46, 76)],  # I 16-30 · G 46-60 · O 61-75
     "moon": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # M·O·O·N — le 31-45 n'existe pas
     "ino": [n for n in range(16, 46)] + [n for n in range(61, 76)],  # I 16-30 · N 31-45 · O 61-75 — le 46-60 n'existe pas
+    "bi75": [n for n in range(1, 31)] + [n for n in range(61, 76)],  # B 1-15 · I 16-30 · 75 61-75 — le 31-60 n'existe pas
 }
 
 
