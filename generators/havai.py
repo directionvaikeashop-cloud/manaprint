@@ -135,7 +135,7 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
         c.line(xx, y0 + FOOT_H, xx, grid_top)
 
     # Numéros (les cases vides restent propres, sans croix)
-    taille = 26
+    taille = 33  # gros chiffres bien visibles
     for (ri, ci), n in carte.items():
         cx = x0 + (ci + 0.5) * cell_w
         bas = grid_top - (ri + 1) * cell_h
