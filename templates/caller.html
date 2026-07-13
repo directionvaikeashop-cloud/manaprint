@@ -214,7 +214,8 @@ const JEUX = {
   "ohana20b":    { nom: "OHANA 75 \u00b7 20 boules \ud83c\udf3a (1-75)", min: 1, max: 75, lettres: "" },
   "wiz":         { nom: "WIZ \ud83e\uddd9 4 boules (1-45)", min: 1, max: 45, lettres: "" },
   "wow6":        { nom: "WOW 6 \ud83c\udf1f (30-59)", min: 30, max: 59, lettres: "" },
-  "ino":         { nom: "INO \ud83e\udd65 5 boules (16-45 \u00b7 61-75)", min: 16, max: 75, lettres: "INO", boules: [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75] },
+  "ino":         { nom: "INO \ud83e\udd65 5 boules (16-45 \u00b7 61-75)", min: 16, max: 75, lettres: "-IN-O", boules: [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75] },
+  "bi75":        { nom: "BI 75 \ud83d\udc99 (1-30 \u00b7 61-75)", min: 1, max: 75, lettres: "BI", boules: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75] },
   "flash90":     { nom: "FLASH QUINES 90",     min: 1, max: 90, lettres: "" },
   "quines90":    { nom: "QUINES 90",           min: 1, max: 90, lettres: "" },
 };
@@ -243,9 +244,10 @@ function changerJeu() {
 
 function lettrePour(n) {
   const j = JEUX[jeuActuel];
-  if (!j.lettres || j.max !== 75) return "";
+  if (!j.lettres || (j.max !== 75 && j.max !== 90)) return "";
   const idx = Math.floor((n - 1) / 15);
-  return j.lettres[idx] || "";
+  const L = j.lettres[idx] || "";
+  return L === "-" ? "" : L;
 }
 
 // Tirage 100% SERVEUR : l'organisateur ne choisit rien, tout est horodaté et journalisé.
