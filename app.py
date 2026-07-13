@@ -58,7 +58,7 @@ app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-pro
 import smtplib
 from email.message import EmailMessage
 
-FUN_AND_CO_EMAIL = os.environ.get("FUN_AND_CO_EMAIL", "funandco.24@gmail.com")
+FUN_AND_CO_EMAIL = os.environ.get("FUN_AND_CO_EMAIL", "funandco24@gmail.com")
 SMTP_USER = os.environ.get("SMTP_USER", "")   # ex: ton.compte@gmail.com
 SMTP_PASS = os.environ.get("SMTP_PASS", "")   # mot de passe d'application Gmail
 
@@ -76,12 +76,18 @@ PARTENAIRES = {
         "email": FUN_AND_CO_EMAIL,
         "zone": "Presqu'île (Tahiti Iti)",
         "tel": "87 26 73 24",
+        # 💡 Mêmes conditions que RANIHEI : PDF 1,5 F (2KEA & Associé) —
+        # tarif d'impression à demander directement au partenaire.
+        "prix_pdf_seul": 1.5,
     },
     "cocotie_mer": {
         "nom": "COCOTIE MER",
         "email": os.environ.get("COCOTIE_MER_EMAIL", "teagai10.fariki08@gmail.com"),
         "zone": "Faaa (Tahiti)",
         "tel": "",
+        # 💡 Mêmes conditions que RANIHEI : PDF 1,5 F (2KEA & Associé) —
+        # tarif d'impression à demander directement au partenaire.
+        "prix_pdf_seul": 1.5,
     },
     "ranihei": {
         "nom": "RANIHEI",
