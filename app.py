@@ -59,6 +59,7 @@ from generators import wow6
 from generators import ino
 from generators import bi75
 from generators import bin6
+from generators import facture
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
@@ -1540,6 +1541,90 @@ def admin_sante():
         s["message"] = ("BASE ÉPHÉMÈRE : tout sera PERDU au prochain déploiement ! "
                         "Sur Railway : attache un Volume (Mount Path /data) et crée la variable MANAPRINT_DB=/data/manaprint.db.")
     return jsonify({"ok": True, "sante": s})
+
+
+@app.route("/api/admin/facture-partenaire", methods=["GET"])
+@admin_requis
+def admin_facture_partenaire():
+    """🧾 FACTURE PARTENAIRE : le dû à 2KEA & Associé pour un mois donné.
+    Ne compte QUE les commandes « paiement en boutique » (mode manuel) validées
+    ou générées — les paiements carte arrivent déjà directement chez 2KEA via Stripe."""
+    import re as _re
+    import json as _json
+    pid = (request.args.get("partenaire", "") or "").strip()
+    mois = (request.args.get("mois", "") or "").strip()   # AAAA-MM
+    if pid not in PARTENAIRES:
+        return jsonify({"ok": False, "message": "Partenaire inconnu."}), 400
+    if not _re.match(r"^\d{4}-\d{2}$", mois):
+        return jsonify({"ok": False, "message": "Mois invalide (format AAAA-MM)."}), 400
+
+    part = PARTENAIRES[pid]
+    lignes, total = [], 0
+    with db.get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM commandes WHERE cree_le LIKE ? AND mode_paiement = 'manuel' "
+            "AND statut IN ('payee','generee') ORDER BY id",
+            (mois + "%",)).fetchall()
+    for r in rows:
+        try:
+            perso = _json.loads(r["params_perso"] or "{}")
+        except Exception:
+            perso = {}
+        p = perso.get("partenaire") or ("fun_and_co" if perso.get("fun_and_co") else "")
+        if p != pid:
+            continue
+        jeu = REGISTRE_JEUX.get(r["programme"], {}).get("nom", r["programme"])
+        lignes.append({"date": (r["cree_le"] or "")[:10], "commande": r["id"], "jeu": jeu,
+                       "feuilles": r["nb_feuilles"], "pu": 1.5, "montant": r["montant"]})
+        total += r["montant"]
+
+    if not lignes:
+        return jsonify({"ok": False,
+                        "message": "Aucune commande « paiement en boutique » validée pour %s en %s." % (part["nom"], mois)}), 404
+
+    mois_noms = ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet",
+                 "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
+    mois_label = "%s %s" % (mois_noms[int(mois[5:7])], mois[:4])
+    numero = "F-%s-%s" % (mois.replace("-", ""), pid.upper().replace("_", ""))
+    pdf = facture.generer_facture(numero, mois_label, part, lignes, total)
+    return send_file(pdf, mimetype="application/pdf", as_attachment=True,
+                     download_name="FACTURE_%s.pdf" % numero)
+
+
+@app.route("/api/admin/facture-commande/<int:commande_id>", methods=["GET"])
+@admin_requis
+def admin_facture_commande(commande_id):
+    """🧾 FACTURE À LA COMMANDE : le dû 2KEA & Associé d'UNE commande précise
+    « paiement en boutique » chez un partenaire PDF — éditable dès son arrivée,
+    sans attendre la facture mensuelle. Même modèle, une seule ligne."""
+    import json as _json
+    from datetime import datetime as _dt
+    cmd = db.get_commande(commande_id)
+    if not cmd:
+        return jsonify({"ok": False, "message": "Commande #%s introuvable." % commande_id}), 404
+    if (cmd.get("mode_paiement") or "manuel") != "manuel":
+        return jsonify({"ok": False, "message": "Commande #%s payée par carte : déjà encaissée via Stripe, aucun dû à facturer." % commande_id}), 400
+    try:
+        perso = _json.loads(cmd.get("params_perso") or "{}")
+    except Exception:
+        perso = {}
+    pid = perso.get("partenaire") or ("fun_and_co" if perso.get("fun_and_co") else "")
+    if pid not in PARTENAIRES or not PARTENAIRES[pid].get("prix_pdf_seul"):
+        return jsonify({"ok": False, "message": "Commande #%s : pas chez un partenaire PDF — la facture à la commande sert au dû 1,5 F/feuille des partenaires (FUN AND CO, COCOTIE MER, RANIHEI)." % commande_id}), 400
+    part = PARTENAIRES[pid]
+    jeu = REGISTRE_JEUX.get(cmd["programme"], {}).get("nom", cmd["programme"])
+    date_txt = (cmd.get("cree_le") or "")[:10]
+    try:
+        date_lbl = _dt.fromisoformat(date_txt).strftime("%d/%m/%Y") if date_txt else "?"
+    except Exception:
+        date_lbl = date_txt or "?"
+    ligne = {"date": date_txt, "commande": cmd["id"], "jeu": jeu,
+             "feuilles": cmd["nb_feuilles"], "pu": part.get("prix_pdf_seul", 1.5),
+             "montant": cmd["montant"]}
+    numero = "CMD-%05d" % cmd["id"]
+    pdf = facture.generer_facture(numero, "Commande du %s" % date_lbl, part, [ligne], int(cmd["montant"]))
+    return send_file(pdf, mimetype="application/pdf", as_attachment=False,
+                     download_name="FACTURE_%s.pdf" % numero)
 
 
 @app.route("/api/admin/evenements/redeclarer-lot", methods=["POST"])
