@@ -140,7 +140,7 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
     CASES_BANDEAU = {(3, 1), (3, 2), (3, 3)}
 
     # Cases : numéro (motif TUREIA) ou croisillons
-    taille = 26
+    taille = 33  # gros chiffres bien visibles
     for ri in range(GRID_N):
         for ci in range(GRID_N):
             cx = x0 + (ci + 0.5) * cell_w
