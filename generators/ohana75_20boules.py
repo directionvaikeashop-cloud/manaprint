@@ -95,8 +95,17 @@ def _dessiner_carte(c, x0, y0, rangs, couleur_hex, serie, encre,
     c.rect(x0 + 2 * mm, hdr_y + 0.8 * mm, 16 * mm, HDR_H - 1.6 * mm, stroke=1, fill=0)
     c.setFillColor(GREY); c.setFont("Helvetica", 6)
     c.drawCentredString(x0 + 10 * mm, hdr_y + 2.2 * mm, f"{serie:06d}")
-    titre = titre_jeu[:52] if titre_jeu else \
-        ("Le jeu OHANA 75 pour 20 boules" + (f" by TUKEA {telephone}" if telephone else ""))
+    # Le nom du jeu apparaît TOUJOURS, même avec un titre client
+    if titre_jeu and titre_jeu.strip():
+        if "OHANA" in titre_jeu.strip().upper():
+            titre = titre_jeu.strip()
+        else:
+            titre = "OHANA 75 \u00b7 20 boules  \u2014  " + titre_jeu.strip()
+    else:
+        titre = "Le jeu OHANA 75 pour 20 boules"
+    if telephone:
+        titre += f" by TUKEA {telephone}"
+    titre = titre[:60]
     c.setFillColor(col); c.setFont("Helvetica", 6)
     c.drawCentredString(x0 + CARD_W / 2, hdr_y + 2.2 * mm, titre)
 
