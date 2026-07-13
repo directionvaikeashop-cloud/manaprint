@@ -1080,6 +1080,25 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
     return None, {"commande_id": commande_id, "montant": int(montant), "libelle": libelle}
 
 
+# ── 🔔 LA SONNETTE : notification instantanée à 2KEA, sans jamais ralentir le client ──
+def _sonnette(sujet, corps):
+    """Envoie un email de notification à la plateforme (SMTP_USER), dans un fil
+    séparé : le client n'attend pas, et un échec d'envoi ne casse jamais rien."""
+    if not SMTP_USER or not SMTP_PASS:
+        return
+    import threading as _thn
+
+    def _envoyer():
+        try:
+            ok, m = envoyer_email_simple(SMTP_USER, sujet, corps)
+            if not ok:
+                print(f"[SONNETTE ECHEC] {sujet} : {m}")
+        except Exception as e:
+            print(f"[SONNETTE ERREUR] {sujet} : {e}")
+
+    _thn.Thread(target=_envoyer, daemon=True).start()
+
+
 # ── 💳 STRIPE (paiement par carte, comme sur Ticket Bingo) ────────────────────
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
@@ -1130,6 +1149,11 @@ def commander():
 
     # Mode manuel : la commande est en attente de validation par 2KEA
     if mode_paiement == "manuel":
+        _sonnette("🔔 Nouvelle commande MANAPRINT #%s — %s XPF" % (commande_id, montant),
+                  "Nouvelle commande à valider dans l'Espace gestion :\n\n"
+                  "Commande #%s\n%s\nMontant : %s XPF\nPaiement : en boutique (à valider)\n\n"
+                  "👉 manaprint.app → Espace gestion → Commandes à valider" % (
+                      commande_id, res.get("libelle", ""), montant))
         return jsonify({
             "ok": True, "commande_id": commande_id, "montant": montant,
             "mode": "manuel",
@@ -1178,6 +1202,12 @@ def panier_checkout():
         total += res["montant"]
 
     if mode_paiement == "manuel":
+        _sonnette("🔔 Nouveau panier MANAPRINT #%s — %s article(s) · %s XPF" % (panier_id, len(resume), total),
+                  "Nouveau panier à valider dans l'Espace gestion :\n\n"
+                  "Panier #%s — %s article(s) — total %s XPF\n%s\nPaiement : en boutique (à valider)\n\n"
+                  "👉 manaprint.app → Espace gestion → Commandes à valider" % (
+                      panier_id, len(resume),
+                      total, "\n".join("· " + (r.get("libelle", "") or ("commande #%s" % r.get("commande_id"))) for r in resume)))
         return jsonify({
             "ok": True, "mode": "manuel", "panier_id": panier_id, "montant": total,
             "articles": resume,
@@ -1226,9 +1256,18 @@ def webhook_stripe():
             elif not cmds:
                 print(f"[STRIPE WEBHOOK] panier {panier_id} déjà traité (webhook doublon)")
             else:
+                lignes = []
                 for cmd in cmds:
                     nom_part = lancer_fabrication(cmd["id"])
                     print(f"[STRIPE PAYE] commande {cmd['id']} du panier {panier_id} -> fabrication ({nom_part or 'sans partenaire ?'})")
+                    lignes.append("· commande #%s — %s · %s feuille(s) → %s" % (
+                        cmd["id"], cmd["programme"], cmd["nb_feuilles"],
+                        ("fabrication envoyée à " + nom_part) if nom_part else "à récupérer par le client"))
+                _sonnette("💳 Paiement carte reçu — panier MANAPRINT #%s (%s commande(s))" % (panier_id, len(cmds)),
+                          "Un paiement par carte vient d'être confirmé par Stripe :\n\n"
+                          "Panier #%s — %s commande(s) payée(s)\n%s\n\n"
+                          "Aucune action requise : les fabrications partenaires partent automatiquement." % (
+                              panier_id, len(cmds), "\n".join(lignes)))
     return jsonify({"ok": True})
 
 
