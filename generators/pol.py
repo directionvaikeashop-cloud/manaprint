@@ -111,7 +111,15 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
 
     # En-tête
     hdr_y = y0 + CARD_H - 4 * mm
-    titre = (titre_jeu or "Le jeux POL pour 6 boules")
+    # Le nom du jeu apparaît TOUJOURS (garde : « POLYNÉSIE » contient « POL » mais n'est pas le jeu !)
+    if titre_jeu and titre_jeu.strip():
+        mots = titre_jeu.strip().upper().replace("\u00b7", " ").split()
+        if "POL" in mots:
+            titre = titre_jeu.strip()
+        else:
+            titre = "POL 6 boules  \u2014  " + titre_jeu.strip()
+    else:
+        titre = "Le jeux POL pour 6 boules"
     if telephone:
         titre += " by TUKEA " + telephone
     c.setFillColor(col); c.setFont(POLICE, 5.5)
