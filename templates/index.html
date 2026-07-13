@@ -244,6 +244,7 @@
     </div>
     <div id="admin-panel" class="hidden">
       <!-- Commandes -->
+      <div id="sante-bar" style="display:none;border-radius:12px;padding:.8rem 1rem;margin-bottom:1.4rem;font-size:.85rem;line-height:1.6"></div>
       <h2 class="display" style="font-size:1.4rem;margin-bottom:.4rem">Commandes à valider</h2>
       <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem;line-height:1.6">Valider = paiement reçu. Si « FUN AND CO », le PDF leur est envoyé automatiquement.</p>
       <div id="admin-commandes" style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:2rem"></div>
@@ -274,6 +275,14 @@
         <button class="btn" style="width:auto;padding:0 1.4rem;white-space:nowrap" onclick="adminRessusciter()">Ressusciter</button>
       </div>
       <p id="resc-msg" style="font-size:.82rem;color:var(--teal);margin-bottom:1rem"></p>
+
+      <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">🚑🚑 Résurrection EN LOT</h2>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:.6rem;line-height:1.7">Plusieurs lots à faire revivre d'un coup ? <b>Une ligne par lot</b>, séparée par des points-virgules :<br>
+      <code style="background:#f1f5f4;padding:.15rem .45rem;border-radius:6px">IDENTIFIANT ; série min ; série max ; nom (optionnel)</code><br>
+      Exemple :<br><code style="background:#f1f5f4;padding:.15rem .45rem;border-radius:6px">TK6VZGDW ; 1 ; 3000 ; BOUTIQUE PAPEETE</code></p>
+      <textarea id="resc-lot" rows="6" placeholder="TK6VZGDW ; 1 ; 3000 ; BOUTIQUE PAPEETE&#10;TK7AB2CD ; 1 ; 500 ; TOURNOI TE MANU" style="width:100%;font-family:ui-monospace,monospace;font-size:.82rem;margin-bottom:.6rem;border:1px solid var(--line);border-radius:10px;padding:.7rem"></textarea>
+      <button class="btn" style="width:auto;padding:.6rem 1.6rem" onclick="adminRessusciterLot()">🚑 Tout ressusciter</button>
+      <div id="resc-lot-msg" style="font-size:.82rem;margin-top:.8rem;line-height:1.8"></div>
     </div>
   </div>
 
@@ -755,11 +764,54 @@ async function adminRessusciter(){
   msg.style.color=d.ok?'var(--teal)':'var(--coral)';
   msg.textContent=d.message||'';
 }
+// ── 💾 Voyant de santé de la base (Volume éternel ou conteneur éphémère ?) ──
+async function adminSante(){
+  const bar=document.getElementById('sante-bar'); if(!bar) return;
+  try{
+    const r=await fetch('/api/admin/sante'); const d=await r.json();
+    if(!d.ok||!d.sante) return;
+    const s=d.sante; bar.style.display='block';
+    if(s.verdict==='eternelle'){
+      bar.style.cssText+=';background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46';
+      bar.innerHTML='💾 <b>Base ÉTERNELLE</b> sur le Volume ('+s.chemin+') — '+s.nb_evenements+' lot(s), '+s.nb_commandes+' commande(s). Les données survivent aux déploiements. ✅';
+    }else if(s.verdict==='ephemere'){
+      bar.style.cssText+=';background:#fef2f2;border:2px solid #fca5a5;color:#991b1b';
+      bar.innerHTML='⚠️ <b>BASE ÉPHÉMÈRE</b> ('+s.chemin+') — tout sera <b>PERDU au prochain déploiement</b> ! Sur Railway : attache un Volume (Mount Path <b>/data</b>) et crée la variable <b>MANAPRINT_DB=/data/manaprint.db</b>.';
+    }else{
+      bar.style.cssText+=';background:#fef2f2;border:2px solid #fca5a5;color:#991b1b';
+      bar.innerHTML='🛑 <b>Base INACCESSIBLE</b> — vérifie le Volume et la variable MANAPRINT_DB sur Railway.';
+    }
+  }catch(e){}
+}
+// ── 🚑🚑 Résurrection EN LOT : une ligne = un lot ──
+async function adminRessusciterLot(){
+  const msg=document.getElementById('resc-lot-msg');
+  const lignes=(document.getElementById('resc-lot').value||'').split('\n').map(function(l){return l.trim();}).filter(Boolean);
+  if(!lignes.length){ msg.style.color='var(--coral)'; msg.textContent='Colle au moins une ligne : IDENTIFIANT ; série min ; série max ; nom'; return; }
+  const lots=[], erreurs=[];
+  lignes.forEach(function(l,i){
+    const p=l.split(';').map(function(x){return x.trim();});
+    if(p.length<3||!p[0]){ erreurs.push('ligne '+(i+1)+' : format invalide'); return; }
+    lots.push({evenement_id:p[0].toUpperCase(), serie_min:parseInt(p[1]||'1'), serie_max:parseInt(p[2]||'0'), nom:p[3]||''});
+  });
+  if(erreurs.length){ msg.style.color='var(--coral)'; msg.innerHTML=erreurs.join('<br>'); return; }
+  msg.style.color='var(--muted)'; msg.textContent='Résurrection de '+lots.length+' lot(s)…';
+  try{
+    const r=await fetch('/api/admin/evenements/redeclarer-lot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lots:lots})});
+    const d=await r.json();
+    if(!d.ok){ msg.style.color='var(--coral)'; msg.textContent=d.message||'Erreur'; return; }
+    msg.style.color='inherit';
+    msg.innerHTML='<b>'+d.reussis+' / '+d.total+' lot(s) ressuscité(s)</b><br>'+(d.resultats||[]).map(function(x){
+      return (x.ok?'✅ ':'❌ ')+'<b>'+x.evenement_id+'</b> — '+x.message;
+    }).join('<br>');
+    adminHistorique();
+  }catch(e){ msg.style.color='var(--coral)'; msg.textContent='Erreur réseau'; }
+}
 async function adminLogin(){
   const code=document.getElementById('admin-code').value;
   const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
   const d=await r.json();
-  if(d.ok){ document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-panel').classList.remove('hidden'); chargerClients(); chargerCommandes(); adminHistorique(); }
+  if(d.ok){ document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-panel').classList.remove('hidden'); chargerClients(); chargerCommandes(); adminHistorique(); adminSante(); }
   else document.getElementById('admin-login-msg').textContent="Code incorrect.";
 }
 async function chargerCommandes(){
