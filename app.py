@@ -58,6 +58,7 @@ from generators import wiz
 from generators import wow6
 from generators import ino
 from generators import bi75
+from generators import bin6
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
@@ -254,6 +255,7 @@ _enregistrer_paire("wiz",           "WIZ 4 boules","🧙", 12, wiz.generer_pdf)
 _enregistrer_paire("wow6",          "WOW 6 boules","🌟", 12, wow6.generer_pdf)
 _enregistrer_paire("ino",           "INO 5 boules","🥥", 12, ino.generer_pdf)
 _enregistrer_paire("bi75",          "BI 75",       "💙", 18, bi75.generer_pdf)
+_enregistrer_paire("bin6",          "BIN 6 boules", "🎲", 12, bin6.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
 
@@ -689,6 +691,7 @@ _PLAGES_CALLER = {
     "wow6": (30, 59),
     "ino": (16, 75),
     "bi75": (1, 75),
+    "bin6": (1, 36),
 }
 
 
