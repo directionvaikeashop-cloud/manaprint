@@ -249,6 +249,24 @@
       <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem;line-height:1.6">Valider = paiement reçu. Si « FUN AND CO », le PDF leur est envoyé automatiquement.</p>
       <div id="admin-commandes" style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:2rem"></div>
       <!-- Clients PI -->
+      <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">🧾 Facture partenaire — dû 2KEA & Associé</h2>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:.8rem;line-height:1.6">Pour les commandes réglées <b>en boutique chez un partenaire PDF</b> (1,5 F / feuille) : édite la facture mensuelle du dû. Les paiements par carte n'y figurent pas (déjà encaissés via Stripe).</p>
+      <div style="display:flex;gap:.6rem;margin-bottom:.8rem;flex-wrap:wrap">
+        <select id="fact-part" style="margin-bottom:0;flex:1;min-width:170px">
+          <option value="fun_and_co">FUN AND CO</option>
+          <option value="cocotie_mer">COCOTIE MER</option>
+          <option value="ranihei">RANIHEI</option>
+        </select>
+        <input id="fact-mois" type="month" style="margin-bottom:0;width:170px">
+        <button class="btn" style="width:auto;padding:0 1.4rem;white-space:nowrap" onclick="editerFacture()">🧾 Éditer la facture</button>
+      </div>
+      <div style="display:flex;gap:.6rem;margin-bottom:.6rem;flex-wrap:wrap;align-items:center">
+        <span style="font-size:.85rem;color:var(--muted)">Ou la facture d'<b>une commande précise</b> :</span>
+        <input id="fact-cmd" type="number" min="1" placeholder="N° commande" style="margin-bottom:0;width:130px">
+        <button class="btn" style="width:auto;padding:0 1.2rem;white-space:nowrap" onclick="factureCommande(document.getElementById('fact-cmd').value)">🧾 Éditer</button>
+      </div>
+      <p id="fact-msg" style="font-size:.82rem;color:var(--teal);margin-bottom:1.4rem"></p>
+
       <h2 class="display" style="font-size:1.4rem;margin-bottom:.4rem">Numéros ECO LASER confirmés</h2>
       <div style="display:flex;gap:.6rem;margin-bottom:1rem">
         <input id="admin-num" placeholder="Numéro — ex : 87 12 34 56" style="margin-bottom:0">
@@ -764,6 +782,25 @@ async function adminRessusciter(){
   msg.style.color=d.ok?'var(--teal)':'var(--coral)';
   msg.textContent=d.message||'';
 }
+// ── 🧾 Facture partenaire : le dû mensuel à 2KEA & Associé ──
+async function editerFacture(){
+  const msg=document.getElementById('fact-msg');
+  const pid=document.getElementById('fact-part').value;
+  let mois=document.getElementById('fact-mois').value;
+  if(!mois){ const d=new Date(); mois=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); document.getElementById('fact-mois').value=mois; }
+  msg.style.color='var(--muted)'; msg.textContent='Édition de la facture…';
+  try{
+    const r=await fetch('/api/admin/facture-partenaire?partenaire='+encodeURIComponent(pid)+'&mois='+encodeURIComponent(mois));
+    const ct=r.headers.get('Content-Type')||'';
+    if(r.ok && ct.indexOf('pdf')!==-1){
+      const blob=await r.blob();
+      telecharger(blob,'FACTURE_F-'+mois.replace('-','')+'-'+pid.toUpperCase().replace('_','')+'.pdf');
+      msg.style.color='var(--teal)'; msg.textContent='✓ Facture téléchargée.';
+    }else{
+      const d=await r.json(); msg.style.color='var(--coral)'; msg.textContent=d.message||'Erreur';
+    }
+  }catch(e){ msg.style.color='var(--coral)'; msg.textContent='Erreur réseau'; }
+}
 // ── 💾 Voyant de santé de la base (Volume éternel ou conteneur éphémère ?) ──
 async function adminSante(){
   const bar=document.getElementById('sante-bar'); if(!bar) return;
@@ -807,6 +844,11 @@ async function adminRessusciterLot(){
     adminHistorique();
   }catch(e){ msg.style.color='var(--coral)'; msg.textContent='Erreur réseau'; }
 }
+function factureCommande(id){
+  id = parseInt(id||'0');
+  if(!id){ alert("Entre le numéro de la commande."); return; }
+  window.open('/api/admin/facture-commande/'+id, '_blank');
+}
 async function adminLogin(){
   const code=document.getElementById('admin-code').value;
   const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
@@ -826,7 +868,8 @@ async function chargerCommandes(){
       const div=document.createElement('div');
       div.style.cssText="display:flex;justify-content:space-between;align-items:center;padding:.7rem 1rem;border:1px solid var(--line);border-radius:6px;background:#fff;gap:.6rem";
       div.innerHTML='<span style="font-size:.85rem">#'+c.id+' · '+c.programme+' · '+c.nb_feuilles+' f. · <b>'+c.montant+' XPF</b><span style="color:var(--coral)">'+funco+'</span></span>'
-        +'<button class="btn" style="width:auto;padding:.4rem 1rem;white-space:nowrap" onclick="validerCommande('+c.id+',this)">Valider</button>';
+        +'<span style="display:flex;gap:.4rem;flex-shrink:0"><button class="btn" title="Éditer la facture du dû 2KEA" style="width:auto;padding:.4rem .7rem;white-space:nowrap" onclick="factureCommande('+c.id+')">🧾</button>'
+        +'<button class="btn" style="width:auto;padding:.4rem 1rem;white-space:nowrap" onclick="validerCommande('+c.id+',this)">Valider</button></span>';
       cont.appendChild(div);
     });
   }catch(e){ cont.innerHTML='<p style="color:var(--coral);font-size:.85rem">Erreur de chargement.</p>'; }
