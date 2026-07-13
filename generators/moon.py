@@ -136,7 +136,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
                min(cell_w, row_h) * 0.34, colors.Color(0.90, 0.90, 0.93))
 
     # Les 8 numéros en damier
-    taille = 26
+    taille = 40  # gros chiffres au maximum
     for ci, (nums, rangs) in enumerate(zip(cols_nums, RANGEES)):
         cx = x0 + (ci + 0.5) * cell_w
         for val, ri in zip(nums, rangs):
