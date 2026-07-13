@@ -150,11 +150,12 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
                         pass
                 continue
             cx = x0 + (cc + 0.5) * cell_w
-            cy = grid_top - (r + 0.5) * row_h - 3.5
+            taille = 34  # gros chiffres au maximum
+            cy = grid_top - (r + 0.5) * row_h - taille * 0.36
             if _sec:
-                _sec.chiffre_micro(c, val, cx, cy, 18, gris_ch, police_ch)
+                _sec.chiffre_micro(c, val, cx, cy, taille, gris_ch, police_ch)
             else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, 18)
+                c.setFillColor(gris_ch); c.setFont(police_ch, taille)
                 c.drawCentredString(cx, cy, str(val))
 
     # Pied
