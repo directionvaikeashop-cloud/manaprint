@@ -112,7 +112,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, encre,
     c.setStrokeColor(col); c.setLineWidth(0.4)
     c.line(x0, grid_bot, x0 + CARD_W, grid_bot)
 
-    taille = 21
+    taille = 36  # chiffres bien bien gros
     i_flash = 0
     for ri in range(N_ROWS):
         gauche = (ri % 2 == 0)         # zigzag : pair = numéro à gauche
@@ -122,7 +122,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, encre,
         for ci in range(2):
             cx = x0 + (ci + 0.5) * cell_w
             if ci == ci_num:
-                cy = bas + row_h * 0.26
+                cy = bas + row_h * 0.18
                 if _sec:
                     _sec.chiffre_micro(c, nums[ri], cx, cy, taille, gris_ch, police_ch)
                 else:
@@ -130,7 +130,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, encre,
                     c.drawCentredString(cx, cy, str(nums[ri]))
                 if gauche and i_flash < len(FLASH):
                     c.setFillColor(col); c.setFont("Helvetica", 4.5)
-                    c.drawString(cx + 5.5 * mm, cy - 0.2 * mm, FLASH[i_flash])
+                    c.drawString(cx + 8.2 * mm, cy + 1.2 * mm, FLASH[i_flash])
                     i_flash += 1
             else:
                 # case vide barrée
