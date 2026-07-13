@@ -111,18 +111,19 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
 
     # Rangée des 6 numéros — cercles pointillés sur U, D, Y
     num_base = y0 + PIED_H + (CARD_H - PIED_H - 6 * mm) * 0.34
-    rayon = 4.0 * mm
+    taille = 24  # gros chiffres au maximum
+    rayon = 5.4 * mm  # cercles agrandis avec les chiffres
     for i, val in enumerate(nums):
         cx = zx + (i + 0.5) * cell_w
         if i in CERCLES:
             c.setStrokeColor(col); c.setLineWidth(0.7)
             c.setDash(1.5, 1.5)
-            c.circle(cx, num_base + 5.6, rayon, stroke=1, fill=0)
+            c.circle(cx, num_base + taille * 0.36, rayon, stroke=1, fill=0)
             c.setDash()
         if _sec:  # chiffres "billet de banque" remplis de microtexte
-            _sec.chiffre_micro(c, val, cx, num_base, 16, gris_ch, police_ch)
+            _sec.chiffre_micro(c, val, cx, num_base, taille, gris_ch, police_ch)
         else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, 16)
+            c.setFillColor(gris_ch); c.setFont(police_ch, taille)
             c.drawCentredString(cx, num_base, str(val))
 
     # Pied de carte : « N° SERIE | 050001 » — le titre client vit avec la série
