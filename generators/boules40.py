@@ -146,18 +146,18 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
             for ri, val in enumerate(nums):
                 cyc = z_top - (ri + 0.5) * (z_h / 2)
                 if _sec:  # chiffres "billet de banque" remplis de microtexte
-                    _sec.chiffre_micro(c, val, xs[ci], cyc - 22 * 0.36, 22, gris_ch, police_ch)
+                    _sec.chiffre_micro(c, val, xs[ci], cyc - 26 * 0.36, 26, gris_ch, police_ch)
                 else:
-                    c.setFillColor(gris_ch); c.setFont(police_ch, 22)
-                    c.drawCentredString(xs[ci], cyc - 22 * 0.36, str(val))
+                    c.setFillColor(gris_ch); c.setFont(police_ch, 26)
+                    c.drawCentredString(xs[ci], cyc - 26 * 0.36, str(val))
         else:
             # le GRAND numéro solitaire, pleine hauteur
             cyc = z_bot + z_h / 2
             if _sec:
-                _sec.chiffre_micro(c, nums[0], xs[ci], cyc - 30 * 0.36, 30, gris_ch, police_ch)
+                _sec.chiffre_micro(c, nums[0], xs[ci], cyc - 36 * 0.36, 36, gris_ch, police_ch)
             else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, 30)
-                c.drawCentredString(xs[ci], cyc - 30 * 0.36, str(nums[0]))
+                c.setFillColor(gris_ch); c.setFont(police_ch, 36)
+                c.drawCentredString(xs[ci], cyc - 36 * 0.36, str(nums[0]))
 
     # QR de vérification par carte (anti-duplication) — bande de droite
     if _sec and evenement_id:
