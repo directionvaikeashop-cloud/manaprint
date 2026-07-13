@@ -547,6 +547,23 @@ def get_evenement(evenement_id):
         return dict(row) if row else None
 
 
+def sante():
+    """💾 État de la base : où elle vit, et si elle survivra aux déploiements."""
+    chemin = os.path.abspath(DB_PATH)
+    variable_definie = bool(os.environ.get("MANAPRINT_DB"))
+    sur_volume = chemin.startswith("/data/") and os.path.isdir("/data")
+    try:
+        with get_db() as conn:
+            nb_evenements = conn.execute("SELECT COUNT(*) FROM evenements").fetchone()[0]
+            nb_commandes = conn.execute("SELECT COUNT(*) FROM commandes").fetchone()[0]
+        accessible = True
+    except Exception:
+        nb_evenements, nb_commandes, accessible = -1, -1, False
+    return {"chemin": chemin, "variable_definie": variable_definie,
+            "sur_volume": sur_volume, "accessible": accessible,
+            "nb_evenements": nb_evenements, "nb_commandes": nb_commandes}
+
+
 def lister_evenements(limite=200):
     """📜 L'historique des lots QR : tous les événements générés, du plus récent
     au plus ancien — la mémoire vivante des générations (registre de résurrection)."""
