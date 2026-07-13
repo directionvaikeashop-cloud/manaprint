@@ -55,6 +55,7 @@ from generators import kea
 from generators import moon
 from generators import ohana75_20boules
 from generators import wiz
+from generators import wow6
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
@@ -248,6 +249,7 @@ _enregistrer_paire("kea",           "KEA",        "🌿", 12, kea.generer_pdf)
 _enregistrer_paire("moon",          "MOON",       "🌙", 6,  moon.generer_pdf)
 _enregistrer_paire("ohana20b",      "OHANA 75 · 20 boules","🌺", 5,  ohana75_20boules.generer_pdf)
 _enregistrer_paire("wiz",           "WIZ 4 boules","🧙", 12, wiz.generer_pdf)
+_enregistrer_paire("wow6",          "WOW 6 boules","🌟", 12, wow6.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
 
@@ -680,6 +682,7 @@ _PLAGES_CALLER = {
     "moon": (1, 75),
     "ohana20b": (1, 75),
     "wiz": (1, 45),
+    "wow6": (30, 59),
 }
 
 
