@@ -209,6 +209,10 @@ def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
             c.setFillColor(colors.black); c.setFont(POLICE, 9)
             c.drawCentredString(PAGE_W / 2, PAGE_H - 5 * mm, nom_evenement)
 
+        # Numéro de page — toujours imprimé en haut à droite
+        c.setFillColor(GRIS); c.setFont(POLICE, 7)
+        c.drawRightString(PAGE_W - MARGIN_X, PAGE_H - 5 * mm, "Page %d / %d" % (no_page, nb_pages))
+
         for row in range(ROWS_PAGE):
             for col_i in range(COLS_PAGE):
                 if faites >= nb_cartes:
