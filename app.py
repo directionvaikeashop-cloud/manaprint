@@ -1268,7 +1268,9 @@ def generer_commande(commande_id):
             couleur_qr=perso.get("couleur_qr", ""),
         )
     except Exception:
-        evenement_id = ""  # anti-panne : en cas d'échec, on génère sans QR
+        # 🔊 FIN DU SILENCE : sans lot inscrit en base, les QR imprimés seraient morts.
+        # On refuse la génération et on explique — plutôt qu'un lot fantôme.
+        return jsonify({"ok": False, "message": "⚠️ Impossible d'inscrire le lot QR en base — génération refusée pour protéger la vérification des cartons. Vérifie sur Railway : Volume attaché (/data) + variable MANAPRINT_DB=/data/manaprint.db, puis réessaie."}), 503
 
     # 🖨️ MODE BOUTIQUE RAPIDE : sans microtexte (QR conservé) si demandé.
     try:
@@ -1377,7 +1379,9 @@ def lancer_fabrication(commande_id):
                     couleur_qr=perso.get("couleur_qr", ""),
                 )
             except Exception:
-                evenement_id = ""
+                # 🔊 FIN DU SILENCE : fabrication annulée plutôt qu'un lot fantôme sans QR valide.
+                print("⚠️ FABRICATION ANNULÉE (commande %s) : lot QR non inscrit — vérifie Volume/MANAPRINT_DB sur Railway." % commande_id)
+                return
             # 🖨️ MODE BOUTIQUE RAPIDE : sans microtexte (QR conservé) si demandé.
             # Le drapeau est isolé au thread de fabrication -> aucune fuite ailleurs.
             try:
@@ -1479,6 +1483,62 @@ def admin_valider_commande(commande_id):
 def admin_evenements():
     """📜 Historique des lots QR — le registre de résurrection, tout prêt."""
     return jsonify({"ok": True, "evenements": db.lister_evenements()})
+
+
+@app.route("/api/admin/sante", methods=["GET"])
+@admin_requis
+def admin_sante():
+    """💾 Voyant de santé : la base vit-elle sur le Volume (éternelle) ou dans le conteneur (éphémère) ?"""
+    s = db.sante()
+    if not s["accessible"]:
+        s["verdict"] = "panne"
+        s["message"] = "Base INACCESSIBLE — vérifie le Volume et la variable MANAPRINT_DB sur Railway."
+    elif s["sur_volume"] and s["variable_definie"]:
+        s["verdict"] = "eternelle"
+        s["message"] = "Base ÉTERNELLE sur le Volume — les lots survivent aux déploiements."
+    else:
+        s["verdict"] = "ephemere"
+        s["message"] = ("BASE ÉPHÉMÈRE : tout sera PERDU au prochain déploiement ! "
+                        "Sur Railway : attache un Volume (Mount Path /data) et crée la variable MANAPRINT_DB=/data/manaprint.db.")
+    return jsonify({"ok": True, "sante": s})
+
+
+@app.route("/api/admin/evenements/redeclarer-lot", methods=["POST"])
+@admin_requis
+def admin_redeclarer_lot():
+    """🚑🚑 RÉSURRECTION EN LOT : re-déclare PLUSIEURS lots d'un coup.
+    Reçoit {"lots": [{evenement_id, serie_min, serie_max, nom, date_tournoi}, ...]}.
+    Idempotent (INSERT OR REPLACE) — relancer ne casse rien."""
+    d = request.get_json(force=True, silent=True) or {}
+    lots = d.get("lots") or []
+    resultats, reussis = [], 0
+    for lot in lots[:200]:
+        evenement_id = (str(lot.get("evenement_id", "")) or "").strip().upper()
+        try:
+            serie_min = int(lot.get("serie_min", 1) or 1)
+            serie_max = int(lot.get("serie_max", 0) or 0)
+        except Exception:
+            resultats.append({"evenement_id": evenement_id or "?", "ok": False, "message": "séries invalides"})
+            continue
+        if not evenement_id or serie_max < serie_min or serie_min < 1:
+            resultats.append({"evenement_id": evenement_id or "?", "ok": False, "message": "identifiant manquant ou séries invalides"})
+            continue
+        try:
+            db.creer_evenement(
+                evenement_id=evenement_id,
+                nom=(str(lot.get("nom", "")) or "Événement ressuscité").strip(),
+                identifiant="gestion",
+                programme=(str(lot.get("programme", "")) or "").strip(),
+                serie_min=serie_min, serie_max=serie_max,
+                date_tournoi=(str(lot.get("date_tournoi", "")) or "").strip(),
+                couleur_qr="",
+            )
+            resultats.append({"evenement_id": evenement_id, "ok": True,
+                              "message": "ressuscité (séries %d à %d)" % (serie_min, serie_max)})
+            reussis += 1
+        except Exception:
+            resultats.append({"evenement_id": evenement_id, "ok": False, "message": "échec d'écriture en base"})
+    return jsonify({"ok": True, "reussis": reussis, "total": len(resultats), "resultats": resultats})
 
 
 @app.route("/api/admin/evenements/redeclarer", methods=["POST"])
