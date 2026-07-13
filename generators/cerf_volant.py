@@ -63,7 +63,7 @@ CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
 CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
 
 FOOT_H = 3.5 * mm
-CELL = 15 * mm
+CELL = 18 * mm  # cases espacées et agrandies
 
 
 def _gen_carte():
@@ -129,7 +129,7 @@ def _dessiner_carte(c, x0, y0, donnees, couleur_hex, serie, encre,
     c.setFillColor(GREY); c.setFont("Helvetica", 4)
     c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 2.4 * mm, bandeau[:64])
 
-    taille = 26
+    taille = 40  # gros chiffres au maximum
 
     def num(n, xx, yy):
         if _sec:
@@ -154,10 +154,10 @@ def _dessiner_carte(c, x0, y0, donnees, couleur_hex, serie, encre,
             num(grille[ri][ci], bx + CELL / 2, btop - CELL + CELL * 0.28)
 
     # La queue : case 46-60 puis case 61-75 en diagonale
-    a_x, a_top = gx + 2 * CELL + 3 * mm, gtop - 2 * CELL + 4 * mm
+    a_x, a_top = gx + 2 * CELL + 5 * mm, gtop - 2 * CELL + 4 * mm
     case(a_x, a_top)
     num(n_a, a_x + CELL / 2, a_top - CELL + CELL * 0.28)
-    b_x, b_top = a_x + CELL + 3 * mm, a_top - CELL - 1 * mm
+    b_x, b_top = a_x + CELL + 5 * mm, a_top - CELL - 1 * mm
     case(b_x, b_top)
     num(n_b, b_x + CELL / 2, b_top - CELL + CELL * 0.28)
 
