@@ -110,20 +110,20 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     c.drawRightString(x0 + CARD_W - 3 * mm, hdr_y, "N\u00b0 %06d" % serie)
 
     # Zone du losange (le QR vit dans la bande dédiée du bas)
-    zone_top = hdr_y - 3.0 * mm
-    zone_bot = y0 + 8 * mm   # le losange descend : le QR vit à gauche, le cœur au centre
+    zone_top = hdr_y - 4.0 * mm
+    zone_bot = y0 + 17 * mm
     zone_h = zone_top - zone_bot
     # 5 colonnes : pointes étroites, cœur large
     lx = x0 + 4 * mm
     lw = CARD_W - 8 * mm
-    frac = [0.15, 0.21, 0.28, 0.21, 0.15]           # losange bien espacé sur toute la largeur
+    frac = [0.11, 0.20, 0.24, 0.20, 0.11]           # largeurs relatives (pointe/aile/cœur)
     xs, cursor = [], lx + (lw - lw * sum(frac)) / 2  # centré
     for f in frac:
         xs.append(cursor + (lw * f) / 2)
         cursor += lw * f
 
     # tailles : gros chiffres au cœur, moyens sur les ailes
-    taille = 33  # gros chiffres bien visibles, losange aéré
+    taille = 25  # bien gros (Maeva, juil. 2026)
     pas5 = zone_h / 5                       # pas vertical du cœur (5 rangées)
     for ci, nums in enumerate(cols_nums):
         n = len(nums)
