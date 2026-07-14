@@ -61,6 +61,7 @@ from generators import boules60
 from generators import ahuru
 from generators import tchin
 from generators import ing
+from generators import lunes75
 from generators import ohana75_20boules
 
 app = Flask(__name__)
@@ -261,6 +262,7 @@ _enregistrer_paire("boules60",      "60 BOULES",  "🔵", 12, boules60.generer_p
 _enregistrer_paire("ahuru",         "AHURU",      "🔟", 10, ahuru.generer_pdf)
 _enregistrer_paire("tchin",         "TCHIN",      "🍻", 12, tchin.generer_pdf)
 _enregistrer_paire("ing",           "ING",        "🧭", 12, ing.generer_pdf)
+_enregistrer_paire("lunes75",       "LUNES 75",   "🌜", 12, lunes75.generer_pdf)
 _enregistrer_paire("ohana20b",      "OHANA 75 · 20 boules","🌺", 5,  ohana75_20boules.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
@@ -700,6 +702,7 @@ _PLAGES_CALLER = {
     "ahuru": (1, 75),
     "tchin": (1, 30),
     "ing": (16, 60),
+    "lunes75": (1, 75),
     "ohana20b": (1, 75),
 }
 
@@ -717,6 +720,7 @@ _BOULES_CALLER = {
     "moon": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # M·O·O·N — le 31-45 n'existe pas
     "ino8": [n for n in range(16, 46)] + [n for n in range(61, 76)],  # I 16-30 · N 31-45 · O 61-75
     "ahuru": [n for n in range(1, 16)] + [n for n in range(31, 76)],  # AHURU — le 16-30 n'existe pas
+    "lunes75": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # LUNES 75 — le 31-45 n'existe pas
 }
 
 
