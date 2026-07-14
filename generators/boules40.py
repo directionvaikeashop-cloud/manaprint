@@ -154,10 +154,10 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
             # le GRAND numéro solitaire, pleine hauteur
             cyc = z_bot + z_h / 2
             if _sec:
-                _sec.chiffre_micro(c, nums[0], xs[ci], cyc - 36 * 0.36, 36, gris_ch, police_ch)
+                _sec.chiffre_micro(c, nums[0], xs[ci], cyc - 34 * 0.36, 34, gris_ch, police_ch)
             else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, 36)
-                c.drawCentredString(xs[ci], cyc - 36 * 0.36, str(nums[0]))
+                c.setFillColor(gris_ch); c.setFont(police_ch, 34)
+                c.drawCentredString(xs[ci], cyc - 34 * 0.36, str(nums[0]))
 
     # QR de vérification par carte (anti-duplication) — bande de droite
     if _sec and evenement_id:
