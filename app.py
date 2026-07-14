@@ -55,6 +55,7 @@ from generators import kea
 from generators import moon
 from generators import ani
 from generators import brown14
+from generators import ino8
 from generators import ohana75_20boules
 
 app = Flask(__name__)
@@ -249,6 +250,7 @@ _enregistrer_paire("kea",           "KEA",        "🌿", 12, kea.generer_pdf)
 _enregistrer_paire("moon",          "MOON",       "🌙", 6,  moon.generer_pdf)
 _enregistrer_paire("ani",           "ANI",        "🌠", 12, ani.generer_pdf)
 _enregistrer_paire("brown14",       "BROWN 14 boules", "🟤", 8, brown14.generer_pdf)
+_enregistrer_paire("ino8",          "INO 8 boules", "🎐", 12, ino8.generer_pdf)
 _enregistrer_paire("ohana20b",      "OHANA 75 · 20 boules","🌺", 5,  ohana75_20boules.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
@@ -682,6 +684,7 @@ _PLAGES_CALLER = {
     "moon": (1, 75),
     "ani": (61, 90),
     "brown14": (1, 75),
+    "ino8": (16, 75),
     "ohana20b": (1, 75),
 }
 
@@ -697,6 +700,7 @@ _BOULES_CALLER = {
     "bgo": [n for n in range(1, 16)] + [n for n in range(46, 76)],  # B 1-15 · G 46-60 · O 61-75
     "igo": [n for n in range(16, 31)] + [n for n in range(46, 76)],  # I 16-30 · G 46-60 · O 61-75
     "moon": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # M·O·O·N — le 31-45 n'existe pas
+    "ino8": [n for n in range(16, 46)] + [n for n in range(61, 76)],  # I 16-30 · N 31-45 · O 61-75
 }
 
 
