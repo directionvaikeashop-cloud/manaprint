@@ -137,7 +137,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
         c.line(x0 + i * cell_w, z_bot, x0 + i * cell_w, hdr_bas)
     for i in range(4):
         c.line(x0 + 1.5 * mm, z_top - i * row_h, x0 + CARD_W - 1.5 * mm, z_top - i * row_h)
-    taille = 26
+    taille = 34  # AU MAX physique (Maeva)
     for ci, nums in enumerate(cols_nums):
         cx = x0 + (ci + 0.5) * cell_w
         for ri, val in enumerate(nums):
