@@ -111,35 +111,35 @@ def _dessiner_carte(c, x0, y0, groupes, couleur_hex, serie, titre_jeu="", teleph
     cell_w = zw / 6
     haut_y = y0 + CARD_H * 0.52      # ligne du haut (la paire)
     bas_y = y0 + 2.6 * mm            # ligne du bas (le petit numéro)
-    rayon = 5.6 * mm  # cercle au maximum
+    rayon = 5.2 * mm  # cercles élargis avec les chiffres
 
     for gi, nums in enumerate(groupes):
         gx = zx + gi * cell_w
         n_cercle, n_grand, n_petit = nums
         # 1er numéro : dans son cercle POINTILLÉ (fidèle au modèle)
         cx1 = gx + cell_w * 0.28
-        cy1 = haut_y + 2.2 * mm
+        cy1 = haut_y + 1.2 * mm
         c.setStrokeColor(col); c.setLineWidth(0.7)
         c.setDash(1.6, 1.6)
         c.circle(cx1, cy1, rayon, stroke=1, fill=0)
         c.setDash()
         if _sec:  # chiffres "billet de banque" remplis de microtexte
-            _sec.chiffre_micro(c, n_cercle, cx1, haut_y - 3.2, 26, gris_ch, police_ch)
+            _sec.chiffre_micro(c, n_cercle, cx1, haut_y - 4.8, 22, gris_ch, police_ch)
         else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, 26)
-            c.drawCentredString(cx1, haut_y - 3.2, str(n_cercle))
+            c.setFillColor(gris_ch); c.setFont(police_ch, 22)
+            c.drawCentredString(cx1, haut_y - 4.8, str(n_cercle))
         # 2e numéro : à droite du cercle
         cx2 = gx + cell_w * 0.72
         if _sec:
-            _sec.chiffre_micro(c, n_grand, cx2, haut_y - 3.2, 26, gris_ch, police_ch)
+            _sec.chiffre_micro(c, n_grand, cx2, haut_y - 4.8, 22, gris_ch, police_ch)
         else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, 26)
-            c.drawCentredString(cx2, haut_y - 3.2, str(n_grand))
+            c.setFillColor(gris_ch); c.setFont(police_ch, 22)
+            c.drawCentredString(cx2, haut_y - 4.8, str(n_grand))
         # 3e numéro : plus petit, centré dessous
         if _sec:
-            _sec.chiffre_micro(c, n_petit, gx + cell_w / 2, bas_y, 25, gris_ch, police_ch)
+            _sec.chiffre_micro(c, n_petit, gx + cell_w / 2, bas_y, 18, gris_ch, police_ch)
         else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, 25)
+            c.setFillColor(gris_ch); c.setFont(police_ch, 18)
             c.drawCentredString(gx + cell_w / 2, bas_y, str(n_petit))
         # fin séparation entre groupes (discrète, comme le modèle)
         if gi > 0:
