@@ -53,13 +53,8 @@ from generators import bgo
 from generators import igo
 from generators import kea
 from generators import moon
+from generators import ani
 from generators import ohana75_20boules
-from generators import wiz
-from generators import wow6
-from generators import ino
-from generators import bi75
-from generators import bin6
-from generators import facture
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
@@ -251,12 +246,8 @@ _enregistrer_paire("bgo",           "BGO",        "🔠", 12, bgo.generer_pdf)
 _enregistrer_paire("igo",           "IGO",        "🎱", 12, igo.generer_pdf)
 _enregistrer_paire("kea",           "KEA",        "🌿", 12, kea.generer_pdf)
 _enregistrer_paire("moon",          "MOON",       "🌙", 6,  moon.generer_pdf)
+_enregistrer_paire("ani",           "ANI",        "🌠", 12, ani.generer_pdf)
 _enregistrer_paire("ohana20b",      "OHANA 75 · 20 boules","🌺", 5,  ohana75_20boules.generer_pdf)
-_enregistrer_paire("wiz",           "WIZ 4 boules","🧙", 12, wiz.generer_pdf)
-_enregistrer_paire("wow6",          "WOW 6 boules","🌟", 12, wow6.generer_pdf)
-_enregistrer_paire("ino",           "INO 5 boules","🥥", 12, ino.generer_pdf)
-_enregistrer_paire("bi75",          "BI 75",       "💙", 18, bi75.generer_pdf)
-_enregistrer_paire("bin6",          "BIN 6 boules", "🎲", 12, bin6.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
 
@@ -687,12 +678,8 @@ _PLAGES_CALLER = {
     "igo": (16, 75),
     "kea": (35, 67),
     "moon": (1, 75),
+    "ani": (61, 90),
     "ohana20b": (1, 75),
-    "wiz": (1, 45),
-    "wow6": (30, 59),
-    "ino": (16, 75),
-    "bi75": (1, 75),
-    "bin6": (1, 36),
 }
 
 
@@ -707,8 +694,6 @@ _BOULES_CALLER = {
     "bgo": [n for n in range(1, 16)] + [n for n in range(46, 76)],  # B 1-15 · G 46-60 · O 61-75
     "igo": [n for n in range(16, 31)] + [n for n in range(46, 76)],  # I 16-30 · G 46-60 · O 61-75
     "moon": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # M·O·O·N — le 31-45 n'existe pas
-    "ino": [n for n in range(16, 46)] + [n for n in range(61, 76)],  # I 16-30 · N 31-45 · O 61-75 — le 46-60 n'existe pas
-    "bi75": [n for n in range(1, 31)] + [n for n in range(61, 76)],  # B 1-15 · I 16-30 · 75 61-75 — le 31-60 n'existe pas
 }
 
 
@@ -1081,25 +1066,6 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
     return None, {"commande_id": commande_id, "montant": int(montant), "libelle": libelle}
 
 
-# ── 🔔 LA SONNETTE : notification instantanée à 2KEA, sans jamais ralentir le client ──
-def _sonnette(sujet, corps):
-    """Envoie un email de notification à la plateforme (SMTP_USER), dans un fil
-    séparé : le client n'attend pas, et un échec d'envoi ne casse jamais rien."""
-    if not SMTP_USER or not SMTP_PASS:
-        return
-    import threading as _thn
-
-    def _envoyer():
-        try:
-            ok, m = envoyer_email_simple(SMTP_USER, sujet, corps)
-            if not ok:
-                print(f"[SONNETTE ECHEC] {sujet} : {m}")
-        except Exception as e:
-            print(f"[SONNETTE ERREUR] {sujet} : {e}")
-
-    _thn.Thread(target=_envoyer, daemon=True).start()
-
-
 # ── 💳 STRIPE (paiement par carte, comme sur Ticket Bingo) ────────────────────
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
@@ -1150,11 +1116,6 @@ def commander():
 
     # Mode manuel : la commande est en attente de validation par 2KEA
     if mode_paiement == "manuel":
-        _sonnette("🔔 Nouvelle commande MANAPRINT #%s — %s XPF" % (commande_id, montant),
-                  "Nouvelle commande à valider dans l'Espace gestion :\n\n"
-                  "Commande #%s\n%s\nMontant : %s XPF\nPaiement : en boutique (à valider)\n\n"
-                  "👉 manaprint.app → Espace gestion → Commandes à valider" % (
-                      commande_id, res.get("libelle", ""), montant))
         return jsonify({
             "ok": True, "commande_id": commande_id, "montant": montant,
             "mode": "manuel",
@@ -1203,12 +1164,6 @@ def panier_checkout():
         total += res["montant"]
 
     if mode_paiement == "manuel":
-        _sonnette("🔔 Nouveau panier MANAPRINT #%s — %s article(s) · %s XPF" % (panier_id, len(resume), total),
-                  "Nouveau panier à valider dans l'Espace gestion :\n\n"
-                  "Panier #%s — %s article(s) — total %s XPF\n%s\nPaiement : en boutique (à valider)\n\n"
-                  "👉 manaprint.app → Espace gestion → Commandes à valider" % (
-                      panier_id, len(resume),
-                      total, "\n".join("· " + (r.get("libelle", "") or ("commande #%s" % r.get("commande_id"))) for r in resume)))
         return jsonify({
             "ok": True, "mode": "manuel", "panier_id": panier_id, "montant": total,
             "articles": resume,
@@ -1257,18 +1212,9 @@ def webhook_stripe():
             elif not cmds:
                 print(f"[STRIPE WEBHOOK] panier {panier_id} déjà traité (webhook doublon)")
             else:
-                lignes = []
                 for cmd in cmds:
                     nom_part = lancer_fabrication(cmd["id"])
                     print(f"[STRIPE PAYE] commande {cmd['id']} du panier {panier_id} -> fabrication ({nom_part or 'sans partenaire ?'})")
-                    lignes.append("· commande #%s — %s · %s feuille(s) → %s" % (
-                        cmd["id"], cmd["programme"], cmd["nb_feuilles"],
-                        ("fabrication envoyée à " + nom_part) if nom_part else "à récupérer par le client"))
-                _sonnette("💳 Paiement carte reçu — panier MANAPRINT #%s (%s commande(s))" % (panier_id, len(cmds)),
-                          "Un paiement par carte vient d'être confirmé par Stripe :\n\n"
-                          "Panier #%s — %s commande(s) payée(s)\n%s\n\n"
-                          "Aucune action requise : les fabrications partenaires partent automatiquement." % (
-                              panier_id, len(cmds), "\n".join(lignes)))
     return jsonify({"ok": True})
 
 
@@ -1308,9 +1254,7 @@ def generer_commande(commande_id):
             couleur_qr=perso.get("couleur_qr", ""),
         )
     except Exception:
-        # 🔊 FIN DU SILENCE : sans lot inscrit en base, les QR imprimés seraient morts.
-        # On refuse la génération et on explique — plutôt qu'un lot fantôme.
-        return jsonify({"ok": False, "message": "⚠️ Impossible d'inscrire le lot QR en base — génération refusée pour protéger la vérification des cartons. Vérifie sur Railway : Volume attaché (/data) + variable MANAPRINT_DB=/data/manaprint.db, puis réessaie."}), 503
+        evenement_id = ""  # anti-panne : en cas d'échec, on génère sans QR
 
     # 🖨️ MODE BOUTIQUE RAPIDE : sans microtexte (QR conservé) si demandé.
     try:
@@ -1419,9 +1363,7 @@ def lancer_fabrication(commande_id):
                     couleur_qr=perso.get("couleur_qr", ""),
                 )
             except Exception:
-                # 🔊 FIN DU SILENCE : fabrication annulée plutôt qu'un lot fantôme sans QR valide.
-                print("⚠️ FABRICATION ANNULÉE (commande %s) : lot QR non inscrit — vérifie Volume/MANAPRINT_DB sur Railway." % commande_id)
-                return
+                evenement_id = ""
             # 🖨️ MODE BOUTIQUE RAPIDE : sans microtexte (QR conservé) si demandé.
             # Le drapeau est isolé au thread de fabrication -> aucune fuite ailleurs.
             try:
@@ -1523,146 +1465,6 @@ def admin_valider_commande(commande_id):
 def admin_evenements():
     """📜 Historique des lots QR — le registre de résurrection, tout prêt."""
     return jsonify({"ok": True, "evenements": db.lister_evenements()})
-
-
-@app.route("/api/admin/sante", methods=["GET"])
-@admin_requis
-def admin_sante():
-    """💾 Voyant de santé : la base vit-elle sur le Volume (éternelle) ou dans le conteneur (éphémère) ?"""
-    s = db.sante()
-    if not s["accessible"]:
-        s["verdict"] = "panne"
-        s["message"] = "Base INACCESSIBLE — vérifie le Volume et la variable MANAPRINT_DB sur Railway."
-    elif s["sur_volume"] and s["variable_definie"]:
-        s["verdict"] = "eternelle"
-        s["message"] = "Base ÉTERNELLE sur le Volume — les lots survivent aux déploiements."
-    else:
-        s["verdict"] = "ephemere"
-        s["message"] = ("BASE ÉPHÉMÈRE : tout sera PERDU au prochain déploiement ! "
-                        "Sur Railway : attache un Volume (Mount Path /data) et crée la variable MANAPRINT_DB=/data/manaprint.db.")
-    return jsonify({"ok": True, "sante": s})
-
-
-@app.route("/api/admin/facture-partenaire", methods=["GET"])
-@admin_requis
-def admin_facture_partenaire():
-    """🧾 FACTURE PARTENAIRE : le dû à 2KEA & Associé pour un mois donné.
-    Ne compte QUE les commandes « paiement en boutique » (mode manuel) validées
-    ou générées — les paiements carte arrivent déjà directement chez 2KEA via Stripe."""
-    import re as _re
-    import json as _json
-    pid = (request.args.get("partenaire", "") or "").strip()
-    mois = (request.args.get("mois", "") or "").strip()   # AAAA-MM
-    if pid not in PARTENAIRES:
-        return jsonify({"ok": False, "message": "Partenaire inconnu."}), 400
-    if not _re.match(r"^\d{4}-\d{2}$", mois):
-        return jsonify({"ok": False, "message": "Mois invalide (format AAAA-MM)."}), 400
-
-    part = PARTENAIRES[pid]
-    lignes, total = [], 0
-    with db.get_db() as conn:
-        rows = conn.execute(
-            "SELECT * FROM commandes WHERE cree_le LIKE ? AND mode_paiement = 'manuel' "
-            "AND statut IN ('payee','generee') ORDER BY id",
-            (mois + "%",)).fetchall()
-    for r in rows:
-        try:
-            perso = _json.loads(r["params_perso"] or "{}")
-        except Exception:
-            perso = {}
-        p = perso.get("partenaire") or ("fun_and_co" if perso.get("fun_and_co") else "")
-        if p != pid:
-            continue
-        jeu = REGISTRE_JEUX.get(r["programme"], {}).get("nom", r["programme"])
-        lignes.append({"date": (r["cree_le"] or "")[:10], "commande": r["id"], "jeu": jeu,
-                       "feuilles": r["nb_feuilles"], "pu": 1.5, "montant": r["montant"]})
-        total += r["montant"]
-
-    if not lignes:
-        return jsonify({"ok": False,
-                        "message": "Aucune commande « paiement en boutique » validée pour %s en %s." % (part["nom"], mois)}), 404
-
-    mois_noms = ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet",
-                 "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
-    mois_label = "%s %s" % (mois_noms[int(mois[5:7])], mois[:4])
-    numero = "F-%s-%s" % (mois.replace("-", ""), pid.upper().replace("_", ""))
-    pdf = facture.generer_facture(numero, mois_label, part, lignes, total)
-    return send_file(pdf, mimetype="application/pdf", as_attachment=True,
-                     download_name="FACTURE_%s.pdf" % numero)
-
-
-@app.route("/api/admin/facture-commande/<int:commande_id>", methods=["GET"])
-@admin_requis
-def admin_facture_commande(commande_id):
-    """🧾 FACTURE À LA COMMANDE : le dû 2KEA & Associé d'UNE commande précise
-    « paiement en boutique » chez un partenaire PDF — éditable dès son arrivée,
-    sans attendre la facture mensuelle. Même modèle, une seule ligne."""
-    import json as _json
-    from datetime import datetime as _dt
-    cmd = db.get_commande(commande_id)
-    if not cmd:
-        return jsonify({"ok": False, "message": "Commande #%s introuvable." % commande_id}), 404
-    if (cmd.get("mode_paiement") or "manuel") != "manuel":
-        return jsonify({"ok": False, "message": "Commande #%s payée par carte : déjà encaissée via Stripe, aucun dû à facturer." % commande_id}), 400
-    try:
-        perso = _json.loads(cmd.get("params_perso") or "{}")
-    except Exception:
-        perso = {}
-    pid = perso.get("partenaire") or ("fun_and_co" if perso.get("fun_and_co") else "")
-    if pid not in PARTENAIRES or not PARTENAIRES[pid].get("prix_pdf_seul"):
-        return jsonify({"ok": False, "message": "Commande #%s : pas chez un partenaire PDF — la facture à la commande sert au dû 1,5 F/feuille des partenaires (FUN AND CO, COCOTIE MER, RANIHEI)." % commande_id}), 400
-    part = PARTENAIRES[pid]
-    jeu = REGISTRE_JEUX.get(cmd["programme"], {}).get("nom", cmd["programme"])
-    date_txt = (cmd.get("cree_le") or "")[:10]
-    try:
-        date_lbl = _dt.fromisoformat(date_txt).strftime("%d/%m/%Y") if date_txt else "?"
-    except Exception:
-        date_lbl = date_txt or "?"
-    ligne = {"date": date_txt, "commande": cmd["id"], "jeu": jeu,
-             "feuilles": cmd["nb_feuilles"], "pu": part.get("prix_pdf_seul", 1.5),
-             "montant": cmd["montant"]}
-    numero = "CMD-%05d" % cmd["id"]
-    pdf = facture.generer_facture(numero, "Commande du %s" % date_lbl, part, [ligne], int(cmd["montant"]))
-    return send_file(pdf, mimetype="application/pdf", as_attachment=False,
-                     download_name="FACTURE_%s.pdf" % numero)
-
-
-@app.route("/api/admin/evenements/redeclarer-lot", methods=["POST"])
-@admin_requis
-def admin_redeclarer_lot():
-    """🚑🚑 RÉSURRECTION EN LOT : re-déclare PLUSIEURS lots d'un coup.
-    Reçoit {"lots": [{evenement_id, serie_min, serie_max, nom, date_tournoi}, ...]}.
-    Idempotent (INSERT OR REPLACE) — relancer ne casse rien."""
-    d = request.get_json(force=True, silent=True) or {}
-    lots = d.get("lots") or []
-    resultats, reussis = [], 0
-    for lot in lots[:200]:
-        evenement_id = (str(lot.get("evenement_id", "")) or "").strip().upper()
-        try:
-            serie_min = int(lot.get("serie_min", 1) or 1)
-            serie_max = int(lot.get("serie_max", 0) or 0)
-        except Exception:
-            resultats.append({"evenement_id": evenement_id or "?", "ok": False, "message": "séries invalides"})
-            continue
-        if not evenement_id or serie_max < serie_min or serie_min < 1:
-            resultats.append({"evenement_id": evenement_id or "?", "ok": False, "message": "identifiant manquant ou séries invalides"})
-            continue
-        try:
-            db.creer_evenement(
-                evenement_id=evenement_id,
-                nom=(str(lot.get("nom", "")) or "Événement ressuscité").strip(),
-                identifiant="gestion",
-                programme=(str(lot.get("programme", "")) or "").strip(),
-                serie_min=serie_min, serie_max=serie_max,
-                date_tournoi=(str(lot.get("date_tournoi", "")) or "").strip(),
-                couleur_qr="",
-            )
-            resultats.append({"evenement_id": evenement_id, "ok": True,
-                              "message": "ressuscité (séries %d à %d)" % (serie_min, serie_max)})
-            reussis += 1
-        except Exception:
-            resultats.append({"evenement_id": evenement_id, "ok": False, "message": "échec d'écriture en base"})
-    return jsonify({"ok": True, "reussis": reussis, "total": len(resultats), "resultats": resultats})
 
 
 @app.route("/api/admin/evenements/redeclarer", methods=["POST"])
