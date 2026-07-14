@@ -102,8 +102,8 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
         _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.8 * mm)
 
     # Les 5 boules cerclées (fidèle au modèle)
-    rayon = 4.9 * mm
-    taille = 20
+    rayon = 5.4 * mm  # cercles élargis avec les chiffres
+    taille = 24  # AU MAX dans les cercles (Maeva)
     for val, fx, fy in [(v, fx, fy) for v, ((a, b), fx, fy) in zip(nums, BOULES)]:
         cx = x0 + CARD_W * fx
         cy = y0 + CARD_H * fy
