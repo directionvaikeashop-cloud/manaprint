@@ -126,7 +126,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     z_bot = y0 + PIED_H + 2 * mm
     z_top = hdr_y - 3 * mm
     z_h = z_top - z_bot
-    taille = 36  # gros chiffres bien visibles
+    taille = 36  # bien gros (Maeva, juil. 2026)
     positions = [
         (hg, x0 + CARD_W * 0.13, z_bot + z_h * 0.80),   # haut-gauche  (1-15)
         (hd, x0 + CARD_W * 0.87, z_bot + z_h * 0.80),   # haut-droit   (76-90)
