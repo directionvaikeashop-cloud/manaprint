@@ -80,6 +80,7 @@ from generators import pow6
 from generators import bg90
 from generators import bo90
 from generators import bn90
+from generators import bi90
 from generators import ohana75_20boules
 
 app = Flask(__name__)
@@ -299,6 +300,7 @@ _enregistrer_paire("pow6",          "POW 5 boules", "💫", 12, pow6.generer_pdf
 _enregistrer_paire("bg90",          "BG 90",      "🎱", 12, bg90.generer_pdf)
 _enregistrer_paire("bo90",          "BO 90",      "🟠", 12, bo90.generer_pdf)
 _enregistrer_paire("bn90",          "BN 90",      "🟤", 12, bn90.generer_pdf)
+_enregistrer_paire("bi90",          "BI 90",      "🔵", 12, bi90.generer_pdf)
 _enregistrer_paire("ohana20b",      "OHANA 75 · 20 boules","🌺", 5,  ohana75_20boules.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
@@ -757,6 +759,7 @@ _PLAGES_CALLER = {
     "bg90": (1, 90),
     "bo90": (1, 90),
     "bn90": (1, 90),
+    "bi90": (1, 90),
     "ohana20b": (1, 75),
 }
 
@@ -780,6 +783,7 @@ _BOULES_CALLER = {
     "bg90": [n for n in range(1, 16)] + [n for n in range(46, 61)] + [n for n in range(76, 91)],  # BG 90 — B 1-15 · G 46-60 · 90 76-90
     "bo90": [n for n in range(1, 16)] + [n for n in range(61, 91)],  # BO 90 — B 1-15 · O 61-75 · 90 76-90
     "bn90": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(76, 91)],  # BN 90 — B 1-15 · N 31-45 · 90 76-90
+    "bi90": [n for n in range(1, 31)] + [n for n in range(76, 91)],  # BI 90 — B 1-15 · I 16-30 · 90 76-90
 }
 
 
