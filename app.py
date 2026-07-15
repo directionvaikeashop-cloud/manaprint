@@ -1087,6 +1087,52 @@ def api_jeux():
     ]})
 
 
+# ══ APERÇUS VISUELS DES JEUX (vision Maeva) ═══════════════════════════
+# Chaque jeu du menu montre sa vignette : la 1re feuille, générée UNE fois
+# puis gardée sur le Volume (/data/apercus). Les futurs jeux ont leur
+# visuel automatiquement, sans aucun travail manuel.
+import threading as _threading
+_APERCU_LOCK = _threading.Lock()
+
+def _dossier_apercus():
+    base = os.path.dirname(os.environ.get("MANAPRINT_DB", "") or "") or "/tmp"
+    d = os.path.join(base, "apercus")
+    try:
+        os.makedirs(d, exist_ok=True)
+    except Exception:
+        d = "/tmp"
+    return d
+
+@app.route("/apercu/<jeu_id>.png", methods=["GET"])
+def apercu_jeu(jeu_id):
+    """Vignette PNG d'un jeu du registre — générée à la demande, puis servie du cache."""
+    if jeu_id not in REGISTRE_JEUX:
+        jeu_id = jeu_id + "_couleur"          # tolérance : id de base -> ÉCO Couleur
+        if jeu_id not in REGISTRE_JEUX:
+            return "jeu inconnu", 404
+    chemin = os.path.join(_dossier_apercus(), jeu_id + ".png")
+    if not os.path.exists(chemin):
+        with _APERCU_LOCK:
+            if not os.path.exists(chemin):
+                try:
+                    import pypdfium2 as _pdfium
+                    jeu = REGISTRE_JEUX[jeu_id]
+                    pdf_buf = generer_jeu(jeu_id, jeu["cartes_par_feuille"], jeu["couleur"],
+                                          {"telephone": "89 22 23 05"})
+                    doc = _pdfium.PdfDocument(pdf_buf.read())
+                    image = doc[0].render(scale=420 / 595.0).to_pil()
+                    image.save(chemin + ".tmp", "PNG", optimize=True)
+                    os.replace(chemin + ".tmp", chemin)   # écriture atomique (réflexe TUKEA)
+                    doc.close()
+                except Exception as e:
+                    print(f"[APERCU] échec {jeu_id} : {e}")
+                    return "aperçu indisponible", 503
+    reponse = send_file(chemin, mimetype="image/png")
+    reponse.headers["Cache-Control"] = "public, max-age=86400"
+    return reponse
+# ══════════════════════════════════════════════════════════════════════
+
+
 @app.route("/api/partenaires", methods=["GET"])
 def api_partenaires():
     """Liste des points d'impression partenaires (pour le menu déroulant)."""
