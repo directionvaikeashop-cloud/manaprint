@@ -301,6 +301,14 @@
       <textarea id="resc-lot" rows="6" placeholder="TK6VZGDW ; 1 ; 3000 ; BOUTIQUE PAPEETE&#10;TK7AB2CD ; 1 ; 500 ; TOURNOI TE MANU" style="width:100%;font-family:ui-monospace,monospace;font-size:.82rem;margin-bottom:.6rem;border:1px solid var(--line);border-radius:10px;padding:.7rem"></textarea>
       <button class="btn" style="width:auto;padding:.6rem 1.6rem" onclick="adminRessusciterLot()">🚑 Tout ressusciter</button>
       <div id="resc-lot-msg" style="font-size:.82rem;margin-top:.8rem;line-height:1.8"></div>
+
+      <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">📬 Renvoyer les emails d'une commande</h2>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:.6rem;line-height:1.7">Un client n'a pas reçu son <b>rapport confidentiel</b> ? Entre le numéro de sa commande : la plateforme la refabrique et renvoie les deux emails — le PDF chez le partenaire, le rapport chez l'organisateur, parfaitement assortis.</p>
+      <div style="display:flex;gap:.6rem;margin-bottom:.8rem;flex-wrap:wrap">
+        <input id="renv-id" type="number" min="1" placeholder="N° de commande (ex. 12)" style="margin-bottom:0;width:220px">
+        <button class="btn" style="width:auto;padding:0 1.4rem;white-space:nowrap" onclick="adminRenvoyerEmails()">📬 Renvoyer</button>
+      </div>
+      <p id="renv-msg" style="font-size:.82rem;line-height:1.7"></p>
     </div>
   </div>
 
@@ -842,6 +850,19 @@ async function adminRessusciterLot(){
       return (x.ok?'✅ ':'❌ ')+'<b>'+x.evenement_id+'</b> — '+x.message;
     }).join('<br>');
     adminHistorique();
+  }catch(e){ msg.style.color='var(--coral)'; msg.textContent='Erreur réseau'; }
+}
+// ── 📬 Renvoyer les emails d'une commande (rattrapage SMTP) ──
+async function adminRenvoyerEmails(){
+  const msg=document.getElementById('renv-msg');
+  const id=parseInt(document.getElementById('renv-id').value||'0');
+  if(!id){ msg.style.color='var(--coral)'; msg.textContent='Entre le numéro de la commande.'; return; }
+  msg.style.color='var(--muted)'; msg.textContent='Refabrication de la commande #'+id+'…';
+  try{
+    const r=await fetch('/api/admin/renvoyer-emails',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({commande_id:id})});
+    const d=await r.json();
+    msg.style.color=d.ok?'var(--teal)':'var(--coral)';
+    msg.textContent=d.message||(d.ok?'Relancé !':'Erreur');
   }catch(e){ msg.style.color='var(--coral)'; msg.textContent='Erreur réseau'; }
 }
 function factureCommande(id){
