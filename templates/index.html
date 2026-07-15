@@ -537,7 +537,7 @@ function rendreProgrammes(){
     const on=progChoisi===p.id;
     const desc=p.cpf+(LANG==='en'?" cards / sheet":" cartes / feuille");
     b.style.cssText="display:flex;align-items:center;gap:.6rem;padding:.65rem .85rem;border-radius:4px;text-align:left;width:100%;border:1px solid "+(on?p.teinte:'var(--line)')+";background:"+(on?p.teinte+'12':'#fff');
-    b.innerHTML='<div style="width:8px;height:8px;border-radius:50%;background:'+p.teinte+';flex-shrink:0"></div><div><div style="font-weight:600;font-size:.85rem">'+(p.emoji?p.emoji+" ":"")+p.nom+'</div><div style="font-size:.7rem;color:var(--muted)">'+desc+'</div></div>';
+    b.innerHTML='<img src="/apercu/'+p.id+'.png" alt="" loading="lazy" onerror="this.style.display=&quot;none&quot;" style="width:46px;height:64px;object-fit:cover;object-position:top;border-radius:3px;border:1px solid var(--line);background:#fff;flex-shrink:0"><div style="width:8px;height:8px;border-radius:50%;background:'+p.teinte+';flex-shrink:0"></div><div><div style="font-weight:600;font-size:.85rem">'+(p.emoji?p.emoji+" ":"")+p.nom+'</div><div style="font-size:.7rem;color:var(--muted)">'+desc+'</div></div>';
     b.onclick=function(){ progChoisi=p.id; rendreProgrammes(); majPrix(); };
     cont.appendChild(b);
   });
