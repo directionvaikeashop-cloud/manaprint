@@ -1593,6 +1593,46 @@ def lancer_fabrication(commande_id):
     return part["nom"]
 
 
+@app.route("/api/admin/renvoyer-emails", methods=["POST"])
+@admin_requis
+def admin_renvoyer_emails():
+    """📬 RATTRAPAGE : refabrique une commande et renvoie ses deux emails
+    (PDF -> partenaire, rapport confidentiel -> organisateur). Pour les clients
+    qui n'ont rien reçu avant la configuration SMTP. Sans risque : le PDF et le
+    rapport repartent ensemble, parfaitement assortis."""
+    if not SMTP_USER or not SMTP_PASS:
+        return jsonify({"ok": False, "message":
+                        "Configure d'abord SMTP_USER et SMTP_PASS sur Railway — "
+                        "sans le facteur, rien ne peut partir."})
+    import json as _json
+    data = request.get_json(force=True)
+    try:
+        commande_id = int(data.get("commande_id") or 0)
+    except Exception:
+        commande_id = 0
+    if not commande_id:
+        return jsonify({"ok": False, "message": "Numéro de commande manquant."})
+    cmd = db.get_commande(commande_id)
+    if not cmd:
+        return jsonify({"ok": False, "message": f"Commande #{commande_id} introuvable."})
+    try:
+        perso = _json.loads(cmd["params_perso"] or "{}")
+    except Exception:
+        perso = {}
+    email_cli = (perso.get("email_organisateur") or "").strip()
+    part_nom = lancer_fabrication(commande_id)
+    if not part_nom:
+        return jsonify({"ok": False, "message":
+                        f"La commande #{commande_id} n'a pas de partenaire d'impression "
+                        "enregistré — rien à renvoyer par email."})
+    dest_rapport = email_cli if email_cli else "(pas d'email client : le rapport voyage avec le PDF du partenaire)"
+    return jsonify({"ok": True, "message":
+                    f"Commande #{commande_id} refabriquée ✅ PDF → {part_nom} · "
+                    f"rapport confidentiel → {dest_rapport}. "
+                    "Les envois partent en arrière-plan (1 à 3 min pour les grosses commandes) "
+                    "— une copie arrive aussi dans ta boîte SMTP."})
+
+
 @app.route("/api/admin/commandes", methods=["GET"])
 @admin_requis
 def admin_commandes():
