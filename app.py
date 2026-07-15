@@ -332,6 +332,16 @@ def generer_jeu(programme, nb_cartes, couleur, perso, evenement_id=""):
     return jeu["generer"](**kwargs)
 
 
+def _nom_evenement_complet(perso):
+    """🏷️ Le nom qui vivra dans le QR : « CLIENT/ASSOCIATION — TITRE DU JEU ».
+    Au scan d'un carton, l'organisateur voit À QUI appartient le lot (vision Maeva)."""
+    assoc = (perso.get("nom_evenement") or "").strip()
+    titre = (perso.get("titre_jeu") or "").strip()
+    if assoc and titre and assoc.upper() != titre.upper():
+        return f"{assoc} \u2014 {titre}"
+    return assoc or titre or "Événement"
+
+
 def _nouvel_evenement_id(programme):
     """Génère un identifiant d'événement court, lisible et unique (ex. TK7QK2)."""
     import secrets
@@ -540,7 +550,7 @@ def _page_verif(statut, message, evenement_id, serie, code, ev=None, extra=""):
   <div style="background:#1e293b;border-radius:14px;padding:18px;margin-top:16px;line-height:1.7">
     <div style="font-size:.95rem;color:#cbd5e1">%s</div>
     <hr style="border:none;border-top:1px solid #334155;margin:14px 0">
-    <div style="font-size:.85rem;color:#94a3b8">Événement</div>
+    <div style="font-size:.85rem;color:#94a3b8">Client / Association \u00b7 \u00c9v\u00e9nement</div>
     <div style="font-weight:700">%s</div>
     <div style="font-size:.85rem;color:#94a3b8;margin-top:8px">Carton N°</div>
     <div style="font-weight:700">%06d · code %s</div>
@@ -1397,7 +1407,7 @@ def generer_commande(commande_id):
         evenement_id = _nouvel_evenement_id(programme)
         db.creer_evenement(
             evenement_id=evenement_id,
-            nom=perso.get("titre_jeu", "") or perso.get("nom_evenement", "") or "Événement",
+            nom=_nom_evenement_complet(perso),
             identifiant=cmd["identifiant"],
             programme=programme,
             serie_min=1,
@@ -1508,7 +1518,7 @@ def lancer_fabrication(commande_id):
                 evenement_id = _nouvel_evenement_id(cmd["programme"])
                 db.creer_evenement(
                     evenement_id=evenement_id,
-                    nom=perso.get("titre_jeu", "") or perso.get("nom_evenement", "") or "Événement",
+                    nom=_nom_evenement_complet(perso),
                     identifiant=cmd["identifiant"], programme=cmd["programme"],
                     serie_min=1, serie_max=nb_cartes,
                     date_tournoi=perso.get("date_tournoi", ""),
