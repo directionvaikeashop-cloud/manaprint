@@ -71,6 +71,7 @@ from generators import lettre_l
 from generators import topday
 from generators import fleche
 from generators import yes
+from generators import bio
 from generators import ohana75_20boules
 
 app = Flask(__name__)
@@ -281,6 +282,7 @@ _enregistrer_paire("lettre_l",      "LETTRE L",   "😄", 6,  lettre_l.generer_p
 _enregistrer_paire("topday",        "TOPDAY",     "🔝", 12, topday.generer_pdf)
 _enregistrer_paire("fleche",        "FLÈCHE",     "🏹", 6,  fleche.generer_pdf)
 _enregistrer_paire("yes",           "YES",        "👍", 15, yes.generer_pdf)
+_enregistrer_paire("bio",           "BIO 8 boules", "🌱", 12, bio.generer_pdf)
 _enregistrer_paire("ohana20b",      "OHANA 75 · 20 boules","🌺", 5,  ohana75_20boules.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
@@ -730,6 +732,7 @@ _PLAGES_CALLER = {
     "topday": (1, 75),
     "fleche": (1, 75),
     "yes": (1, 90),
+    "bio": (1, 75),
     "ohana20b": (1, 75),
 }
 
@@ -748,6 +751,7 @@ _BOULES_CALLER = {
     "ino8": [n for n in range(16, 46)] + [n for n in range(61, 76)],  # I 16-30 · N 31-45 · O 61-75
     "ahuru": [n for n in range(1, 16)] + [n for n in range(31, 76)],  # AHURU — le 16-30 n'existe pas
     "lunes75": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # LUNES 75 — le 31-45 n'existe pas
+    "bio": [n for n in range(1, 31)] + [n for n in range(61, 76)],  # BIO — B 1-15 · I 16-30 · O 61-75
 }
 
 
