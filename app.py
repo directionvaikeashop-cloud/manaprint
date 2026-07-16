@@ -85,6 +85,7 @@ from generators import bgo5
 from generators import bo75
 from generators import bg75
 from generators import bn75
+from generators import wiz
 from generators import ohana75_20boules
 
 app = Flask(__name__)
@@ -309,6 +310,7 @@ _enregistrer_paire("bgo5",          "BGO 5 boules", "🅾️", 12, bgo5.generer_
 _enregistrer_paire("bo75",          "BO 75",      "🔷", 12, bo75.generer_pdf)
 _enregistrer_paire("bg75",          "BG 75",      "💠", 12, bg75.generer_pdf)
 _enregistrer_paire("bn75",          "BN 75",      "🔶", 12, bn75.generer_pdf)
+_enregistrer_paire("wiz",           "WIZ 4 boules", "🧙", 12, wiz.generer_pdf)
 _enregistrer_paire("ohana20b",      "OHANA 75 · 20 boules","🌺", 5,  ohana75_20boules.generer_pdf)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
@@ -782,6 +784,7 @@ _PLAGES_CALLER = {
     "bo75": (1, 75),
     "bg75": (1, 75),
     "bn75": (1, 75),
+    "wiz": (1, 45),
     "ohana20b": (1, 75),
 }
 
