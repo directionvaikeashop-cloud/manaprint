@@ -1119,34 +1119,64 @@ def _dossier_apercus():
         d = "/tmp"
     return d
 
+def _fabriquer_apercu(jeu_id):
+    """Fabrique (si absente) la vignette PNG d'une variante. Renvoie le chemin ou None."""
+    chemin = os.path.join(_dossier_apercus(), jeu_id + ".png")
+    if os.path.exists(chemin):
+        return chemin
+    with _APERCU_LOCK:
+        if os.path.exists(chemin):
+            return chemin
+        try:
+            import pypdfium2 as _pdfium
+            jeu = REGISTRE_JEUX[jeu_id]
+            pdf_buf = generer_jeu(jeu_id, jeu["cartes_par_feuille"], jeu["couleur"],
+                                  {"telephone": "89 22 23 05"})
+            doc = _pdfium.PdfDocument(pdf_buf.read())
+            image = doc[0].render(scale=420 / 595.0).to_pil()
+            image.save(chemin + ".tmp", "PNG", optimize=True)
+            os.replace(chemin + ".tmp", chemin)   # écriture atomique (réflexe TUKEA)
+            doc.close()
+            return chemin
+        except Exception as e:
+            print(f"[APERCU] échec {jeu_id} : {e}")
+            return None
+
+
+def _prechauffer_apercus():
+    """🔥 PRÉCHAUFFAGE : fabrique toutes les vignettes en coulisses au démarrage —
+    quand un client ouvre le menu, tout est déjà prêt et instantané."""
+    import time as _time
+    _time.sleep(6)   # laisser le service finir de démarrer
+    faites = 0
+    for jid in list(REGISTRE_JEUX.keys()):
+        if not os.path.exists(os.path.join(_dossier_apercus(), jid + ".png")):
+            if _fabriquer_apercu(jid):
+                faites += 1
+            _time.sleep(0.05)
+    print(f"[APERCU] préchauffage terminé — {faites} vignettes fabriquées")
+
+
+def _lancer_prechauffage():
+    _threading.Thread(target=_prechauffer_apercus, daemon=True).start()
+
+
+_lancer_prechauffage()
+
+
 @app.route("/apercu/<jeu_id>.png", methods=["GET"])
 def apercu_jeu(jeu_id):
-    """Vignette PNG d'un jeu du registre — générée à la demande, puis servie du cache."""
+    """Vignette PNG d'un jeu du registre — servie du cache (préchauffé au démarrage)."""
     if jeu_id not in REGISTRE_JEUX:
         jeu_id = jeu_id + "_couleur"          # tolérance : id de base -> ÉCO Couleur
         if jeu_id not in REGISTRE_JEUX:
             return "jeu inconnu", 404
-    chemin = os.path.join(_dossier_apercus(), jeu_id + ".png")
-    if not os.path.exists(chemin):
-        with _APERCU_LOCK:
-            if not os.path.exists(chemin):
-                try:
-                    import pypdfium2 as _pdfium
-                    jeu = REGISTRE_JEUX[jeu_id]
-                    pdf_buf = generer_jeu(jeu_id, jeu["cartes_par_feuille"], jeu["couleur"],
-                                          {"telephone": "89 22 23 05"})
-                    doc = _pdfium.PdfDocument(pdf_buf.read())
-                    image = doc[0].render(scale=420 / 595.0).to_pil()
-                    image.save(chemin + ".tmp", "PNG", optimize=True)
-                    os.replace(chemin + ".tmp", chemin)   # écriture atomique (réflexe TUKEA)
-                    doc.close()
-                except Exception as e:
-                    print(f"[APERCU] échec {jeu_id} : {e}")
-                    return "aperçu indisponible", 503
+    chemin = _fabriquer_apercu(jeu_id)
+    if not chemin:
+        return "aperçu indisponible", 503
     reponse = send_file(chemin, mimetype="image/png")
     reponse.headers["Cache-Control"] = "public, max-age=86400"
     return reponse
-# ══════════════════════════════════════════════════════════════════════
 
 
 @app.route("/api/partenaires", methods=["GET"])
@@ -1607,6 +1637,27 @@ def lancer_fabrication(commande_id):
     import threading as _th
     _th.Thread(target=_fabriquer_et_envoyer, daemon=True).start()
     return part["nom"]
+
+
+@app.route("/api/admin/rafraichir-vignettes", methods=["POST"])
+@admin_requis
+def admin_rafraichir_vignettes():
+    """🧹 Efface toutes les vignettes (après la modification d'un jeu, par ex.)
+    et relance le préchauffage : elles se refabriquent toutes seules, à neuf."""
+    d = _dossier_apercus()
+    n = 0
+    try:
+        for f in os.listdir(d):
+            if f.endswith(".png") or f.endswith(".tmp"):
+                os.remove(os.path.join(d, f))
+                n += 1
+    except Exception:
+        pass
+    _lancer_prechauffage()
+    return jsonify({"ok": True, "message":
+                    f"{n} vignettes effacées ✅ La fabrique les refait toutes en coulisses "
+                    "(2 à 3 minutes) — recharge la page du menu ensuite."})
+# ══════════════════════════════════════════════════════════════════════
 
 
 @app.route("/api/admin/renvoyer-emails", methods=["POST"])
