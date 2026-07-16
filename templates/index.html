@@ -156,6 +156,20 @@
         <input id="gen-rapide" type="checkbox" style="width:auto;margin:0;accent-color:var(--teal)">
         <span>🖨️ Impression rapide boutique — cartons sans microtexte (QR de vérification conservé). Idéal pour l'impression directe par clé USB.</span>
       </label>
+      <label class="field-label">Couleur des cartons <span class="opt">(touchez votre couleur — ou gardez le multicolore)</span></label>
+      <div id="gen-nuancier" style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:1rem">
+        <button type="button" class="sw" data-c="" title="Multicolore (arc-en-ciel)" style="width:34px;height:34px;border-radius:50%;border:3px solid var(--teal);cursor:pointer;font-size:15px;line-height:1;background:conic-gradient(#E53935,#FB8C00,#F9A825,#43A047,#00ACC1,#1E88E5,#8E24AA,#E53935)">🌈</button>
+        <button type="button" class="sw" data-c="#E53935" title="Rouge" style="width:34px;height:34px;border-radius:50%;border:2px solid var(--line);cursor:pointer;background:#E53935"></button>
+        <button type="button" class="sw" data-c="#FB8C00" title="Orange" style="width:34px;height:34px;border-radius:50%;border:2px solid var(--line);cursor:pointer;background:#FB8C00"></button>
+        <button type="button" class="sw" data-c="#F9A825" title="Or" style="width:34px;height:34px;border-radius:50%;border:2px solid var(--line);cursor:pointer;background:#F9A825"></button>
+        <button type="button" class="sw" data-c="#43A047" title="Vert" style="width:34px;height:34px;border-radius:50%;border:2px solid var(--line);cursor:pointer;background:#43A047"></button>
+        <button type="button" class="sw" data-c="#00ACC1" title="Turquoise" style="width:34px;height:34px;border-radius:50%;border:2px solid var(--line);cursor:pointer;background:#00ACC1"></button>
+        <button type="button" class="sw" data-c="#1E88E5" title="Bleu" style="width:34px;height:34px;border-radius:50%;border:2px solid var(--line);cursor:pointer;background:#1E88E5"></button>
+        <button type="button" class="sw" data-c="#3949AB" title="Bleu nuit" style="width:34px;height:34px;border-radius:50%;border:2px solid var(--line);cursor:pointer;background:#3949AB"></button>
+        <button type="button" class="sw" data-c="#8E24AA" title="Violet" style="width:34px;height:34px;border-radius:50%;border:2px solid var(--line);cursor:pointer;background:#8E24AA"></button>
+        <button type="button" class="sw" data-c="#D81B60" title="Rose" style="width:34px;height:34px;border-radius:50%;border:2px solid var(--line);cursor:pointer;background:#D81B60"></button>
+        <button type="button" class="sw" data-c="#6D4C41" title="Marron" style="width:34px;height:34px;border-radius:50%;border:2px solid var(--line);cursor:pointer;background:#6D4C41"></button>
+      </div>
       <label class="field-label">🎨 Couleur officielle des cartons (vérifiée au scan)</label>
       <select id="gen-couleurqr">
         <option value="">Loterie automatique — chaque carton sa couleur surprise</option>
@@ -309,6 +323,11 @@
         <button class="btn" style="width:auto;padding:0 1.4rem;white-space:nowrap" onclick="adminRenvoyerEmails()">📬 Renvoyer</button>
       </div>
       <p id="renv-msg" style="font-size:.82rem;line-height:1.7"></p>
+
+      <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">🧹 Rafraîchir les vignettes des jeux</h2>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:.6rem;line-height:1.7">Après la modification d'un jeu, sa vignette du menu peut rester ancienne. Ce bouton les efface toutes : la fabrique les refait à neuf en coulisses (2-3 min).</p>
+      <button class="btn" style="width:auto;padding:0 1.4rem" onclick="adminRafraichirVignettes()">🧹 Rafraîchir les vignettes</button>
+      <p id="vign-msg" style="font-size:.82rem;line-height:1.7;margin-top:.6rem"></p>
     </div>
   </div>
 
@@ -572,6 +591,18 @@ function majPrix(){
     if(prix<6){ el.textContent += "  (PDF 2KEA & Associé — tarif d'impression à demander directement au partenaire)"; }
   } else { el.textContent=""; }
 }
+// ── 🎨 NUANCIER : le client choisit SA couleur de cartons ──
+let couleurCartons = "";
+document.addEventListener("click", function(e){
+  const b = e.target.closest("#gen-nuancier .sw");
+  if(!b) return;
+  couleurCartons = b.dataset.c || "";
+  document.querySelectorAll("#gen-nuancier .sw").forEach(function(x){
+    x.style.borderWidth = (x === b) ? "3px" : "2px";
+    x.style.borderColor = (x === b) ? "var(--teal)" : "var(--line)";
+    x.style.transform = (x === b) ? "scale(1.15)" : "";
+  });
+});
 function collectPerso(msgEl){
   const ev=document.getElementById('gen-evenement').value.trim();
   const ti=document.getElementById('gen-titre').value.trim();
@@ -587,7 +618,7 @@ function collectPerso(msgEl){
     date_tournoi:dtq||"",
     couleur_qr:cqr||"",
     impression_rapide:!!(document.getElementById('gen-rapide')&&document.getElementById('gen-rapide').checked),
-    couleur_perso:"",
+    couleur_perso:couleurCartons||"",
     theme:"",
   };
 }
@@ -864,6 +895,16 @@ async function adminRenvoyerEmails(){
     msg.style.color=d.ok?'var(--teal)':'var(--coral)';
     msg.textContent=d.message||(d.ok?'Relancé !':'Erreur');
   }catch(e){ msg.style.color='var(--coral)'; msg.textContent='Erreur réseau'; }
+}
+async function adminRafraichirVignettes(){
+  const msg=document.getElementById('vign-msg');
+  msg.style.color='var(--muted)'; msg.textContent='Nettoyage en cours\u2026';
+  try{
+    const r=await fetch('/api/admin/rafraichir-vignettes',{method:'POST'});
+    const d=await r.json();
+    msg.style.color=d.ok?'var(--teal)':'var(--coral)';
+    msg.textContent=d.message||'Fait !';
+  }catch(e){ msg.style.color='var(--coral)'; msg.textContent='Erreur r\u00e9seau'; }
 }
 function factureCommande(id){
   id = parseInt(id||'0');
