@@ -59,10 +59,13 @@ _POLICE_P15 = "Helvetica-Bold"
 _GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
 
 def _style_chiffres(style):
-    """Retourne (police, gris) des chiffres selon la gamme choisie."""
+    """Retourne (police, gris) des chiffres selon la gamme choisie.
+    ⚡ SPÉCIAL P15 (décision Maeva) : format dense, petits chiffres →
+    l'écriture est GRASSE dans les DEUX gammes (le style historique du P15 !).
+    L'ÉCO garde son gris plus clair pour économiser le toner."""
     if str(style).lower() in ("p15", "premium"):
         return _POLICE_P15, _GRIS_P15
-    return _POLICE_ECO, _GRIS_ECO
+    return _POLICE_P15, _GRIS_ECO
 # ═════════════════════════════════════════════════════════════════════
 
 PAGE_W, PAGE_H = A4
@@ -104,7 +107,7 @@ def _dessiner_coco(c, cx, cy, r):
     c.restoreState()
 
 
-SANCTUAIRE = 15.2 * mm    # la case royale du QR : jamais un chiffre touché
+SANCTUAIRE = 16.4 * mm    # la case royale du QR : jamais un chiffre touché
 
 def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
     police_ch, gris_ch = _style_chiffres(style)
@@ -154,17 +157,20 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
         c.line(x0, Y_ROW[i], x0 + CARD_W, Y_ROW[i])
 
     # Les 24 numéros — ordre libre (fidèle au modèle)
+    # La 3e ligne (rangée royale du sanctuaire) porte des chiffres GROSSIS
     taille = 20
+    TAILLE_ROYALE = 23    # les 4 chiffres de la rangée centrale (décision Maeva)
     for ci, nums in enumerate(cols_nums):
         cx = (X_COL[ci] + X_COL[ci + 1]) / 2
         rangees = (0, 1, 3, 4) if ci == 2 else (0, 1, 2, 3, 4)
         for val, ri in zip(nums, rangees):
             cyc = (Y_ROW[ri] + Y_ROW[ri + 1]) / 2
+            t = TAILLE_ROYALE if ri == 2 else taille
             if _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, val, cx, cyc - taille * 0.36, taille, gris_ch, police_ch)
+                _sec.chiffre_micro(c, val, cx, cyc - t * 0.36, t, gris_ch, police_ch)
             else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-                c.drawCentredString(cx, cyc - taille * 0.36, str(val))
+                c.setFillColor(gris_ch); c.setFont(police_ch, t)
+                c.drawCentredString(cx, cyc - t * 0.36, str(val))
 
     # Le SANCTUAIRE central : le QR y loge ENTIER (sans code texte : le scan
     # dit tout) — ou le coco 🥥 traditionnel quand il n'y a pas d'événement
