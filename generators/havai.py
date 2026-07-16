@@ -1,11 +1,12 @@
 """
 MANAPRINT — Générateur HAVAI (format A4)
-6 cartes par feuille (2 colonnes × 3 rangées).
-Chaque carte : en-tête H·A·V·A·I, grille 5×5, 8 numéros TRIÉS en motif :
-  H (1-15)  : rangées 1 et 5        A (16-30) : rangée 3
-  V (31-45) : rangées 2 et 4        A (46-60) : rangée 3
-  I (61-75) : rangées 1 et 5
-Cases vides propres. QR de sécurité dans la colonne I (milieu, cases vides).
+8 cartes par feuille (2 colonnes × 4 rangées) — compact façon BROWN 8.
+Chaque carte : en-tête H·A·V·A·I, grille 3 rangées × 5 colonnes,
+8 numéros TRIÉS en quinconce (décision Maeva) :
+  rangée 1 : H · V · I   (colonnes 1, 3, 5)
+  rangée 2 :   A · A     (colonnes 2 et 4)
+  rangée 3 : H · V · I   (colonnes 1, 3, 5)
+Cases vides propres. QR de sécurité au CŒUR de la grille (case centrale).
 Couleur arc-en-ciel (ou couleur_perso) / N&B. Gammes ÉCO / PREMIUM.
 """
 import io
@@ -53,7 +54,7 @@ def _style_chiffres(style):
 
 PAGE_W, PAGE_H = A4
 COLS_PAGE = 2
-ROWS_PAGE = 3
+ROWS_PAGE = 4
 MARGIN_X = 6 * mm
 MARGIN_TOP = 11 * mm
 MARGIN_BOT = 8 * mm
@@ -66,17 +67,18 @@ CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_
 FOOT_H = 3 * mm
 BANDEAU_H = 2.6 * mm
 HDR_H = 4.2 * mm
-GRID_N = 5
+GRID_N = 5        # 5 colonnes H·A·V·A·I
+GRID_ROWS = 3     # 3 rangées (compact façon BROWN 8)
 
 LETTRES = ["H", "A", "V", "A", "I"]
 RANGES = [(1, 15), (16, 30), (31, 45), (46, 60), (61, 75)]
 # Motif HAVAI : cases pleines (ligne, colonne), lignes numérotées du HAUT
+# Motif COMPACT en quinconce (décision Maeva) : H·V·I / A·A / H·V·I
+# sur 3 rangées — la case CENTRALE accueille le QR.
 POSITIONS = {
-    (0, 0), (0, 4),
-    (1, 2),
-    (2, 1), (2, 3),
-    (3, 2),
-    (4, 0), (4, 4),
+    (0, 0), (0, 2), (0, 4),
+    (1, 1), (1, 3),
+    (2, 0), (2, 2), (2, 4),
 }
 _NB_PAR_COL = [2, 1, 2, 1, 2]
 
@@ -121,13 +123,13 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
     c.setStrokeColor(col); c.setLineWidth(0.4)
     c.line(x0, hdr_y, x0 + CARD_W, hdr_y)
 
-    # Grille 5×5
+    # Grille 3 rangées × 5 colonnes (compact façon BROWN 8)
     grid_top = hdr_y
     zone_h = grid_top - (y0 + FOOT_H)
-    cell_h = zone_h / GRID_N
+    cell_h = zone_h / GRID_ROWS
 
     c.setStrokeColor(GRIS_GRILLE); c.setLineWidth(0.35)
-    for i in range(1, GRID_N):
+    for i in range(1, GRID_ROWS):
         yy = y0 + FOOT_H + i * cell_h
         c.line(x0, yy, x0 + CARD_W, yy)
     for i in range(1, GRID_N):
@@ -146,12 +148,12 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
             c.setFillColor(gris_ch); c.setFont(police_ch, taille)
             c.drawCentredString(cx, cy, str(n))
 
-    # 🎯 QR intégré : colonne I, au milieu (3 cases vides superposées)
+    # 🎯 QR intégré : au CŒUR de la grille (case centrale, rangée 2)
     if _sec and evenement_id:
         try:
-            _q = 13.0 * mm
-            _xq = x0 + 4 * cell_w + (cell_w - _q) / 2
-            _yq = grid_top - 3 * cell_h + 4.4 * mm
+            _q = min(cell_h - 2.0 * mm, cell_w - 3 * mm, 13.0 * mm)
+            _xq = x0 + 2 * cell_w + (cell_w - _q) / 2
+            _yq = grid_top - 2 * cell_h + (cell_h - _q) / 2
             _sec.carton_qr(c, _xq, _yq, _q, evenement_id, serie)
         except Exception:
             pass
@@ -166,7 +168,7 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
         c.drawString(x0 + 1.5 * mm, y0 + 1.3 * mm, f"Resp. {telephone}")
 
 
-def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
+def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
                 style="eco", evenement_id=""):
     buf = io.BytesIO()
