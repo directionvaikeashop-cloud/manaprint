@@ -154,8 +154,9 @@ def envoyer_email_pdf(destinataire, sujet, corps, pdf_io, nom_fichier, copie=Non
         if copie:
             msg["Cc"] = copie
         msg.set_content(corps)
-        pdf_io.seek(0)
-        msg.add_attachment(pdf_io.read(), maintype="application", subtype="pdf", filename=nom_fichier)
+        if pdf_io is not None:   # None = trop lourd pour Gmail -> le lien du coffre-fort suffit
+            pdf_io.seek(0)
+            msg.add_attachment(pdf_io.read(), maintype="application", subtype="pdf", filename=nom_fichier)
         if pdf2_io is not None and nom2_fichier:
             pdf2_io.seek(0)
             msg.add_attachment(pdf2_io.read(), maintype="application", subtype="pdf",
@@ -1600,6 +1601,14 @@ def lancer_fabrication(commande_id):
                     _secm.activer_mode_rapide(False)
                 except Exception:
                     pass
+            # 🗄️ AU COFFRE-FORT d'abord : le PDF est sauvé sur le disque —
+            # même si l'email échoue, il reste téléchargeable pour toujours.
+            lien_cartons = _ranger_au_coffre(commande_id, "cartons", pdf)
+            pdf.seek(0, 2); taille_pdf = pdf.tell(); pdf.seek(0)
+            piece_cartons = pdf if taille_pdf <= LIMITE_PIECE_JOINTE else None
+            note_taille = ("" if piece_cartons is not None else
+                           "\n\u26a0\ufe0f PDF trop volumineux pour l'email : "
+                           "utilisez le lien de téléchargement ci-dessous.\n")
             sujet = f"MANAPRINT — Commande #{commande_id} à imprimer"
             corps = (
                 f"Bonjour {part['nom']},\n\n"
@@ -1608,8 +1617,10 @@ def lancer_fabrication(commande_id):
                 f"  • Événement : {perso.get('nom_evenement','')}\n"
                 f"  • Jeu : {cmd['programme']} — {cmd['nb_feuilles']} feuille(s)\n"
                 f"  • Téléphone du responsable : {perso.get('telephone','')}\n\n"
-                "Le PDF prêt à imprimer est en pièce jointe.\n\n"
-                "— MANAPRINT / 2KEA & Associé"
+                "Le PDF prêt à imprimer est en pièce jointe."
+                + note_taille +
+                (f"\n\U0001f517 Lien de secours (téléchargement direct) :\n{lien_cartons}\n" if lien_cartons else "") +
+                "\n— MANAPRINT / 2KEA & Associé"
             )
             # 📋🤫 le compte-rendu confidentiel série -> couleur
             try:
@@ -1617,10 +1628,11 @@ def lancer_fabrication(commande_id):
                                                 evenement_id, nb_cartes)
             except Exception:
                 rapport = None
+            lien_rapport = _ranger_au_coffre(commande_id, "rapport", rapport) if rapport is not None else ""
             email_cli = (perso.get("email_organisateur") or "").strip()
             if email_cli and rapport is not None:
                 # 🖨️ l'imprimeur ne reçoit QUE les cartons...
-                ok, m = envoyer_email_pdf(part["email"], sujet, corps, pdf,
+                ok, m = envoyer_email_pdf(part["email"], sujet, corps, piece_cartons,
                                           f"manaprint_cmd{commande_id}.pdf",
                                           copie=SMTP_USER or None)
                 # 📧 ...et l'ORGANISATEUR reçoit son rapport confidentiel
@@ -1632,8 +1644,9 @@ def lancer_fabrication(commande_id):
                     "de contrôle des couleurs de vos cartons.\n"
                     "\u00c0 garder pour vous : ne le montrez JAMAIS aux joueurs.\n"
                     "Au scan de chaque carton gagnant, la pastille de couleur affichée\n"
-                    "doit correspondre à cette grille.\n\n"
-                    "— MANAPRINT / 2KEA & Associé — manaprint.app"
+                    "doit correspondre à cette grille.\n"
+                    + (f"\n\U0001f517 Lien de secours du rapport :\n{lien_rapport}\n" if lien_rapport else "") +
+                    "\n— MANAPRINT / 2KEA & Associé — manaprint.app"
                 )
                 ok2, m2 = envoyer_email_pdf(
                     email_cli,
@@ -1644,7 +1657,7 @@ def lancer_fabrication(commande_id):
                 print(f"[RAPPORT CONFIDENTIEL] cmd {commande_id} -> {email_cli} : {ok2} ({m2})")
             else:
                 # repli (pas d'email client) : le rapport voyage avec les cartons
-                ok, m = envoyer_email_pdf(part["email"], sujet, corps, pdf,
+                ok, m = envoyer_email_pdf(part["email"], sujet, corps, piece_cartons,
                                           f"manaprint_cmd{commande_id}.pdf",
                                           copie=SMTP_USER or None,
                                           pdf2_io=rapport,
@@ -1660,6 +1673,66 @@ def lancer_fabrication(commande_id):
     import threading as _th
     _th.Thread(target=_fabriquer_et_envoyer, daemon=True).start()
     return part["nom"]
+
+
+URL_BASE = os.environ.get("URL_BASE", "https://manaprint.app")
+LIMITE_PIECE_JOINTE = 22 * 1024 * 1024   # au-delà, Gmail refuse : on envoie le LIEN
+
+
+def _dossier_lots():
+    """🗄️ Le coffre-fort des PDF fabriqués (Volume Railway) — plus jamais un lot perdu."""
+    base = os.path.dirname(os.environ.get("MANAPRINT_DB", "/tmp/manaprint.db")) or "/tmp"
+    d = os.path.join(base, "lots")
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def _jeton_lot(commande_id):
+    import hashlib
+    return hashlib.sha256(f"{commande_id}:{CODE_ADMIN}:lot".encode()).hexdigest()[:12]
+
+
+def _ranger_au_coffre(commande_id, quoi, pdf_io):
+    """Écrit le PDF au coffre (écriture atomique) et retourne son lien de téléchargement."""
+    try:
+        chemin = os.path.join(_dossier_lots(), f"cmd{commande_id}_{quoi}.pdf")
+        pdf_io.seek(0)
+        with open(chemin + ".tmp", "wb") as f:
+            f.write(pdf_io.read())
+        os.replace(chemin + ".tmp", chemin)
+        pdf_io.seek(0)
+        return f"{URL_BASE}/lot/{commande_id}/{_jeton_lot(commande_id)}/{quoi}.pdf"
+    except Exception as e:
+        print(f"[COFFRE] cmd {commande_id} {quoi} : {e}")
+        return ""
+
+
+@app.route("/lot/<int:commande_id>/<jeton>/<quoi>.pdf", methods=["GET"])
+def telecharger_lot(commande_id, jeton, quoi):
+    """Lien de secours des emails : téléchargement direct du PDF fabriqué."""
+    if quoi not in ("cartons", "rapport") or jeton != _jeton_lot(commande_id):
+        return "lien invalide", 403
+    chemin = os.path.join(_dossier_lots(), f"cmd{commande_id}_{quoi}.pdf")
+    if not os.path.exists(chemin):
+        return ("PDF pas encore au coffre — dans l'espace gestion, utilisez "
+                "📬 Renvoyer les emails pour relancer la fabrication."), 404
+    return send_file(chemin, mimetype="application/pdf",
+                     download_name=f"manaprint_cmd{commande_id}_{quoi}.pdf")
+
+
+@app.route("/api/admin/commandes/<int:commande_id>/pdf/<quoi>", methods=["GET"])
+@admin_requis
+def admin_pdf_commande(commande_id, quoi):
+    """⬇️ Téléchargement direct depuis l'espace gestion (session admin)."""
+    if quoi not in ("cartons", "rapport"):
+        return "type inconnu", 400
+    chemin = os.path.join(_dossier_lots(), f"cmd{commande_id}_{quoi}.pdf")
+    if not os.path.exists(chemin):
+        return ("Ce PDF n'est pas encore au coffre-fort (commande fabriquée avant "
+                "cette nouveauté, ou fabrication en cours) — utilisez 📬 "
+                "Renvoyer les emails pour le refabriquer."), 404
+    return send_file(chemin, mimetype="application/pdf",
+                     download_name=f"manaprint_cmd{commande_id}_{quoi}.pdf")
 
 
 @app.route("/api/admin/rafraichir-vignettes", methods=["POST"])
