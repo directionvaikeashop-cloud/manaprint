@@ -1840,6 +1840,19 @@ def admin_renvoyer_emails():
         perso = _json.loads(cmd["params_perso"] or "{}")
     except Exception:
         perso = {}
+    # 📧 email du client fourni au renvoi : il CORRIGE la commande (sauvé pour toujours)
+    email_saisi = (data.get("email_client") or "").strip()
+    if email_saisi:
+        if "@" not in email_saisi or "." not in email_saisi.split("@")[-1]:
+            return jsonify({"ok": False, "message":
+                            f"« {email_saisi} » ne ressemble pas à un email valide."})
+        perso["email_organisateur"] = email_saisi
+        try:
+            with db.get_db() as conn:
+                conn.execute("UPDATE commandes SET params_perso = ? WHERE id = ?",
+                             (_json.dumps(perso, ensure_ascii=False), commande_id))
+        except Exception as e:
+            return jsonify({"ok": False, "message": f"Impossible d'enregistrer l'email : {e}"})
     email_cli = (perso.get("email_organisateur") or "").strip()
     part_nom = lancer_fabrication(commande_id)
     if not part_nom:
