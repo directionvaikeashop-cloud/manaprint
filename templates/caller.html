@@ -83,6 +83,18 @@
     <div class="compteur" id="compteur">Aucune boule tirée</div>
     <div style="margin-top:12px">
       <button class="btn-tirer" id="btn-tirer" onclick="tirer()">TIRER UNE BOULE</button>
+      <div id="mode-bloc" style="display:none">
+        <div style="font-size:.72rem;color:var(--muted);margin:10px 0 4px;letter-spacing:.06em">⚖ TIRAGE — changer de mode démarre une nouvelle partie</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn-sec md" data-m="tous" onclick="basculerMode('tous')" style="flex:1;margin:0">TOUS</button>
+          <button class="btn-sec md" data-m="pair" onclick="basculerMode('pair')" style="flex:1;margin:0">PAIR</button>
+          <button class="btn-sec md" data-m="impair" onclick="basculerMode('impair')" style="flex:1;margin:0">IMPAIR</button>
+        </div>
+        <div id="fin-bloc" style="display:none">
+          <div style="font-size:.72rem;color:var(--muted);margin:8px 0 4px;letter-spacing:.06em">➕ FINALITÉS EN PLUS (option) — ex : PAIR +5 ajoute 5, 15, 25… 75</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap" id="fin-row"></div>
+        </div>
+      </div>
       <div style="font-size:.72rem;color:var(--muted);margin:10px 0 4px;letter-spacing:.06em">⏱ TIRAGE AUTOMATIQUE — touche une vitesse pour lancer, retouche-la pour arrêter</div>
       <div style="display:flex;gap:6px" id="vitesse-row">
         <button class="btn-sec vit" data-s="2" onclick="basculerAuto(2)" style="flex:1;margin:0">2 s</button>
@@ -272,9 +284,61 @@ function initJeux() {
   changerJeu();
 }
 
+// ⚖ PAIR / IMPAIR + FINALITÉS — sur OHANA 75 2 séries, P6 & P15 Marathon (et P12 à venir)
+const JEUX_PAIR_IMPAIR = ["ohana75", "p6_marathon"];
+let modeTirage = "tous";
+let finalites = [];        // ex : [5] pour « PAIR +5 », [3, 7] pour « IMPAIR +3 +7 »
+
+function basculerMode(m) {
+  if (m === modeTirage) return;
+  modeTirage = m;
+  finalites = [];          // on repart proprement à chaque changement de mode
+  reinitialiser();         // nouvelle partie : le sac se refait avec le bon filtre
+  majBoutonsMode();
+}
+
+function basculerFinalite(f) {
+  const i = finalites.indexOf(f);
+  if (i >= 0) finalites.splice(i, 1); else finalites.push(f);
+  reinitialiser();         // le sac change : nouvelle partie journalisée
+  majBoutonsMode();
+}
+
+function majBoutonsMode() {
+  const bloc = document.getElementById("mode-bloc");
+  bloc.style.display = JEUX_PAIR_IMPAIR.includes(jeuActuel) ? "" : "none";
+  document.querySelectorAll("#mode-bloc .md").forEach(function (b) {
+    const actif = b.dataset.m === modeTirage;
+    b.style.background = actif ? "var(--accent)" : "";
+    b.style.color = actif ? "#fff" : "";
+    b.style.fontWeight = actif ? "800" : "";
+  });
+  // les puces de finalités : visibles seulement en PAIR ou IMPAIR
+  const finBloc = document.getElementById("fin-bloc");
+  finBloc.style.display = (modeTirage === "pair" || modeTirage === "impair") ? "" : "none";
+  const row = document.getElementById("fin-row");
+  if (!row.childElementCount) {
+    for (let f = 0; f <= 9; f++) {
+      const b = document.createElement("button");
+      b.className = "btn-sec fn"; b.dataset.f = f; b.textContent = "+" + f;
+      b.style.cssText = "flex:1;min-width:44px;margin:0;padding:8px 0";
+      b.onclick = (function (ff) { return function () { basculerFinalite(ff); }; })(f);
+      row.appendChild(b);
+    }
+  }
+  document.querySelectorAll("#fin-row .fn").forEach(function (b) {
+    const actif = finalites.includes(parseInt(b.dataset.f));
+    b.style.background = actif ? "var(--accent)" : "";
+    b.style.color = actif ? "#fff" : "";
+    b.style.fontWeight = actif ? "800" : "";
+  });
+}
+
 function changerJeu() {
   jeuActuel = document.getElementById("jeu").value;
+  if (!JEUX_PAIR_IMPAIR.includes(jeuActuel)) modeTirage = "tous";
   reinitialiser();
+  majBoutonsMode();
 }
 
 function lettrePour(n) {
@@ -363,7 +427,7 @@ function tirer() {
   btn.textContent = "…"; btn.disabled = true;
   fetch("/api/caller/tirer", {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ partie_id: partieId, jeu: jeuActuel })
+    body: JSON.stringify({ partie_id: partieId, jeu: jeuActuel, mode: modeTirage, finalites: finalites })
   }).then(r => r.json()).then(res => {
     if (!res.ok) { arreterAuto(); alert(res.message || "Tirage impossible."); return; }
     partieId = res.partie_id;
