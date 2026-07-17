@@ -1553,7 +1553,7 @@ def admin_machines():
 
 
 # ── COMMANDES À VALIDER (paiement manuel) ─────────────────────────────────────
-def lancer_fabrication(commande_id):
+def lancer_fabrication(commande_id, seulement_rapport=False):
     """🏭 FABRICATION EN ARRIÈRE-PLAN — partagée entre la validation manuelle (2KEA)
     et le paiement par carte (webhook Stripe). Les grosses commandes (des centaines
     de feuilles + sécurité) prennent plusieurs minutes : on fabrique dans un thread,
@@ -1630,6 +1630,29 @@ def lancer_fabrication(commande_id):
                 rapport = None
             lien_rapport = _ranger_au_coffre(commande_id, "rapport", rapport) if rapport is not None else ""
             email_cli = (perso.get("email_organisateur") or "").strip()
+            if seulement_rapport:
+                # 🤫 MODE RAPPORT SEUL (rattrapage discret) : l'imprimeur ne reçoit RIEN
+                if not (email_cli and rapport is not None):
+                    print(f"[RAPPORT SEUL] cmd {commande_id} : pas d'email client ou pas de rapport")
+                    return
+                corps_cli = (
+                    f"Bonjour,\n\n"
+                    f"Voici (à nouveau) votre RAPPORT CONFIDENTIEL — commande MANAPRINT #{commande_id} "
+                    f"({cmd['programme']} — {cmd['nb_feuilles']} feuille(s)).\n\n"
+                    "\u26a0\ufe0f À garder pour vous : ne le montrez JAMAIS aux joueurs.\n"
+                    "Au scan de chaque carton gagnant, la pastille de couleur affichée\n"
+                    "doit correspondre à cette grille.\n"
+                    + (f"\n\U0001f517 Lien de secours du rapport :\n{lien_rapport}\n" if lien_rapport else "") +
+                    "\n— MANAPRINT / 2KEA & Associé — manaprint.app"
+                )
+                ok2, m2 = envoyer_email_pdf(
+                    email_cli,
+                    f"MANAPRINT — Rapport CONFIDENTIEL — commande #{commande_id}",
+                    corps_cli, rapport,
+                    f"CONFIDENTIEL_couleurs_cmd{commande_id}.pdf",
+                    copie=SMTP_USER or None)
+                print(f"[RAPPORT SEUL] cmd {commande_id} -> {email_cli} : {ok2} ({m2})")
+                return
             if email_cli and rapport is not None:
                 # 🖨️ l'imprimeur ne reçoit QUE les cartons...
                 ok, m = envoyer_email_pdf(part["email"], sujet, corps, piece_cartons,
@@ -1854,12 +1877,21 @@ def admin_renvoyer_emails():
         except Exception as e:
             return jsonify({"ok": False, "message": f"Impossible d'enregistrer l'email : {e}"})
     email_cli = (perso.get("email_organisateur") or "").strip()
-    part_nom = lancer_fabrication(commande_id)
+    seulement_rapport = bool(data.get("seulement_rapport"))
+    if seulement_rapport and not email_cli:
+        return jsonify({"ok": False, "message":
+                        "Mode « seulement le rapport » : il faut un email client — "
+                        "renseigne le champ \U0001f4e7."})
+    part_nom = lancer_fabrication(commande_id, seulement_rapport=seulement_rapport)
     if not part_nom:
         return jsonify({"ok": False, "message":
                         f"La commande #{commande_id} n'a pas de partenaire d'impression "
                         "enregistré — rien à renvoyer par email."})
     dest_rapport = email_cli if email_cli else "(pas d'email client : le rapport voyage avec le PDF du partenaire)"
+    if seulement_rapport:
+        return jsonify({"ok": True, "message":
+                        f"Commande #{commande_id} \U0001f92b rapport confidentiel SEUL → {email_cli} "
+                        "(l'imprimeur ne reçoit rien). Envoi en arrière-plan (1 à 3 min)."})
     return jsonify({"ok": True, "message":
                     f"Commande #{commande_id} refabriquée ✅ PDF → {part_nom} · "
                     f"rapport confidentiel → {dest_rapport}. "
