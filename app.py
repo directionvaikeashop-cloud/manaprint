@@ -831,9 +831,10 @@ def api_caller_tirer():
     bmin, bmax = _PLAGES_CALLER[jeu]
     boules_valides = _BOULES_CALLER.get(jeu)
 
-    # ⚖ TIRAGE PAIR / IMPAIR + FINALITÉS (demande des clients, règle des tournois) :
-    # « PAIR +5 » = toutes les paires PLUS tous les numéros finissant par 5.
-    # Le sac = UNION(parité choisie, finalités choisies) — filtré CÔTÉ SERVEUR,
+    # ⚖ COCHÉS D'OFFICE : PAIR/IMPAIR + FINALITÉS (règle des tournois) :
+    # « PAIRS +5 » = toutes les paires ET tous les numéros finissant par 5
+    # sont COCHÉS D'OFFICE sur les cartons — le caller ne tire que dans
+    # les boules RESTANTES, jusqu'au cri BINGO. Filtré CÔTÉ SERVEUR,
     # donc toujours imprévisible et journalisé.
     mode = (d.get("mode") or "tous").strip().lower()
     if mode in ("pair", "impair"):
@@ -847,7 +848,9 @@ def api_caller_tirer():
                     finalites.add(f)
             except Exception:
                 continue   # une valeur farfelue n'annule pas les autres
-        boules_valides = [n for n in base if n % 2 == reste or (n % 10) in finalites]
+        # le sac = tout SAUF les cochés d'office
+        boules_valides = [n for n in base
+                          if not (n % 2 == reste or (n % 10) in finalites)]
 
     partie_id = (d.get("partie_id") or "").strip()
     if not partie_id:
