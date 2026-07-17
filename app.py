@@ -1171,13 +1171,14 @@ def _prechauffer_apercus():
     """🔥 PRÉCHAUFFAGE : fabrique toutes les vignettes en coulisses au démarrage —
     quand un client ouvre le menu, tout est déjà prêt et instantané."""
     import time as _time
-    _time.sleep(6)   # laisser le service finir de démarrer
+    import random as _rand
+    _time.sleep(6 + _rand.uniform(0, 20))   # démarrage décalé (chaque ouvrier son tour)
     faites = 0
     for jid in list(REGISTRE_JEUX.keys()):
         if not os.path.exists(os.path.join(_dossier_apercus(), jid + ".png")):
             if _fabriquer_apercu(jid):
                 faites += 1
-            _time.sleep(0.05)
+            _time.sleep(0.8)   # pas de course : la priorité reste aux clients
     print(f"[APERCU] préchauffage terminé — {faites} vignettes fabriquées")
 
 
