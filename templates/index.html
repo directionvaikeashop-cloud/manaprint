@@ -323,6 +323,10 @@
         <input id="renv-email" type="email" placeholder="📧 email du client (optionnel — corrige la commande)" style="margin-bottom:0;flex:1;min-width:230px">
         <button class="btn" style="width:auto;padding:0 1.4rem;white-space:nowrap" onclick="adminRenvoyerEmails()">📬 Renvoyer</button>
       </div>
+      <label style="display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--muted);margin-bottom:.6rem;cursor:pointer">
+        <input type="checkbox" id="renv-seul-rapport" style="width:auto;margin:0">
+        🤫 Envoyer SEULEMENT le rapport confidentiel au client (l'imprimeur ne reçoit rien — aucune réimpression)
+      </label>
       <p id="renv-msg" style="font-size:.82rem;line-height:1.7"></p>
 
       <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">🔍 Historique d'un client</h2>
@@ -907,7 +911,7 @@ async function adminRenvoyerEmails(){
   if(!id){ msg.style.color='var(--coral)'; msg.textContent='Entre le numéro de la commande.'; return; }
   msg.style.color='var(--muted)'; msg.textContent='Refabrication de la commande #'+id+'…';
   try{
-    const r=await fetch('/api/admin/renvoyer-emails',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email_client:document.getElementById('renv-email').value.trim(), commande_id:id})});
+    const r=await fetch('/api/admin/renvoyer-emails',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({seulement_rapport:document.getElementById('renv-seul-rapport').checked, email_client:document.getElementById('renv-email').value.trim(), commande_id:id})});
     const d=await r.json();
     msg.style.color=d.ok?'var(--teal)':'var(--coral)';
     msg.textContent=d.message||(d.ok?'Relancé !':'Erreur');
