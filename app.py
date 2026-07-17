@@ -1735,6 +1735,45 @@ def admin_pdf_commande(commande_id, quoi):
                      download_name=f"manaprint_cmd{commande_id}_{quoi}.pdf")
 
 
+@app.route("/api/admin/historique-client", methods=["POST"])
+@admin_requis
+def admin_historique_client():
+    """🔍 L'HISTORIQUE COMPLET d'un client : toutes ses commandes (le nom
+    est cherché dans l'identifiant ET dans la personnalisation — association,
+    événement, titre), avec l'état du coffre-fort pour chaque PDF."""
+    import json as _json
+    d = request.get_json(silent=True) or {}
+    q = (d.get("q") or "").strip().lower()
+    if len(q) < 2:
+        return jsonify({"ok": False, "message": "Tapez au moins 2 caractères"})
+    resultats = []
+    for cmd in db.lister_commandes():
+        perso = {}
+        try:
+            perso = _json.loads(cmd.get("params_perso") or "{}")
+        except Exception:
+            pass
+        meule = " ".join(str(x) for x in [
+            cmd.get("identifiant", ""), perso.get("nom_evenement", ""),
+            perso.get("titre_jeu", ""), perso.get("email_organisateur", ""),
+        ]).lower()
+        if q in meule:
+            au_coffre = os.path.exists(os.path.join(_dossier_lots(), f"cmd{cmd['id']}_cartons.pdf"))
+            resultats.append({
+                "id": cmd["id"], "date": (cmd.get("cree_le") or "")[:16].replace("T", " "),
+                "identifiant": cmd.get("identifiant", ""),
+                "programme": cmd.get("programme", ""),
+                "nb_feuilles": cmd.get("nb_feuilles", 0),
+                "couleur": bool(cmd.get("couleur")),
+                "statut": cmd.get("statut", ""),
+                "montant": cmd.get("montant", 0),
+                "evenement": perso.get("nom_evenement", "") or perso.get("titre_jeu", ""),
+                "au_coffre": au_coffre,
+            })
+    return jsonify({"ok": True, "resultats": resultats,
+                    "message": f"{len(resultats)} commande(s) trouvée(s)"})
+
+
 @app.route("/api/admin/test-email", methods=["POST"])
 @admin_requis
 def admin_test_email():
