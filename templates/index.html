@@ -324,6 +324,14 @@
       </div>
       <p id="renv-msg" style="font-size:.82rem;line-height:1.7"></p>
 
+      <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">📮 Tester l'envoi d'emails</h2>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:.6rem;line-height:1.7">Envoie un email d'essai et affiche le verdict EXACT du serveur — pour savoir en un clic si la poste fonctionne.</p>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+        <input id="test-email-dest" type="email" placeholder="destinataire (vide = la plateforme)" style="flex:1;min-width:220px">
+        <button class="btn" style="width:auto;padding:0 1.4rem" onclick="adminTestEmail()">📮 Envoyer un test</button>
+      </div>
+      <p id="test-email-msg" style="font-size:.82rem;line-height:1.7;margin-top:.6rem;word-break:break-word"></p>
+
       <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">🧹 Rafraîchir les vignettes des jeux</h2>
       <p style="color:var(--muted);font-size:.85rem;margin-bottom:.6rem;line-height:1.7">Après la modification d'un jeu, sa vignette du menu peut rester ancienne. Ce bouton les efface toutes : la fabrique les refait à neuf en coulisses (2-3 min).</p>
       <button class="btn" style="width:auto;padding:0 1.4rem" onclick="adminRafraichirVignettes()">🧹 Rafraîchir les vignettes</button>
@@ -895,6 +903,17 @@ async function adminRenvoyerEmails(){
     msg.style.color=d.ok?'var(--teal)':'var(--coral)';
     msg.textContent=d.message||(d.ok?'Relancé !':'Erreur');
   }catch(e){ msg.style.color='var(--coral)'; msg.textContent='Erreur réseau'; }
+}
+async function adminTestEmail(){
+  const msg=document.getElementById('test-email-msg');
+  msg.style.color='var(--muted)'; msg.textContent='Envoi du test en cours\u2026';
+  try{
+    const dest=document.getElementById('test-email-dest').value.trim();
+    const r=await fetch('/api/admin/test-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dest})});
+    const d=await r.json();
+    msg.style.color=d.ok?'var(--teal)':'var(--coral)';
+    msg.textContent=(d.ok?'\u2705 ':'\u274c ')+(d.message||'');
+  }catch(e){ msg.style.color='var(--coral)'; msg.textContent='Erreur r\u00e9seau'; }
 }
 async function adminRafraichirVignettes(){
   const msg=document.getElementById('vign-msg');
