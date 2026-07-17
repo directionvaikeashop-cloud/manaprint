@@ -1735,6 +1735,25 @@ def admin_pdf_commande(commande_id, quoi):
                      download_name=f"manaprint_cmd{commande_id}_{quoi}.pdf")
 
 
+@app.route("/api/admin/test-email", methods=["POST"])
+@admin_requis
+def admin_test_email():
+    """📮 Envoie un email d'essai et RETOURNE le verdict exact du serveur Gmail —
+    le diagnostic en un clic, sans fouiller les journaux Railway."""
+    d = request.get_json(silent=True) or {}
+    dest = (d.get("dest") or SMTP_USER or "").strip()
+    if not dest:
+        return jsonify({"ok": False, "message": "Aucun destinataire (et SMTP_USER est vide)"})
+    ok, m = envoyer_email_pdf(
+        dest,
+        "MANAPRINT — Email de test \u2705",
+        "Bonjour !\n\nSi vous lisez ceci, la poste MANAPRINT fonctionne parfaitement.\n\n"
+        "— Le facteur de manaprint.app",
+        None, "")
+    etat = f"SMTP_USER = {SMTP_USER or '(vide !)'} \u00b7 SMTP_PASS = {'défini (' + str(len(SMTP_PASS)) + ' caractères)' if SMTP_PASS else '(VIDE !)'}"
+    return jsonify({"ok": ok, "message": f"{m} \u2014 {etat}"})
+
+
 @app.route("/api/admin/rafraichir-vignettes", methods=["POST"])
 @admin_requis
 def admin_rafraichir_vignettes():
