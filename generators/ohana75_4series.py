@@ -130,18 +130,19 @@ def _dessiner_carte(c, x0, y0, cols_paires, couleur_hex, serie, titre_jeu="", te
             c.drawCentredString(cx, hdr_bas + 2.2 * mm, lettre)
 
     # Grille 5×5 : séparateurs pointillés discrets (fidèle au modèle)
-    grid_h = hdr_bas - y0
+    grid_h = hdr_bas - (y0 + 2.2 * mm)   # petit pied : la dernière rangée ne touche JAMAIS le trait de fond
     cell_h = grid_h / 5
     c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.3)
     c.setDash(1.5, 1.8)
     for i in range(1, 5):
         c.line(x0 + i * cell_w, y0, x0 + i * cell_w, hdr_bas)
-        c.line(x0, y0 + i * cell_h, x0 + CARD_W, y0 + i * cell_h)
+        yp = hdr_bas - i * cell_h - 1.2   # pointillé descendu au CENTRE exact du couloir d'encre
+        c.line(x0, yp, x0 + CARD_W, yp)
     c.setDash()
 
     # Les cases : cercle + petit numéro (colonne N : la case centrale = FREE SPACE)
-    rayon = min(cell_w, cell_h) * 0.34
-    t_cercle, t_petit = 19, 19
+    rayon = min(cell_w * 0.33, cell_h * 0.27)   # bulle élargie : elle ENVELOPPE son chiffre sans le toucher
+    t_cercle, t_petit = 23, 23   # chiffres GROSSIS (décision Maeva)
     for ci, paires in enumerate(cols_paires):
         idx = 0
         for ri in range(5):
@@ -165,20 +166,20 @@ def _dessiner_carte(c, x0, y0, cols_paires, couleur_hex, serie, titre_jeu="", te
                         pass
                 continue
             n_cercle, n_petit = paires[idx]; idx += 1
-            ccx = case_x + cell_w * 0.32
-            ccy = case_y + cell_h * 0.56
+            ccx = case_x + cell_w * 0.36         # la bulle et son chiffre À GAUCHE (décision Maeva)
+            ccy = case_y + cell_h * 0.72
             c.setStrokeColor(col if False else GRIS); c.setLineWidth(0.7)
             c.setStrokeColor(col)
             c.circle(ccx, ccy, rayon, stroke=1, fill=0)
             if _sec:  # chiffres "billet de banque" remplis de microtexte
                 _sec.chiffre_micro(c, n_cercle, ccx, ccy - t_cercle * 0.36, t_cercle, gris_ch, police_ch)
                 _sec.chiffre_micro(c, n_petit, case_x + cell_w * 0.76,
-                                   case_y + cell_h * 0.14, t_petit, gris_ch, police_ch)
+                                   case_y + cell_h * 0.11, t_petit, gris_ch, police_ch)
             else:
                 c.setFillColor(gris_ch); c.setFont(police_ch, t_cercle)
                 c.drawCentredString(ccx, ccy - t_cercle * 0.36, str(n_cercle))
                 c.setFont(police_ch, t_petit)
-                c.drawCentredString(case_x + cell_w * 0.76, case_y + cell_h * 0.14, str(n_petit))
+                c.drawCentredString(case_x + cell_w * 0.76, case_y + cell_h * 0.11, str(n_petit))
 
 
 def generer_pdf(nb_cartes=4, serie_start=1, theme="", couleur=True,
