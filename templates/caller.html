@@ -84,14 +84,14 @@
     <div style="margin-top:12px">
       <button class="btn-tirer" id="btn-tirer" onclick="tirer()">TIRER UNE BOULE</button>
       <div id="mode-bloc" style="display:none">
-        <div style="font-size:.72rem;color:var(--muted);margin:10px 0 4px;letter-spacing:.06em">⚖ TIRAGE — changer de mode démarre une nouvelle partie</div>
+        <div style="font-size:.72rem;color:var(--muted);margin:10px 0 4px;letter-spacing:.06em">✔ COCHÉS D'OFFICE — le tirage sort les boules RESTANTES (changer démarre une nouvelle partie)</div>
         <div style="display:flex;gap:6px">
-          <button class="btn-sec md" data-m="tous" onclick="basculerMode('tous')" style="flex:1;margin:0">TOUS</button>
-          <button class="btn-sec md" data-m="pair" onclick="basculerMode('pair')" style="flex:1;margin:0">PAIR</button>
-          <button class="btn-sec md" data-m="impair" onclick="basculerMode('impair')" style="flex:1;margin:0">IMPAIR</button>
+          <button class="btn-sec md" data-m="tous" onclick="basculerMode('tous')" style="flex:1;margin:0">AUCUN</button>
+          <button class="btn-sec md" data-m="pair" onclick="basculerMode('pair')" style="flex:1;margin:0">PAIRS</button>
+          <button class="btn-sec md" data-m="impair" onclick="basculerMode('impair')" style="flex:1;margin:0">IMPAIRS</button>
         </div>
         <div id="fin-bloc" style="display:none">
-          <div style="font-size:.72rem;color:var(--muted);margin:8px 0 4px;letter-spacing:.06em">➕ FINALITÉS EN PLUS (option) — ex : PAIR +5 ajoute 5, 15, 25… 75</div>
+          <div style="font-size:.72rem;color:var(--muted);margin:8px 0 4px;letter-spacing:.06em">➕ FINALITÉS AUSSI COCHÉES (option) — ex : PAIRS +5 coche aussi 5, 15… 75</div>
           <div style="display:flex;gap:4px;flex-wrap:wrap" id="fin-row"></div>
         </div>
       </div>
@@ -297,6 +297,12 @@ function basculerMode(m) {
   majBoutonsMode();
 }
 
+function estPrecochee(n) {
+  if (modeTirage !== "pair" && modeTirage !== "impair") return false;
+  const reste = (modeTirage === "pair") ? 0 : 1;
+  return (n % 2 === reste) || finalites.includes(n % 10);
+}
+
 function basculerFinalite(f) {
   const i = finalites.indexOf(f);
   if (i >= 0) finalites.splice(i, 1); else finalites.push(f);
@@ -456,8 +462,13 @@ function reinitialiser() {
 
 function maj() {
   const j = JEUX[jeuActuel];
+  const universT = j.boules ? j.boules : (function(){
+    const arr = []; for (let n = j.min; n <= j.max; n++) arr.push(n); return arr;
+  })();
+  const enJeu = universT.filter(n => !estPrecochee(n)).length;
   document.getElementById("compteur").textContent =
-    tirees.length + " / " + (j.max - j.min + 1) + " boules tirées";
+    tirees.length + " / " + enJeu + " boules tirées" +
+    (enJeu < universT.length ? " \u00b7 " + (universT.length - enJeu) + " coch\u00e9es d'office" : "");
   // historique (ordre de tirage, plus récent d'abord)
   const h = document.getElementById("historique");
   h.innerHTML = "";
@@ -475,8 +486,10 @@ function maj() {
   })();
   univers.forEach(n => {
     const c = document.createElement("div");
-    c.className = "num-case" + (tirees.includes(n) ? " sorti" : "");
+    const pre = estPrecochee(n);
+    c.className = "num-case" + (tirees.includes(n) ? " sorti" : "") + (pre ? " precochee" : "");
     c.textContent = n;
+    if (pre) c.title = "Coch\u00e9e d'office \u2014 ne sera pas tir\u00e9e";
     g.appendChild(c);
   });
   // si le panneau historique est ouvert, le rafraîchir
