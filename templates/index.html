@@ -319,7 +319,8 @@
       <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">📬 Renvoyer les emails d'une commande</h2>
       <p style="color:var(--muted);font-size:.85rem;margin-bottom:.6rem;line-height:1.7">Un client n'a pas reçu son <b>rapport confidentiel</b> ? Entre le numéro de sa commande : la plateforme la refabrique et renvoie les deux emails — le PDF chez le partenaire, le rapport chez l'organisateur, parfaitement assortis.</p>
       <div style="display:flex;gap:.6rem;margin-bottom:.8rem;flex-wrap:wrap">
-        <input id="renv-id" type="number" min="1" placeholder="N° de commande (ex. 12)" style="margin-bottom:0;width:220px">
+        <input id="renv-id" type="number" min="1" placeholder="N° de commande (ex. 12)" style="margin-bottom:0;width:180px">
+        <input id="renv-email" type="email" placeholder="📧 email du client (optionnel — corrige la commande)" style="margin-bottom:0;flex:1;min-width:230px">
         <button class="btn" style="width:auto;padding:0 1.4rem;white-space:nowrap" onclick="adminRenvoyerEmails()">📬 Renvoyer</button>
       </div>
       <p id="renv-msg" style="font-size:.82rem;line-height:1.7"></p>
@@ -906,7 +907,7 @@ async function adminRenvoyerEmails(){
   if(!id){ msg.style.color='var(--coral)'; msg.textContent='Entre le numéro de la commande.'; return; }
   msg.style.color='var(--muted)'; msg.textContent='Refabrication de la commande #'+id+'…';
   try{
-    const r=await fetch('/api/admin/renvoyer-emails',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({commande_id:id})});
+    const r=await fetch('/api/admin/renvoyer-emails',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email_client:document.getElementById('renv-email').value.trim(), commande_id:id})});
     const d=await r.json();
     msg.style.color=d.ok?'var(--teal)':'var(--coral)';
     msg.textContent=d.message||(d.ok?'Relancé !':'Erreur');
