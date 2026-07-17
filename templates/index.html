@@ -324,6 +324,14 @@
       </div>
       <p id="renv-msg" style="font-size:.82rem;line-height:1.7"></p>
 
+      <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">🔍 Historique d'un client</h2>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:.6rem;line-height:1.7">Toutes les commandes d'un client ou d'une association (cherché dans l'identifiant, l'événement, le titre et l'email) — avec le téléchargement des PDF du coffre-fort.</p>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+        <input id="hist-q" type="text" placeholder="ex : FARE AMUITAHIRAA" style="flex:1;min-width:220px" onkeydown="if(event.key==='Enter')adminHistoriqueClient()">
+        <button class="btn" style="width:auto;padding:0 1.4rem" onclick="adminHistoriqueClient()">🔍 Chercher</button>
+      </div>
+      <div id="hist-res" style="margin-top:.8rem"></div>
+
       <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">📮 Tester l'envoi d'emails</h2>
       <p style="color:var(--muted);font-size:.85rem;margin-bottom:.6rem;line-height:1.7">Envoie un email d'essai et affiche le verdict EXACT du serveur — pour savoir en un clic si la poste fonctionne.</p>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
@@ -903,6 +911,36 @@ async function adminRenvoyerEmails(){
     msg.style.color=d.ok?'var(--teal)':'var(--coral)';
     msg.textContent=d.message||(d.ok?'Relancé !':'Erreur');
   }catch(e){ msg.style.color='var(--coral)'; msg.textContent='Erreur réseau'; }
+}
+async function adminHistoriqueClient(){
+  const zone=document.getElementById('hist-res');
+  zone.innerHTML='<p style="color:var(--muted);font-size:.85rem">Recherche\u2026</p>';
+  try{
+    const q=document.getElementById('hist-q').value.trim();
+    const r=await fetch('/api/admin/historique-client',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q})});
+    const d=await r.json();
+    if(!d.ok){ zone.innerHTML='<p style="color:var(--coral);font-size:.85rem">'+(d.message||'Erreur')+'</p>'; return; }
+    if(!d.resultats.length){ zone.innerHTML='<p style="color:var(--muted);font-size:.85rem">Aucune commande trouv\u00e9e pour \u00ab '+q+' \u00bb.</p>'; return; }
+    let tot=0, feu=0;
+    let html='<p style="font-size:.85rem;color:var(--teal);font-weight:700">'+d.message+'</p>';
+    d.resultats.forEach(function(c){
+      tot+=c.montant; feu+=c.nb_feuilles;
+      html+='<div style="display:flex;align-items:center;gap:.6rem;padding:.5rem .6rem;border:1px solid var(--line);border-radius:10px;margin-bottom:.4rem;font-size:.82rem;flex-wrap:wrap">'
+        +'<b>#'+c.id+'</b><span style="color:var(--muted)">'+c.date+'</span>'
+        +'<span>'+c.identifiant+'</span>'
+        +(c.evenement?'<span style="color:var(--muted)">\u00b7 '+c.evenement+'</span>':'')
+        +'<span>\u00b7 '+c.programme+' \u00d7 '+c.nb_feuilles+' feuille(s)</span>'
+        +'<span>\u00b7 '+c.statut+'</span>'
+        +'<span style="margin-left:auto;display:flex;gap:.35rem">'
+        +(c.au_coffre
+          ? '<button class="btn" style="width:auto;padding:.35rem .6rem" title="PDF des cartons" onclick="window.open(\'/api/admin/commandes/'+c.id+'/pdf/cartons\',\'_blank\')">\u2b07\ufe0f</button>'
+            +'<button class="btn" style="width:auto;padding:.35rem .6rem" title="Rapport confidentiel" onclick="window.open(\'/api/admin/commandes/'+c.id+'/pdf/rapport\',\'_blank\')">\U0001f5c2\ufe0f</button>'
+          : '<span style="color:var(--muted)" title="Fabriqu\u00e9e avant le coffre-fort : utilisez \U0001f4ec Renvoyer les emails pour la refabriquer">\U0001f4ed pas au coffre</span>')
+        +'</span></div>';
+    });
+    html+='<p style="font-size:.85rem;font-weight:700">Total : '+feu+' feuilles \u00b7 '+tot.toLocaleString('fr-FR')+' XPF</p>';
+    zone.innerHTML=html;
+  }catch(e){ zone.innerHTML='<p style="color:var(--coral);font-size:.85rem">Erreur r\u00e9seau</p>'; }
 }
 async function adminTestEmail(){
   const msg=document.getElementById('test-email-msg');
