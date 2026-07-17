@@ -107,11 +107,15 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     c.setFillColor(col); c.setFont(POLICE, 7)
     c.drawCentredString(x0 + 2 * mm + sb_w / 2, htxt_y, "%05d" % serie)
     # titre centré
-    titre = (titre_jeu or "Le jeu OHANA 75 pour 8 boules")
+    titre = "Le jeu OHANA 75 pour 8 boules"
+    if titre_jeu and "OHANA" not in titre_jeu.strip().upper():
+        titre = "OHANA 75 \u00b7 8 boules \u00b7 " + titre_jeu.strip()   # le nom du jeu TOUJOURS affiché (décision Maeva)
+    elif titre_jeu:
+        titre = titre_jeu.strip()
     if telephone:
         titre += "  " + telephone
     c.setFillColor(col); c.setFont(POLICE, 6)
-    c.drawCentredString(x0 + CARD_W / 2 + 9 * mm, htxt_y, titre[:54])
+    c.drawCentredString(x0 + CARD_W / 2 + 9 * mm, htxt_y, titre[:64])
 
     # ---- Ligne des 8 numéros ----
     zone_top = htxt_y - 3 * mm
