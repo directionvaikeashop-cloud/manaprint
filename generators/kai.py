@@ -109,11 +109,15 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
 
     # En-tête
     hdr_y = y0 + CARD_H - 4 * mm
-    titre = (titre_jeu or "Le jeu KAI pour 7 boules")
+    titre = "Le jeu KAI pour 7 boules"
+    if titre_jeu and "KAI" not in titre_jeu.strip().upper():
+        titre = "Le jeu KAI \u00b7 " + titre_jeu.strip()   # le nom du jeu TOUJOURS affiché (décision Maeva)
+    elif titre_jeu:
+        titre = titre_jeu.strip()
     if telephone:
         titre += "  " + telephone
     c.setFillColor(col); c.setFont(POLICE, 5.5)
-    c.drawCentredString(x0 + CARD_W / 2, hdr_y, titre[:46])
+    c.drawCentredString(x0 + CARD_W / 2, hdr_y, titre[:58])
 
     # Zone grille 3×3
     grid_top = hdr_y - 2.5 * mm
