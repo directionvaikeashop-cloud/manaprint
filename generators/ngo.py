@@ -104,11 +104,15 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
 
     # En-tête (titre)
     hdr_y = y0 + CARD_H - 3.5 * mm
-    titre = (titre_jeu or "NGO 8 boules")
+    titre = "NGO 8 boules"
+    if titre_jeu and "NGO" not in titre_jeu.strip().upper():
+        titre = "NGO 8 boules \u00b7 " + titre_jeu.strip()   # le nom du jeu TOUJOURS affiché (décision Maeva)
+    elif titre_jeu:
+        titre = titre_jeu.strip()
     if telephone:
         titre += " by TUKEA " + telephone
     c.setFillColor(col); c.setFont(POLICE, 5)
-    c.drawCentredString(x0 + CARD_W / 2, hdr_y, titre[:56])
+    c.drawCentredString(x0 + CARD_W / 2, hdr_y, titre[:64])
 
     # En-tête colonnes N - G - O
     cell_w = CARD_W / ncols
