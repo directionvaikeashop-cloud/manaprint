@@ -1290,8 +1290,15 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
 
 
 # ── 💳 STRIPE (paiement par carte, comme sur Ticket Bingo) ────────────────────
-STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
-STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "").strip()
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip()
+if not STRIPE_SECRET_KEY:
+    # 🩹 auto-guérison : un nom de variable avec un espace invisible (copier-coller)
+    for _k, _v in os.environ.items():
+        if _k.strip() == "STRIPE_SECRET_KEY" and _v.strip():
+            STRIPE_SECRET_KEY = _v.strip()
+            print(f"[STRIPE] clé retrouvée sous le nom {_k!r} (espace parasite corrigé)")
+            break
 
 
 def _base_url():
@@ -1774,7 +1781,14 @@ def _rattrapage_stripe(jours=10):
     (webhook raté, panne, redéploiement...). Idempotent : sans danger."""
     import time as _t
     if not STRIPE_SECRET_KEY:
-        return {"ok": False, "message": "Stripe non configuré (STRIPE_SECRET_KEY absent)"}
+        vues = [f"{k!r} ({len((v or '').strip())} caractères utiles)"
+                for k, v in os.environ.items() if "STRIPE" in k.upper()]
+        detail = " \u00b7 ".join(sorted(vues)) if vues else "AUCUNE variable STRIPE visible"
+        return {"ok": False, "message":
+                "Stripe non configuré \u2014 \U0001f52c variables STRIPE que la plateforme "
+                f"voit dans son environnement : {detail}. "
+                "Si la liste est vide ou le nom entre guillemets contient un espace, "
+                "le souci est c\u00f4t\u00e9 Railway (service/environnement/nom)."}
     try:
         import stripe
         stripe.api_key = STRIPE_SECRET_KEY
