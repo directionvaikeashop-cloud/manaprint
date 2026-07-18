@@ -1404,6 +1404,15 @@ def panier_checkout():
         return jsonify({"ok": False, "message": "Paiement carte momentanément indisponible. Choisis le paiement en boutique."}), 502
 
 
+@app.route("/webhook/stripe", methods=["GET"])
+def webhook_stripe_visite():
+    """Visite au navigateur : on rassure au lieu du 405 « Method Not Allowed »."""
+    return ("\u2705 La porte Stripe de MANAPRINT est VIVANTE. "
+            "Elle n'accepte que les livraisons de Stripe (POST) \u2014 "
+            "pour v\u00e9rifier les paiements, utilisez le Dashboard Stripe "
+            "(D\u00e9veloppeurs \u2192 Webhooks \u2192 tentatives r\u00e9centes).", 200)
+
+
 @app.route("/webhook/stripe", methods=["POST"])
 def webhook_stripe():
     """💳 Stripe confirme le paiement -> le panier passe payé et la fabrication
