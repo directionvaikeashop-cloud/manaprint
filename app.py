@@ -1760,6 +1760,30 @@ def telecharger_lot(commande_id, jeton, quoi):
                      download_name=f"manaprint_cmd{commande_id}_{quoi}.pdf")
 
 
+@app.route("/api/admin/commandes/<int:commande_id>/supprimer", methods=["POST"])
+@admin_requis
+def admin_supprimer_commande(commande_id):
+    """🗑️ Supprime DÉFINITIVEMENT une commande refusée (erreur, doublon...) —
+    et ses PDF du coffre-fort avec. Réservé à l'administratrice, confirmé côté écran."""
+    cmd = db.get_commande(commande_id)
+    if not cmd:
+        return jsonify({"ok": False, "message": f"Commande #{commande_id} introuvable."})
+    try:
+        with db.get_db() as conn:
+            conn.execute("DELETE FROM commandes WHERE id = ?", (commande_id,))
+    except Exception as e:
+        return jsonify({"ok": False, "message": f"Suppression impossible : {e}"})
+    for quoi in ("cartons", "rapport"):
+        try:
+            os.remove(os.path.join(_dossier_lots(), f"cmd{commande_id}_{quoi}.pdf"))
+        except Exception:
+            pass
+    return jsonify({"ok": True, "message":
+                    f"Commande #{commande_id} supprimée \U0001f5d1\ufe0f "
+                    f"({cmd.get('identifiant', '')} \u00b7 {cmd.get('programme', '')} \u00b7 "
+                    f"{cmd.get('nb_feuilles', 0)} feuille(s)) — coffre-fort nettoyé."})
+
+
 @app.route("/api/admin/commandes/<int:commande_id>/pdf/<quoi>", methods=["GET"])
 @admin_requis
 def admin_pdf_commande(commande_id, quoi):
