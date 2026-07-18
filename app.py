@@ -1704,6 +1704,30 @@ def lancer_fabrication(commande_id, seulement_rapport=False):
                                           nom2_fichier=f"CONFIDENTIEL_couleurs_cmd{commande_id}.pdf")
             if ok:
                 db.marquer_commande_generee(commande_id)
+                # 🧾 LA FACTURE DU DÛ 2KEA (1,5 F/feuille) — expédiée automatiquement
+                # à la partenaire ET à la plateforme (copie), rangée au coffre-fort.
+                try:
+                    fact_pdf, fact_part, fact_montant = _facture_commande_pdf(cmd)
+                    lien_fact = _ranger_au_coffre(commande_id, "facture", fact_pdf)
+                    corps_fact = (
+                        f"Bonjour {fact_part.get('nom', '')},\n\n"
+                        f"Veuillez trouver la facture des redevances PDF MANAPRINT "
+                        f"pour la commande #{commande_id} :\n\n"
+                        f"  \u2022 Jeu : {cmd['programme']} \u2014 {cmd['nb_feuilles']} feuille(s)\n"
+                        f"  \u2022 Redevance : 1,5 F / feuille \u2192 TOTAL : {fact_montant} XPF\n"
+                        + (f"\n\U0001f517 Lien de secours :\n{lien_fact}\n" if lien_fact else "") +
+                        "\n\u00c0 r\u00e9gler \u00e0 2KEA & Associ\u00e9 selon vos modalit\u00e9s habituelles.\n\n"
+                        "\u2014 MANAPRINT / 2KEA & Associ\u00e9 \u2014 manaprint.app"
+                    )
+                    okf, mf = envoyer_email_pdf(
+                        part["email"],
+                        f"MANAPRINT \u2014 Facture du d\u00fb 2KEA \u2014 commande #{commande_id} ({fact_montant} XPF)",
+                        corps_fact, fact_pdf,
+                        f"facture_2kea_cmd{commande_id}.pdf",
+                        copie=SMTP_USER or None)
+                    print(f"[FACTURE 2KEA] cmd {commande_id} -> {part['email']} (+copie plateforme) : {okf} ({mf})")
+                except Exception as e:
+                    print(f"[FACTURE 2KEA] cmd {commande_id} : {e}")
                 print(f"[FABRICATION OK] commande {commande_id} envoyée à {part['nom']}")
             else:
                 print(f"[FABRICATION ECHEC ENVOI] commande {commande_id} : {m}")
@@ -1750,7 +1774,7 @@ def _ranger_au_coffre(commande_id, quoi, pdf_io):
 @app.route("/lot/<int:commande_id>/<jeton>/<quoi>.pdf", methods=["GET"])
 def telecharger_lot(commande_id, jeton, quoi):
     """Lien de secours des emails : téléchargement direct du PDF fabriqué."""
-    if quoi not in ("cartons", "rapport") or jeton != _jeton_lot(commande_id):
+    if quoi not in ("cartons", "rapport", "facture") or jeton != _jeton_lot(commande_id):
         return "lien invalide", 403
     chemin = os.path.join(_dossier_lots(), f"cmd{commande_id}_{quoi}.pdf")
     if not os.path.exists(chemin):
@@ -1758,6 +1782,43 @@ def telecharger_lot(commande_id, jeton, quoi):
                 "📬 Renvoyer les emails pour relancer la fabrication."), 404
     return send_file(chemin, mimetype="application/pdf",
                      download_name=f"manaprint_cmd{commande_id}_{quoi}.pdf")
+
+
+def _facture_commande_pdf(cmd):
+    """🧾 Construit la facture du dû 2KEA & Associé (1,5 F/feuille) pour UNE commande."""
+    import json as _json
+    from datetime import date as _date
+    from generators import facture as _fact
+    try:
+        perso = _json.loads(cmd.get("params_perso") or "{}")
+    except Exception:
+        perso = {}
+    part = PARTENAIRES.get(perso.get("partenaire") or "", {"nom": "Partenaire", "zone": "", "email": ""})
+    feuilles = int(cmd.get("nb_feuilles") or 0)
+    montant = round(feuilles * 1.5)
+    ligne = {
+        "date": (cmd.get("cree_le") or "")[:10] or _date.today().isoformat(),
+        "commande": cmd["id"],
+        "jeu": cmd.get("programme", ""),
+        "feuilles": feuilles,
+        "pu": 1.5,
+        "montant": montant,
+    }
+    numero = "C%05d" % cmd["id"]
+    libelle = "Commande #%d \u2014 %s" % (cmd["id"], _date.today().strftime("%d/%m/%Y"))
+    return _fact.generer_facture(numero, libelle, part, [ligne], montant), part, montant
+
+
+@app.route("/api/admin/facture-commande/<int:commande_id>", methods=["GET"])
+@admin_requis
+def admin_facture_commande(commande_id):
+    """Le bouton 🧾 : la facture du dû 2KEA de cette commande, à l'écran."""
+    cmd = db.get_commande(commande_id)
+    if not cmd:
+        return "Commande introuvable", 404
+    pdf, part, montant = _facture_commande_pdf(cmd)
+    return send_file(pdf, mimetype="application/pdf",
+                     download_name=f"facture_2kea_cmd{commande_id}.pdf")
 
 
 @app.route("/api/admin/commandes/<int:commande_id>/supprimer", methods=["POST"])
@@ -1773,7 +1834,7 @@ def admin_supprimer_commande(commande_id):
             conn.execute("DELETE FROM commandes WHERE id = ?", (commande_id,))
     except Exception as e:
         return jsonify({"ok": False, "message": f"Suppression impossible : {e}"})
-    for quoi in ("cartons", "rapport"):
+    for quoi in ("cartons", "rapport", "facture"):
         try:
             os.remove(os.path.join(_dossier_lots(), f"cmd{commande_id}_{quoi}.pdf"))
         except Exception:
@@ -1788,7 +1849,7 @@ def admin_supprimer_commande(commande_id):
 @admin_requis
 def admin_pdf_commande(commande_id, quoi):
     """⬇️ Téléchargement direct depuis l'espace gestion (session admin)."""
-    if quoi not in ("cartons", "rapport"):
+    if quoi not in ("cartons", "rapport", "facture"):
         return "type inconnu", 400
     chemin = os.path.join(_dossier_lots(), f"cmd{commande_id}_{quoi}.pdf")
     if not os.path.exists(chemin):
