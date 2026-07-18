@@ -1768,6 +1768,73 @@ def admin_pdf_commande(commande_id, quoi):
                      download_name=f"manaprint_cmd{commande_id}_{quoi}.pdf")
 
 
+def _rattrapage_stripe(jours=10):
+    """💳 LE RATTRAPAGE : demande DIRECTEMENT à Stripe les paiements réussis
+    des derniers jours et fabrique toute commande passée entre les mailles
+    (webhook raté, panne, redéploiement...). Idempotent : sans danger."""
+    import time as _t
+    if not STRIPE_SECRET_KEY:
+        return {"ok": False, "message": "Stripe non configuré (STRIPE_SECRET_KEY absent)"}
+    try:
+        import stripe
+        stripe.api_key = STRIPE_SECRET_KEY
+        verifies = 0
+        rattrapees = []
+        sessions = stripe.checkout.Session.list(
+            limit=100, created={"gte": int(_t.time()) - jours * 86400})
+        for sess in sessions.auto_paging_iter():
+            if sess["payment_status"] != "paid":
+                continue
+            verifies += 1
+            try:
+                panier_id = int(sess["metadata"]["panier_id"])
+            except Exception:
+                continue
+            cmds = db.marquer_panier_payee(panier_id)
+            if cmds:   # jamais traité jusqu'ici : la fabrication part ENFIN
+                for cmd in cmds:
+                    lancer_fabrication(cmd["id"])
+                    rattrapees.append(cmd["id"])
+                print(f"[RATTRAPAGE STRIPE] panier {panier_id} -> commandes {[c['id'] for c in cmds]}")
+        if rattrapees:
+            msg = (f"{verifies} paiement(s) vérifié(s) sur {jours} jours \u00b7 "
+                   f"\U0001f3c6 {len(rattrapees)} commande(s) RATTRAPÉE(S) et partie(s) en "
+                   f"fabrication : {', '.join('#' + str(i) for i in rattrapees)}")
+        else:
+            msg = (f"{verifies} paiement(s) vérifié(s) sur {jours} jours \u2014 "
+                   "tout était déjà en règle, aucun client oublié \u2705")
+        return {"ok": True, "message": msg, "rattrapees": rattrapees}
+    except Exception as e:
+        return {"ok": False, "message": f"Erreur Stripe : {e}"}
+
+
+@app.route("/api/admin/rattrapage-stripe", methods=["POST"])
+@admin_requis
+def admin_rattrapage_stripe():
+    return jsonify(_rattrapage_stripe(jours=10))
+
+
+def _veilleur_stripe():
+    """👁️ LE VEILLEUR : toutes les 30 minutes, vérifie les paiements Stripe
+    des 2 derniers jours tout seul — les webhooks ratés ne perdent plus
+    JAMAIS un client, sans aucun geste de l'administratrice."""
+    import time as _t
+    import random as _r
+    _t.sleep(90 + _r.uniform(0, 60))
+    while True:
+        try:
+            if STRIPE_SECRET_KEY:
+                res = _rattrapage_stripe(jours=2)
+                if res.get("rattrapees"):
+                    print(f"[VEILLEUR STRIPE] {res['message']}")
+        except Exception as e:
+            print(f"[VEILLEUR STRIPE] {e}")
+        _t.sleep(1800)
+
+
+_threading.Thread(target=_veilleur_stripe, daemon=True).start()
+
+
 @app.route("/api/admin/historique-client", methods=["POST"])
 @admin_requis
 def admin_historique_client():
