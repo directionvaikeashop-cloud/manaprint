@@ -995,6 +995,15 @@ async function adminLogin(){
   if(d.ok){ document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-panel').classList.remove('hidden'); chargerClients(); chargerCommandes(); adminHistorique(); adminSante(); }
   else document.getElementById('admin-login-msg').textContent="Code incorrect.";
 }
+async function adminSupprimerCommande(id){
+  if(!confirm('Supprimer D\u00c9FINITIVEMENT la commande #'+id+' ?\n\nSes PDF du coffre-fort seront effac\u00e9s aussi.\nCette action est irr\u00e9versible.')) return;
+  try{
+    const r=await fetch('/api/admin/commandes/'+id+'/supprimer',{method:'POST'});
+    const d=await r.json();
+    alert(d.message||'');
+    if(d.ok) chargerCommandes();
+  }catch(e){ alert('Erreur r\u00e9seau'); }
+}
 async function chargerCommandes(){
   const cont=document.getElementById('admin-commandes');
   try{
@@ -1010,6 +1019,7 @@ async function chargerCommandes(){
         +'<span style="display:flex;gap:.4rem;flex-shrink:0"><button class="btn" title="Télécharger le PDF des cartons (coffre-fort)" style="width:auto;padding:.4rem .7rem;white-space:nowrap" onclick="window.open(\'/api/admin/commandes/\'+String('+c.id+')+\'/pdf/cartons\',\'_blank\')">⬇️</button>'
         +'<button class="btn" title="Télécharger le rapport confidentiel des couleurs" style="width:auto;padding:.4rem .7rem;white-space:nowrap" onclick="window.open(\'/api/admin/commandes/\'+String('+c.id+')+\'/pdf/rapport\',\'_blank\')">🗂️</button>'
         +'<button class="btn" title="Éditer la facture du dû 2KEA" style="width:auto;padding:.4rem .7rem;white-space:nowrap" onclick="factureCommande('+c.id+')">🧾</button>'
+        +'<button class="btn" title="Supprimer cette commande (erreur / refus)" style="width:auto;padding:.4rem .7rem;white-space:nowrap;background:var(--coral)" onclick="adminSupprimerCommande('+c.id+')">🗑️</button>'
         +'<button class="btn" style="width:auto;padding:.4rem 1rem;white-space:nowrap" onclick="validerCommande('+c.id+',this)">Valider</button></span>';
       cont.appendChild(div);
     });
