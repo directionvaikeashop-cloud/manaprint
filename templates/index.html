@@ -329,6 +329,11 @@
       </label>
       <p id="renv-msg" style="font-size:.82rem;line-height:1.7"></p>
 
+      <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">💳 Rattrapage des paiements Stripe</h2>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:.6rem;line-height:1.7">Demande directement à Stripe les paiements des 10 derniers jours et fabrique toute commande oubliée (webhook en panne, redéploiement...). Sans danger : les commandes déjà traitées ne bougent pas. Un veilleur automatique fait aussi ce contrôle toutes les 30 minutes.</p>
+      <button class="btn" style="width:auto;padding:0 1.4rem" onclick="adminRattrapageStripe()">💳 Lancer le rattrapage</button>
+      <p id="stripe-msg" style="font-size:.82rem;line-height:1.7;margin-top:.6rem;word-break:break-word"></p>
+
       <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">🔍 Historique d'un client</h2>
       <p style="color:var(--muted);font-size:.85rem;margin-bottom:.6rem;line-height:1.7">Toutes les commandes d'un client ou d'une association (cherché dans l'identifiant, l'événement, le titre et l'email) — avec le téléchargement des PDF du coffre-fort.</p>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
@@ -916,6 +921,16 @@ async function adminRenvoyerEmails(){
     msg.style.color=d.ok?'var(--teal)':'var(--coral)';
     msg.textContent=d.message||(d.ok?'Relancé !':'Erreur');
   }catch(e){ msg.style.color='var(--coral)'; msg.textContent='Erreur réseau'; }
+}
+async function adminRattrapageStripe(){
+  const msg=document.getElementById('stripe-msg');
+  msg.style.color='var(--muted)'; msg.textContent='Interrogation de Stripe\u2026';
+  try{
+    const r=await fetch('/api/admin/rattrapage-stripe',{method:'POST'});
+    const d=await r.json();
+    msg.style.color=d.ok?'var(--teal)':'var(--coral)';
+    msg.textContent=(d.ok?'\u2705 ':'\u274c ')+(d.message||'');
+  }catch(e){ msg.style.color='var(--coral)'; msg.textContent='Erreur r\u00e9seau'; }
 }
 async function adminHistoriqueClient(){
   const zone=document.getElementById('hist-res');
