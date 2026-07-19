@@ -1098,6 +1098,27 @@ async function adminRetirer(num){
     btnG.textContent = '🔒 Espace de ma boutique';
     btnG.onclick = function(){ window.location.href = '/espace-partenaire'; };
   }
+  // \u00e9talage : les articles de la boutique s'affichent sous la banni\u00e8re
+  fetch('/api/boutique/' + B.slug + '/articles').then(function(r){ return r.json(); }).then(function(d){
+    if(!d.ok || !d.articles || !d.articles.length) return;
+    const sec = document.createElement('div');
+    sec.style.cssText = 'max-width:1100px;margin:1.2rem auto 0;padding:0 1rem';
+    let cartes = '';
+    d.articles.forEach(function(a){
+      cartes += '<div style="flex:1;min-width:180px;max-width:240px;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 3px 12px rgba(0,90,110,.07)">'
+        + (a.photo ? '<img src="/articles-photos/' + a.photo + '" alt="" style="width:100%;height:140px;object-fit:cover;display:block">' : '')
+        + '<div style="padding:.7rem .8rem">'
+        + '<div style="font-weight:700;color:var(--ink);font-size:.92rem">' + a.nom + '</div>'
+        + (a.desc ? '<div style="color:var(--muted);font-size:.78rem;line-height:1.45;margin:.25rem 0">' + a.desc + '</div>' : '')
+        + '<div style="color:var(--teal-d);font-weight:800;font-size:1rem;margin-top:.3rem">' + Number(a.prix).toLocaleString('fr-FR') + ' XPF</div>'
+        + '</div></div>';
+    });
+    sec.innerHTML = '<h2 class="display" style="font-size:1.3rem;margin:0 0 .2rem">\ud83d\udecd\ufe0f Les articles de la boutique</h2>'
+      + '<p style="color:var(--muted);font-size:.82rem;margin-bottom:.8rem">Disponibles directement en boutique' + (B.tel ? ' \u2014 renseignements au \u260e ' + B.tel : '') + '.</p>'
+      + '<div style="display:flex;gap:.8rem;flex-wrap:wrap">' + cartes + '</div>';
+    const bandeEl = document.body.firstChild;
+    document.body.insertBefore(sec, bandeEl.nextSibling);
+  }).catch(function(){});
   const minuteur = setInterval(function(){
     const sel = document.getElementById('gen-partenaire');
     if(!sel) return;
