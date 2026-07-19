@@ -1212,9 +1212,11 @@ def apercu_jeu(jeu_id):
 @app.route("/api/partenaires", methods=["GET"])
 def api_partenaires():
     """Liste des points d'impression partenaires (pour le menu déroulant)."""
+    _prix = _lire_prix_partenaires()
     return jsonify({"ok": True, "partenaires": [
         {"id": k, "nom": v["nom"], "zone": v["zone"], "tel": v["tel"],
-         "prix_pdf_seul": v.get("prix_pdf_seul")}
+         "prix_pdf_seul": v.get("prix_pdf_seul"),
+         "prix_client": _prix.get(k) or None}
         for k, v in PARTENAIRES.items()
     ]})
 
@@ -1278,6 +1280,13 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
     # 💡 Tarif spécial partenaire (ex. RANIHEI : PDF seul à 1,5 F —
     # l'impression se règle directement avec le partenaire)
     prix_special = PARTENAIRES[partenaire].get("prix_pdf_seul")
+    # 💰 ...sauf si le partenaire a fixé SES prix clients dans son espace :
+    # le client paie CE prix (tout compris) — la redevance 1,5 F reste
+    # l'affaire privée entre le partenaire et 2KEA (facture automatique).
+    _pp = _lire_prix_partenaires().get(partenaire) or {}
+    _cle_prix = db._gamme_du_programme(programme) + ("_couleur" if couleur else "_nb")
+    if _pp.get(_cle_prix):
+        prix_special = float(_pp[_cle_prix])
     commande_id, montant = db.creer_commande(
         identifiant=session.get("identifiant"),
         origine=session["acces"],
@@ -1999,6 +2008,185 @@ def admin_test_email():
         None, "")
     etat = f"SMTP_USER = {SMTP_USER or '(vide !)'} \u00b7 SMTP_PASS = {'défini (' + str(len(SMTP_PASS)) + ' caractères)' if SMTP_PASS else '(VIDE !)'}"
     return jsonify({"ok": ok, "message": f"{m} \u2014 {etat}"})
+
+
+# ══ 🏪 BOUTIQUES PARTENAIRES (vitrine publique + espace privé) ══════════════
+# Chaque partenaire a : sa VITRINE (/boutique/<slug>) où ses clients commandent
+# avec l'imprimeur verrouillé sur lui, et son ESPACE PRIVÉ (/espace-partenaire)
+# où il suit SES commandes, télécharge les cartons et ses factures 2KEA.
+_CODES_PARTENAIRES_DEFAUT = {
+    "2kea_papeete": "PAP-2358", "fun_and_co": "FUN-7261",
+    "cocotie_mer": "MER-4837", "ranihei": "RAN-9145",
+}
+for _slug_p, _p in PARTENAIRES.items():
+    _p["code"] = os.environ.get("CODE_PART_" + _slug_p.upper(),
+                                _CODES_PARTENAIRES_DEFAUT.get(_slug_p, _slug_p.upper() + "-2026"))
+
+
+@app.route("/boutique/<slug>", methods=["GET"])
+def boutique_partenaire(slug):
+    """🏪 La VITRINE du partenaire : le site complet, imprimeur verrouillé sur lui."""
+    part = PARTENAIRES.get(slug)
+    if not part:
+        return "Boutique inconnue \u2014 v\u00e9rifiez l'adresse.", 404
+    return render_template("index.html", boutique={
+        "slug": slug, "nom": part["nom"], "zone": part.get("zone", ""), "tel": part.get("tel", "")})
+
+
+@app.route("/espace-partenaire", methods=["GET"])
+def page_espace_partenaire():
+    return render_template("partenaire.html")
+
+
+def _partenaire_session():
+    slug = session.get("partenaire_slug") or ""
+    if slug in PARTENAIRES:
+        return slug, PARTENAIRES[slug]
+    return None, None
+
+
+@app.route("/api/partenaire/login", methods=["POST"])
+def api_partenaire_login():
+    d = request.get_json(silent=True) or {}
+    code = (d.get("code") or "").strip().upper()
+    if not code:
+        return jsonify({"ok": False, "message": "Entrez votre code partenaire."})
+    for slug, part in PARTENAIRES.items():
+        if code == str(part.get("code", "")).strip().upper():
+            session["partenaire_slug"] = slug
+            return jsonify({"ok": True, "nom": part["nom"], "zone": part.get("zone", "")})
+    return jsonify({"ok": False, "message": "Code partenaire inconnu."})
+
+
+@app.route("/api/partenaire/logout", methods=["POST"])
+def api_partenaire_logout():
+    session.pop("partenaire_slug", None)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/partenaire/mes-commandes", methods=["GET"])
+def api_partenaire_mes_commandes():
+    import json as _json
+    from datetime import date as _date
+    slug, part = _partenaire_session()
+    if not slug:
+        return jsonify({"ok": False, "message": "connexion requise"}), 403
+    mois = _date.today().isoformat()[:7]
+    lignes = []
+    nb_f = du_total = du_mois = 0
+    for cmd in db.lister_commandes():
+        try:
+            perso = _json.loads(cmd.get("params_perso") or "{}")
+        except Exception:
+            perso = {}
+        if (perso.get("partenaire") or "") != slug:
+            continue
+        du = round(int(cmd.get("nb_feuilles") or 0) * 1.5)
+        au_coffre = os.path.exists(os.path.join(_dossier_lots(), f"cmd{cmd['id']}_cartons.pdf"))
+        fact_ok = os.path.exists(os.path.join(_dossier_lots(), f"cmd{cmd['id']}_facture.pdf"))
+        lignes.append({
+            "id": cmd["id"], "date": (cmd.get("cree_le") or "")[:16].replace("T", " "),
+            "identifiant": cmd.get("identifiant", ""), "programme": cmd.get("programme", ""),
+            "nb_feuilles": cmd.get("nb_feuilles", 0), "statut": cmd.get("statut", ""),
+            "du": du, "cartons": au_coffre, "facture": fact_ok,
+            "evenement": perso.get("nom_evenement", "") or perso.get("titre_jeu", ""),
+        })
+        nb_f += int(cmd.get("nb_feuilles") or 0)
+        du_total += du
+        if (cmd.get("cree_le") or "")[:7] == mois:
+            du_mois += du
+    return jsonify({"ok": True, "nom": part["nom"], "zone": part.get("zone", ""),
+                    "commandes": lignes,
+                    "stats": {"nb": len(lignes), "feuilles": nb_f,
+                              "du_mois": du_mois, "du_total": du_total}})
+
+
+_PRIX_PART_LOCK = _threading.Lock()
+
+
+def _prix_partenaires_chemin():
+    base = os.path.dirname(os.environ.get("MANAPRINT_DB", "/tmp/manaprint.db")) or "/tmp"
+    return os.path.join(base, "prix_partenaires.json")
+
+
+def _lire_prix_partenaires():
+    """💰 Les prix clients fixés par chaque partenaire dans son espace.
+    {slug: {eco_nb, eco_couleur, p15_nb, p15_couleur}} — vide = tarif standard."""
+    import json as _json
+    try:
+        with open(_prix_partenaires_chemin(), encoding="utf-8") as f:
+            return _json.load(f) or {}
+    except Exception:
+        return {}
+
+
+def _sauver_prix_partenaires(tous):
+    import json as _json
+    chemin = _prix_partenaires_chemin()
+    with _PRIX_PART_LOCK:
+        with open(chemin + ".tmp", "w", encoding="utf-8") as f:
+            _json.dump(tous, f, ensure_ascii=False, indent=1)
+        os.replace(chemin + ".tmp", chemin)
+
+
+@app.route("/api/partenaire/prix", methods=["GET", "POST"])
+def api_partenaire_prix():
+    """💰 Le partenaire consulte / fixe SES prix clients (la redevance 1,5 F
+    reste un accord privé avec 2KEA — jamais montrée aux clients)."""
+    slug, part = _partenaire_session()
+    if not slug:
+        return jsonify({"ok": False, "message": "connexion requise"}), 403
+    if request.method == "GET":
+        return jsonify({"ok": True, "prix": _lire_prix_partenaires().get(slug) or {}})
+    d = request.get_json(silent=True) or {}
+    propre = {}
+    for cle in ("eco_nb", "eco_couleur", "p15_nb", "p15_couleur"):
+        v = str(d.get(cle, "") or "").strip().replace(",", ".")
+        if not v:
+            continue
+        try:
+            x = float(v)
+        except Exception:
+            return jsonify({"ok": False, "message": f"\u00ab {v} \u00bb n'est pas un prix valide."})
+        if not (0 < x <= 10000):
+            return jsonify({"ok": False, "message": "Chaque prix doit \u00eatre entre 1 et 10 000 F."})
+        propre[cle] = round(x, 1)
+    tous = _lire_prix_partenaires()
+    if propre:
+        tous[slug] = propre
+    else:
+        tous.pop(slug, None)
+    _sauver_prix_partenaires(tous)
+    return jsonify({"ok": True, "prix": propre, "message":
+                    "Prix enregistr\u00e9s \u2705 Ils s'appliquent d\u00e8s maintenant sur votre vitrine."
+                    if propre else "Prix retir\u00e9s \u2014 retour au tarif standard de la plateforme."})
+
+
+@app.route("/api/partenaire/pdf/<int:commande_id>/<quoi>", methods=["GET"])
+def api_partenaire_pdf(commande_id, quoi):
+    """⬇️ Le partenaire ne télécharge QUE ses cartons et ses factures —
+    jamais le rapport confidentiel (réservé à l'organisateur)."""
+    import json as _json
+    slug, part = _partenaire_session()
+    if not slug:
+        return "connexion requise", 403
+    if quoi not in ("cartons", "facture"):
+        return "type non autoris\u00e9", 403
+    cmd = db.get_commande(commande_id)
+    if not cmd:
+        return "commande introuvable", 404
+    try:
+        perso = _json.loads(cmd.get("params_perso") or "{}")
+    except Exception:
+        perso = {}
+    if (perso.get("partenaire") or "") != slug:
+        return "cette commande n'appartient pas \u00e0 votre boutique", 403
+    chemin = os.path.join(_dossier_lots(), f"cmd{commande_id}_{quoi}.pdf")
+    if not os.path.exists(chemin):
+        return ("PDF pas encore au coffre \u2014 il appara\u00eetra ici apr\u00e8s la "
+                "fabrication (ou demandez \u00e0 la plateforme un \U0001f4ec renvoi)."), 404
+    return send_file(chemin, mimetype="application/pdf",
+                     download_name=f"manaprint_cmd{commande_id}_{quoi}.pdf")
 
 
 @app.route("/api/admin/rafraichir-vignettes", methods=["POST"])
