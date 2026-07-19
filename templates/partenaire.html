@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Espace Partenaire · MANAPRINT</title>
+<meta name="robots" content="noindex">
+<style>
+  :root{
+    --teal:#00b4c5; --teal-d:#00808f; --coral:#ff6f61; --encre:#123a44;
+    --fond:#f4fbfc; --carte:#ffffff; --line:#dceef1; --muted:#6b8a92;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--fond);color:var(--encre);min-height:100vh}
+  .bande{background:var(--teal);color:#fff;text-align:center;padding:.6rem .8rem;font-size:.88rem;font-weight:600}
+  .conteneur{max-width:920px;margin:0 auto;padding:1.4rem 1rem 3rem}
+  h1{font-size:1.5rem;margin:.8rem 0 .2rem}
+  .sous{color:var(--muted);font-size:.88rem;margin-bottom:1.4rem;line-height:1.6}
+  .carte{background:var(--carte);border:1px solid var(--line);border-radius:16px;padding:1.4rem;box-shadow:0 4px 18px rgba(0,90,110,.06);margin-bottom:1.2rem}
+  input{width:100%;padding:.7rem .9rem;border:1px solid var(--line);border-radius:10px;font-size:1rem;margin-bottom:.8rem;text-transform:uppercase;letter-spacing:.08em}
+  input:focus{outline:2px solid var(--teal)}
+  .btn{display:inline-block;background:var(--teal);color:#fff;border:none;border-radius:10px;padding:.7rem 1.4rem;font-size:.95rem;font-weight:600;cursor:pointer}
+  .btn:hover{background:var(--teal-d)}
+  .btn.mini{padding:.4rem .7rem;font-size:.8rem}
+  .btn.gris{background:#e8f2f4;color:var(--encre)}
+  .msg{font-size:.85rem;line-height:1.6;margin-top:.4rem}
+  .puces{display:flex;gap:.7rem;flex-wrap:wrap;margin:1rem 0 1.2rem}
+  .puce{flex:1;min-width:150px;background:var(--carte);border:1px solid var(--line);border-radius:14px;padding:.9rem 1rem;text-align:center}
+  .puce b{display:block;font-size:1.35rem;color:var(--teal-d)}
+  .puce span{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+  .cmd{display:flex;align-items:center;gap:.6rem;padding:.6rem .7rem;border:1px solid var(--line);border-radius:12px;margin-bottom:.5rem;font-size:.84rem;flex-wrap:wrap;background:var(--carte)}
+  .cmd .id{font-weight:700;color:var(--teal-d)}
+  .cmd .muet{color:var(--muted)}
+  .cmd .boutons{margin-left:auto;display:flex;gap:.4rem}
+  .entete{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap}
+  .entete h1{margin:0}
+  .entete .btn{margin-left:auto}
+  .pied{color:var(--muted);font-size:.78rem;text-align:center;margin-top:2rem;line-height:1.7}
+  a{color:var(--teal-d)}
+</style>
+</head>
+<body>
+<div class="bande">🏪 MANAPRINT — Espace Partenaire d'impression</div>
+<div class="conteneur">
+
+  <!-- ═══ CONNEXION ═══ -->
+  <div id="zone-login">
+    <h1>Bienvenue, partenaire !</h1>
+    <p class="sous">Entrez le code de votre boutique pour suivre vos commandes,
+    télécharger les PDF de cartons à imprimer et consulter vos factures 2KEA &amp; Associé.</p>
+    <div class="carte" style="max-width:430px">
+      <label style="font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em">Code partenaire</label>
+      <input id="code" placeholder="EX : FUN-0000" onkeydown="if(event.key==='Enter')connexion()">
+      <button class="btn" style="width:100%" onclick="connexion()">Entrer dans ma boutique</button>
+      <p id="login-msg" class="msg"></p>
+    </div>
+    <p class="pied">Votre code vous a été remis par 2KEA &amp; Associé — Papeete.<br>
+    Besoin d'aide ? Contactez la plateforme : <a href="https://manaprint.app">manaprint.app</a></p>
+  </div>
+
+  <!-- ═══ TABLEAU DE BORD ═══ -->
+  <div id="zone-bord" style="display:none">
+    <div class="entete">
+      <h1 id="bord-nom">Ma boutique</h1>
+      <button class="btn gris mini" onclick="deconnexion()">Se déconnecter</button>
+    </div>
+    <p class="sous" id="bord-zone"></p>
+
+    <div class="puces">
+      <div class="puce"><b id="st-nb">0</b><span>commandes</span></div>
+      <div class="puce"><b id="st-feuilles">0</b><span>feuilles</span></div>
+      <div class="puce"><b id="st-mois">0 F</b><span>dû 2KEA ce mois</span></div>
+      <div class="puce"><b id="st-total">0 F</b><span>dû 2KEA total</span></div>
+    </div>
+
+    <div class="carte">
+      <h2 style="font-size:1.05rem;margin-bottom:.4rem">💰 Mes prix clients</h2>
+      <p class="msg" style="color:var(--muted);margin:0 0 .8rem">Fixez VOS prix par feuille, tout compris — ils s'affichent et s'appliquent sur votre vitrine.
+      Laissez vide pour le fonctionnement standard. <b>La redevance PDF reste notre accord privé, jamais montrée aux clients.</b></p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.6rem">
+        <div><label style="font-size:.72rem;color:var(--muted);text-transform:uppercase">ÉCO — N&amp;B</label>
+          <input id="px-eco_nb" type="number" min="1" step="0.5" placeholder="ex : 6" style="text-transform:none;letter-spacing:0;margin-bottom:0"></div>
+        <div><label style="font-size:.72rem;color:var(--muted);text-transform:uppercase">ÉCO — Couleur</label>
+          <input id="px-eco_couleur" type="number" min="1" step="0.5" placeholder="ex : 10" style="text-transform:none;letter-spacing:0;margin-bottom:0"></div>
+        <div><label style="font-size:.72rem;color:var(--muted);text-transform:uppercase">PREMIUM — N&amp;B</label>
+          <input id="px-p15_nb" type="number" min="1" step="0.5" placeholder="ex : 10" style="text-transform:none;letter-spacing:0;margin-bottom:0"></div>
+        <div><label style="font-size:.72rem;color:var(--muted);text-transform:uppercase">PREMIUM — Couleur</label>
+          <input id="px-p15_couleur" type="number" min="1" step="0.5" placeholder="ex : 14" style="text-transform:none;letter-spacing:0;margin-bottom:0"></div>
+      </div>
+      <div style="display:flex;gap:.6rem;align-items:center;margin-top:.8rem">
+        <button class="btn mini" onclick="sauverPrix()">💾 Enregistrer mes prix</button>
+        <span id="prix-msg" class="msg"></span>
+      </div>
+    </div>
+
+    <div class="carte">
+      <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.8rem">
+        <h2 style="font-size:1.05rem">📦 Mes commandes</h2>
+        <button class="btn gris mini" style="margin-left:auto" onclick="charger()">↻ Actualiser</button>
+      </div>
+      <div id="liste"></div>
+      <p class="msg muet" style="color:var(--muted)">⬇️ Cartons = le PDF prêt à imprimer ·
+      🧾 Facture = votre dû 2KEA (1,5 F/feuille). Le rapport confidentiel des couleurs reste
+      réservé à l'organisateur du loto.</p>
+    </div>
+  </div>
+
+  <p class="pied">MANAPRINT · 2KEA &amp; Associé — Papeete, Polynésie française</p>
+</div>
+
+<script>
+async function connexion(){
+  const msg = document.getElementById('login-msg');
+  msg.style.color = 'var(--muted)'; msg.textContent = 'Connexion\u2026';
+  try{
+    const code = document.getElementById('code').value.trim();
+    const r = await fetch('/api/partenaire/login', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({code})});
+    const d = await r.json();
+    if(!d.ok){ msg.style.color='var(--coral)'; msg.textContent='\u274c ' + (d.message||'Code refus\u00e9'); return; }
+    msg.textContent='';
+    charger();
+  }catch(e){ msg.style.color='var(--coral)'; msg.textContent='Erreur r\u00e9seau'; }
+}
+
+async function deconnexion(){
+  try{ await fetch('/api/partenaire/logout', {method:'POST'}); }catch(e){}
+  document.getElementById('zone-bord').style.display='none';
+  document.getElementById('zone-login').style.display='';
+}
+
+function fmtF(n){ return (n||0).toLocaleString('fr-FR') + ' F'; }
+
+async function charger(){
+  try{
+    const r = await fetch('/api/partenaire/mes-commandes');
+    if(r.status === 403){ return; }   // pas connecté : l'écran de connexion reste
+    const d = await r.json();
+    if(!d.ok) return;
+    document.getElementById('zone-login').style.display='none';
+    document.getElementById('zone-bord').style.display='';
+    document.getElementById('bord-nom').textContent = '🏪 ' + d.nom;
+    document.getElementById('bord-zone').textContent = d.zone || '';
+    document.getElementById('st-nb').textContent = d.stats.nb;
+    document.getElementById('st-feuilles').textContent = d.stats.feuilles.toLocaleString('fr-FR');
+    document.getElementById('st-mois').textContent = fmtF(d.stats.du_mois);
+    document.getElementById('st-total').textContent = fmtF(d.stats.du_total);
+    chargerPrix();
+    const zone = document.getElementById('liste');
+    if(!d.commandes.length){
+      zone.innerHTML = '<p class="msg" style="color:var(--muted)">Aucune commande pour le moment — partagez l\u2019adresse de votre vitrine pour recevoir vos premi\u00e8res commandes !</p>';
+      return;
+    }
+    zone.innerHTML = d.commandes.map(function(c){
+      return '<div class="cmd">'
+        + '<span class="id">#' + c.id + '</span>'
+        + '<span class="muet">' + c.date + '</span>'
+        + '<span>' + c.identifiant + '</span>'
+        + (c.evenement ? '<span class="muet">\u00b7 ' + c.evenement + '</span>' : '')
+        + '<span>\u00b7 ' + c.programme + ' \u00d7 ' + c.nb_feuilles + ' f.</span>'
+        + '<span class="muet">\u00b7 ' + c.statut + '</span>'
+        + '<span style="font-weight:700">\u00b7 d\u00fb ' + fmtF(c.du) + '</span>'
+        + '<span class="boutons">'
+        + (c.cartons ? '<button class="btn mini" title="PDF des cartons \u00e0 imprimer" onclick="ouvrir(' + c.id + ',\'cartons\')">\u2b07\ufe0f Cartons</button>' : '<span class="muet">\u23f3 fabrication\u2026</span>')
+        + (c.facture ? '<button class="btn mini gris" title="Facture du d\u00fb 2KEA" onclick="ouvrir(' + c.id + ',\'facture\')">\ud83e\uddfe Facture</button>' : '')
+        + '</span></div>';
+    }).join('');
+  }catch(e){}
+}
+
+function ouvrir(id, quoi){ window.open('/api/partenaire/pdf/' + id + '/' + quoi, '_blank'); }
+
+async function chargerPrix(){
+  try{
+    const r = await fetch('/api/partenaire/prix');
+    if(!r.ok) return;
+    const d = await r.json();
+    ['eco_nb','eco_couleur','p15_nb','p15_couleur'].forEach(function(c){
+      document.getElementById('px-' + c).value = (d.prix && d.prix[c]) ? d.prix[c] : '';
+    });
+  }catch(e){}
+}
+
+async function sauverPrix(){
+  const msg = document.getElementById('prix-msg');
+  msg.style.color = 'var(--muted)'; msg.textContent = 'Enregistrement…';
+  try{
+    const corps = {};
+    ['eco_nb','eco_couleur','p15_nb','p15_couleur'].forEach(function(c){
+      corps[c] = document.getElementById('px-' + c).value;
+    });
+    const r = await fetch('/api/partenaire/prix', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify(corps)});
+    const d = await r.json();
+    msg.style.color = d.ok ? 'var(--teal-d)' : 'var(--coral)';
+    msg.textContent = (d.ok ? '✅ ' : '❌ ') + (d.message || '');
+  }catch(e){ msg.style.color='var(--coral)'; msg.textContent='Erreur réseau'; }
+}
+
+charger();   // si la session existe déjà, le tableau s'ouvre tout seul
+</script>
+</body>
+</html>
