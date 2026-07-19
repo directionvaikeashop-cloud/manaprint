@@ -2176,6 +2176,142 @@ def api_partenaire_prix():
                     if propre else "Prix retir\u00e9s \u2014 retour au tarif standard de la plateforme."})
 
 
+# ══ 🛍️ LES ARTICLES DES BOUTIQUES (rayon libre de chaque partenaire) ═════════
+_ARTICLES_LOCK = _threading.Lock()
+LIMITE_PHOTO_ARTICLE = 3 * 1024 * 1024   # 3 Mo par photo
+MAX_ARTICLES_PAR_BOUTIQUE = 30
+
+
+def _articles_chemin():
+    base = os.path.dirname(os.environ.get("MANAPRINT_DB", "/tmp/manaprint.db")) or "/tmp"
+    return os.path.join(base, "articles_partenaires.json")
+
+
+def _dossier_photos_articles():
+    base = os.path.dirname(os.environ.get("MANAPRINT_DB", "/tmp/manaprint.db")) or "/tmp"
+    d = os.path.join(base, "articles_photos")
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def _lire_articles():
+    import json as _json
+    try:
+        with open(_articles_chemin(), encoding="utf-8") as f:
+            return _json.load(f) or {}
+    except Exception:
+        return {}
+
+
+def _sauver_articles(tous):
+    import json as _json
+    chemin = _articles_chemin()
+    with _ARTICLES_LOCK:
+        with open(chemin + ".tmp", "w", encoding="utf-8") as f:
+            _json.dump(tous, f, ensure_ascii=False, indent=1)
+        os.replace(chemin + ".tmp", chemin)
+
+
+@app.route("/api/boutique/<slug>/articles", methods=["GET"])
+def api_articles_boutique(slug):
+    """🛍️ L'étalage PUBLIC d'une boutique (lu par sa vitrine)."""
+    if slug not in PARTENAIRES:
+        return jsonify({"ok": False}), 404
+    return jsonify({"ok": True, "articles": _lire_articles().get(slug) or []})
+
+
+@app.route("/articles-photos/<nom_fichier>", methods=["GET"])
+def photo_article(nom_fichier):
+    import re as _re
+    if not _re.fullmatch(r"[a-z0-9_]+\.(jpg|png)", nom_fichier):
+        return "photo inconnue", 404
+    chemin = os.path.join(_dossier_photos_articles(), nom_fichier)
+    if not os.path.exists(chemin):
+        return "photo inconnue", 404
+    return send_file(chemin, mimetype="image/jpeg" if nom_fichier.endswith(".jpg") else "image/png")
+
+
+@app.route("/api/partenaire/articles", methods=["GET", "POST"])
+def api_partenaire_articles():
+    """🛍️ L'OUTIL SPÉCIAL du partenaire : il gère lui-même son rayon d'articles."""
+    import base64 as _b64
+    import re as _re
+    slug, part = _partenaire_session()
+    if not slug:
+        return jsonify({"ok": False, "message": "connexion requise"}), 403
+    tous = _lire_articles()
+    miens = tous.get(slug) or []
+    if request.method == "GET":
+        return jsonify({"ok": True, "articles": miens})
+    d = request.get_json(silent=True) or {}
+
+    # ── suppression ──
+    if d.get("supprimer"):
+        cible = str(d.get("supprimer"))
+        garde = [x for x in miens if str(x["id"]) != cible]
+        if len(garde) == len(miens):
+            return jsonify({"ok": False, "message": "Article introuvable."})
+        for x in miens:
+            if str(x["id"]) == cible and x.get("photo"):
+                try:
+                    os.remove(os.path.join(_dossier_photos_articles(), x["photo"]))
+                except Exception:
+                    pass
+        tous[slug] = garde
+        _sauver_articles(tous)
+        return jsonify({"ok": True, "message": "Article retiré de la vitrine.", "articles": garde})
+
+    # ── ajout / modification ──
+    nom = (d.get("nom") or "").strip()[:80]
+    if len(nom) < 2:
+        return jsonify({"ok": False, "message": "Donnez un nom à l'article."})
+    try:
+        prix = round(float(str(d.get("prix", "")).replace(",", ".")), 0)
+        assert 0 < prix <= 1000000
+    except Exception:
+        return jsonify({"ok": False, "message": "Le prix doit être un nombre (en XPF)."})
+    desc = (d.get("desc") or "").strip()[:200]
+    art_id = str(d.get("id") or "").strip()
+    existant = next((x for x in miens if str(x["id"]) == art_id), None) if art_id else None
+    if existant is None and len(miens) >= MAX_ARTICLES_PAR_BOUTIQUE:
+        return jsonify({"ok": False, "message": f"Maximum {MAX_ARTICLES_PAR_BOUTIQUE} articles par boutique."})
+
+    photo_nom = existant.get("photo") if existant else None
+    photo_b64 = d.get("photo_base64") or ""
+    if photo_b64:
+        try:
+            brut = _b64.b64decode(_re.sub(r"^data:image/[a-z]+;base64,", "", photo_b64), validate=False)
+        except Exception:
+            return jsonify({"ok": False, "message": "Photo illisible — réessayez avec un JPG ou un PNG."})
+        if len(brut) > LIMITE_PHOTO_ARTICLE:
+            return jsonify({"ok": False, "message": "Photo trop lourde (3 Mo maximum)."})
+        if brut[:3] == b"\xff\xd8\xff":
+            ext = "jpg"
+        elif brut[:8] == b"\x89PNG\r\n\x1a\n":
+            ext = "png"
+        else:
+            return jsonify({"ok": False, "message": "Seuls les JPG et PNG sont acceptés."})
+        if existant and existant.get("photo"):
+            try:
+                os.remove(os.path.join(_dossier_photos_articles(), existant["photo"]))
+            except Exception:
+                pass
+        nouvel_id = art_id or str(int(__import__("time").time() * 1000))
+        photo_nom = f"{slug}_{nouvel_id}.{ext}"
+        with open(os.path.join(_dossier_photos_articles(), photo_nom), "wb") as f:
+            f.write(brut)
+        art_id = nouvel_id
+
+    if existant:
+        existant.update({"nom": nom, "prix": prix, "desc": desc, "photo": photo_nom})
+    else:
+        art_id = art_id or str(int(__import__("time").time() * 1000))
+        miens.append({"id": art_id, "nom": nom, "prix": prix, "desc": desc, "photo": photo_nom})
+    tous[slug] = miens
+    _sauver_articles(tous)
+    return jsonify({"ok": True, "message": "Article en vitrine \u2705", "articles": miens})
+
+
 @app.route("/api/partenaire/pdf/<int:commande_id>/<quoi>", methods=["GET"])
 def api_partenaire_pdf(commande_id, quoi):
     """⬇️ Le partenaire ne télécharge QUE ses cartons et ses factures —
