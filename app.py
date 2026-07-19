@@ -324,12 +324,15 @@ _enregistrer_paire("ohana20b",      "OHANA 75 · 20 boules","🌺", 5,  ohana75_
 CARTES_PAR_FEUILLE = {jid: j["cartes_par_feuille"] for jid, j in REGISTRE_JEUX.items()}
 
 
-def generer_jeu(programme, nb_cartes, couleur, perso, evenement_id=""):
+def generer_jeu(programme, nb_cartes, couleur, perso, evenement_id="", serie_start=1):
     """Génère le PDF A4 de N'IMPORTE QUEL jeu du registre. perso = champs de personnalisation.
-    evenement_id (optionnel) : active le QR de vérification par carton."""
+    evenement_id (optionnel) : active le QR de vérification par carton.
+    ⚠️ serie_start pilote AUSSI le tirage des numéros : deux commandes doivent
+    recevoir des serie_start DIFFÉRENTS, sinon leurs cartons sont identiques !
+    (bug des 6 PDF jumeaux détecté par Maeva le 18/07/2026 — corrigé ici)"""
     jeu = REGISTRE_JEUX.get(programme) or REGISTRE_JEUX.get("triple_action")
     kwargs = {
-        jeu["kwarg_nb"]: nb_cartes, "serie_start": 1, "theme": "", "couleur": couleur,
+        jeu["kwarg_nb"]: nb_cartes, "serie_start": max(1, int(serie_start)), "theme": "", "couleur": couleur,
         "nom_evenement": perso.get("nom_evenement", ""), "titre_jeu": perso.get("titre_jeu", ""),
         "couleur_perso": perso.get("couleur_perso", ""), "date_lieu": perso.get("date_lieu", ""),
         "telephone": perso.get("telephone", ""),
@@ -1100,7 +1103,9 @@ def essai():
         "telephone": telephone,
     }
     nb_essai = CARTES_PAR_FEUILLE.get(programme, 10)  # 1 feuille
-    pdf = generer_jeu(programme, nb_essai, couleur, perso)
+    import random as _rnd
+    pdf = generer_jeu(programme, nb_essai, couleur, perso,
+                      serie_start=_rnd.randint(1, 900000))   # chaque essai = des cartes neuves
 
     resp = send_file(pdf, mimetype="application/pdf", as_attachment=True,
                      download_name=f"ESSAI_manaprint_{programme}.pdf")
@@ -1502,7 +1507,8 @@ def generer_commande(commande_id):
     except Exception:
         pass
     try:
-        pdf = generer_jeu(programme, nb_cartes, couleur, perso, evenement_id=evenement_id)
+        pdf = generer_jeu(programme, nb_cartes, couleur, perso, evenement_id=evenement_id,
+                          serie_start=commande_id * 100 + 1)
     finally:
         try:
             _secs.activer_mode_rapide(False)
@@ -1611,8 +1617,11 @@ def lancer_fabrication(commande_id, seulement_rapport=False):
             except Exception:
                 pass
             try:
+                # 🎲 chaque commande = son propre point de départ (cartes UNIQUES,
+                # mais refabrication à l'identique pour le 📬 Renvoyer)
                 pdf = generer_jeu(cmd["programme"], nb_cartes, bool(cmd["couleur"]), perso,
-                                  evenement_id=evenement_id)
+                                  evenement_id=evenement_id,
+                                  serie_start=commande_id * 100 + 1)
             finally:
                 try:
                     _secm.activer_mode_rapide(False)
