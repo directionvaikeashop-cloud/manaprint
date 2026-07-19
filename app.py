@@ -1216,7 +1216,8 @@ def api_partenaires():
     return jsonify({"ok": True, "partenaires": [
         {"id": k, "nom": v["nom"], "zone": v["zone"], "tel": v["tel"],
          "prix_pdf_seul": v.get("prix_pdf_seul"),
-         "prix_client": _prix.get(k) or None}
+         "prix_client": _prix.get(k) or None,
+         "public": bool(v.get("public"))}
         for k, v in PARTENAIRES.items()
     ]})
 
@@ -2021,6 +2022,9 @@ _CODES_PARTENAIRES_DEFAUT = {
 for _slug_p, _p in PARTENAIRES.items():
     _p["code"] = os.environ.get("CODE_PART_" + _slug_p.upper(),
                                 _CODES_PARTENAIRES_DEFAUT.get(_slug_p, _slug_p.upper() + "-2026"))
+    # 🏠 Vision Maeva : 2KEA & Associé est LA maison-mère — seule au menu de
+    # manaprint.app ; chaque autre partenaire accueille ses clients sur SA vitrine.
+    _p["public"] = (_slug_p == "2kea_papeete")
 
 
 @app.route("/boutique/<slug>", methods=["GET"])
