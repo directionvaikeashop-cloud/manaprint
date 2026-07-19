@@ -1091,6 +1091,13 @@ async function adminRetirer(num){
   // verrouiller le choix de l'imprimeur d\u00e8s que la liste est charg\u00e9e
   const p3 = document.querySelector('[data-i18n="part_3f"]');
   if (p3 && p3.parentElement) p3.parentElement.style.display = 'none';   // les prix 2KEA n'ont rien \u00e0 faire sur SA vitrine
+  // 🔒 sur SA vitrine, la porte de gestion devient SA porte : l'espace partenaire
+  const btnG = document.querySelector('[data-i18n="gestion"]');
+  if (btnG) {
+    btnG.removeAttribute('data-i18n');
+    btnG.textContent = '🔒 Espace de ma boutique';
+    btnG.onclick = function(){ window.location.href = '/espace-partenaire'; };
+  }
   const minuteur = setInterval(function(){
     const sel = document.getElementById('gen-partenaire');
     if(!sel) return;
