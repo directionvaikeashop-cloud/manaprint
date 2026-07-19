@@ -69,7 +69,7 @@
         <button class="card-choice" onclick="montrer('ecran-poly')">
           <p class="label-mono" data-i18n="poly_label" style="color:var(--teal)">Polynésie · sans machine</p>
           <h3 class="display" data-i18n="poly_titre" style="font-size:1.2rem;margin-bottom:.6rem">Client Polynésien</h3>
-          <p data-i18n="poly_desc" style="font-size:.85rem;color:var(--muted);line-height:1.6">Générez votre jeu et faites-le imprimer chez un partenaire : tout compris chez 2KEA Papeete (ÉCO 6/10 F · PREMIUM 10/14 F la feuille), ou PDF 1,5 F la feuille chez FUN AND CO, COCOTIE MER et RANIHEI (impression à leur tarif).</p>
+          <p data-i18n="poly_desc" style="font-size:.85rem;color:var(--muted);line-height:1.6">Générez votre jeu et faites-le imprimer chez 2KEA &amp; Associé — Papeete : tout compris, ÉCO 6/10 F · PREMIUM 10/14 F la feuille. Nos boutiques partenaires ont chacune leur propre vitrine en ligne.</p>
         </button>
         <button class="card-choice" onclick="montrer('ecran-intl')">
           <p class="label-mono" data-i18n="intl_label" style="color:var(--teal)">Hors Polynésie</p>
@@ -88,8 +88,7 @@
       <div style="background:var(--sand);border-radius:8px;padding:1.1rem 1.4rem;margin-bottom:1.5rem;text-align:left">
         <p style="font-size:.85rem;color:var(--ink);line-height:1.7">
           <b>2KEA &amp; Associé — Papeete</b> <span data-i18n="part_papeete" class="opt">— Tahiti</span> · 📞 89 52 98 83<br>
-          <b>FUN AND CO</b> <span data-i18n="part_funco" class="opt">— presqu'île (Tahiti Iti)</span> · 📞 87 26 73 24<br>
-          <b>COCOTIE MER</b> <span data-i18n="part_raiatea" class="opt">— Faaa</span> · ✉️ teagai10.fariki08@gmail.com
+          <span data-i18n="part_boutiques" class="opt" style="color:var(--muted)">Nos boutiques partenaires (FUN AND CO, COCOTIE MER, RANIHEI…) vous accueillent sur leur propre vitrine en ligne — demandez-leur leur adresse !</span>
         </p>
       </div>
 
@@ -208,7 +207,7 @@
           <option value="" data-i18n="part_self">— Choisis ton imprimeur partenaire —</option>
         </select>
         <p id="gen-part-info" style="font-size:.8rem;color:var(--muted);margin-top:.45rem;line-height:1.5"></p>
-        <p style="font-size:.8rem;color:var(--teal-d);margin-top:.4rem;line-height:1.5;font-weight:500">💡 <span data-i18n="part_3f">Chez 2KEA Papeete : prix tout compris PDF + impression — ÉCO 6 F (N&B) / 10 F (Couleur) · PREMIUM 10 F (N&B) / 14 F (Couleur) la feuille. Chez FUN AND CO, COCOTIE MER et RANIHEI : PDF 1,5 F la feuille (2KEA & Associé), tarif d'impression à demander au partenaire.</span></p>
+        <p style="font-size:.8rem;color:var(--teal-d);margin-top:.4rem;line-height:1.5;font-weight:500">💡 <span data-i18n="part_3f">Chez 2KEA & Associé — Papeete : prix tout compris PDF + impression — ÉCO 6 F (N&B) / 10 F (Couleur) · PREMIUM 10 F (N&B) / 14 F (Couleur) la feuille.</span></p>
       </div>
 
       <div style="display:flex;gap:.7rem;flex-wrap:wrap">
@@ -388,7 +387,8 @@ const T = {
  pi_desc:{fr:"Il y a 4 machines à placer.",en:"4 machines available to install."},
  poly_label:{fr:"Polynésie · sans machine",en:"Polynesia · no machine"},
  poly_titre:{fr:"Client Polynésien",en:"Polynesian Client"},
- poly_desc:{fr:"Générez votre jeu et faites-le imprimer chez un partenaire : tout compris chez 2KEA Papeete (ÉCO 6/10 F · PREMIUM 10/14 F la feuille), ou PDF 1,5 F la feuille chez FUN AND CO, COCOTIE MER et RANIHEI (impression à leur tarif).",en:"Generate your game and have it printed at a partner: all-inclusive at 2KEA Papeete (ECO 6/10 F · PREMIUM 10/14 F per sheet), or PDF 1.5 F per sheet at FUN AND CO, COCOTIE MER and RANIHEI (printing at their rate)."},
+ poly_desc:{fr:"Générez votre jeu et faites-le imprimer chez 2KEA & Associé — Papeete : tout compris, ÉCO 6/10 F · PREMIUM 10/14 F la feuille. Nos boutiques partenaires ont chacune leur propre vitrine en ligne.",en:"Generate your game and have it printed at 2KEA & Associé — Papeete: all-inclusive, ECO 6/10 F · PREMIUM 10/14 F per sheet. Our partner shops each have their own online storefront."},
+ part_boutiques:{fr:"Nos boutiques partenaires (FUN AND CO, COCOTIE MER, RANIHEI…) vous accueillent sur leur propre vitrine en ligne — demandez-leur leur adresse !",en:"Our partner shops (FUN AND CO, COCOTIE MER, RANIHEI…) welcome you on their own online storefront — ask them for their address!"},
  intl_label:{fr:"Hors Polynésie",en:"Outside Polynesia"},
  intl_titre:{fr:"Client international",en:"International Client"},
  intl_desc:{fr:"Générez vos cartes, téléchargez le PDF, imprimez où vous voulez.",en:"Generate your cards, download the PDF, print anywhere."},
@@ -399,7 +399,7 @@ const T = {
  lbl_partenaire:{fr:"Choisir un partenaire d'impression",en:"Choose a print partner"},
  part_self:{fr:"— Choisis ton imprimeur partenaire —",en:"— Choose your print partner —"},
  part_info:{fr:"Après validation, ton PDF est envoyé à",en:"After approval, your PDF is sent to"},
- part_3f:{fr:"Chez 2KEA Papeete : prix tout compris PDF + impression — ÉCO 6 F (N&B) / 10 F (Couleur) · PREMIUM 10 F (N&B) / 14 F (Couleur) la feuille. Chez FUN AND CO, COCOTIE MER et RANIHEI : PDF 1,5 F la feuille (2KEA & Associé), tarif d'impression à demander au partenaire.",en:"At 2KEA Papeete: all-inclusive PDF + printing — ECO 6 F (B&W) / 10 F (Color) · PREMIUM 10 F (B&W) / 14 F (Color) per sheet. At FUN AND CO, COCOTIE MER and RANIHEI: PDF 1.5 F per sheet (2KEA & Associé), printing price to ask the partner."},
+ part_3f:{fr:"Chez 2KEA & Associé — Papeete : prix tout compris PDF + impression — ÉCO 6 F (N&B) / 10 F (Couleur) · PREMIUM 10 F (N&B) / 14 F (Couleur) la feuille.",en:"At 2KEA & Associé — Papeete: all-inclusive PDF + printing — ECO 6 F (B&W) / 10 F (Color) · PREMIUM 10 F (B&W) / 14 F (Color) per sheet."},
  crosslink:{fr:"Tu organises des tournois ? Joue en ligne sur Ticket Bingo",en:"Running tournaments? Play online on Ticket Bingo"},
  gestion:{fr:"Espace gestion",en:"Management area"},
  retour:{fr:"← Retour",en:"← Back"},
@@ -556,6 +556,8 @@ async function chargerPartenaires(){
   const garder = sel.value;
   sel.innerHTML='<option value="">'+t('part_self')+'</option>';
   PARTENAIRES_LIST.forEach(function(p){
+    // 🏠 l'accueil ne montre que 2KEA (maison-mère) — chaque partenaire vit sur SA vitrine
+    if(!p.public && !(window.BOUTIQUE && window.BOUTIQUE.slug===p.id)) return;
     const o=document.createElement('option');
     o.value=p.id; o.textContent=p.nom+" — "+p.zone;
     sel.appendChild(o);
@@ -1086,6 +1088,8 @@ async function adminRetirer(num){
   bande.innerHTML = '🏪 Boutique <b>' + B.nom + '</b>' + (B.zone ? ' \u2014 ' + B.zone : '') + ' \u00b7 vos cartons s\u2019impriment ici' + (B.tel ? ' \u00b7 \u260e ' + B.tel : '');
   document.body.insertBefore(bande, document.body.firstChild);
   // verrouiller le choix de l'imprimeur d\u00e8s que la liste est charg\u00e9e
+  const p3 = document.querySelector('[data-i18n="part_3f"]');
+  if (p3 && p3.parentElement) p3.parentElement.style.display = 'none';   // les prix 2KEA n'ont rien \u00e0 faire sur SA vitrine
   const minuteur = setInterval(function(){
     const sel = document.getElementById('gen-partenaire');
     if(!sel) return;
