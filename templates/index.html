@@ -38,6 +38,7 @@
 </style>
 </head>
 <body>
+{% if boutique %}<script>window.BOUTIQUE = {{ boutique|tojson }};</script>{% endif %}
 <nav>
   <div style="display:flex;align-items:baseline;gap:.7rem">
     <div class="display" style="font-size:1.4rem;font-weight:600"><span style="color:var(--teal)">Mana</span>print</div>
@@ -568,7 +569,13 @@ function majPartInfo(){
   const p=PARTENAIRES_LIST.find(function(x){ return x.id===sel.value; });
   if(p){
     info.textContent = t('part_info')+" "+p.nom+(p.tel?(" · 📞 "+p.tel):"")+". ";
-    if(p.prix_pdf_seul){ info.textContent += "💡 Ici, 2KEA & Associé ne facture que le PDF ("+p.prix_pdf_seul+" F la feuille) — le tarif d'impression est à demander directement à "+p.nom+"."; }
+    if(p.prix_client){
+      const pc=p.prix_client; const bouts=[];
+      if(pc.eco_nb||pc.eco_couleur){ bouts.push("ÉCO "+(pc.eco_nb?pc.eco_nb+" F (N&B)":"")+(pc.eco_nb&&pc.eco_couleur?" / ":"")+(pc.eco_couleur?pc.eco_couleur+" F (Couleur)":"")); }
+      if(pc.p15_nb||pc.p15_couleur){ bouts.push("PREMIUM "+(pc.p15_nb?pc.p15_nb+" F (N&B)":"")+(pc.p15_nb&&pc.p15_couleur?" / ":"")+(pc.p15_couleur?pc.p15_couleur+" F (Couleur)":"")); }
+      info.textContent += "💰 Prix chez "+p.nom+" : "+bouts.join(" · ")+" la feuille, tout compris.";
+    }
+    else if(p.prix_pdf_seul){ info.textContent += "💡 Ici, 2KEA & Associé ne facture que le PDF ("+p.prix_pdf_seul+" F la feuille) — le tarif d'impression est à demander directement à "+p.nom+"."; }
   }
   else { info.textContent=""; }
   majPrix();
@@ -596,8 +603,16 @@ function rendreProgrammes(){
   });
 }
 function prixFeuilleCourant(partId){
-  // 💡 partenaire à tarif spécial (ex. RANIHEI : PDF seul à 1,5 F)
   const p=PARTENAIRES_LIST.find(function(x){ return x.id===partId; });
+  // 💰 le partenaire a fixé SES prix clients : ils priment sur tout
+  if(p && p.prix_client){
+    const jeuC=PROGRAMMES.find(function(x){ return x.id===progChoisi; });
+    const couleurC = jeuC ? jeuC.couleur : true;
+    const gammeC = (progChoisi||"").indexOf("_p15")>=0 ? "p15" : "eco";
+    const v = p.prix_client[gammeC + (couleurC ? "_couleur" : "_nb")];
+    if(v) return v;
+  }
+  // 💡 partenaire à tarif spécial (ex. RANIHEI : PDF seul à 1,5 F)
   if(p && p.prix_pdf_seul) return p.prix_pdf_seul;
   const jeu=PROGRAMMES.find(function(x){ return x.id===progChoisi; });
   const couleur = jeu ? jeu.couleur : true;
@@ -614,7 +629,8 @@ function majPrix(){
   const el=document.getElementById('gen-prix');
   if(nb>0){
     el.textContent = nb+" × "+prix+" XPF = "+total+" XPF";
-    if(prix<6){ el.textContent += "  (PDF 2KEA & Associé — tarif d'impression à demander directement au partenaire)"; }
+    const pM=PARTENAIRES_LIST.find(function(x){ return x.id===(sel?sel.value:""); });
+    if(prix<6 && !(pM&&pM.prix_client)){ el.textContent += "  (PDF 2KEA & Associé — tarif d'impression à demander directement au partenaire)"; }
   } else { el.textContent=""; }
 }
 // ── 🎨 NUANCIER : le client choisit SA couleur de cartons ──
@@ -1059,6 +1075,34 @@ async function adminRetirer(num){
 
 // ── Init ──
 (function(){ var l="fr"; try{ l=localStorage.getItem("manaprint_lang")||"fr"; }catch(e){} setLang(l); })();
+
+// ══ 🏪 MODE BOUTIQUE PARTENAIRE : bannière + imprimeur verrouillé ══
+(function(){
+  if(!window.BOUTIQUE) return;
+  const B = window.BOUTIQUE;
+  document.title = B.nom + " \u00b7 MANAPRINT";
+  const bande = document.createElement('div');
+  bande.style.cssText = 'background:var(--teal);color:#fff;text-align:center;padding:.55rem .8rem;font-size:.86rem;font-weight:600;letter-spacing:.02em';
+  bande.innerHTML = '🏪 Boutique <b>' + B.nom + '</b>' + (B.zone ? ' \u2014 ' + B.zone : '') + ' \u00b7 vos cartons s\u2019impriment ici' + (B.tel ? ' \u00b7 \u260e ' + B.tel : '');
+  document.body.insertBefore(bande, document.body.firstChild);
+  // verrouiller le choix de l'imprimeur d\u00e8s que la liste est charg\u00e9e
+  const minuteur = setInterval(function(){
+    const sel = document.getElementById('gen-partenaire');
+    if(!sel) return;
+    let opt = Array.from(sel.options).find(function(o){ return o.value === B.slug; });
+    if(!opt && sel.options.length <= 1) return;   // la liste arrive encore
+    if(!opt){
+      opt = document.createElement('option');
+      opt.value = B.slug; opt.textContent = B.nom + (B.zone ? " \u2014 " + B.zone : "");
+      sel.appendChild(opt);
+    }
+    sel.value = B.slug;
+    sel.disabled = true;
+    sel.style.opacity = '.85';
+    if (typeof majPartInfo === 'function') majPartInfo();
+    clearInterval(minuteur);
+  }, 400);
+})();
 </script>
 </body>
 </html>
