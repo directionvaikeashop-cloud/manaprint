@@ -94,6 +94,26 @@
     </div>
 
     <div class="carte">
+      <h2 style="font-size:1.05rem;margin-bottom:.4rem">🛍️ Mes articles en vitrine</h2>
+      <p class="msg" style="color:var(--muted);margin:0 0 .8rem">Ajoutez vos propres articles (marqueurs, tampons, papeterie, goodies...) : ils s'affichent aussitôt sur votre vitrine avec « disponible en boutique ». Photo JPG/PNG conseillée (3 Mo max).</p>
+      <div id="art-liste" style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem"></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.6rem">
+        <div><label style="font-size:.72rem;color:var(--muted);text-transform:uppercase">Nom de l'article</label>
+          <input id="art-nom" type="text" placeholder="ex : Marqueur bingo" style="text-transform:none;letter-spacing:0;margin-bottom:0"></div>
+        <div><label style="font-size:.72rem;color:var(--muted);text-transform:uppercase">Prix (XPF)</label>
+          <input id="art-prix" type="number" min="1" placeholder="ex : 350" style="text-transform:none;letter-spacing:0;margin-bottom:0"></div>
+        <div><label style="font-size:.72rem;color:var(--muted);text-transform:uppercase">Photo (facultative)</label>
+          <input id="art-photo" type="file" accept="image/jpeg,image/png" style="text-transform:none;letter-spacing:0;margin-bottom:0;padding:.5rem"></div>
+      </div>
+      <div style="margin-top:.6rem"><label style="font-size:.72rem;color:var(--muted);text-transform:uppercase">Petite description (facultative)</label>
+        <input id="art-desc" type="text" maxlength="200" placeholder="ex : Encre non traversante, 4 couleurs" style="text-transform:none;letter-spacing:0;margin-bottom:0"></div>
+      <div style="display:flex;gap:.6rem;align-items:center;margin-top:.8rem">
+        <button class="btn mini" onclick="ajouterArticle()">➕ Mettre en vitrine</button>
+        <span id="art-msg" class="msg"></span>
+      </div>
+    </div>
+
+    <div class="carte">
       <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.8rem">
         <h2 style="font-size:1.05rem">📦 Mes commandes</h2>
         <button class="btn gris mini" style="margin-left:auto" onclick="charger()">↻ Actualiser</button>
@@ -146,6 +166,7 @@ async function charger(){
     document.getElementById('st-mois').textContent = fmtF(d.stats.du_mois);
     document.getElementById('st-total').textContent = fmtF(d.stats.du_total);
     chargerPrix();
+    chargerArticles();
     const zone = document.getElementById('liste');
     if(!d.commandes.length){
       zone.innerHTML = '<p class="msg" style="color:var(--muted)">Aucune commande pour le moment — partagez l\u2019adresse de votre vitrine pour recevoir vos premi\u00e8res commandes !</p>';
@@ -169,6 +190,73 @@ async function charger(){
 }
 
 function ouvrir(id, quoi){ window.open('/api/partenaire/pdf/' + id + '/' + quoi, '_blank'); }
+
+function rendreArticles(articles){
+  const zone = document.getElementById('art-liste');
+  if(!articles || !articles.length){ zone.innerHTML = '<span class="msg" style="color:var(--muted)">Aucun article en vitrine pour le moment.</span>'; return; }
+  zone.innerHTML = articles.map(function(a){
+    return '<div style="width:150px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff">'
+      + (a.photo ? '<img src="/articles-photos/' + a.photo + '" style="width:100%;height:84px;object-fit:cover;display:block">' : '')
+      + '<div style="padding:.45rem .55rem;font-size:.78rem">'
+      + '<div style="font-weight:700">' + a.nom + '</div>'
+      + '<div style="color:var(--teal-d);font-weight:700">' + Number(a.prix).toLocaleString('fr-FR') + ' XPF</div>'
+      + '<button class="btn mini gris" style="margin-top:.35rem" onclick="supprimerArticle(\'' + a.id + '\')">\ud83d\uddd1\ufe0f Retirer</button>'
+      + '</div></div>';
+  }).join('');
+}
+
+async function chargerArticles(){
+  try{
+    const r = await fetch('/api/partenaire/articles');
+    if(!r.ok) return;
+    const d = await r.json();
+    if(d.ok) rendreArticles(d.articles);
+  }catch(e){}
+}
+
+async function ajouterArticle(){
+  const msg = document.getElementById('art-msg');
+  msg.style.color = 'var(--muted)'; msg.textContent = 'Mise en vitrine\u2026';
+  try{
+    const corps = {
+      nom: document.getElementById('art-nom').value,
+      prix: document.getElementById('art-prix').value,
+      desc: document.getElementById('art-desc').value
+    };
+    const fichier = document.getElementById('art-photo').files[0];
+    if(fichier){
+      if(fichier.size > 3 * 1024 * 1024){ msg.style.color='var(--coral)'; msg.textContent='\u274c Photo trop lourde (3 Mo max)'; return; }
+      corps.photo_base64 = await new Promise(function(res, rej){
+        const fr = new FileReader();
+        fr.onload = function(){ res(fr.result); };
+        fr.onerror = rej;
+        fr.readAsDataURL(fichier);
+      });
+    }
+    const r = await fetch('/api/partenaire/articles', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify(corps)});
+    const d = await r.json();
+    msg.style.color = d.ok ? 'var(--teal-d)' : 'var(--coral)';
+    msg.textContent = (d.ok ? '\u2705 ' : '\u274c ') + (d.message || '');
+    if(d.ok){
+      rendreArticles(d.articles);
+      document.getElementById('art-nom').value = '';
+      document.getElementById('art-prix').value = '';
+      document.getElementById('art-desc').value = '';
+      document.getElementById('art-photo').value = '';
+    }
+  }catch(e){ msg.style.color='var(--coral)'; msg.textContent='Erreur r\u00e9seau'; }
+}
+
+async function supprimerArticle(id){
+  if(!confirm('Retirer cet article de votre vitrine ?')) return;
+  try{
+    const r = await fetch('/api/partenaire/articles', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({supprimer: id})});
+    const d = await r.json();
+    if(d.ok) rendreArticles(d.articles);
+  }catch(e){}
+}
 
 async function chargerPrix(){
   try{
