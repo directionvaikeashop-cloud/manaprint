@@ -2049,17 +2049,27 @@ def _partenaire_session():
     return None, None
 
 
+def _normaliser_code(c):
+    """Le portier tolérant : seules les LETTRES et les CHIFFRES comptent —
+    tirets (courts, longs...), espaces, minuscules et caractères invisibles
+    des claviers de téléphone sont pardonnés. FUN-7261 = fun 7261 = FUN–7261."""
+    import re as _re
+    return _re.sub(r"[^A-Z0-9]", "", str(c or "").upper())
+
+
 @app.route("/api/partenaire/login", methods=["POST"])
 def api_partenaire_login():
     d = request.get_json(silent=True) or {}
-    code = (d.get("code") or "").strip().upper()
-    if not code:
+    code = _normaliser_code(d.get("code"))
+    if len(code) < 4:
         return jsonify({"ok": False, "message": "Entrez votre code partenaire."})
     for slug, part in PARTENAIRES.items():
-        if code == str(part.get("code", "")).strip().upper():
+        if code == _normaliser_code(part.get("code", "")):
             session["partenaire_slug"] = slug
             return jsonify({"ok": True, "nom": part["nom"], "zone": part.get("zone", "")})
-    return jsonify({"ok": False, "message": "Code partenaire inconnu."})
+    return jsonify({"ok": False, "message":
+                    "Code partenaire inconnu \u2014 v\u00e9rifiez lettres et chiffres "
+                    "(les tirets et espaces n'ont pas d'importance)."})
 
 
 @app.route("/api/partenaire/logout", methods=["POST"])
