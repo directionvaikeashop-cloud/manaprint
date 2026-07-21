@@ -201,6 +201,28 @@
       <input id="gen-nb-feuilles" type="number" min="1" max="250" value="10" oninput="majPrix()">
       <p id="gen-prix" style="font-size:.95rem;font-weight:600;color:var(--teal-d);margin-bottom:.9rem"></p>
 
+      <div style="margin-bottom:1rem">
+        <label style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em">🖼️ Motif en filigrane (décoration — petits jeux : POW, POW 6, INO 5 & 8, BGO 5, BIO 5, 40 & 60 BOULES)</label>
+        <select id="gen-motif">
+          <option value="">Aucun — carton classique</option>
+          <option value="des">🎲 Dés (comme le modèle HEI NI SAM)</option>
+          <option value="hibiscus">🌺 Hibiscus / tiaré</option>
+          <option value="tortue">🐢 Tortue</option>
+          <option value="palmier">🌴 Palmier</option>
+          <option value="poisson">🐠 Poisson</option>
+          <option value="boules">🎱 Boules de loto</option>
+          <option value="etoiles">⭐ Étoiles</option>
+          <option value="coeur">❤️ Cœurs</option>
+          <option value="trefle">🍀 Trèfles porte-bonheur</option>
+          <option value="soleil">☀️ Soleils</option>
+          <option value="lune">🌙 Lunes</option>
+          <option value="vague">🌊 Vagues</option>
+          <option value="diamant">💎 Diamants</option>
+          <option value="couronne">👑 Couronnes</option>
+          <option value="ananas">🍍 Ananas</option>
+          <option value="varie">🎨 Mélange varié (tous les motifs !)</option>
+        </select>
+      </div>
       <div id="gen-part-wrap" class="hidden" style="margin-bottom:.9rem">
         <label class="field-label" data-i18n="lbl_partenaire">Choisir un partenaire d'impression</label>
         <select id="gen-partenaire" onchange="majPartInfo()" style="margin-bottom:0">
@@ -649,6 +671,7 @@ document.addEventListener("click", function(e){
   });
 });
 function collectPerso(msgEl){
+  const _motifSel=document.getElementById('gen-motif');
   const ev=document.getElementById('gen-evenement').value.trim();
   const ti=document.getElementById('gen-titre').value.trim();
   const dl=document.getElementById('gen-datelieu').value.trim();
@@ -659,6 +682,7 @@ function collectPerso(msgEl){
   const eml=document.getElementById('gen-email').value.trim();
   return {
     nom_evenement:ev, titre_jeu:ti, date_lieu:dl, telephone:tel,
+    motif: _motifSel ? _motifSel.value : '',
     email_organisateur:eml||"",
     date_tournoi:dtq||"",
     couleur_qr:cqr||"",
