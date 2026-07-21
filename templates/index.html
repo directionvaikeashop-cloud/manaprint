@@ -1086,7 +1086,7 @@ async function adminRetirer(num){
   document.title = B.nom + " \u00b7 MANAPRINT";
   const bande = document.createElement('div');
   bande.style.cssText = 'background:var(--teal);color:#fff;text-align:center;padding:.55rem .8rem;font-size:.86rem;font-weight:600;letter-spacing:.02em';
-  bande.innerHTML = '🏪 Boutique <b>' + B.nom + '</b>' + (B.zone ? ' \u2014 ' + B.zone : '') + ' \u00b7 vos cartons s\u2019impriment ici' + (B.tel ? ' \u00b7 \u260e ' + B.tel : '');
+  bande.innerHTML = '🏪 Boutique <b>' + B.nom + '</b>' + (B.zone ? ' \u2014 ' + B.zone : '') + ' \u00b7 vos cartons s\u2019impriment ici' + (B.tel ? ' \u00b7 \u260e ' + B.tel : '') + ' \u00b7 <a href=\"https://manaprint.app\" style=\"color:#bff2f8;font-weight:700;text-decoration:underline;text-underline-offset:3px\">d\u00e9couvrir la plateforme MANAPRINT \u2192</a>';
   document.body.insertBefore(bande, document.body.firstChild);
   // verrouiller le choix de l'imprimeur d\u00e8s que la liste est charg\u00e9e
   const p3 = document.querySelector('[data-i18n="part_3f"]');
