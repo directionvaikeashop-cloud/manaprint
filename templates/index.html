@@ -202,8 +202,8 @@
       <p id="gen-prix" style="font-size:.95rem;font-weight:600;color:var(--teal-d);margin-bottom:.9rem"></p>
 
       <div style="margin-bottom:1rem">
-        <label style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em">🖼️ Motif en filigrane (décoration — petits jeux : POW, POW 6, INO 5 & 8, BGO 5, BIO 5, 40 & 60 BOULES)</label>
-        <select id="gen-motif">
+        <label style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em">🖼️ Motif en filigrane (petits jeux : POW, POW 6, INO 5 & 8, BGO 5, BIO 5, 40 & 60 BOULES — +2 F/feuille chez 2KEA · +0,5 F chez les partenaires)</label>
+        <select id="gen-motif" onchange="majPrix()">
           <option value="">Aucun — carton classique</option>
           <option value="des">🎲 Dés (comme le modèle HEI NI SAM)</option>
           <option value="hibiscus">🌺 Hibiscus / tiaré</option>
@@ -628,6 +628,11 @@ function rendreProgrammes(){
   });
 }
 function prixFeuilleCourant(partId){
+  // 🖼️💰 le supplément motif : +2 F chez 2KEA (tarif standard), +0,5 F chez les partenaires
+  const JEUX_MOTIF=['pow','pow6','ino','ino8','bgo5','bio5','boules40','boules60'];
+  const selM=document.getElementById('gen-motif');
+  const baseJeu=(progChoisi||'').replace(/_(couleur|nb)$/,'');
+  const motifChoisi = !!(selM && selM.value && JEUX_MOTIF.indexOf(baseJeu)>=0);
   const p=PARTENAIRES_LIST.find(function(x){ return x.id===partId; });
   // 💰 le partenaire a fixé SES prix clients : ils priment sur tout
   if(p && p.prix_client){
@@ -635,16 +640,19 @@ function prixFeuilleCourant(partId){
     const couleurC = jeuC ? jeuC.couleur : true;
     const gammeC = (progChoisi||"").indexOf("_p15")>=0 ? "p15" : "eco";
     const v = p.prix_client[gammeC + (couleurC ? "_couleur" : "_nb")];
-    if(v) return v;
+    if(v) return v + (motifChoisi ? 0.5 : 0);
   }
   // 💡 partenaire à tarif spécial (ex. RANIHEI : PDF seul à 1,5 F)
-  if(p && p.prix_pdf_seul) return p.prix_pdf_seul;
+  if(p && p.prix_pdf_seul) return p.prix_pdf_seul + (motifChoisi ? 0.5 : 0);
   const jeu=PROGRAMMES.find(function(x){ return x.id===progChoisi; });
   const couleur = jeu ? jeu.couleur : true;
   const gamme = (progChoisi||"").indexOf("_p15")>=0 ? "p15" : "eco";
   const prof=TARIFS[origineAcces]||TARIFS.pacific_ink;
   const tar=prof[gamme]||prof.eco;
-  return couleur?tar.c:tar.nb;
+  let prix = couleur?tar.c:tar.nb;
+  // 🖼️💰 supplément motif (+2 F) : jeux décorables, tarif standard seulement
+  if(motifChoisi){ prix += 2; }
+  return prix;
 }
 function majPrix(){
   const nb=parseInt(document.getElementById('gen-nb-feuilles').value)||0;
