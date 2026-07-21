@@ -21,6 +21,14 @@ from reportlab.pdfbase.ttfonts import TTFont
 # SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne : si le module securite
 # est absent, les cartons sortent normalement, simplement sans microtexte.
 try:
+    from generators import motifs as _motifs
+except Exception:
+    try:
+        import motifs as _motifs
+    except Exception:
+        _motifs = None
+
+try:
     from generators import securite as _sec
 except Exception:
     try:
@@ -88,7 +96,10 @@ def _gen_carte(rng):
     return [sorted(rng.sample(range(pmin, pmax + 1), 2)) for pmin, pmax in PLAGES]
 
 
-def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
+def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id="", motif=""):
+    # 🖼️ filigrane décoratif (option client) — dessiné EN PREMIER, tout passe dessus
+    if _motifs and motif:
+        _motifs.dessiner_filigrane(c, x0, y0, CARD_W, CARD_H, motif, graine=serie, nb=2, echelle=0.9)
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
 
@@ -156,7 +167,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
 
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id=""):
+                style="eco", evenement_id="", motif=""):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
@@ -187,7 +198,7 @@ def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
                 coul = (couleur_perso if (couleur and couleur_perso)
                         else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
                 _dessiner_carte(c, x0, y0, cols_nums, coul, serie, titre_jeu, telephone,
-                                style=style, evenement_id=evenement_id)
+                                style=style, evenement_id=evenement_id, motif=motif)
                 serie += 1
                 faites += 1
 
