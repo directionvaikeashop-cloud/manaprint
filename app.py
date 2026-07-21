@@ -24,6 +24,8 @@ from generators import quatre_coin
 from generators import pol
 from generators import sun
 from generators import pow as powgen
+from generators import poe_parau as poeparaugen
+from generators import hakari as hakarigen
 from generators import win
 from generators import rubis90
 from generators import vai
@@ -252,6 +254,8 @@ _enregistrer_paire("quatre_coin",   "4 COIN","🎯", 6,  quatre_coin.generer_pdf
 _enregistrer_paire("pol",           "POL 6 boules","🎲", 12, pol.generer_pdf)
 _enregistrer_paire("sun",           "SUN 8 boules","☀️", 12, sun.generer_pdf)
 _enregistrer_paire("pow",           "POW 8 boules","💥", 12, powgen.generer_pdf)
+_enregistrer_paire("poe_parau",     "POE PARAU 6 boules", "🦪", 12, poeparaugen.generer_pdf)
+_enregistrer_paire("hakari",        "HAKARI 7 boules", "🥥", 12, hakarigen.generer_pdf)
 _enregistrer_paire("win",           "WIN 9 boules","🏆", 12, win.generer_pdf)
 _enregistrer_paire("rubis90",       "RUBIS 90","💎", 12, rubis90.generer_pdf)
 _enregistrer_paire("vai",           "VAI 9 boules","🌊", 12, vai.generer_pdf)
@@ -748,6 +752,8 @@ _PLAGES_CALLER = {
     "pol": (30, 60),
     "sun": (1, 24),
     "pow": (1, 27),
+    "poe_parau": (1, 75),
+    "hakari": (1, 75),
     "win": (1, 45),
     "rubis90": (1, 90),
     "vai": (61, 90),
