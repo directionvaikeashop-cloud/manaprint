@@ -1721,35 +1721,39 @@ def lancer_fabrication(commande_id, seulement_rapport=False):
                                           copie=SMTP_USER or None,
                                           pdf2_io=rapport,
                                           nom2_fichier=f"CONFIDENTIEL_couleurs_cmd{commande_id}.pdf")
+            # 🗄️ MODE SANS FACTEUR : les PDF sont DÉJÀ au coffre-fort — la
+            # commande est donc RÉUSSIE même si Gmail dort (boîte bloquée...).
+            # Les emails sont un bonus, jamais une condition.
+            db.marquer_commande_generee(commande_id)
+            # 🧾 LA FACTURE DU DÛ 2KEA (1,5 F/feuille) : TOUJOURS fabriquée et
+            # rangée au coffre ; l'email part si le facteur veut bien.
+            try:
+                fact_pdf, fact_part, fact_montant = _facture_commande_pdf(cmd)
+                lien_fact = _ranger_au_coffre(commande_id, "facture", fact_pdf)
+                corps_fact = (
+                    f"Bonjour {fact_part.get('nom', '')},\n\n"
+                    f"Veuillez trouver la facture des redevances PDF MANAPRINT "
+                    f"pour la commande #{commande_id} :\n\n"
+                    f"  \u2022 Jeu : {cmd['programme']} \u2014 {cmd['nb_feuilles']} feuille(s)\n"
+                    f"  \u2022 Redevance : 1,5 F / feuille \u2192 TOTAL : {fact_montant} XPF\n"
+                    + (f"\n\U0001f517 Lien de secours :\n{lien_fact}\n" if lien_fact else "") +
+                    "\n\u00c0 r\u00e9gler \u00e0 2KEA & Associ\u00e9 selon vos modalit\u00e9s habituelles.\n\n"
+                    "\u2014 MANAPRINT / 2KEA & Associ\u00e9 \u2014 manaprint.app"
+                )
+                okf, mf = envoyer_email_pdf(
+                    part["email"],
+                    f"MANAPRINT \u2014 Facture du d\u00fb 2KEA \u2014 commande #{commande_id} ({fact_montant} XPF)",
+                    corps_fact, fact_pdf,
+                    f"facture_2kea_cmd{commande_id}.pdf",
+                    copie=SMTP_USER or None)
+                print(f"[FACTURE 2KEA] cmd {commande_id} -> {part['email']} (+copie plateforme) : {okf} ({mf})")
+            except Exception as e:
+                print(f"[FACTURE 2KEA] cmd {commande_id} : {e}")
             if ok:
-                db.marquer_commande_generee(commande_id)
-                # 🧾 LA FACTURE DU DÛ 2KEA (1,5 F/feuille) — expédiée automatiquement
-                # à la partenaire ET à la plateforme (copie), rangée au coffre-fort.
-                try:
-                    fact_pdf, fact_part, fact_montant = _facture_commande_pdf(cmd)
-                    lien_fact = _ranger_au_coffre(commande_id, "facture", fact_pdf)
-                    corps_fact = (
-                        f"Bonjour {fact_part.get('nom', '')},\n\n"
-                        f"Veuillez trouver la facture des redevances PDF MANAPRINT "
-                        f"pour la commande #{commande_id} :\n\n"
-                        f"  \u2022 Jeu : {cmd['programme']} \u2014 {cmd['nb_feuilles']} feuille(s)\n"
-                        f"  \u2022 Redevance : 1,5 F / feuille \u2192 TOTAL : {fact_montant} XPF\n"
-                        + (f"\n\U0001f517 Lien de secours :\n{lien_fact}\n" if lien_fact else "") +
-                        "\n\u00c0 r\u00e9gler \u00e0 2KEA & Associ\u00e9 selon vos modalit\u00e9s habituelles.\n\n"
-                        "\u2014 MANAPRINT / 2KEA & Associ\u00e9 \u2014 manaprint.app"
-                    )
-                    okf, mf = envoyer_email_pdf(
-                        part["email"],
-                        f"MANAPRINT \u2014 Facture du d\u00fb 2KEA \u2014 commande #{commande_id} ({fact_montant} XPF)",
-                        corps_fact, fact_pdf,
-                        f"facture_2kea_cmd{commande_id}.pdf",
-                        copie=SMTP_USER or None)
-                    print(f"[FACTURE 2KEA] cmd {commande_id} -> {part['email']} (+copie plateforme) : {okf} ({mf})")
-                except Exception as e:
-                    print(f"[FACTURE 2KEA] cmd {commande_id} : {e}")
                 print(f"[FABRICATION OK] commande {commande_id} envoyée à {part['nom']}")
             else:
-                print(f"[FABRICATION ECHEC ENVOI] commande {commande_id} : {m}")
+                print(f"[FABRICATION SANS FACTEUR] commande {commande_id} FABRIQUÉE et au "
+                      f"coffre-fort (⬇️/🗂️/🧾 dans la gestion) — email non parti : {m}")
         except Exception as e:
             print(f"[FABRICATION ERREUR] commande {commande_id} : {e}")
 
