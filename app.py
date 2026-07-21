@@ -324,6 +324,18 @@ _enregistrer_paire("ohana20b",      "OHANA 75 · 20 boules","🌺", 5,  ohana75_
 CARTES_PAR_FEUILLE = {jid: j["cartes_par_feuille"] for jid, j in REGISTRE_JEUX.items()}
 
 
+# 🖼️ LA LISTE OFFICIELLE DES JEUX DÉCORABLES (filigranes) — première vague
+JEUX_MOTIF = {"pow", "pow6", "ino", "ino8", "bgo5", "bio5", "boules40", "boules60"}
+
+
+def _jeu_decorable(programme):
+    base = str(programme or "")
+    for suffixe in ("_couleur", "_nb"):
+        if base.endswith(suffixe):
+            base = base[: -len(suffixe)]
+    return base in JEUX_MOTIF
+
+
 def generer_jeu(programme, nb_cartes, couleur, perso, evenement_id="", serie_start=1):
     """Génère le PDF A4 de N'IMPORTE QUEL jeu du registre. perso = champs de personnalisation.
     evenement_id (optionnel) : active le QR de vérification par carton.
@@ -339,16 +351,10 @@ def generer_jeu(programme, nb_cartes, couleur, perso, evenement_id="", serie_sta
     }
     if evenement_id:
         kwargs["evenement_id"] = evenement_id
-    # 🖼️ motif en filigrane : seuls les jeux qui savent décorer le reçoivent
-    # (inspection de signature — zéro risque pour les autres générateurs)
+    # 🖼️ motif en filigrane : seuls les jeux de la liste officielle décorent
     _motif_choisi = str((perso or {}).get("motif") or "").strip().lower()
-    if _motif_choisi:
-        import inspect as _insp
-        try:
-            if "motif" in _insp.signature(jeu["generer"]).parameters:
-                kwargs["motif"] = _motif_choisi
-        except Exception:
-            pass
+    if _motif_choisi and _jeu_decorable(programme):
+        kwargs["motif"] = _motif_choisi
     return jeu["generer"](**kwargs)
 
 
@@ -1283,6 +1289,7 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
         "date_tournoi": (data.get("date_tournoi", "") or "").strip(),
         "couleur_qr": (data.get("couleur_qr", "") or "").strip(),
         "email_organisateur": (data.get("email_organisateur", "") or "").strip(),
+        "motif": (data.get("motif", "") or "").strip().lower(),
         # 🖨️ MODE BOUTIQUE RAPIDE : cartons sans microtexte (QR conservé),
         # pour l'impression directe par clé USB sans pause.
         "impression_rapide": bool(data.get("impression_rapide")),
@@ -1298,6 +1305,21 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
     _cle_prix = db._gamme_du_programme(programme) + ("_couleur" if couleur else "_nb")
     if _pp.get(_cle_prix):
         prix_special = float(_pp[_cle_prix])
+    # 🖼️💰 SUPPLÉMENT MOTIF (décision Maeva) : chez 2KEA & Associé, un PDF
+    # généré avec motif passe à ÉCO 8/12 F · PREMIUM 12/16 F (= tarif + 2 F).
+    # Facturé UNIQUEMENT si le jeu sait décorer (inspection de signature) et
+    # seulement sur le tarif standard — les prix fixés par un partenaire ou
+    # le tarif PDF seul (1,5 F) restent souverains et inchangés.
+    _motif_cmd = str(data.get("motif") or "").strip().lower()
+    if _motif_cmd and _jeu_decorable(programme):
+        if prix_special is None:
+            # 🖼️💰 chez 2KEA & Associé : +2 F (ÉCO 8/12 · PREMIUM 12/16)
+            _gamme_m = db._gamme_du_programme(programme)
+            prix_special = db.prix_feuille_profil(session["acces"], couleur, _gamme_m) + 2
+        else:
+            # 🖼️💰 chez les partenaires : l'option motif vaut +0,5 F/feuille
+            # (sur le PDF seul 1,5 F -> 2 F, ou sur leurs prix libres)
+            prix_special = float(prix_special) + 0.5
     commande_id, montant = db.creer_commande(
         identifiant=session.get("identifiant"),
         origine=session["acces"],
