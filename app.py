@@ -339,6 +339,16 @@ def generer_jeu(programme, nb_cartes, couleur, perso, evenement_id="", serie_sta
     }
     if evenement_id:
         kwargs["evenement_id"] = evenement_id
+    # 🖼️ motif en filigrane : seuls les jeux qui savent décorer le reçoivent
+    # (inspection de signature — zéro risque pour les autres générateurs)
+    _motif_choisi = str((perso or {}).get("motif") or "").strip().lower()
+    if _motif_choisi:
+        import inspect as _insp
+        try:
+            if "motif" in _insp.signature(jeu["generer"]).parameters:
+                kwargs["motif"] = _motif_choisi
+        except Exception:
+            pass
     return jeu["generer"](**kwargs)
 
 
