@@ -90,7 +90,7 @@ CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_
 
 NB_NUMS = 5
 # ordre de LECTURE : haut, milieu, bas — la montée 50 -> 90
-POSITIONS = [(0.22, 0.72), (0.78, 0.72), (0.19, 0.34), (0.81, 0.38), (0.52, 0.16)]
+POSITIONS = [(0.22, 0.72), (0.19, 0.34), (0.46, 0.16), (0.78, 0.72), (0.81, 0.38)]  # cascade haut->bas : gauche, creux, droite
 TAILLE_CHIFFRE = 32
 
 
