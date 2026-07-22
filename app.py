@@ -33,6 +33,7 @@ from generators import societe as societegen
 from generators import australes as australesgen
 from generators import gambier as gambiergen
 from generators import parata as paratagen
+from generators import katiu as katiugen
 from generators import win
 from generators import rubis90
 from generators import vai
@@ -270,6 +271,7 @@ _enregistrer_paire("societe",       "SOCIÉTÉ 7 boules", "⛰️", 8, societege
 _enregistrer_paire("australes",     "AUSTRALES 7 boules", "🐋", 8, australesgen.generer_pdf)
 _enregistrer_paire("gambier",       "GAMBIER 7 boules", "🐚", 8, gambiergen.generer_pdf)
 _enregistrer_paire("parata",        "PARATA 6 plages", "🦈", 6, paratagen.generer_pdf)
+_enregistrer_paire("katiu",         "KATIU 7 boules", "🐠", 8, katiugen.generer_pdf)
 _enregistrer_paire("win",           "WIN 9 boules","🏆", 12, win.generer_pdf)
 _enregistrer_paire("rubis90",       "RUBIS 90","💎", 12, rubis90.generer_pdf)
 _enregistrer_paire("vai",           "VAI 9 boules","🌊", 12, vai.generer_pdf)
@@ -775,6 +777,7 @@ _PLAGES_CALLER = {
     "australes": (1, 75),
     "gambier": (1, 75),
     "parata": (1, 90),
+    "katiu": (1, 75),
     "win": (1, 45),
     "rubis90": (1, 90),
     "vai": (61, 90),
