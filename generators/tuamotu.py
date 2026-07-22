@@ -75,6 +75,7 @@ def _charger_tuamotu():
     return _TUAMOTU_IMG
 
 
+import os as _os
 PAGE_W, PAGE_H = A4
 COLS_PAGE = 2
 ROWS_PAGE = 4
@@ -88,7 +89,8 @@ CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_
 
 NB_NUMS = 8
 # ordre de LECTURE : les numéros triés s'y posent du plus petit au plus grand
-POSITIONS = [(0.16, 0.74), (0.84, 0.76), (0.16, 0.48), (0.84, 0.52), (0.155, 0.30), (0.84, 0.30), (0.40, 0.15), (0.66, 0.15)]
+# ordre de LECTURE EN COLONNES : la montée descend la gauche puis la droite
+POSITIONS = [(0.16, 0.74), (0.16, 0.48), (0.155, 0.30), (0.40, 0.15), (0.84, 0.76), (0.84, 0.52), (0.84, 0.30), (0.66, 0.15)]
 TAILLE_CHIFFRE = 32
 
 
@@ -99,13 +101,11 @@ def _dessiner_fond(c, x0, y0, w, h):
     if img:
         from reportlab.lib.utils import ImageReader
         iw, ih = img.size
-        zone_w, zone_h = w * 0.52, h * 0.80
+        zone_w, zone_h = w * 0.94, h * 0.78
         ratio = min(zone_w / iw, zone_h / ih)
         dw, dh = iw * ratio, ih * ratio
-        c.drawImage(ImageReader(img), x0 + (w - dw) / 2, y0 + h * 0.10, dw, dh,
+        c.drawImage(ImageReader(img), x0 + (w - dw) / 2, y0 + h * 0.05 + (zone_h - dh) / 2, dw, dh,
                     mask=[238, 255, 238, 255, 238, 255])
-        c.setFillColor(colors.Color(0.62, 0.62, 0.62)); c.setFont(POLICE, 3.2)
-        c.drawCentredString(x0 + w / 2, y0 + 0.9 * mm, "Illustration : Designed by Freepik")
         return
     # ── repli : les VRAIS ATOLLS des Tuamotu, dessinés maison en anneaux ──
     # (la géographie est un fait du monde : positions et noms réels — le lagon
