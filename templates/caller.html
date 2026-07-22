@@ -364,9 +364,47 @@ function lettrePour(n) {
 
 // Tirage 100% SERVEUR : l'organisateur ne choisit rien, tout est horodaté et journalisé.
 // ══ VOIX DU CALLER ═══════════════════════════════════════════════
-// Annonce chaque boule à voix haute (synthèse vocale du téléphone/PC).
-// Réveil spécial mobiles : la première annonce doit partir d'un geste
-// de l'utilisateur (le clic TIRER) — on chauffe le moteur au 1er clic.
+// 1) VRAIE BANDE AUDIO (Web Audio) : les annonces 1-90 sont dans un seul
+//    fichier /voix-caller.mp3 joué comme de la musique — ça sort TOUJOURS
+//    sur les enceintes Bluetooth (JBL...), contrairement à la synthèse
+//    vocale du téléphone qui les boude souvent.
+// 2) SECOURS : si la bande ne charge pas, on retombe sur la synthèse vocale.
+// Réveil spécial mobiles : tout part d'un geste de l'utilisateur (clic TIRER).
+const VOIX_MAP = {"1":[0.0,0.256],"2":[0.476,0.248],"3":[0.943,0.392],"4":[1.556,0.405],"5":[2.181,0.428],"6":[2.829,0.423],"7":[3.471,0.403],"8":[4.094,0.364],"9":[4.678,0.428],"10":[5.326,0.347],"11":[5.894,0.414],"12":[6.527,0.421],"13":[7.168,0.518],"14":[7.906,0.64],"15":[8.765,0.448],"16":[9.434,0.484],"17":[10.138,0.536],"18":[10.894,0.552],"19":[11.665,0.651],"20":[12.536,0.362],"21":[13.118,0.648],"22":[13.986,0.591],"23":[14.798,0.71],"24":[15.728,0.745],"25":[16.692,0.704],"26":[17.616,0.698],"27":[18.533,0.678],"28":[19.432,0.623],"29":[20.274,0.704],"30":[21.198,0.455],"31":[21.873,0.669],"32":[22.761,0.624],"33":[23.605,0.741],"34":[24.566,0.766],"35":[25.552,0.736],"36":[26.508,0.73],"37":[27.458,0.71],"38":[28.389,0.67],"39":[29.279,0.736],"40":[30.235,0.574],"41":[31.029,0.809],"42":[32.058,0.752],"43":[33.03,0.883],"44":[34.133,0.907],"45":[35.26,0.876],"46":[36.357,0.871],"47":[37.448,0.851],"48":[38.519,0.811],"49":[39.55,0.865],"50":[40.635,0.651],"51":[41.507,0.901],"52":[42.627,0.855],"53":[43.703,0.963],"54":[44.885,1.0],"55":[46.105,0.969],"56":[47.294,0.963],"57":[48.477,0.944],"58":[49.641,0.903],"59":[50.763,0.957],"60":[51.941,0.699],"61":[52.86,0.945],"62":[54.025,0.889],"63":[55.134,1.019],"64":[56.373,1.044],"65":[57.637,1.013],"66":[58.87,1.008],"67":[60.098,0.988],"68":[61.306,0.947],"69":[62.473,1.002],"70":[63.695,0.988],"71":[64.903,1.102],"72":[66.225,1.062],"73":[67.507,1.158],"74":[68.885,1.279],"75":[70.384,1.087],"76":[71.691,1.069],"77":[72.98,1.167],"78":[74.367,1.195],"79":[75.781,1.278],"80":[77.28,0.789],"81":[78.289,0.848],"82":[79.357,0.931],"83":[80.508,1.028],"84":[81.756,1.052],"85":[83.028,1.033],"86":[84.281,1.028],"87":[85.529,1.008],"88":[86.757,0.958],"89":[87.935,0.997],"90":[89.152,1.016]};
+let ctxAudio = null, spriteAudio = null, spriteEnCours = null, sourceEnCours = null;
+
+function chargerBandeAudio() {
+  try {
+    if (spriteAudio || spriteEnCours) return;
+    if (!ctxAudio) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      ctxAudio = new AC();
+    }
+    if (ctxAudio.state === "suspended") ctxAudio.resume();
+    spriteEnCours = fetch("/voix-caller.mp3")
+      .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.arrayBuffer(); })
+      .then(function (b) { return ctxAudio.decodeAudioData(b); })
+      .then(function (buf) { spriteAudio = buf; })
+      .catch(function () { spriteEnCours = null; });  // la synthèse vocale prendra le relais
+  } catch (e) {}
+}
+
+function jouerBande(n) {
+  if (!spriteAudio || !VOIX_MAP[n]) return false;
+  try {
+    if (ctxAudio.state === "suspended") ctxAudio.resume();
+    if (sourceEnCours) { try { sourceEnCours.stop(); } catch (e) {} }
+    const s = ctxAudio.createBufferSource();
+    s.buffer = spriteAudio;
+    s.connect(ctxAudio.destination);
+    const dep = VOIX_MAP[n][0], dur = VOIX_MAP[n][1] + 0.06;
+    s.start(0, dep, dur);
+    sourceEnCours = s;
+    return true;
+  } catch (e) { return false; }
+}
+
 let voixActive = true;
 let voixChaude = false;
 
@@ -378,6 +416,7 @@ function basculerVoix() {
 }
 
 function chaufferVoix() {
+  chargerBandeAudio();  // le geste de l'utilisateur débloque l'audio et charge la bande
   try {
     if (voixChaude || !("speechSynthesis" in window)) return;
     const u = new SpeechSynthesisUtterance(" ");
@@ -388,8 +427,10 @@ function chaufferVoix() {
 }
 
 function parlerBoule(n) {
+  if (!voixActive) return;
+  if (jouerBande(n)) return;  // la bande audio d'abord : elle sort sur la JBL
   try {
-    if (!voixActive || !("speechSynthesis" in window)) return;
+    if (!("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();  // ne pas empiler si on tire vite
     const u = new SpeechSynthesisUtterance(String(n));  // une seule annonce (bouton Répéter pour bisser)
     u.lang = "fr-FR"; u.rate = 0.85; u.pitch = 1.0; u.volume = 1.0;
