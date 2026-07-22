@@ -731,6 +731,15 @@ def caller(evenement_id=None):
     return render_template("caller.html")
 
 
+@app.route("/voix-caller.mp3")
+def voix_caller_mp3():
+    """La bande audio des annonces du CALLER (1 a 90) — un vrai fichier
+    audio sort sur les enceintes Bluetooth (JBL...), contrairement a la
+    synthese vocale du telephone qui reste parfois muette dessus."""
+    chemin = os.path.join(os.path.dirname(os.path.abspath(__file__)), "generators", "voix_caller.mp3")
+    return send_file(chemin, mimetype="audio/mpeg", max_age=86400)
+
+
 @app.route("/caller-qr")
 def caller_qr():
     """Page imprimable : un QR code qui ouvre le CALLER. À coller sur la table de l'organisateur."""
