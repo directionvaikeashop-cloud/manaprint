@@ -4,3 +4,4 @@ gunicorn==23.0.0
 stripe==15.3.0
 pypdfium2==4.30.0
 pillow==11.3.0
+svglib==2.0.2
