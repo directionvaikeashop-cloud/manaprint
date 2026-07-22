@@ -898,6 +898,11 @@ _BOULES_CALLER = {
     "bo75": [n for n in range(1, 16)] + [n for n in range(46, 76)],  # BO 75 — B 1-15 · O 46-60 · 75 61-75
     "bg75": [n for n in range(1, 16)] + [n for n in range(46, 76)],  # BG 75 — B 1-15 · G 46-60 · 75 61-75
     "bn75": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(61, 76)],  # BN 75 — B 1-15 · N 31-45 · 75 61-75
+    "ok": [n for n in range(1, 16)] + [n for n in range(31, 76)],       # OK — le 16-30 n'existe pas sur les billets
+    "vision": [n for n in range(1, 31)] + [n for n in range(46, 76)],   # VISION — le 31-45 n'existe pas
+    "taptap": [n for n in range(1, 16)] + [n for n in range(46, 91)],   # TAP TAP — le 16-45 n'existe pas
+    "joie": [n for n in range(16, 31)] + [n for n in range(46, 76)],    # JOIE — le 1-15 et le 31-45 n'existent pas
+    "caller": [n for n in range(1, 16)] + [n for n in range(46, 76)],   # CALLER — le 16-45 n'existe pas
 }
 
 
