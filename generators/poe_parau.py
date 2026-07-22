@@ -90,7 +90,7 @@ CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_
 
 NB_NUMS = 6
 # ordre de LECTURE : les numéros triés s'y posent du plus petit au plus grand
-POSITIONS = [(0.20, 0.72), (0.80, 0.72), (0.15, 0.45), (0.85, 0.45), (0.32, 0.20), (0.64, 0.20)]
+POSITIONS = [(0.20, 0.72), (0.15, 0.45), (0.32, 0.20), (0.80, 0.72), (0.85, 0.45), (0.64, 0.20)]  # cascade haut->bas : gauche puis droite
 TAILLE_CHIFFRE = 32
 
 
