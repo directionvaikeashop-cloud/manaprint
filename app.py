@@ -40,6 +40,7 @@ from generators import vision as visiongen
 from generators import taptap as taptapgen
 from generators import joie as joiegen
 from generators import caller as callergen
+from generators import valider as validergen
 from generators import win
 from generators import rubis90
 from generators import vai
@@ -284,6 +285,7 @@ _enregistrer_paire("vision",        "VISION 6 boules", "👁️", 8, visiongen.g
 _enregistrer_paire("taptap",        "TAP TAP 5 boules", "👏", 8, taptapgen.generer_pdf)
 _enregistrer_paire("joie",          "JOIE 5 boules", "😄", 12, joiegen.generer_pdf)
 _enregistrer_paire("caller",        "CALLER 6 boules", "👍", 12, callergen.generer_pdf)
+_enregistrer_paire("valider",       "VALIDER 6 boules", "✅", 12, validergen.generer_pdf)
 _enregistrer_paire("win",           "WIN 9 boules","🏆", 12, win.generer_pdf)
 _enregistrer_paire("rubis90",       "RUBIS 90","💎", 12, rubis90.generer_pdf)
 _enregistrer_paire("vai",           "VAI 9 boules","🌊", 12, vai.generer_pdf)
@@ -796,6 +798,7 @@ _PLAGES_CALLER = {
     "taptap": (1, 90),
     "joie": (1, 75),
     "caller": (1, 75),
+    "valider": (31, 75),
     "win": (1, 45),
     "rubis90": (1, 90),
     "vai": (61, 90),
