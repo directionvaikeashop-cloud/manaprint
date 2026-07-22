@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-MANAPRINT — Générateur HAKARI 7 boules (format A4)
+MANAPRINT — Générateur HAKARI 6 boules (format A4)
 12 cartes/page — palmier original, 7 numéros dont le CENTRAL cerclé (case vedette).
 Numéros tirés dans 1-75 · QR de sécurité · série · microtexte · Tèl par défaut 89 22 23 05.
 Dessins vectoriels originaux MANAPRINT.
@@ -86,8 +86,8 @@ GUTTER_Y = 4 * mm
 CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
 CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
 
-NB_NUMS = 7
-POSITIONS = [(0.50, 0.50), (0.20, 0.74), (0.72, 0.76), (0.15, 0.48), (0.85, 0.50), (0.28, 0.20), (0.62, 0.20)]
+NB_NUMS = 6
+POSITIONS = [(0.50, 0.50), (0.20, 0.74), (0.74, 0.76), (0.15, 0.46), (0.85, 0.48), (0.40, 0.18)]
 TAILLE_CHIFFRE = 32
 
 
@@ -148,7 +148,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
 
     # en-tête : nom du jeu toujours affiché + titre client + notre signature
     hdr_y = y0 + CARD_H - 4.2 * mm
-    titre = "HAKARI 7 boules"
+    titre = "HAKARI 6 boules"
     if titre_jeu and titre_jeu.strip().upper() != titre.upper():
         titre += "  —  " + titre_jeu.strip()
     titre += "  by TUKEA " + (telephone or "")
