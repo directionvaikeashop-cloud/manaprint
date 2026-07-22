@@ -75,56 +75,6 @@ def _charger_australes():
     return _AUSTRALES_IMG
 
 
-_TARO_IMG = None
-
-
-def _charger_taro():
-    """Le taro illustré (licence à fournir par Maeva), pâli en filigrane.
-    Anti-panne : si le fichier manque, le taro vectoriel maison pousse."""
-    global _TARO_IMG
-    if _TARO_IMG is not None:
-        return _TARO_IMG
-    try:
-        from PIL import Image as _Image
-        chemin = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "taro_australes.png")
-        brut = _Image.open(chemin)
-        if brut.mode in ("RGBA", "LA", "P"):
-            brut = brut.convert("RGBA")
-            fondb = _Image.new("RGBA", brut.size, (255, 255, 255, 255))
-            brut = _Image.alpha_composite(fondb, brut)
-        img = brut.convert("L")
-        img = img.point(lambda p: int(255 - (255 - p) * 0.35))
-        _TARO_IMG = img.convert("RGB")
-    except Exception:
-        _TARO_IMG = False
-    return _TARO_IMG
-
-
-_BALEINE_IMG = None
-
-
-def _charger_baleine():
-    """La baleine illustrée (licence fournie par Maeva), pâlie en filigrane.
-    Anti-panne : si le fichier manque, la baleine vectorielle maison nage."""
-    global _BALEINE_IMG
-    if _BALEINE_IMG is not None:
-        return _BALEINE_IMG
-    try:
-        from PIL import Image as _Image
-        chemin = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "baleine_australes.png")
-        brut = _Image.open(chemin)
-        if brut.mode in ("RGBA", "LA", "P"):
-            brut = brut.convert("RGBA")
-            fondb = _Image.new("RGBA", brut.size, (255, 255, 255, 255))
-            brut = _Image.alpha_composite(fondb, brut)
-        img = brut.convert("L")
-        img = img.point(lambda p: int(255 - (255 - p) * 0.18))
-        _BALEINE_IMG = img.convert("RGB")
-    except Exception:
-        _BALEINE_IMG = False
-    return _BALEINE_IMG
-
-
 PAGE_W, PAGE_H = A4
 COLS_PAGE = 2
 ROWS_PAGE = 4
@@ -138,7 +88,8 @@ CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_
 
 NB_NUMS = 7
 # ordre de LECTURE : les numéros triés s'y posent du plus petit au plus grand
-POSITIONS = [(0.16, 0.74), (0.84, 0.76), (0.16, 0.48), (0.84, 0.52), (0.155, 0.30), (0.84, 0.30), (0.50, 0.15)]
+# ordre de LECTURE EN COLONNES : la montée descend la gauche puis la droite
+POSITIONS = [(0.16, 0.74), (0.16, 0.48), (0.155, 0.30), (0.46, 0.15), (0.84, 0.76), (0.84, 0.52), (0.84, 0.30)]
 TAILLE_CHIFFRE = 32
 
 
@@ -149,13 +100,11 @@ def _dessiner_fond(c, x0, y0, w, h):
     if img:
         from reportlab.lib.utils import ImageReader
         iw, ih = img.size
-        zone_w, zone_h = w * 0.52, h * 0.80
+        zone_w, zone_h = w * 0.94, h * 0.78
         ratio = min(zone_w / iw, zone_h / ih)
         dw, dh = iw * ratio, ih * ratio
-        c.drawImage(ImageReader(img), x0 + (w - dw) / 2, y0 + h * 0.10, dw, dh,
+        c.drawImage(ImageReader(img), x0 + (w - dw) / 2, y0 + h * 0.05 + (zone_h - dh) / 2, dw, dh,
                     mask=[238, 255, 238, 255, 238, 255])
-        c.setFillColor(colors.Color(0.62, 0.62, 0.62)); c.setFont(POLICE, 3.2)
-        c.drawCentredString(x0 + w / 2, y0 + 0.9 * mm, "Illustration : Designed by Freepik")
         return
     # ── repli : les VRAIES îles Australes, dessinées maison ──
     # (la géographie est un fait du monde : la chaîne du sud, de Maria
@@ -191,84 +140,6 @@ def _dessiner_fond(c, x0, y0, w, h):
             c.drawCentredString(cx, cy - lh * mm / 2 - 1.6 * mm, nomile)
         else:
             c.drawCentredString(cx, cy + lh * mm / 2 + 0.7 * mm, nomile)
-
-
-    # ── le taro (le trésor des tarodières de Rurutu), en haut à droite ──
-    # dessin vectoriel original MANAPRINT : trois feuilles en cœur,
-    # le bulbe et ses racines — l'image licenciée prendra sa place
-    # via generators/taro_australes.png dès que Maeva la fournit
-    img_t = _charger_taro()
-    tx, ty = x0 + w * 0.70, y0 + h * 0.60
-    if img_t:
-        from reportlab.lib.utils import ImageReader
-        iw, ih = img_t.size
-        dw = 12 * mm
-        dh = dw * ih / iw
-        c.drawImage(ImageReader(img_t), tx - dw / 2, ty, dw, dh,
-                    mask=[238, 255, 238, 255, 238, 255])
-    else:
-        T = 5.2 * mm
-        # le bulbe et ses racines
-        c.setFillColor(PALE)
-        c.ellipse(tx - T * 0.32, ty, tx + T * 0.32, ty + T * 0.72, stroke=0, fill=1)
-        c.setStrokeColor(PALE); c.setLineWidth(0.6); c.setLineCap(1)
-        for rx, ry in ((-0.18, -0.28), (0.0, -0.36), (0.18, -0.26)):
-            c.line(tx + rx * T, ty + 0.06 * T, tx + rx * T * 1.6, ty + ry * T)
-        # les trois tiges
-        c.setLineWidth(0.8)
-        for sx, tipx in ((-0.10, -0.55), (0.0, 0.0), (0.10, 0.55)):
-            c.line(tx + sx * T, ty + T * 0.66, tx + tipx * T, ty + T * 1.12)
-        # les trois feuilles en cœur (pointe en bas, à la taro)
-        for tipx, rot in ((-0.55, -24), (0.0, 0), (0.55, 24)):
-            c.saveState()
-            c.translate(tx + tipx * T, ty + T * 1.12)
-            c.rotate(rot)
-            s = T * 0.62
-            c.setFillColor(PALE2)
-            p = c.beginPath()
-            p.moveTo(0, 0)
-            p.curveTo(-s * 0.55, s * 0.35, -s * 0.50, s * 0.95, 0, s * 0.75)
-            p.curveTo(s * 0.50, s * 0.95, s * 0.55, s * 0.35, 0, 0)
-            c.drawPath(p, stroke=0, fill=1)
-            c.setStrokeColor(PALE); c.setLineWidth(0.5)
-            c.line(0, s * 0.10, 0, s * 0.66)
-            c.restoreState()
-
-    # ── la baleine (la route des baleines passe par Rurutu !) ──
-    bx, by = x0 + w * 0.42, y0 + h * 0.24
-    img_b = _charger_baleine()
-    if img_b:
-        from reportlab.lib.utils import ImageReader
-        iw, ih = img_b.size
-        dw = 34 * mm
-        dh = dw * ih / iw
-        c.drawImage(ImageReader(img_b), bx - dw / 2, by - dh / 2, dw, dh,
-                    mask=[238, 255, 238, 255, 238, 255])
-        c.setFillColor(colors.Color(0.62, 0.62, 0.62)); c.setFont(POLICE, 3.2)
-        c.drawCentredString(x0 + w / 2, y0 + 0.9 * mm, "Illustration : Designed by Freepik")
-    else:
-        # repli : la baleine à bosse vectorielle maison (dos rond, longue
-        # pectorale signature, queue levée, souffle, œil)
-        S = 6.0 * mm
-        c.setFillColor(PALE)
-        p = c.beginPath()
-        p.moveTo(bx - S, by + S * 0.10)
-        p.curveTo(bx - S * 0.5, by + S * 0.45, bx + S * 0.3, by + S * 0.42, bx + S * 0.75, by + S * 0.12)
-        p.curveTo(bx + S * 0.9, by + S * 0.02, bx + S * 0.95, by - S * 0.02, bx + S * 1.0, by + S * 0.18)
-        p.curveTo(bx + S * 1.12, by + S * 0.36, bx + S * 1.3, by + S * 0.30, bx + S * 1.28, by + S * 0.16)
-        p.curveTo(bx + S * 1.18, by + S * 0.10, bx + S * 1.24, by - S * 0.02, bx + S * 1.34, by - S * 0.10)
-        p.curveTo(bx + S * 1.18, by - S * 0.16, bx + S * 1.02, by - S * 0.08, bx + S * 0.95, by - S * 0.02)
-        p.curveTo(bx + S * 0.5, by - S * 0.35, bx - S * 0.3, by - S * 0.35, bx - S, by + S * 0.10)
-        c.drawPath(p, stroke=0, fill=1)
-        p2 = c.beginPath()
-        p2.moveTo(bx - S * 0.25, by - S * 0.12)
-        p2.curveTo(bx - S * 0.05, by - S * 0.45, bx + S * 0.25, by - S * 0.55, bx + S * 0.42, by - S * 0.50)
-        p2.curveTo(bx + S * 0.2, by - S * 0.30, bx + S * 0.0, by - S * 0.14, bx - S * 0.25, by - S * 0.12)
-        c.drawPath(p2, stroke=0, fill=1)
-        for gx, gy, r in ((-1.05, 0.55, 0.10), (-1.12, 0.72, 0.08), (-0.98, 0.70, 0.07)):
-            c.circle(bx + gx * S, by + gy * S, r * S, stroke=0, fill=1)
-        c.setFillColor(colors.white)
-        c.circle(bx - S * 0.72, by + S * 0.10, 0.35 * mm, stroke=0, fill=1)
 
 
 def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
