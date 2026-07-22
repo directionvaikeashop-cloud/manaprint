@@ -209,6 +209,8 @@ def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
                 x0 = MARGIN_X + col_i * (CARD_W + GUTTER_X)
                 y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
                 nums = rng.sample(range(1, 76), NB_NUMS)
+                # 🎯 le CENTRAL cerclé reste libre, les 5 autour montent en ordre
+                nums = [nums[0]] + sorted(nums[1:])
                 coul = (couleur_perso if (couleur and couleur_perso)
                         else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
                 _dessiner_carte(c, x0, y0, nums, coul, serie, titre_jeu, telephone,
