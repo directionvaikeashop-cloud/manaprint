@@ -89,7 +89,8 @@ CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
 CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
 
 NB_NUMS = 5
-POSITIONS = [(0.22, 0.72), (0.78, 0.72), (0.19, 0.34), (0.52, 0.16), (0.81, 0.38)]
+# ordre de LECTURE : haut, milieu, bas — la montée 50 -> 90
+POSITIONS = [(0.22, 0.72), (0.78, 0.72), (0.19, 0.34), (0.81, 0.38), (0.52, 0.16)]
 TAILLE_CHIFFRE = 32
 
 
@@ -213,7 +214,7 @@ def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
                     break
                 x0 = MARGIN_X + col_i * (CARD_W + GUTTER_X)
                 y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
-                nums = rng.sample(range(50, 91), NB_NUMS)
+                nums = sorted(rng.sample(range(50, 91), NB_NUMS))  # ordre chronologique 50 -> 90
                 coul = (couleur_perso if (couleur and couleur_perso)
                         else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
                 _dessiner_carte(c, x0, y0, nums, coul, serie, titre_jeu, telephone,
