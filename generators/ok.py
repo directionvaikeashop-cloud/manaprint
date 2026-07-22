@@ -87,9 +87,10 @@ CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
 CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
 
 NB_NUMS = 7
-# ordre de LECTURE EN CASCADE : le SOMMET d'abord (le plus haut), puis la
-# colonne GAUCHE de haut en bas (jusqu'au bas-gauche), puis la DROITE (jusqu'au bas-droit)
-POSITIONS = [(0.50, 0.755), (0.16, 0.58), (0.16, 0.36), (0.33, 0.17), (0.84, 0.58), (0.84, 0.36), (0.64, 0.17)]
+# ordre de LECTURE façon modèle ALORS : le plus petit en BAS de la colonne
+# gauche, puis on suit l'aiguille d'une montre — la gauche MONTE (bas -> haut),
+# sommet, la droite DESCEND (haut -> bas), et le bas se lit de gauche a droite
+POSITIONS = [(0.16, 0.36), (0.16, 0.58), (0.50, 0.755), (0.84, 0.58), (0.84, 0.36), (0.33, 0.17), (0.64, 0.17)]
 TAILLE_CHIFFRE = 32
 
 
@@ -192,7 +193,13 @@ def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
                     break
                 x0 = MARGIN_X + col_i * (CARD_W + GUTTER_X)
                 y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
-                nums = sorted(rng.sample(range(1, 76), NB_NUMS))  # ordre chronologique 1 -> 75
+                # zones du modèle ALORS, en horloge : la gauche = petits (1-15),
+                # le sommet = 31-45, la droite = 46-60, le bas = 61-75
+                zg = sorted(rng.sample(range(1, 16), 2))    # gauche : bas puis haut
+                zs = [rng.randint(31, 45)]                  # sommet
+                zd = sorted(rng.sample(range(46, 61), 2))   # droite : haut puis bas
+                zb = sorted(rng.sample(range(61, 76), 2))   # bas : gauche puis droit
+                nums = zg + zs + zd + zb
                 coul = (couleur_perso if (couleur and couleur_perso)
                         else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
                 _dessiner_carte(c, x0, y0, nums, coul, serie, titre_jeu, telephone,
