@@ -87,7 +87,7 @@ CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
 CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
 
 NB_NUMS = 6
-POSITIONS = [(0.50, 0.50), (0.20, 0.74), (0.74, 0.76), (0.15, 0.46), (0.85, 0.48), (0.40, 0.18)]
+POSITIONS = [(0.50, 0.50), (0.20, 0.74), (0.15, 0.46), (0.40, 0.18), (0.74, 0.76), (0.85, 0.48)]  # central libre puis cascade gauche->droite
 TAILLE_CHIFFRE = 32
 
 
