@@ -47,6 +47,7 @@ from generators import francs as francsgen
 from generators import tesla as teslagen
 from generators import salute as salutegen
 from generators import pietra as pietragen
+from generators import triple as triplegen
 from generators import win
 from generators import rubis90
 from generators import vai
@@ -298,6 +299,7 @@ _enregistrer_paire("francs",        "100 FRANCS 7 boules", "🪙", 12, francsgen
 _enregistrer_paire("tesla",         "TESLA 5 boules", "🚗", 8, teslagen.generer_pdf)
 _enregistrer_paire("salute",        "SALUTE 6 boules", "🗺️", 8, salutegen.generer_pdf)
 _enregistrer_paire("pietra",        "PIETRA 8 boules", "🌰", 8, pietragen.generer_pdf)
+_enregistrer_paire("triple90",      "TRIPLE BO90 9 boules", "3️⃣", 7, triplegen.generer_pdf)
 _enregistrer_paire("win",           "WIN 9 boules","🏆", 12, win.generer_pdf)
 _enregistrer_paire("rubis90",       "RUBIS 90","💎", 12, rubis90.generer_pdf)
 _enregistrer_paire("vai",           "VAI 9 boules","🌊", 12, vai.generer_pdf)
@@ -826,6 +828,7 @@ _PLAGES_CALLER = {
     "tesla": (1, 60),
     "salute": (1, 75),
     "pietra": (1, 75),
+    "triple90": (1, 90),
     "win": (1, 45),
     "rubis90": (1, 90),
     "vai": (61, 90),
@@ -926,6 +929,7 @@ _BOULES_CALLER = {
     "tesla": [n for n in range(1, 31)] + [n for n in range(46, 61)],  # TESLA — la voiture roule sur 1-30 et 46-60
     "salute": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # SALUTE — le X couvre 1-30 et 46-75
     "pietra": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # PIETRA — la couronne couvre 1-30 et 46-75
+    "triple90": [n for n in range(1, 16)] + [n for n in range(61, 91)],  # TRIPLE BO90 — les 3 cases couvrent 1-15 et 61-90
 }
 
 
