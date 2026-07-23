@@ -43,6 +43,7 @@ from generators import caller as callergen
 from generators import valider as validergen
 from generators import chance as chancegen
 from generators import opoa as opoagen
+from generators import francs as francsgen
 from generators import win
 from generators import rubis90
 from generators import vai
@@ -290,6 +291,7 @@ _enregistrer_paire("caller",        "CALLER 6 boules", "👍", 12, callergen.gen
 _enregistrer_paire("valider",       "VALIDER 6 boules", "✅", 12, validergen.generer_pdf)
 _enregistrer_paire("chance",        "CHANCE 6 boules", "🍀", 8, chancegen.generer_pdf)
 _enregistrer_paire("opoa",          "OPOA 7 boules", "🏔️", 8, opoagen.generer_pdf)
+_enregistrer_paire("francs",        "100 FRANCS 7 boules", "🪙", 12, francsgen.generer_pdf)
 _enregistrer_paire("win",           "WIN 9 boules","🏆", 12, win.generer_pdf)
 _enregistrer_paire("rubis90",       "RUBIS 90","💎", 12, rubis90.generer_pdf)
 _enregistrer_paire("vai",           "VAI 9 boules","🌊", 12, vai.generer_pdf)
@@ -814,6 +816,7 @@ _PLAGES_CALLER = {
     "valider": (31, 75),
     "chance": (1, 90),
     "opoa": (1, 75),
+    "francs": (46, 90),
     "win": (1, 45),
     "rubis90": (1, 90),
     "vai": (61, 90),
