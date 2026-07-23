@@ -312,6 +312,26 @@ _enregistrer_paire("triple_bi90",   "TRIPLE BI90 9 boules", "🔵", 7, tbi90gen.
 _enregistrer_paire("triple_bg75",   "TRIPLE BG75 9 boules", "💠", 7, tbg75gen.generer_pdf)
 _enregistrer_paire("triple_bn75",   "TRIPLE BN75 9 boules", "🔶", 7, tbn75gen.generer_pdf)
 _enregistrer_paire("triple_bi75",   "TRIPLE BI75 9 boules", "💙", 7, tbi75gen.generer_pdf)
+
+# ── 💰 GRILLE 2KEA « PAQUETS DE 25 » (décision Maeva 23/07) ──────────────────
+# PREMIUM en veilleuse (le code reste, réactivable). ÉCO seulement :
+# anciens jeux 150 F (N&B) / 250 F (Couleur) les 25 feuilles ;
+# les 23 nouveaux jeux nés les 22-23/07 : 185 F / 300 F les 25 feuilles
+# (soit 7,4 / 12 F la feuille). Quantités par paquets de 25 (25 → 250).
+NOUVEAUX_JEUX = {
+    "gambier", "parata", "katiu", "ok", "feu", "vision", "taptap", "joie",
+    "caller", "valider", "chance", "opoa", "francs", "tesla", "salute", "pietra",
+    "triple_bo90", "triple_bg90", "triple_bn90", "triple_bi90",
+    "triple_bg75", "triple_bn75", "triple_bi75",
+}
+
+def _base_jeu(programme):
+    """Identifiant du jeu sans son suffixe de variante (_p15_couleur, _nb…)."""
+    p = str(programme or "")
+    for suf in ("_p15_couleur", "_p15_nb", "_couleur", "_nb"):
+        if p.endswith(suf):
+            return p[:-len(suf)]
+    return p
 _enregistrer_paire("win",           "WIN 9 boules","🏆", 12, win.generer_pdf)
 _enregistrer_paire("rubis90",       "RUBIS 90","💎", 12, rubis90.generer_pdf)
 _enregistrer_paire("vai",           "VAI 9 boules","🌊", 12, vai.generer_pdf)
@@ -1260,7 +1280,7 @@ def api_jeux():
     return jsonify({"ok": True, "jeux": [
         {"id": jid, "nom": j["nom"], "emoji": j["emoji"],
          "cartes_par_feuille": j["cartes_par_feuille"], "couleur": j["couleur"]}
-        for jid, j in REGISTRE_JEUX.items()
+        for jid, j in REGISTRE_JEUX.items() if "_p15" not in jid  # 🌙 PREMIUM en veilleuse
     ]})
 
 
@@ -1361,8 +1381,14 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
     panier d'achat (chaque article du panier passe par les MÊMES contrôles).
     Retourne (None, resultat) si ok, ou (reponse_json, code_http) si refus."""
     programme = data.get("programme", "triple_action")
+    # 🌙 PREMIUM en veilleuse : seule la gamme ÉCO est en vente pour l'instant
+    if "_p15" in str(programme):
+        return (jsonify({"ok": False, "message": "La gamme PREMIUM est momentanément en pause — choisis la version ÉCO du jeu."}), 400), None
     couleur = REGISTRE_JEUX.get(programme, {}).get("couleur", True)
-    nb_feuilles = max(1, min(int(data.get("nb_feuilles", 10)), 250))  # plafond : 250 feuilles par commande
+    nb_feuilles = int(data.get("nb_feuilles", 25))
+    # 📦 Vente par PAQUETS DE 25 feuilles (25, 50, 75… jusqu'à 250)
+    if nb_feuilles < 25 or nb_feuilles > 250 or nb_feuilles % 25 != 0:
+        return (jsonify({"ok": False, "message": "Les feuilles se commandent par paquets de 25 (25, 50, 75… jusqu'à 250)."}), 400), None
 
     # Personnalisation OBLIGATOIRE (sécurité)
     nom_evenement = data.get("nom_evenement", "").strip()
@@ -1436,6 +1462,11 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
             # 🖼️💰 chez les partenaires : l'option motif vaut +0,5 F/feuille
             # (sur le PDF seul 1,5 F -> 2 F, ou sur leurs prix libres)
             prix_special = float(prix_special) + 0.5
+    # 💰 NOUVEAUX JEUX (22-23/07) : 185 F N&B / 300 F Couleur les 25 feuilles.
+    # Tarif standard 2KEA seulement — prix partenaires et PDF seul
+    # international restent souverains.
+    if prix_special is None and session.get("acces") != "international" and _base_jeu(programme) in NOUVEAUX_JEUX:
+        prix_special = 12 if couleur else 7.4
     commande_id, montant = db.creer_commande(
         identifiant=session.get("identifiant"),
         origine=session["acces"],
