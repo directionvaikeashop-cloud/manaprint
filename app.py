@@ -1452,6 +1452,11 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
     return None, {"commande_id": commande_id, "montant": int(montant), "libelle": libelle}
 
 
+# ── 🏦 VIREMENT — coordonnées bancaires affichées au client ──────────────────
+# Le RIB vit dans la variable Railway MANAPRINT_RIB (modifiable sans toucher au
+# code) : texte libre, ex. « Banque XXX — 2KEA & Associé — n° 12345 67890 … ».
+RIB_VIREMENT = os.environ.get("MANAPRINT_RIB", "").strip()
+
 # ── 💳 STRIPE (paiement par carte, comme sur Ticket Bingo) ────────────────────
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "").strip()
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip()
@@ -1534,12 +1539,16 @@ def commander():
 def panier_checkout():
     """🛒 Le panier d'achat : plusieurs jeux, un seul paiement.
     items = liste de commandes (mêmes champs que /api/commander).
-    mode_paiement = 'stripe' (carte) ou 'manuel' (boutique/virement)."""
+    mode_paiement = 'stripe' (carte), 'boutique' (comptoir 2KEA) ou 'virement'."""
     if "acces" not in session:
         return jsonify({"ok": False, "message": "Accès non autorisé"}), 403
     data = request.get_json(force=True, silent=True) or {}
     items = data.get("items") or []
     mode_paiement = data.get("mode_paiement", "stripe")
+    if mode_paiement == "manuel":  # compat ancien front : manuel = boutique
+        mode_paiement = "boutique"
+    if mode_paiement not in ("stripe", "boutique", "virement"):
+        return jsonify({"ok": False, "message": "Mode de paiement inconnu."}), 400
     if not isinstance(items, list) or not (1 <= len(items) <= 10):
         return jsonify({"ok": False, "message": "Le panier doit contenir entre 1 et 10 articles."}), 400
 
@@ -1556,12 +1565,19 @@ def panier_checkout():
         resume.append(res)
         total += res["montant"]
 
-    if mode_paiement == "manuel":
-        return jsonify({
-            "ok": True, "mode": "manuel", "panier_id": panier_id, "montant": total,
-            "articles": resume,
-            "message": f"Panier enregistré ({len(resume)} article(s), {total} XPF). Il sera généré après validation du paiement par 2KEA & Associé.",
-        })
+    if mode_paiement in ("boutique", "virement"):
+        rep = {"ok": True, "mode": mode_paiement, "panier_id": panier_id,
+               "montant": total, "articles": resume}
+        if mode_paiement == "virement":
+            rep["rib"] = RIB_VIREMENT
+            rep["reference"] = f"MANAPRINT-{panier_id}"
+            rep["message"] = (f"Panier enregistré ({len(resume)} article(s), {total} XPF). "
+                              f"Fais ton virement avec la référence MANAPRINT-{panier_id} : "
+                              "tes PDF seront générés dès réception du virement par 2KEA & Associé.")
+        else:
+            rep["message"] = (f"Panier enregistré ({len(resume)} article(s), {total} XPF). "
+                              "Passe régler en boutique 2KEA & Associé : tes PDF seront générés dès le paiement encaissé.")
+        return jsonify(rep)
 
     if not STRIPE_SECRET_KEY:
         return jsonify({"ok": False,
