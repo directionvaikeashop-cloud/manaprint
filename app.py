@@ -42,6 +42,7 @@ from generators import joie as joiegen
 from generators import caller as callergen
 from generators import valider as validergen
 from generators import chance as chancegen
+from generators import opoa as opoagen
 from generators import win
 from generators import rubis90
 from generators import vai
@@ -288,6 +289,7 @@ _enregistrer_paire("joie",          "JOIE 5 boules", "😄", 12, joiegen.generer
 _enregistrer_paire("caller",        "CALLER 6 boules", "👍", 12, callergen.generer_pdf)
 _enregistrer_paire("valider",       "VALIDER 6 boules", "✅", 12, validergen.generer_pdf)
 _enregistrer_paire("chance",        "CHANCE 6 boules", "🍀", 8, chancegen.generer_pdf)
+_enregistrer_paire("opoa",          "OPOA 7 boules", "🏔️", 8, opoagen.generer_pdf)
 _enregistrer_paire("win",           "WIN 9 boules","🏆", 12, win.generer_pdf)
 _enregistrer_paire("rubis90",       "RUBIS 90","💎", 12, rubis90.generer_pdf)
 _enregistrer_paire("vai",           "VAI 9 boules","🌊", 12, vai.generer_pdf)
@@ -811,6 +813,7 @@ _PLAGES_CALLER = {
     "caller": (1, 75),
     "valider": (31, 75),
     "chance": (1, 90),
+    "opoa": (1, 75),
     "win": (1, 45),
     "rubis90": (1, 90),
     "vai": (61, 90),
@@ -907,6 +910,7 @@ _BOULES_CALLER = {
     "joie": [n for n in range(16, 31)] + [n for n in range(46, 76)],    # JOIE — le 1-15 et le 31-45 n'existent pas
     "caller": [n for n in range(1, 16)] + [n for n in range(46, 76)],   # CALLER — le 16-45 n'existe pas
     "chance": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(76, 91)],  # CHANCE — trèfles 1-15 · 31-45 · 76-90
+    "opoa": [n for n in range(1, 16)] + [n for n in range(31, 76)],  # OPOA — le 16-30 et le 76-90 n'existent pas
 }
 
 
