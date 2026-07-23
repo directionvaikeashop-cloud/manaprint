@@ -1922,7 +1922,10 @@ def lancer_fabrication(commande_id, seulement_rapport=False):
             db.marquer_commande_generee(commande_id)
             # 🧾 LA FACTURE DU DÛ 2KEA (1,5 F/feuille) : TOUJOURS fabriquée et
             # rangée au coffre ; l'email part si le facteur veut bien.
+            # 📦 ...sauf le ravitaillement boutique : commande interne 2KEA, pas de facture.
             try:
+                if cmd["mode_paiement"] == "ravitaillement":
+                    raise StopIteration("ravitaillement interne — pas de facture du dû")
                 fact_pdf, fact_part, fact_montant = _facture_commande_pdf(cmd)
                 lien_fact = _ranger_au_coffre(commande_id, "facture", fact_pdf)
                 corps_fact = (
@@ -2638,6 +2641,38 @@ def admin_valider_commande(commande_id):
     info = (f" Le PDF est en fabrication et sera envoyé automatiquement à {nom_part}"
             " (plusieurs minutes pour les grosses commandes).") if nom_part else ""
     return jsonify({"ok": True, "message": "Commande validée." + info})
+
+
+@app.route("/api/admin/ravitaillement", methods=["POST"])
+@admin_requis
+def admin_ravitaillement():
+    """📦 RAVITAILLEMENT BOUTIQUE (vision Maeva) : 250 feuilles GRATUITES pour
+    le stock 2KEA & Associé. Commande interne auto-validée — la fabrication
+    part aussitôt, les PDF filent au coffre-fort (email en bonus)."""
+    import json as _json
+    data = request.get_json(force=True, silent=True) or {}
+    programme = str(data.get("programme") or "")
+    if programme not in REGISTRE_JEUX or "_p15" in programme:
+        return jsonify({"ok": False, "message": "Choisis un jeu (gamme ÉCO) dans la liste."}), 400
+    perso = _json.dumps({
+        "theme": "", "nom_evenement": "2KEA & Associé",
+        "titre_jeu": "Ravitaillement boutique", "couleur_perso": "",
+        "date_lieu": "Papeete", "telephone": "89 52 98 83",
+        "partenaire": "2kea_papeete", "impression_rapide": True,
+    })
+    commande_id, _ = db.creer_commande(
+        identifiant="2KEA_BOUTIQUE", origine="polynesien",
+        programme=programme, couleur=REGISTRE_JEUX[programme].get("couleur", True),
+        nb_feuilles=250, mode_paiement="ravitaillement",
+        params_perso=perso, prix_feuille=0,
+    )
+    db.marquer_commande_payee(commande_id)
+    lancer_fabrication(commande_id)
+    jeu = REGISTRE_JEUX.get(programme, {})
+    return jsonify({"ok": True, "commande_id": commande_id,
+                    "message": (f"📦 Ravitaillement #{commande_id} lancé : 250 feuilles de "
+                                f"{jeu.get('emoji','')} {jeu.get('nom', programme)} en fabrication — "
+                                "les PDF arrivent au coffre 🔍 (plusieurs minutes).")})
 
 
 @app.route("/api/admin/evenements", methods=["GET"])
