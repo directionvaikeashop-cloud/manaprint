@@ -5,7 +5,7 @@ Déployable sur Railway (même stack que Ticket Bingo).
 """
 import os
 import hashlib
-from flask import Flask, request, jsonify, send_file, render_template, session, Response
+from flask import Flask, request, jsonify, send_file, render_template, session, Response, make_response
 from functools import wraps
 
 import database as db
@@ -774,7 +774,10 @@ def api_verifier_carton():
 @app.route("/caller/<evenement_id>")
 def caller(evenement_id=None):
     """MANAPRINT CALLER : tirage des boules + vérification QR intégrée."""
-    return render_template("caller.html")
+    # 📱 toujours frais : certains téléphones gardaient l'ancienne page en cache
+    resp = make_response(render_template("caller.html"))
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return resp
 
 
 @app.route("/voix-caller.mp3")
