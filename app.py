@@ -53,6 +53,7 @@ from generators import triple_bn90 as tbn90gen
 from generators import triple_bi90 as tbi90gen
 from generators import triple_bg75 as tbg75gen
 from generators import triple_bn75 as tbn75gen
+from generators import triple_bi75 as tbi75gen
 from generators import win
 from generators import rubis90
 from generators import vai
@@ -310,6 +311,7 @@ _enregistrer_paire("triple_bn90",   "TRIPLE BN90 9 boules", "🟤", 7, tbn90gen.
 _enregistrer_paire("triple_bi90",   "TRIPLE BI90 9 boules", "🔵", 7, tbi90gen.generer_pdf)
 _enregistrer_paire("triple_bg75",   "TRIPLE BG75 9 boules", "💠", 7, tbg75gen.generer_pdf)
 _enregistrer_paire("triple_bn75",   "TRIPLE BN75 9 boules", "🔶", 7, tbn75gen.generer_pdf)
+_enregistrer_paire("triple_bi75",   "TRIPLE BI75 9 boules", "💙", 7, tbi75gen.generer_pdf)
 _enregistrer_paire("win",           "WIN 9 boules","🏆", 12, win.generer_pdf)
 _enregistrer_paire("rubis90",       "RUBIS 90","💎", 12, rubis90.generer_pdf)
 _enregistrer_paire("vai",           "VAI 9 boules","🌊", 12, vai.generer_pdf)
@@ -844,6 +846,7 @@ _PLAGES_CALLER = {
     "triple_bi90": (1, 90),
     "triple_bg75": (1, 75),
     "triple_bn75": (1, 75),
+    "triple_bi75": (1, 75),
     "win": (1, 45),
     "rubis90": (1, 90),
     "vai": (61, 90),
@@ -950,6 +953,7 @@ _BOULES_CALLER = {
     "triple_bi90": [n for n in range(1, 31)] + [n for n in range(76, 91)],  # TRIPLE BI90 — B, I et 90
     "triple_bg75": [n for n in range(1, 16)] + [n for n in range(46, 76)],  # TRIPLE BG75 — B, G et 75
     "triple_bn75": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(61, 76)],  # TRIPLE BN75 — B, N et 75
+    "triple_bi75": [n for n in range(1, 16)] + [n for n in range(16, 31)] + [n for n in range(61, 76)],  # TRIPLE BI75 — B, I et 75
 }
 
 
