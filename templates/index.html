@@ -647,8 +647,8 @@ function prixFeuilleCourant(partId){
   const prof=TARIFS[origineAcces]||TARIFS.pacific_ink;
   const tar=prof[gamme]||prof.eco;
   let prix = couleur?tar.c:tar.nb;
-  // 💰 nouveaux jeux 22-23/07 : 185/300 F les 25 feuilles (7,4 / 12 F la feuille)
-  if(origineAcces!=='international' && NOUVEAUX_JEUX.indexOf(baseJeu)>=0){ prix = couleur?12:7.4; }
+  // 💰 nouveaux jeux 22-23/07 : 250/300 F les 25 feuilles (10 / 12 F la feuille)
+  if(origineAcces!=='international' && NOUVEAUX_JEUX.indexOf(baseJeu)>=0){ prix = couleur?12:10; }
   // 🖼️💰 supplément motif (+2 F) : jeux décorables, tarif standard seulement
   if(motifChoisi){ prix += 2; }
   return prix;
