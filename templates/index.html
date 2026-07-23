@@ -274,6 +274,14 @@
       <h2 class="display" style="font-size:1.4rem;margin-bottom:.4rem">Commandes à valider</h2>
       <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem;line-height:1.6">Valider = paiement reçu. Si « FUN AND CO », le PDF leur est envoyé automatiquement.</p>
       <div id="admin-commandes" style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:2rem"></div>
+      <!-- 📦 Ravitaillement boutique -->
+      <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">📦 Ravitaillement boutique</h2>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:.8rem;line-height:1.6">Commande interne <b>gratuite</b> de <b>250 feuilles</b> pour le stock 2KEA & Associé — auto-validée, les PDF filent droit au coffre 🔍.</p>
+      <div style="display:flex;gap:.6rem;margin-bottom:.6rem;flex-wrap:wrap">
+        <select id="rav-jeu" style="margin-bottom:0;flex:1;min-width:200px"></select>
+        <button class="btn" id="rav-btn" style="width:auto;padding:0 1.4rem;white-space:nowrap" onclick="lancerRavitaillement()">📦 Commander 250 feuilles</button>
+      </div>
+      <p id="rav-msg" style="font-size:.85rem;margin-bottom:1rem"></p>
       <!-- Clients PI -->
       <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">🧾 Facture partenaire — dû 2KEA & Associé</h2>
       <p style="color:var(--muted);font-size:.85rem;margin-bottom:.8rem;line-height:1.6">Pour les commandes réglées <b>en boutique chez un partenaire PDF</b> (1,5 F / feuille) : édite la facture mensuelle du dû. Les paiements par carte n'y figurent pas (déjà encaissés via Stripe).</p>
@@ -1050,7 +1058,7 @@ async function adminLogin(){
   const code=document.getElementById('admin-code').value;
   const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
   const d=await r.json();
-  if(d.ok){ document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-panel').classList.remove('hidden'); chargerClients(); chargerCommandes(); adminHistorique(); adminSante(); }
+  if(d.ok){ document.getElementById('admin-login').classList.add('hidden'); document.getElementById('admin-panel').classList.remove('hidden'); chargerClients(); chargerCommandes(); chargerRavJeux(); adminHistorique(); adminSante(); }
   else document.getElementById('admin-login-msg').textContent="Code incorrect.";
 }
 async function adminSupprimerCommande(id){
@@ -1061,6 +1069,24 @@ async function adminSupprimerCommande(id){
     alert(d.message||'');
     if(d.ok) chargerCommandes();
   }catch(e){ alert('Erreur r\u00e9seau'); }
+}
+async function chargerRavJeux(){
+  const sel=document.getElementById('rav-jeu'); if(!sel || sel.options.length) return;
+  try{
+    const r=await fetch('/api/jeux'); const d=await r.json();
+    (d.jeux||[]).forEach(function(j){ const o=document.createElement('option'); o.value=j.id; o.textContent=(j.emoji||'')+' '+j.nom; sel.appendChild(o); });
+  }catch(e){}
+}
+async function lancerRavitaillement(){
+  const sel=document.getElementById('rav-jeu'), msg=document.getElementById('rav-msg'), btn=document.getElementById('rav-btn');
+  if(!sel.value){ msg.style.color="var(--coral)"; msg.textContent="Choisis un jeu dans la liste."; return; }
+  btn.disabled=true; msg.style.color="var(--muted)"; msg.textContent="Fabrication en route\u2026";
+  try{
+    const r=await fetch('/api/admin/ravitaillement',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({programme:sel.value})});
+    const d=await r.json();
+    msg.style.color=d.ok?"var(--teal)":"var(--coral)"; msg.textContent=d.message||'';
+  }catch(e){ msg.style.color="var(--coral)"; msg.textContent="Erreur r\u00e9seau."; }
+  btn.disabled=false;
 }
 async function chargerCommandes(){
   const cont=document.getElementById('admin-commandes');
@@ -1073,7 +1099,7 @@ async function chargerCommandes(){
       var funco=""; try{ funco=JSON.parse(c.params_perso||"{}").fun_and_co?' · 🖨️ FUN AND CO':''; }catch(e){}
       const div=document.createElement('div');
       div.style.cssText="display:flex;justify-content:space-between;align-items:center;padding:.7rem 1rem;border:1px solid var(--line);border-radius:6px;background:#fff;gap:.6rem";
-      var modeIco=({stripe:'💳',virement:'🏦',boutique:'🏪',manuel:'🏪'})[c.mode_paiement]||'';
+      var modeIco=({stripe:'💳',virement:'🏦',boutique:'🏪',manuel:'🏪',ravitaillement:'📦'})[c.mode_paiement]||'';
       div.innerHTML='<span style="font-size:.85rem">'+modeIco+' #'+c.id+' · '+c.programme+' · '+c.nb_feuilles+' f. · <b>'+c.montant+' XPF</b><span style="color:var(--coral)">'+funco+'</span></span>'
         +'<span style="display:flex;gap:.4rem;flex-shrink:0"><button class="btn" title="Télécharger le PDF des cartons (coffre-fort)" style="width:auto;padding:.4rem .7rem;white-space:nowrap" onclick="window.open(\'/api/admin/commandes/\'+String('+c.id+')+\'/pdf/cartons\',\'_blank\')">⬇️</button>'
         +'<button class="btn" title="Télécharger le rapport confidentiel des couleurs" style="width:auto;padding:.4rem .7rem;white-space:nowrap" onclick="window.open(\'/api/admin/commandes/\'+String('+c.id+')+\'/pdf/rapport\',\'_blank\')">🗂️</button>'
