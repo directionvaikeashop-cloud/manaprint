@@ -404,6 +404,19 @@ function lettrePour(n) {
 const VOIX_MAP = {"1":[0.0,0.18],"2":[0.4,0.381],"3":[1.001,0.332],"4":[1.553,0.431],"5":[2.204,0.257],"6":[2.681,0.338],"7":[3.239,0.248],"8":[3.707,0.334],"9":[4.262,0.37],"10":[4.852,0.58],"11":[5.651,0.285],"12":[6.156,0.416],"13":[6.792,0.471],"14":[7.484,0.683],"15":[8.387,0.299],"16":[8.906,0.441],"17":[9.567,0.691],"18":[10.478,0.661],"19":[11.359,0.728],"20":[12.306,0.345],"21":[12.871,0.637],"22":[13.728,0.619],"23":[14.567,0.607],"24":[15.394,0.812],"25":[16.426,0.565],"26":[17.211,0.784],"27":[18.214,0.715],"28":[19.149,0.642],"29":[20.011,0.706],"30":[20.937,0.278],"31":[21.435,0.812],"32":[22.467,0.511],"33":[23.199,0.553],"34":[23.972,0.675],"35":[24.867,0.576],"36":[25.664,0.727],"37":[26.611,0.507],"38":[27.338,0.591],"39":[28.149,0.665],"40":[29.034,0.391],"41":[29.646,0.829],"42":[30.695,0.616],"43":[31.531,0.693],"44":[32.444,0.837],"45":[33.5,0.611],"46":[34.331,0.789],"47":[35.341,0.6],"48":[36.161,0.713],"49":[37.094,0.783],"50":[38.097,0.545],"51":[38.862,0.829],"52":[39.911,0.681],"53":[40.812,0.742],"54":[41.774,0.797],"55":[42.79,0.833],"56":[43.843,0.907],"57":[44.97,0.82],"58":[46.01,0.703],"59":[46.933,0.88],"60":[48.033,0.512],"61":[48.765,0.786],"62":[49.771,0.678],"63":[50.668,0.817],"64":[51.705,0.849],"65":[52.774,0.766],"66":[53.76,0.866],"67":[54.846,0.643],"68":[55.709,0.825],"69":[56.754,0.908],"70":[57.882,0.903],"71":[59.005,1.116],"72":[60.341,0.897],"73":[61.458,0.952],"74":[62.631,1.075],"75":[63.926,0.895],"76":[65.042,0.955],"77":[66.216,0.99],"78":[67.426,0.76],"79":[68.406,1.077],"80":[69.703,0.602],"81":[70.525,0.544],"82":[71.289,0.741],"83":[72.25,0.831],"84":[73.302,0.888],"85":[74.41,0.915],"86":[75.545,1.002],"87":[76.766,0.803],"88":[77.789,0.891],"89":[78.9,1.015],"90":[80.135,0.963]};
 let ctxAudio = null, spriteAudio = null, spriteEnCours = null, sourceEnCours = null;
 let annonceEnAttente = null;  // 🎙️ boule tirée pendant le chargement de la bande
+let etatBande = "attente";    // attente | chargement | prete | secours
+
+// 🚦 TÉMOIN : l'état de la bande s'affiche sur le bouton Voix — si un souci
+// arrive chez un utilisateur, son écran nous dit exactement où on en est.
+function majTemoinVoix() {
+  const b = document.getElementById("btn-voix");
+  if (!b) return;
+  if (!voixActive) { b.textContent = "\ud83d\udd07 Voix : COUP\u00c9E"; return; }
+  if (etatBande === "prete") b.textContent = "\ud83d\udd0a Voix : ACTIVE \u2713";
+  else if (etatBande === "chargement") b.textContent = "\ud83d\udd0a Voix : chargement\u2026";
+  else if (etatBande === "secours") b.textContent = "\ud83d\udd0a Voix : SECOURS \u26a0\ufe0f";
+  else b.textContent = "\ud83d\udd0a Voix : ACTIVE";
+}
 
 function chargerBandeAudio() {
   try {
@@ -414,15 +427,17 @@ function chargerBandeAudio() {
       ctxAudio = new AC();
     }
     if (ctxAudio.state === "suspended") ctxAudio.resume();
-    spriteEnCours = fetch("/voix-caller.mp3")
+    etatBande = "chargement"; majTemoinVoix();
+    spriteEnCours = fetch("/voix-caller.mp3", { cache: "force-cache" })
       .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.arrayBuffer(); })
       .then(function (b) { return ctxAudio.decodeAudioData(b); })
       .then(function (buf) {
         spriteAudio = buf;
+        etatBande = "prete"; majTemoinVoix();
         // la boule tirée pendant le chargement est annoncée par la BELLE voix
         if (annonceEnAttente != null) { const k = annonceEnAttente; annonceEnAttente = null; jouerBande(k); }
       })
-      .catch(function () { spriteEnCours = null; });  // la synthèse vocale prendra le relais
+      .catch(function () { spriteEnCours = null; etatBande = "secours"; majTemoinVoix(); });  // la synthèse prendra le relais
   } catch (e) {}
 }
 
@@ -446,8 +461,7 @@ let voixChaude = false;
 
 function basculerVoix() {
   voixActive = !voixActive;
-  const b = document.getElementById("btn-voix");
-  b.textContent = voixActive ? "\ud83d\udd0a Voix : ACTIVE" : "\ud83d\udd07 Voix : COUP\u00c9E";
+  majTemoinVoix();
   if (voixActive) chaufferVoix();
 }
 
