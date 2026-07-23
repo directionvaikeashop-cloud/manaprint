@@ -330,7 +330,7 @@ _enregistrer_paire("flash_debout",  "FLASH QUINES DEBOUT","⚡", 8,  flash_debou
 _enregistrer_paire("dual_dab",      "DUAL DAB 75","🤜", 6,  dual_dab.generer_pdf)
 _enregistrer_paire("cerf_volant",   "CERF VOLANT","🪁", 6,  cerf_volant.generer_pdf)
 _enregistrer_paire("moorea",        "MOOREA",     "🌴", 8,  moorea.generer_pdf)
-_enregistrer_paire("triple_action_90", "TRIPLE ACTION 90", "🎪", 10, triple_action_90.generer_pdf)
+_enregistrer_paire("triple_action_90", "TRIPLE ACTION 90", "🎪", 8, triple_action_90.generer_pdf)
 _enregistrer_paire("funday",        "FUNDAY",     "🎈", 20, funday.generer_pdf)
 _enregistrer_paire("huahine",       "HUAHINE",    "⛵", 8,  huahine.generer_pdf)
 _enregistrer_paire("boules40",      "40 BOULES",  "🎳", 12, boules40.generer_pdf)
