@@ -49,6 +49,7 @@ from generators import salute as salutegen
 from generators import pietra as pietragen
 from generators import triple as triplegen
 from generators import triple_bg90 as tbg90gen
+from generators import triple_bn90 as tbn90gen
 from generators import win
 from generators import rubis90
 from generators import vai
@@ -302,6 +303,7 @@ _enregistrer_paire("salute",        "SALUTE 6 boules", "🗺️", 8, salutegen.g
 _enregistrer_paire("pietra",        "PIETRA 8 boules", "🌰", 8, pietragen.generer_pdf)
 _enregistrer_paire("triple_bo90",   "TRIPLE BO90 9 boules", "3️⃣", 7, triplegen.generer_pdf)
 _enregistrer_paire("triple_bg90",   "TRIPLE BG90 9 boules", "🅱️", 7, tbg90gen.generer_pdf)
+_enregistrer_paire("triple_bn90",   "TRIPLE BN90 9 boules", "🟤", 7, tbn90gen.generer_pdf)
 _enregistrer_paire("win",           "WIN 9 boules","🏆", 12, win.generer_pdf)
 _enregistrer_paire("rubis90",       "RUBIS 90","💎", 12, rubis90.generer_pdf)
 _enregistrer_paire("vai",           "VAI 9 boules","🌊", 12, vai.generer_pdf)
@@ -832,6 +834,7 @@ _PLAGES_CALLER = {
     "pietra": (1, 75),
     "triple_bo90": (1, 90),
     "triple_bg90": (1, 90),
+    "triple_bn90": (1, 90),
     "win": (1, 45),
     "rubis90": (1, 90),
     "vai": (61, 90),
@@ -934,6 +937,7 @@ _BOULES_CALLER = {
     "pietra": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # PIETRA — la couronne couvre 1-30 et 46-75
     "triple_bo90": [n for n in range(1, 16)] + [n for n in range(61, 91)],  # TRIPLE BO90 — les 3 cases couvrent 1-15 et 61-90
     "triple_bg90": [n for n in range(1, 16)] + [n for n in range(46, 61)] + [n for n in range(76, 91)],  # TRIPLE BG90 — B, G et 90
+    "triple_bn90": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(76, 91)],  # TRIPLE BN90 — B, N et 90
 }
 
 
