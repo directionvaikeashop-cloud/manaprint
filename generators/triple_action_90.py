@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 MANAPRINT — Générateur TRIPLE ACTION 90 (format A4)
-10 cartes-bandeaux par feuille A4 (1 colonne × 10 rangées, pleine largeur).
+8 cartes-bandeaux par feuille A4 (1 colonne × 8 rangées, pleine largeur).
 Chaque carte : 6 GROUPES côte à côte (1-15, 16-30, 31-45, 46-60, 61-75, 76-90).
 Chaque groupe : 2 grands numéros en haut (le 1er dans un CERCLE POINTILLÉ)
                 + 1 numéro plus petit centré dessous.  3 numéros × 6 = 18 numéros.
@@ -67,15 +67,15 @@ PAGE_W, PAGE_H = A4
 # (min, max) des 6 groupes — TRIPLE ACTION 90
 PLAGES = [(1, 15), (16, 30), (31, 45), (46, 60), (61, 75), (76, 90)]
 
-ROWS_PAGE = 10           # 10 bandeaux pleine largeur
-MARGIN_X = 8 * mm
+ROWS_PAGE = 8            # 8 bandeaux pleine largeur (chiffres 30 pts, décision Maeva)
+MARGIN_X = 6 * mm
 MARGIN_TOP = 10 * mm
 MARGIN_BOT = 8 * mm
 GUTTER_Y = 2.4 * mm
 
 CARD_W = PAGE_W - 2 * MARGIN_X
 CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
-ZONE_QR = 19 * mm        # bande de droite réservée au QR de vérification
+ZONE_QR = 16 * mm        # bande de droite réservée au QR de vérification
 
 
 def _gen_carte(rng):
@@ -111,35 +111,35 @@ def _dessiner_carte(c, x0, y0, groupes, couleur_hex, serie, titre_jeu="", teleph
     cell_w = zw / 6
     haut_y = y0 + CARD_H * 0.52      # ligne du haut (la paire)
     bas_y = y0 + 2.6 * mm            # ligne du bas (le petit numéro)
-    rayon = 5.9 * mm  # cercles élargis avec les chiffres GROSSIS (décision Maeva)
+    rayon = 6.9 * mm  # cercles élargis avec les chiffres 30 pts (décision Maeva)
 
     for gi, nums in enumerate(groupes):
         gx = zx + gi * cell_w
         n_cercle, n_grand, n_petit = nums
         # 1er numéro : dans son cercle POINTILLÉ (fidèle au modèle)
-        cx1 = gx + cell_w * 0.28
+        cx1 = gx + cell_w * 0.25
         cy1 = haut_y + 1.2 * mm
         c.setStrokeColor(col); c.setLineWidth(0.7)
         c.setDash(1.6, 1.6)
         c.circle(cx1, cy1, rayon, stroke=1, fill=0)
         c.setDash()
         if _sec:  # chiffres "billet de banque" remplis de microtexte
-            _sec.chiffre_micro(c, n_cercle, cx1, haut_y - 5.4, 25, gris_ch, police_ch)
+            _sec.chiffre_micro(c, n_cercle, cx1, haut_y - 6.4, 30, gris_ch, police_ch)
         else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, 25)
-            c.drawCentredString(cx1, haut_y - 4.8, str(n_cercle))
+            c.setFillColor(gris_ch); c.setFont(police_ch, 30)
+            c.drawCentredString(cx1, haut_y - 5.8, str(n_cercle))
         # 2e numéro : à droite du cercle
-        cx2 = gx + cell_w * 0.72
+        cx2 = gx + cell_w * 0.75
         if _sec:
-            _sec.chiffre_micro(c, n_grand, cx2, haut_y - 5.4, 25, gris_ch, police_ch)
+            _sec.chiffre_micro(c, n_grand, cx2, haut_y - 6.4, 30, gris_ch, police_ch)
         else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, 25)
-            c.drawCentredString(cx2, haut_y - 4.8, str(n_grand))
+            c.setFillColor(gris_ch); c.setFont(police_ch, 30)
+            c.drawCentredString(cx2, haut_y - 5.8, str(n_grand))
         # 3e numéro : plus petit, centré dessous
         if _sec:
-            _sec.chiffre_micro(c, n_petit, gx + cell_w / 2, bas_y, 22, gris_ch, police_ch)
+            _sec.chiffre_micro(c, n_petit, gx + cell_w / 2, bas_y, 26, gris_ch, police_ch)
         else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, 22)
+            c.setFillColor(gris_ch); c.setFont(police_ch, 26)
             c.drawCentredString(gx + cell_w / 2, bas_y, str(n_petit))
         # fin séparation entre groupes (discrète, comme le modèle)
         if gi > 0:
