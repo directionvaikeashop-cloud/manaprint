@@ -316,8 +316,8 @@ _enregistrer_paire("triple_bi75",   "TRIPLE BI75 9 boules", "💙", 7, tbi75gen.
 # ── 💰 GRILLE 2KEA « PAQUETS DE 25 » (décision Maeva 23/07) ──────────────────
 # PREMIUM en veilleuse (le code reste, réactivable). ÉCO seulement :
 # anciens jeux 150 F (N&B) / 250 F (Couleur) les 25 feuilles ;
-# les 23 nouveaux jeux nés les 22-23/07 : 185 F / 300 F les 25 feuilles
-# (soit 7,4 / 12 F la feuille). Quantités par paquets de 25 (25 → 250).
+# les 23 nouveaux jeux nés les 22-23/07 : 250 F / 300 F les 25 feuilles
+# (soit 10 / 12 F la feuille). Quantités par paquets de 25 (25 → 250).
 NOUVEAUX_JEUX = {
     "gambier", "parata", "katiu", "ok", "feu", "vision", "taptap", "joie",
     "caller", "valider", "chance", "opoa", "francs", "tesla", "salute", "pietra",
@@ -1462,11 +1462,11 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
             # 🖼️💰 chez les partenaires : l'option motif vaut +0,5 F/feuille
             # (sur le PDF seul 1,5 F -> 2 F, ou sur leurs prix libres)
             prix_special = float(prix_special) + 0.5
-    # 💰 NOUVEAUX JEUX (22-23/07) : 185 F N&B / 300 F Couleur les 25 feuilles.
+    # 💰 NOUVEAUX JEUX (22-23/07) : 250 F N&B / 300 F Couleur les 25 feuilles.
     # Tarif standard 2KEA seulement — prix partenaires et PDF seul
     # international restent souverains.
     if prix_special is None and session.get("acces") != "international" and _base_jeu(programme) in NOUVEAUX_JEUX:
-        prix_special = 12 if couleur else 7.4
+        prix_special = 12 if couleur else 10
     commande_id, montant = db.creer_commande(
         identifiant=session.get("identifiant"),
         origine=session["acces"],
