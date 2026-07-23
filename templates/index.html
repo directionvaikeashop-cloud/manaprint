@@ -198,7 +198,18 @@
     <div class="sec">
       <p style="font-weight:600;font-size:.95rem;margin-bottom:.9rem" data-i18n="cmd_titre">Commander mes feuilles</p>
       <label class="field-label" data-i18n="lbl_nbfeuilles">Nombre de feuilles</label>
-      <input id="gen-nb-feuilles" type="number" min="1" max="250" value="10" oninput="majPrix()">
+      <select id="gen-nb-feuilles" onchange="majPrix()">
+        <option value="25">25 feuilles (1 paquet de 25)</option>
+        <option value="50">50 feuilles (2 paquets de 25)</option>
+        <option value="75">75 feuilles (3 paquets de 25)</option>
+        <option value="100">100 feuilles (4 paquets de 25)</option>
+        <option value="125">125 feuilles (5 paquets de 25)</option>
+        <option value="150">150 feuilles (6 paquets de 25)</option>
+        <option value="175">175 feuilles (7 paquets de 25)</option>
+        <option value="200">200 feuilles (8 paquets de 25)</option>
+        <option value="225">225 feuilles (9 paquets de 25)</option>
+        <option value="250">250 feuilles (10 paquets de 25)</option>
+      </select>
       <p id="gen-prix" style="font-size:.95rem;font-weight:600;color:var(--teal-d);margin-bottom:.9rem"></p>
 
       <div id="gen-part-wrap" class="hidden" style="margin-bottom:.9rem">
@@ -366,6 +377,7 @@
 let PROGRAMMES = [];
 const PALETTE = ["#2D6E63","#D4663D","#1A4A42","#8B5A2B","#7C3AED","#0EA5E9","#DB2777","#65A30D"];
 // Tarifs XPF / feuille TOUT COMPRIS (PDF + impression) selon le profil ET la gamme — identiques au moteur
+const NOUVEAUX_JEUX = ["gambier","parata","katiu","ok","feu","vision","taptap","joie","caller","valider","chance","opoa","francs","tesla","salute","pietra","triple_bo90","triple_bg90","triple_bn90","triple_bi90","triple_bg75","triple_bn75","triple_bi75"];
 const TARIFS = {
   pacific_ink:   { eco:{c:10, nb:6},  p15:{c:14, nb:10} },  // tout compris PDF + impression (Accès ECO LASER)
   polynesien:    { eco:{c:10, nb:6},  p15:{c:14, nb:10} },  // tout compris PDF + impression chez un partenaire
@@ -437,7 +449,7 @@ const T = {
  essai_desc:{fr:"1 feuille d'aperçu, gratuite. 3 essais toutes les 5 minutes.",en:"1 free preview sheet. 3 trials every 5 minutes."},
  btn_essai:{fr:"Générer un essai gratuit",en:"Generate a free trial"},
  cmd_titre:{fr:"Commander mes feuilles",en:"Order my sheets"},
- lbl_nbfeuilles:{fr:"Nombre de feuilles",en:"Number of sheets"},
+ lbl_nbfeuilles:{fr:"Quantité — paquets de 25 feuilles",en:"Quantity — packs of 25 sheets"},
  funco_choice:{fr:"Imprimer chez <b>FUN AND CO</b> (presqu'île). Après validation, ton PDF leur est envoyé pour impression.",en:"Print at <b>FUN AND CO</b> (peninsula). After approval, your PDF is sent to them for printing."},
  btn_commander:{fr:"🛒 Commander",en:"🛒 Order"},
  btn_panier:{fr:"🛒 Ajouter au panier",en:"🛒 Add to cart"},
@@ -633,6 +645,8 @@ function prixFeuilleCourant(partId){
   const prof=TARIFS[origineAcces]||TARIFS.pacific_ink;
   const tar=prof[gamme]||prof.eco;
   let prix = couleur?tar.c:tar.nb;
+  // 💰 nouveaux jeux 22-23/07 : 185/300 F les 25 feuilles (7,4 / 12 F la feuille)
+  if(origineAcces!=='international' && NOUVEAUX_JEUX.indexOf(baseJeu)>=0){ prix = couleur?12:7.4; }
   // 🖼️💰 supplément motif (+2 F) : jeux décorables, tarif standard seulement
   if(motifChoisi){ prix += 2; }
   return prix;
@@ -642,9 +656,10 @@ function majPrix(){
   const sel=document.getElementById('gen-partenaire');
   const prix=prixFeuilleCourant(sel?sel.value:"");
   const total=Math.ceil(nb*prix);
+  const paquets=Math.round(nb/25), prixPaquet=Math.ceil(prix*25);
   const el=document.getElementById('gen-prix');
   if(nb>0){
-    el.textContent = nb+" × "+prix+" XPF = "+total+" XPF";
+    el.textContent = nb+" feuilles — "+paquets+" × "+prixPaquet+" XPF le paquet de 25 = "+total+" XPF";
     const pM=PARTENAIRES_LIST.find(function(x){ return x.id===(sel?sel.value:""); });
     if(prix<6 && !(pM&&pM.prix_client)){ el.textContent += "  (PDF 2KEA & Associé — tarif d'impression à demander directement au partenaire)"; }
   } else { el.textContent=""; }
