@@ -65,15 +65,16 @@ QUINZAINES = [(1, 15), (16, 30), (31, 45), (46, 60), (61, 75)]
 
 
 def _gen_carte():
-    """2 rangées × 5 paires triées (grand, cerclé) : liste de 2 listes de 10."""
-    rangs = []
-    for _ in range(2):
-        rang = []
-        for lo, hi in QUINZAINES:
-            a, b = sorted(random.sample(range(lo, hi + 1), 2))
-            rang += [a, b]
-        rangs.append(rang)
-    return rangs
+    """2 rangées × 5 paires triées (grand, cerclé) — SANS DOUBLON sur le carton :
+    4 numéros DISTINCTS par quinzaine, 2 en haut et 2 en bas (règle marathon)."""
+    haut, bas = [], []
+    for lo, hi in QUINZAINES:
+        quatre = random.sample(range(lo, hi + 1), 4)
+        a, b = sorted(quatre[:2])
+        c2, d = sorted(quatre[2:])
+        haut += [a, b]
+        bas += [c2, d]
+    return [haut, bas]
 
 
 def _dessiner_carte(c, x0, y0, rangs, couleur_hex, serie, encre,
