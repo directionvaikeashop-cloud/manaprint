@@ -63,7 +63,7 @@ CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
 CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
 
 HDR_H = 5 * mm
-BANDE_QR = 18 * mm  # la maison du QR, en bas
+BANDE_QR = 15.5 * mm  # la maison du QR, en bas (abaissée pour les 32 pts)
 N_ROWS = 9
 
 RANGES = [(1, 9), (10, 19), (20, 29), (30, 39), (40, 49),
@@ -112,7 +112,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, encre,
     c.setStrokeColor(col); c.setLineWidth(0.4)
     c.line(x0, grid_bot, x0 + CARD_W, grid_bot)
 
-    taille = 25  # bien gros (Maeva, juil. 2026)
+    taille = 32  # calibre maison 32 pts (décision Maeva, 24/07)
     i_flash = 0
     for ri in range(N_ROWS):
         gauche = (ri % 2 == 0)         # zigzag : pair = numéro à gauche
@@ -122,7 +122,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, encre,
         for ci in range(2):
             cx = x0 + (ci + 0.5) * cell_w
             if ci == ci_num:
-                cy = bas + row_h * 0.26
+                cy = bas + row_h * 0.07   # ligne de base abaissée : le 32 pts tient dans sa rangée
                 if _sec:
                     _sec.chiffre_micro(c, nums[ri], cx, cy, taille, gris_ch, police_ch)
                 else:
@@ -130,7 +130,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, encre,
                     c.drawCentredString(cx, cy, str(nums[ri]))
                 if gauche and i_flash < len(FLASH):
                     c.setFillColor(col); c.setFont("Helvetica", 4.5)
-                    c.drawString(cx + 5.5 * mm, cy - 0.2 * mm, FLASH[i_flash])
+                    c.drawString(cx + 8.2 * mm, cy - 0.2 * mm, FLASH[i_flash])
                     i_flash += 1
             else:
                 # case vide barrée
@@ -148,7 +148,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, encre,
     if _sec and evenement_id:
         try:
             _q = 12.0 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 2.2 * mm, y0 + 5.4 * mm,
+            _sec.carton_qr(c, x0 + CARD_W - _q - 2.2 * mm, y0 + 2.6 * mm,
                            _q, evenement_id, serie)
         except Exception:
             pass
