@@ -91,6 +91,7 @@ from generators import moon
 from generators import ani
 from generators import brown14
 from generators import ino8
+from generators import ino
 from generators import tahaa
 from generators import boules60
 from generators import ahuru
@@ -374,6 +375,7 @@ _enregistrer_paire("moon",          "MOON",       "🌙", 6,  moon.generer_pdf)
 _enregistrer_paire("ani",           "ANI",        "🌠", 12, ani.generer_pdf)
 _enregistrer_paire("brown14",       "BROWN 14 boules", "🟤", 8, brown14.generer_pdf)
 _enregistrer_paire("ino8",          "INO 8 boules", "🎐", 12, ino8.generer_pdf)
+_enregistrer_paire("ino",           "INO 5 boules", "🎏", 12, ino.generer_pdf)
 _enregistrer_paire("tahaa",         "TAHAA",      "🥥", 18, tahaa.generer_pdf)
 _enregistrer_paire("boules60",      "60 BOULES",  "🔵", 12, boules60.generer_pdf)
 _enregistrer_paire("ahuru",         "AHURU",      "🔟", 10, ahuru.generer_pdf)
@@ -915,6 +917,7 @@ _PLAGES_CALLER = {
     "ani": (61, 90),
     "brown14": (1, 75),
     "ino8": (16, 75),
+    "ino": (16, 75),
     "tahaa": (1, 75),
     "boules60": (1, 60),
     "ahuru": (1, 75),
@@ -962,6 +965,7 @@ _BOULES_CALLER = {
     "igo": [n for n in range(16, 31)] + [n for n in range(46, 76)],  # I 16-30 · G 46-60 · O 61-75
     "moon": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # M·O·O·N — le 31-45 n'existe pas
     "ino8": [n for n in range(16, 46)] + [n for n in range(61, 76)],  # I 16-30 · N 31-45 · O 61-75
+    "ino": [n for n in range(16, 46)] + [n for n in range(61, 76)],   # INO 5 boules — mêmes zones
     "ahuru": [n for n in range(1, 16)] + [n for n in range(31, 76)],  # AHURU — le 16-30 n'existe pas
     "lunes75": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # LUNES 75 — le 31-45 n'existe pas
     "bio": [n for n in range(1, 31)] + [n for n in range(61, 76)],  # BIO — B 1-15 · I 16-30 · O 61-75
