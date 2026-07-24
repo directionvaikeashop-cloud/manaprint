@@ -68,7 +68,7 @@ def _charger_gambier():
             fondb = _Image.new("RGBA", brut.size, (255, 255, 255, 255))
             brut = _Image.alpha_composite(fondb, brut)
         img = brut.convert("L")
-        img = img.point(lambda p: int(255 - (255 - p) * 0.18))
+        img = img.point(lambda p: int(255 - (255 - p) * 0.45))
         _GAMBIER_IMG = img.convert("RGB")
     except Exception:
         _GAMBIER_IMG = False
