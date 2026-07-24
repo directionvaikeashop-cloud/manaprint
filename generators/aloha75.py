@@ -59,7 +59,7 @@ PAGE_W, PAGE_H = A4
 
 COLS_PAGE = 2   # 2 cartes par rangée
 ROWS_PAGE = 6   # 6 rangées
-MARGIN_X = 8 * mm
+MARGIN_X = 6 * mm
 MARGIN_TOP = 12 * mm
 MARGIN_BOT = 8 * mm
 GUTTER_X = 5 * mm
@@ -83,7 +83,7 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
     ncols = len(LETTERS)
-    cell_w = (CARD_W - 17 * mm) / ncols  # 17 mm réservés à droite : la maison du QR
+    cell_w = (CARD_W - 15 * mm) / ncols  # 15 mm réservés à droite : la maison du QR
 
     # Bordure
     c.setStrokeColor(col)
@@ -114,11 +114,11 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
     for i, nums in enumerate(carte):
         cx = x0 + (i + 0.5) * cell_w
         if _sec:  # chiffres "billet de banque" remplis de microtexte
-            _sec.chiffre_micro(c, nums[0], cx, y0 + FOOT_H + zone_h * 0.55, 26, gris_ch, police_ch)
-            _sec.chiffre_micro(c, nums[1], cx, y0 + FOOT_H + zone_h * 0.12, 26, gris_ch, police_ch)
+            _sec.chiffre_micro(c, nums[0], cx, y0 + FOOT_H + zone_h * 0.55, 32, gris_ch, police_ch)
+            _sec.chiffre_micro(c, nums[1], cx, y0 + FOOT_H + zone_h * 0.12, 32, gris_ch, police_ch)
         else:
             c.setFillColor(gris_ch)
-            c.setFont(police_ch, 26)
+            c.setFont(police_ch, 32)
             c.drawCentredString(cx, y0 + FOOT_H + zone_h * 0.55, str(nums[0]))
             c.drawCentredString(cx, y0 + FOOT_H + zone_h * 0.12, str(nums[1]))
         if i > 0:
