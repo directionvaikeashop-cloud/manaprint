@@ -69,12 +69,10 @@ PAGE_W, PAGE_H = A4
 LETTRES = ["M", "O", "O", "N"]
 # (min, max) par colonne — MOON saute le 31-45 !
 PLAGES = [(1, 15), (16, 30), (46, 60), (61, 75)]
-# rangées occupées par colonne (le damier) : M et O(2) -> rangées 0 et 2 ;
-# O(1) et N -> rangées 1 et 3
-RANGEES = [(0, 2), (1, 3), (0, 2), (1, 3)]
-
+# CHIFFRES REMONTÉS (décision Maeva 24/07) : plus de damier à trous —
+# chaque colonne empile ses 2 numéros sur 2 LIGNES pleines → carte courte, 8/A4
 COLS_PAGE = 2
-ROWS_PAGE = 3
+ROWS_PAGE = 4
 MARGIN_X = 8 * mm
 MARGIN_TOP = 10 * mm
 MARGIN_BOT = 8 * mm
@@ -84,7 +82,7 @@ GUTTER_Y = 4 * mm
 CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
 CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
 HDR_H = 7 * mm
-PIED_H = 5 * mm
+PIED_H = 16 * mm   # le pied héberge désormais le QR
 
 
 def _gen_carte(rng):
@@ -121,25 +119,25 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     for i, lettre in enumerate(LETTRES):
         c.drawCentredString(x0 + (i + 0.5) * cell_w, hdr_bas + 2.0 * mm, lettre)
 
-    # Grille 4×4 (traits complets, fidèle au modèle)
+    # Grille 4 colonnes × 2 LIGNES pleines (chiffres remontés)
     z_top = hdr_bas
     z_bot = y0 + PIED_H
-    row_h = (z_top - z_bot) / 4
+    row_h = (z_top - z_bot) / 2
     c.setStrokeColor(col); c.setLineWidth(0.35)
     for i in range(1, 4):
         c.line(x0 + i * cell_w, z_bot, x0 + i * cell_w, y0 + CARD_H)
-        c.line(x0, z_top - i * row_h, x0 + CARD_W, z_top - i * row_h)
+    c.line(x0, z_top - row_h, x0 + CARD_W, z_top - row_h)
     c.line(x0, z_bot, x0 + CARD_W, z_bot)
 
-    # Le croissant de lune en filigrane — case d'honneur (rangée 1, 2e colonne)
-    _croissant(c, x0 + 1.5 * cell_w, z_top - 0.5 * row_h,
-               min(cell_w, row_h) * 0.34, colors.Color(0.90, 0.90, 0.93))
+    # Le croissant de lune en filigrane — au cœur de la grille, sous les chiffres
+    _croissant(c, x0 + CARD_W / 2, z_top - row_h,
+               row_h * 0.52, colors.Color(0.90, 0.90, 0.93))
 
-    # Les 8 numéros en damier
+    # Les 8 numéros : chaque colonne empile ses 2 numéros (haut puis bas)
     taille = 40  # gros chiffres au maximum
-    for ci, (nums, rangs) in enumerate(zip(cols_nums, RANGEES)):
+    for ci, nums in enumerate(cols_nums):
         cx = x0 + (ci + 0.5) * cell_w
-        for val, ri in zip(nums, rangs):
+        for ri, val in enumerate(nums):
             cyc = z_top - (ri + 0.5) * row_h
             if _sec:  # chiffres "billet de banque" remplis de microtexte
                 _sec.chiffre_micro(c, val, cx, cyc - taille * 0.36, taille, gris_ch, police_ch)
@@ -158,17 +156,17 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     c.setFont(POLICE, 6.5)
     c.drawCentredString(x0 + CARD_W / 2, y0 + 1.5 * mm, "%06d" % serie)
 
-    # QR de vérification par carte — logé dans la case vide du bas (rangée 4, 1re colonne)
+    # QR de vérification par carte — dans le pied, à droite
     if _sec and evenement_id:
         try:
-            _q = min(row_h - 2.5 * mm, cell_w - 3 * mm, 13.5 * mm)
-            _sec.carton_qr(c, x0 + (cell_w - _q) / 2,
-                           z_bot + (row_h - _q) / 2, _q, evenement_id, serie)
+            _q = 12.0 * mm
+            _sec.carton_qr(c, x0 + CARD_W - _q - 2.2 * mm,
+                           y0 + (PIED_H - _q) / 2 + 1.2 * mm, _q, evenement_id, serie)
         except Exception:
             pass
 
 
-def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
+def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
                 style="eco", evenement_id=""):
     buf = io.BytesIO()
