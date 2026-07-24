@@ -109,16 +109,17 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
         _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.9 * mm)
 
-    # BANDEAU coloré — le nom du jeu en blanc (fidèle au modèle)
+    # BANDEAU en BLANC — économie d'encre (décision Maeva, 24/07) :
+    # plus de pavé rempli, le nom du jeu s'écrit en couleur sur fond blanc
     hdr_bas = y0 + CARD_H - HDR_H
-    c.setFillColor(col)
-    c.rect(x0 + 0.5, hdr_bas, CARD_W - 1, HDR_H - 0.5, stroke=0, fill=1)
+    c.setStrokeColor(col); c.setLineWidth(0.45)
+    c.line(x0, hdr_bas, x0 + CARD_W, hdr_bas)
     bandeau = "JEUX 60 \u00b7 8 BOULES \u00b7 BY 2KEA"
     if titre_jeu and "60" not in titre_jeu.strip():
         bandeau += "  \u00b7  " + titre_jeu.strip().upper()
     if telephone:
         bandeau += "  \u00b7  " + telephone
-    c.setFillColor(colors.white); c.setFont(POLICE, 6)
+    c.setFillColor(col); c.setFont(POLICE, 6)
     c.drawCentredString(x0 + CARD_W / 2, hdr_bas + 2.0 * mm, bandeau[:58])
 
     # Pied de carte : « N° SÉRIE | 027001 »
