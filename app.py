@@ -371,7 +371,7 @@ _enregistrer_paire("ohana90_2series", "OHANA 90 · 2 séries", "🌸", 2, ohana9
 _enregistrer_paire("bgo",           "BGO",        "🔠", 12, bgo.generer_pdf)
 _enregistrer_paire("igo",           "IGO",        "🎱", 12, igo.generer_pdf)
 _enregistrer_paire("kea",           "KEA",        "🌿", 12, kea.generer_pdf)
-_enregistrer_paire("moon",          "MOON",       "🌙", 6,  moon.generer_pdf)
+_enregistrer_paire("moon",          "MOON",       "🌙", 8,  moon.generer_pdf)
 _enregistrer_paire("ani",           "ANI",        "🌠", 12, ani.generer_pdf)
 _enregistrer_paire("brown14",       "BROWN 14 boules", "🟤", 8, brown14.generer_pdf)
 _enregistrer_paire("ino8",          "INO 8 boules", "🎐", 12, ino8.generer_pdf)
