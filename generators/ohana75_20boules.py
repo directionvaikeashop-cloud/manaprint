@@ -115,7 +115,7 @@ def _dessiner_carte(c, x0, y0, rangs, couleur_hex, serie, encre,
     droite = x0 + CARD_W - ZONE_QR
     pas = (droite - gauche) / 10.0
     zone_h = hdr_y - y0
-    t_grand, t_cercle = 30, 24  # boules cerclées bien GROSSES
+    t_grand, t_cercle = 30, 30  # TOUT à 30 pts (décision Maeva, 24/07)
 
     for ri, rang in enumerate(rangs):
         cy = y0 + zone_h * (0.66 if ri == 0 else 0.18)
@@ -133,7 +133,7 @@ def _dessiner_carte(c, x0, y0, rangs, couleur_hex, serie, encre,
                 cyc = cy + (t_grand - t_cercle) * 0.35   # même centre optique que les grands
                 c.setStrokeColor(col); c.setLineWidth(0.5)
                 c.setDash(1.4, 1.6)
-                c.circle(cx, cyc + t_cercle * 0.36, 7.4 * mm, stroke=1, fill=0)
+                c.circle(cx, cyc + t_cercle * 0.36, 7.9 * mm, stroke=1, fill=0)
                 c.setDash()
                 if _sec:
                     _sec.chiffre_micro(c, n, cx, cyc, t_cercle, gris_ch, police_ch)
