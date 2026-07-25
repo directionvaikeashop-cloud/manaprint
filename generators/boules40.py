@@ -90,7 +90,7 @@ GUTTER_Y = 2.8 * mm
 
 CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
 CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
-ZONE_QR = 16 * mm        # bande de droite réservée au QR de vérification
+ZONE_QR = 13.7 * mm      # bande QR resserrée (place aux chiffres 32 pts)
 
 
 def _gen_carte(rng):
@@ -137,7 +137,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     z_bot = y0 + PIED_H
     z_top = hdr_y - 2.4 * mm
     z_h = z_top - z_bot
-    frac = [0.19, 0.21, 0.19, 0.21, 0.20]           # solitaires un peu plus larges
+    frac = [0.20, 0.20, 0.20, 0.20, 0.20]           # 5 colonnes égales (32 pts partout)
     xs, bords, cursor = [], [zx], zx
     for f in frac:
         xs.append(cursor + (zw * f) / 2)
@@ -157,23 +157,23 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
             for ri, val in enumerate(nums):
                 cyc = z_top - (ri + 0.5) * (z_h / 2)
                 if _sec:  # chiffres "billet de banque" remplis de microtexte
-                    _sec.chiffre_micro(c, val, xs[ci], cyc - 26 * 0.36, 26, gris_ch, police_ch)
+                    _sec.chiffre_micro(c, val, xs[ci], cyc - 32 * 0.36, 32, gris_ch, police_ch)
                 else:
-                    c.setFillColor(gris_ch); c.setFont(police_ch, 26)
-                    c.drawCentredString(xs[ci], cyc - 26 * 0.36, str(val))
+                    c.setFillColor(gris_ch); c.setFont(police_ch, 32)
+                    c.drawCentredString(xs[ci], cyc - 32 * 0.36, str(val))
         else:
             # le GRAND numéro solitaire, pleine hauteur
             cyc = z_bot + z_h / 2
             if _sec:
-                _sec.chiffre_micro(c, nums[0], xs[ci], cyc - 34 * 0.36, 34, gris_ch, police_ch)
+                _sec.chiffre_micro(c, nums[0], xs[ci], cyc - 32 * 0.36, 32, gris_ch, police_ch)
             else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, 34)
-                c.drawCentredString(xs[ci], cyc - 34 * 0.36, str(nums[0]))
+                c.setFillColor(gris_ch); c.setFont(police_ch, 32)
+                c.drawCentredString(xs[ci], cyc - 32 * 0.36, str(nums[0]))
 
     # QR de vérification par carte (anti-duplication) — bande de droite
     if _sec and evenement_id:
         try:
-            _q = 12.5 * mm
+            _q = 12.0 * mm
             _sec.carton_qr(c, x0 + CARD_W - ZONE_QR + 1.2 * mm,
                            y0 + (CARD_H - _q) / 2 - 0.8 * mm, _q, evenement_id, serie)
         except Exception:
