@@ -87,7 +87,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, encre,
                          retrait=-1.2 * mm)
 
     n_haut, n1, n2, n3, n_bas = nums
-    taille = 26
+    taille = 32
 
     def chiffre(n, xx, yy):
         if _sec:
