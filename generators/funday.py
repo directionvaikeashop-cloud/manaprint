@@ -69,8 +69,8 @@ LETTRES = "FUNDAY"
 PLAGES = [(1, 15), (16, 30), (31, 45), (46, 60), (61, 75), (76, 90)]
 CERCLES = (1, 3, 5)      # positions des cercles pointillés : U, D, Y
 
-COLS_PAGE = 2
-ROWS_PAGE = 10
+COLS_PAGE = 1
+ROWS_PAGE = 10   # BANDEAUX pleine largeur (choix Maeva 25/07 : 30 pts royal)
 MARGIN_X = 8 * mm
 MARGIN_TOP = 10 * mm
 MARGIN_BOT = 8 * mm
@@ -111,8 +111,8 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
 
     # Rangée des 6 numéros — cercles pointillés sur U, D, Y
     num_base = y0 + PIED_H + (CARD_H - PIED_H - 6 * mm) * 0.34
-    taille = 24  # gros chiffres au maximum
-    rayon = 5.4 * mm  # cercles agrandis avec les chiffres
+    taille = 30  # calibre 30 pts (décision Maeva)
+    rayon = 7.5 * mm  # cercles agrandis avec les chiffres 30 pts
     for i, val in enumerate(nums):
         cx = zx + (i + 0.5) * cell_w
         if i in CERCLES:
@@ -158,7 +158,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
             pass
 
 
-def generer_pdf(nb_cartes=20, serie_start=1, theme="", couleur=True,
+def generer_pdf(nb_cartes=10, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
                 style="eco", evenement_id=""):
     buf = io.BytesIO()
