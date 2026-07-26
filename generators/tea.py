@@ -131,7 +131,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     z_top = hdr_bas - 3.6 * mm
     z_bot = y0 + PIED_H + ZONE_QR_H
     row_h = (z_top - z_bot) / 2
-    taille = 30
+    taille = 32
     for ci, nums in enumerate(cols_nums):
         cx = x0 + (ci + 0.5) * cell_w
         for ri, val in enumerate(nums):
