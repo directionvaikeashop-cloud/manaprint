@@ -60,6 +60,7 @@ from generators import rubis75
 from generators import sicilio
 from generators import avinda
 from generators import losange
+from generators import italia
 from generators import vai
 from generators import wow4
 from generators import bno
@@ -328,7 +329,7 @@ NOUVEAUX_JEUX = {
     "gambier", "parata", "katiu", "ok", "feu", "vision", "taptap", "joie",
     "caller", "valider", "chance", "opoa", "francs", "tesla", "salute", "pietra",
     "triple_bo90", "triple_bg90", "triple_bn90", "triple_bi90",
-    "triple_bg75", "triple_bn75", "triple_bi75", "rubis75", "sicilio", "avinda", "losange",
+    "triple_bg75", "triple_bn75", "triple_bi75", "rubis75", "sicilio", "avinda", "losange", "italia",
 }
 
 def _base_jeu(programme):
@@ -344,6 +345,7 @@ _enregistrer_paire("rubis75",       "RUBIS 75 · 32 pts","💎", 10, rubis75.gen
 _enregistrer_paire("sicilio",       "SICILIO",          "🔷", 6,  sicilio.generer_pdf)
 _enregistrer_paire("avinda",        "A VINDA · 2 séries","🍷", 2,  avinda.generer_pdf)
 _enregistrer_paire("losange",       "LOSANGE · 8 boules","🪁", 6,  losange.generer_pdf)
+_enregistrer_paire("italia",        "ITALIA",     "🇮🇹", 10, italia.generer_pdf)
 _enregistrer_paire("vai",           "VAI 9 boules","🌊", 12, vai.generer_pdf)
 _enregistrer_paire("wow4",          "WOW 4","🎆", 12, wow4.generer_pdf)
 _enregistrer_paire("bno",           "BNO 8 boules","🎯", 12, bno.generer_pdf)
@@ -888,6 +890,7 @@ _PLAGES_CALLER = {
     "sicilio": (1, 90),
     "avinda": (1, 75),
     "losange": (1, 75),
+    "italia": (1, 75),
     "vai": (61, 90),
     "wow4": (30, 60),
     "bno": (1, 75),
