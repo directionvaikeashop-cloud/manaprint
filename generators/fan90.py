@@ -126,7 +126,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, encre,
         _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
 
     # Les 7 numéros de l'éventail
-    taille = 24
+    taille = 32
     for (plage, fx, fy, deco), n in zip(PLACES, nums):
         cx = x0 + fx * CARD_W
         cy = y0 + FOOT_H + fy * (CARD_H - FOOT_H - 2 * mm)
@@ -137,6 +137,9 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, encre,
             c.setDash(2.2, 2.0)
             c.circle(cx, cy + taille * 0.16, 6.4 * mm, stroke=1, fill=0)
             c.setDash()
+        # médaillon blanc (recette 100 FRANCS) : les rayons s'effacent sous le chiffre
+        c.setFillColor(colors.white)
+        c.roundRect(cx - 8.0 * mm, cy - 1.4 * mm, 16.0 * mm, 10.6 * mm, 1.8 * mm, stroke=0, fill=1)
         if _sec:
             _sec.chiffre_micro(c, n, cx, cy, taille, gris_ch, police_ch)
         else:
