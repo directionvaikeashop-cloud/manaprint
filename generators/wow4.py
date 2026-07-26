@@ -138,6 +138,9 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
     c.line(x0, y0 + 4.5 * mm, x0 + CARD_W, y0 + 4.5 * mm)
     c.setFillColor(GREY); c.setFont("Helvetica", 4.5)
     c.drawString(x0 + 2 * mm, y0 + 1.5 * mm, "N° SÉRIE")
+    # le nom du jeu, gravé au centre du pied (audit des noms, 25/07)
+    c.setFillColor(col); c.setFont(POLICE, 4.6)
+    c.drawCentredString(x0 + CARD_W / 2, y0 + 1.5 * mm, "WOW 4 by TUKEA")
     c.setFillColor(col); c.setFont("Helvetica", 6)
     c.drawRightString(x0 + CARD_W - 2 * mm, y0 + 1.5 * mm, "%06d" % serie)
 
