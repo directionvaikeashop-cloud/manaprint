@@ -128,7 +128,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
 
     cell_w = CARD_W / 5
     bras_h = (CARD_H - BAS_H) / 4
-    taille = 30
+    taille = 32
 
     def case(cx_case, cy_case, cw, ch, val):
         c.setStrokeColor(col); c.setLineWidth(0.4)
