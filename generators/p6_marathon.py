@@ -125,9 +125,9 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
             if ci == 2 and ri == 2:
                 pass  # case libre : elle accueille le QR de sécurité (dessiné plus bas)
             elif _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, nums[ri], cx, cy, 27, gris_ch, police_ch)
+                _sec.chiffre_micro(c, nums[ri], cx, cy, 30, gris_ch, police_ch)
             else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, 27)
+                c.setFillColor(gris_ch); c.setFont(police_ch, 30)
                 c.drawCentredString(cx, cy, str(nums[ri]))
         if ci > 0:
             c.setStrokeColor(colors.Color(0.85, 0.85, 0.85)); c.setLineWidth(0.3)
