@@ -97,7 +97,7 @@ POS_IMG = [(0.135, 0.84), (0.345, 0.19), (0.50, 0.53), (0.655, 0.19), (0.865, 0.
 IMG_W_MM = 73.0        # largeur de la voiture sur le billet
 IMG_H_MAX_MM = 39.0    # plafond de hauteur (le titre vit au-dessus)
 R_MM = 8.0             # boules de bingo à double cercle, façon VALIDER
-TAILLE_CHIFFRE = 20
+TAILLE_CHIFFRE = 26
 
 
 def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
