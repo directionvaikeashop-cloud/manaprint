@@ -109,7 +109,7 @@ CONTENU_H_MM = 24.0   # hauteur du trèfle visible (le dessin, pas la boîte)
 TREFLE_R0 = 6.4
 TREFLE_H = 4.8
 TREFLE_W = 7.6
-TAILLE_CHIFFRE = 18
+TAILLE_CHIFFRE = 24
 
 
 def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
@@ -175,7 +175,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
         # le chiffre y trône sans croquer les feuilles
         c.setFillColor(colors.white)
         c.setStrokeColor(colors.Color(0.58, 0.58, 0.58)); c.setLineWidth(0.5)
-        c.ellipse(ccx_ch - 5.4 * mm, cy_ch - 5.4 * mm, ccx_ch + 5.4 * mm, cy_ch + 5.4 * mm, stroke=1, fill=1)
+        c.ellipse(ccx_ch - 6.7 * mm, cy_ch - 6.7 * mm, ccx_ch + 6.7 * mm, cy_ch + 6.7 * mm, stroke=1, fill=1)
         if _sec:
             _sec.chiffre_micro(c, nums[i], ccx_ch, cy_ch - taille * 0.36, taille, gris_ch, police_ch)
         else:
