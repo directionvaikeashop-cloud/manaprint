@@ -133,7 +133,7 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
         c.line(xx, y0 + FOOT_H, xx, grid_top)
 
     # Cases : numéro (motif DIAMANT) ou croix
-    taille = 26
+    taille = 32
     for ri in range(GRID_N):
         for ci in range(GRID_N):
             cx = x0 + (ci + 0.5) * cell_w
