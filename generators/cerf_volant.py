@@ -63,7 +63,7 @@ CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
 CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
 
 FOOT_H = 3.5 * mm
-CELL = 15 * mm
+CELL = 17 * mm   # élargie pour les chiffres 32 pts
 
 
 def _gen_carte():
@@ -129,7 +129,7 @@ def _dessiner_carte(c, x0, y0, donnees, couleur_hex, serie, encre,
     c.setFillColor(GREY); c.setFont("Helvetica", 4)
     c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 2.4 * mm, bandeau[:64])
 
-    taille = 30  # bien gros (Maeva, juil. 2026)
+    taille = 32  # bien gros (Maeva, juil. 2026)
 
     def num(n, xx, yy):
         if _sec:
