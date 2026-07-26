@@ -97,13 +97,17 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
             c.setFillColor(gris_ch); c.setFont(police_ch, TAILLE_CHIFFRE)
             c.drawCentredString(bx + esc_w / 2, btop - esc_h + 0.72 * mm, str(nums[i]))
 
-    # Titre en haut-droit (comme le modèle)
-    titre = (titre_jeu or "ITALIA").strip()[:18]
+    # Le nom ITALIA s'écrit TOUJOURS (leçon du 25/07) ; le titre client vient EN PLUS
     c.setFillColor(col); c.setFont("Helvetica-Bold", 11)
-    c.drawRightString(x0 + CARD_W - 3.5 * mm, y0 + CARD_H - 8.5 * mm, titre)
+    c.drawRightString(x0 + CARD_W - 3.5 * mm, y0 + CARD_H - 8.5 * mm, "ITALIA")
+    ty = y0 + CARD_H - 12 * mm
+    if titre_jeu and titre_jeu.strip().upper() != "ITALIA":
+        c.setFillColor(col); c.setFont(POLICE, 5)
+        c.drawRightString(x0 + CARD_W - 3.5 * mm, ty, titre_jeu.strip()[:30])
+        ty -= 3.2 * mm
     if telephone:
         c.setFillColor(colors.Color(0.55, 0.55, 0.55)); c.setFont(POLICE, 4.4)
-        c.drawRightString(x0 + CARD_W - 3.5 * mm, y0 + CARD_H - 12 * mm, "T\u00e8l : " + telephone)
+        c.drawRightString(x0 + CARD_W - 3.5 * mm, ty, "T\u00e8l : " + telephone)
 
     # Série + QR dans le triangle libre du bas-gauche
     c.setFillColor(colors.Color(0.55, 0.55, 0.55)); c.setFont(POLICE, 4.6)
