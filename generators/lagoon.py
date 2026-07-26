@@ -99,13 +99,13 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, encre,
     # 1-10 en haut
     chiffre(n_haut, cx, cy + RAYON * 0.52)
     # Titre + série à l'intérieur
-    bandeau = "LE JEU \u00ab LAGOON 5 BOULES \u00bb"
-    if titre_jeu:
-        bandeau = titre_jeu[:34]
+    bandeau = "LE JEU \u00ab LAGOON 5 BOULES \u00bb"   # le nom du jeu, TOUJOURS
+    if titre_jeu and "LAGOON" not in titre_jeu.upper():
+        bandeau += " \u00b7 " + titre_jeu.strip()      # le titre client vient EN PLUS
     c.setFillColor(GREY); c.setFont("Helvetica", 3.6)
-    c.drawCentredString(cx, cy + RAYON * 0.33, bandeau)
+    c.drawCentredString(cx, cy + RAYON * 0.44, bandeau[:52])   # remonté : le 32 pts central passait dessous
     c.setFont("Helvetica", 4.2)
-    c.drawCentredString(cx, cy + RAYON * 0.22, f"N\u00b0 {serie:06d}")
+    c.drawCentredString(cx, cy + RAYON * 0.335, f"N\u00b0 {serie:06d}")
     # Trio central 11-20 / 21-30 / 31-40
     yy = cy - RAYON * 0.02
     chiffre(n1, cx - RAYON * 0.58, yy)
@@ -143,8 +143,8 @@ def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
         if nom_evenement:
             c.setFillColor(NOIR); c.setFont("Helvetica-Bold", 11)
             c.drawCentredString(PAGE_W / 2, PAGE_H - 5 * mm, nom_evenement)
-        titre_aff = titre_jeu if titre_jeu else "LAGOON 5 BOULES"
-        ligne2 = titre_aff
+        titre_aff = ("LAGOON 5 BOULES \u2014 " + titre_jeu.strip()) if titre_jeu else "LAGOON 5 BOULES"
+        ligne2 = titre_aff[:60]
         if date_lieu: ligne2 += "  \u00b7  " + date_lieu
         ligne2 += f"  \u00b7  Page {no_page}"
         c.setFillColor(GREY); c.setFont("Helvetica", 7)
