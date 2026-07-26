@@ -127,7 +127,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     c.line(x0, z_top - 2 * row_h, x0 + CARD_W, z_top - 2 * row_h)
     c.line(x0, z_bot, x0 + CARD_W, z_bot)
 
-    taille = 26
+    taille = 32
     def chiffre(val, cx, cyc):
         if _sec:  # chiffres "billet de banque" remplis de microtexte
             _sec.chiffre_micro(c, val, cx, cyc - taille * 0.36, taille, gris_ch, police_ch)
