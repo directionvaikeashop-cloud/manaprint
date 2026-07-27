@@ -50,8 +50,10 @@
     télécharger les PDF de cartons à imprimer et consulter vos factures 2KEA &amp; Associé.</p>
     <div class="carte" style="max-width:430px">
       <label style="font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em">Code partenaire</label>
-      <input id="code" placeholder="EX : FUN-0000" onkeydown="if(event.key==='Enter')connexion()">
-      <button class="btn" style="width:100%" onclick="connexion()">Entrer dans ma boutique</button>
+      <form id="form-login" onsubmit="connexion(event)" style="margin:0">
+        <input id="code" placeholder="EX : FUN-0000" autocomplete="off" autocapitalize="characters" enterkeyhint="go">
+        <button id="btn-login" type="submit" class="btn" style="width:100%">Entrer dans ma boutique</button>
+      </form>
       <p id="login-msg" class="msg"></p>
     </div>
     <p class="pied">Votre code vous a été remis par 2KEA &amp; Associé — Papeete.<br>
@@ -129,8 +131,12 @@
 </div>
 
 <script>
-async function connexion(){
+async function connexion(ev){
+  if(ev && ev.preventDefault) ev.preventDefault();          // le formulaire ne recharge pas la page
   const msg = document.getElementById('login-msg');
+  const btn = document.getElementById('btn-login');
+  if(btn && btn.disabled) return;                           // verrou anti double-clic
+  if(btn){ btn.disabled = true; btn.textContent = '\u23f3 Connexion\u2026'; }
   msg.style.color = 'var(--muted)'; msg.textContent = 'Connexion\u2026';
   try{
     const code = document.getElementById('code').value.trim();
@@ -138,9 +144,15 @@ async function connexion(){
       headers:{'Content-Type':'application/json'}, body: JSON.stringify({code})});
     const d = await r.json();
     if(!d.ok){ msg.style.color='var(--coral)'; msg.textContent='\u274c ' + (d.message||'Code refus\u00e9'); return; }
+    // Code accept\u00e9 : le tableau s'ouvre TOUT DE SUITE (plus jamais de 2e clic)
     msg.textContent='';
+    document.getElementById('zone-login').style.display='none';
+    document.getElementById('zone-bord').style.display='';
+    document.getElementById('bord-nom').textContent = '\ud83c\udfea ' + (d.nom || 'Ma boutique');
+    document.getElementById('bord-zone').textContent = d.zone || '';
     charger();
-  }catch(e){ msg.style.color='var(--coral)'; msg.textContent='Erreur r\u00e9seau'; }
+  }catch(e){ msg.style.color='var(--coral)'; msg.textContent='\u274c Erreur r\u00e9seau \u2014 r\u00e9essayez'; }
+  finally{ if(btn){ btn.disabled = false; btn.textContent = 'Entrer dans ma boutique'; } }
 }
 
 async function deconnexion(){
