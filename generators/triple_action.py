@@ -169,7 +169,7 @@ def generer_pdf(nb_tickets=10, serie_start=1, theme="", couleur=True,
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
-    nb_tickets = max(1, min(int(nb_tickets), 1000))
+    nb_tickets = max(1, min(int(nb_tickets), 10000))  # plafond élevé : 250 feuilles = 2500 tickets (bug 100 feuilles, 27/07)
     par_page = COLS * ROWS
     nb_pages = (nb_tickets + par_page - 1) // par_page
 
