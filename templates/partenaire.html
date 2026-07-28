@@ -118,7 +118,8 @@
     <div class="carte">
       <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.8rem">
         <h2 style="font-size:1.05rem">📦 Mes commandes</h2>
-        <button class="btn gris mini" style="margin-left:auto" onclick="charger()">↻ Actualiser</button>
+        <button id="btn-actu" class="btn gris mini" style="margin-left:auto" onclick="actualiser()">↻ Actualiser</button>
+        <span id="actu-msg" class="msg" style="margin-left:.5rem"></span>
       </div>
       <div id="liste"></div>
       <p class="msg muet" style="color:var(--muted)">⬇️ Cartons = le PDF prêt à imprimer ·
@@ -163,12 +164,30 @@ async function deconnexion(){
 
 function fmtF(n){ return (n||0).toLocaleString('fr-FR') + ' F'; }
 
+async function actualiser(){
+  const btn = document.getElementById('btn-actu');
+  const msg = document.getElementById('actu-msg');
+  if(btn.disabled) return;                                  // verrou anti double-clic
+  btn.disabled = true; btn.textContent = '\u23f3 Actualisation\u2026';
+  msg.style.color = 'var(--muted)'; msg.textContent = '';
+  const ok = await charger();
+  btn.disabled = false; btn.textContent = '\u21bb Actualiser';
+  if(ok){
+    const h = new Date();
+    msg.style.color = 'var(--teal-d)';
+    msg.textContent = '\u2705 \u00e0 jour \u00e0 ' + String(h.getHours()).padStart(2,'0') + ':' + String(h.getMinutes()).padStart(2,'0') + ':' + String(h.getSeconds()).padStart(2,'0');
+  }else{
+    msg.style.color = 'var(--coral)';
+    msg.textContent = '\u274c Serveur occup\u00e9 (fabrication en cours\u2026) \u2014 r\u00e9essayez dans un instant';
+  }
+}
+
 async function charger(){
   try{
     const r = await fetch('/api/partenaire/mes-commandes');
-    if(r.status === 403){ return; }   // pas connecté : l'écran de connexion reste
+    if(r.status === 403){ return false; }   // pas connecté : l'écran de connexion reste
     const d = await r.json();
-    if(!d.ok) return;
+    if(!d.ok) return false;
     document.getElementById('zone-login').style.display='none';
     document.getElementById('zone-bord').style.display='';
     document.getElementById('bord-nom').textContent = '🏪 ' + d.nom;
@@ -182,7 +201,7 @@ async function charger(){
     const zone = document.getElementById('liste');
     if(!d.commandes.length){
       zone.innerHTML = '<p class="msg" style="color:var(--muted)">Aucune commande pour le moment — partagez l\u2019adresse de votre vitrine pour recevoir vos premi\u00e8res commandes !</p>';
-      return;
+      return true;
     }
     zone.innerHTML = d.commandes.map(function(c){
       return '<div class="cmd">'
@@ -198,7 +217,8 @@ async function charger(){
         + (c.facture ? '<button class="btn mini gris" title="Facture du d\u00fb 2KEA" onclick="ouvrir(' + c.id + ',\'facture\')">\ud83e\uddfe Facture</button>' : '')
         + '</span></div>';
     }).join('');
-  }catch(e){}
+    return true;
+  }catch(e){ return false; }
 }
 
 function ouvrir(id, quoi){ window.open('/api/partenaire/pdf/' + id + '/' + quoi, '_blank'); }
