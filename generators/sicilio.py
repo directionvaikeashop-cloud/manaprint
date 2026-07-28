@@ -24,6 +24,14 @@ except Exception:
     except Exception:
         _sec = None
 
+try:  # SMORFIA by 2KEA — le jeu des images (anti-panne : le jeu vit sans)
+    from generators import smorfia as _smor
+except Exception:
+    try:
+        import smorfia as _smor
+    except Exception:
+        _smor = None
+
 try:
     pdfmetrics.registerFont(TTFont("DJL", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
     POLICE = "DJL"
@@ -85,7 +93,7 @@ def _diamant(c, cx, cy, s, col):
     c.restoreState()
 
 
-def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
+def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id="", idx_img=-1):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
 
@@ -119,6 +127,9 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
         cy = y0 + CARD_H * POS_Y[rangee]
         ccx = x0 + CARD_W * fx + 3.0 * mm
         _diamant(c, x0 + CARD_W * fx - 13.0 * mm, cy + 1.2 * mm, 9.0 * mm, col)
+        if _smor and i == idx_img:  # SMORFIA : le chiffre devient l'image
+            _smor.poser_numero_image(c, nums[i], ccx, cy + 1.0 * mm, 14, 11, gris_ch)
+            continue
         if _sec:
             _sec.chiffre_micro(c, nums[i], ccx, cy - TAILLE_CHIFFRE * 0.36, TAILLE_CHIFFRE, gris_ch, police_ch)
         else:
@@ -160,12 +171,26 @@ def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
                 x0 = MARGIN_X + col_i * (CARD_W + GUTTER_X)
                 y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
                 nums = [rng.randint(a, b) for (a, b) in PLAGES]  # un numéro par plage, ordre du billet
+                idx_img = -1
+                if _smor:  # SMORFIA : un numéro du panthéon prend sa place
+                    try:
+                        ns = _smor.numero_pour_serie(serie)
+                        hotes = [j for j, (a, b) in enumerate(PLAGES) if a <= ns <= b]
+                        idx_img = hotes[_smor.choix_hote(serie, len(hotes))]
+                        nums[idx_img] = ns
+                    except Exception:
+                        idx_img = -1
                 coul = (couleur_perso if (couleur and couleur_perso)
                         else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
                 _dessiner_carte(c, x0, y0, nums, coul, serie, titre_jeu, telephone,
-                                style=style, evenement_id=evenement_id)
+                                style=style, evenement_id=evenement_id, idx_img=idx_img)
                 serie += 1
                 faites += 1
+        if _smor:
+            try:
+                _smor.credit_pied(c, PAGE_W)
+            except Exception:
+                pass
         c.showPage()
         no_page += 1
     c.save()
