@@ -61,7 +61,7 @@ try:
     _POLICE_ECO = "DJLECO"
 except Exception:
     _POLICE_ECO = "Helvetica"
-_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
+_GRIS_ECO = colors.Color(0.58, 0.58, 0.58)  # allégé (économie d'encre, 27/07)
 _POLICE_P15 = "Helvetica-Bold"
 _GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
 
@@ -104,7 +104,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     col = colors.HexColor(couleur_hex)
 
     # Bordure carte
-    c.setStrokeColor(col); c.setLineWidth(0.9)
+    c.setStrokeColor(col); c.setLineWidth(0.6)
     c.roundRect(x0, y0, CARD_W, CARD_H, 1.2 * mm, stroke=1, fill=0)
     if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
         _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.9 * mm)
