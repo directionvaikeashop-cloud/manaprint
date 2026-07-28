@@ -232,6 +232,8 @@ def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
                         ns = _smor.numero_pour_serie(serie)
                         if ns <= 15:
                             nums[0] = ns; idx_img = 0
+                        elif ns >= 61:
+                            nums[5] = ns; idx_img = 5
                         else:
                             base, (a, b) = (1, (16, 30)) if ns <= 30 else (3, (46, 60))
                             autre = nums[base] if nums[base] != ns else nums[base + 1]
