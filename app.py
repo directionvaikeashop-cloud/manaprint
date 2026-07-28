@@ -1411,7 +1411,7 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
     couleur = REGISTRE_JEUX.get(programme, {}).get("couleur", True)
     nb_feuilles = int(data.get("nb_feuilles", 25))
     # 📦 Vente par PAQUETS DE 25 feuilles (25, 50, 75… jusqu'à 250)
-    if nb_feuilles < 25 or nb_feuilles > 250 or nb_feuilles % 25 != 0:
+    if nb_feuilles < 25 or nb_feuilles > 500 or nb_feuilles % 25 != 0:  # 1 à 20 paquets de 25 (27/07)
         return (jsonify({"ok": False, "message": "Les feuilles se commandent par paquets de 25 (25, 50, 75… jusqu'à 250)."}), 400), None
 
     # Personnalisation OBLIGATOIRE (sécurité)
