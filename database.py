@@ -14,8 +14,14 @@ DB_PATH = os.environ.get("MANAPRINT_DB", os.path.join(os.path.dirname(__file__),
 
 @contextmanager
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.row_factory = sqlite3.Row
+    try:  # base fluide : lectures possibles PENDANT les fabrications (27/07)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=30000")
+        conn.execute("PRAGMA synchronous=NORMAL")
+    except Exception:
+        pass
     try:
         yield conn
         conn.commit()
