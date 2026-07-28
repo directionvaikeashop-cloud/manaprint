@@ -418,7 +418,8 @@ function lettrePour(n) {
 // 2) SECOURS : si la bande ne charge pas, on retombe sur la synthèse vocale.
 // Réveil spécial mobiles : tout part d'un geste de l'utilisateur (clic TIRER).
 // 🚀 la bande se télécharge dès l'ouverture de la page (voir tout en bas)
-const VOIX_MAP = {"1":[0.0,0.2],"2":[0.34,0.49],"3":[0.94,0.42],"4":[1.5,0.53],"5":[2.15,0.35],"6":[2.63,0.44],"7":[3.19,0.35],"8":[3.65,0.43],"9":[4.21,0.48],"10":[4.8,0.68],"11":[5.6,0.4],"12":[6.11,0.53],"13":[6.75,0.58],"14":[7.44,0.79],"15":[8.35,0.4],"16":[8.87,0.55],"17":[9.53,0.79],"18":[10.44,0.77],"19":[11.32,0.81],"20":[12.28,0.44],"21":[12.84,0.74],"22":[13.7,0.73],"23":[14.54,0.72],"24":[15.37,0.92],"25":[16.4,0.68],"26":[17.19,0.89],"27":[18.19,0.69],"28":[19.13,0.63],"29":[20.0,0.74],"30":[20.92,0.39],"31":[21.42,0.9],"32":[22.46,0.62],"33":[23.19,0.66],"34":[23.97,0.77],"35":[24.87,0.64],"36":[25.66,0.83],"37":[26.61,0.62],"38":[27.34,0.57],"39":[28.15,0.7],"40":[29.04,0.5],"41":[29.65,0.93],"42":[30.72,0.71],"43":[31.54,0.8],"44":[32.46,0.94],"45":[33.52,0.71],"46":[34.35,0.9],"47":[35.37,0.69],"48":[36.18,0.69],"49":[37.12,0.72],"50":[38.12,0.66],"51":[38.89,0.94],"52":[39.95,0.78],"53":[40.84,0.86],"54":[41.81,0.79],"55":[42.83,0.87],"56":[43.88,1.02],"57":[45.01,0.92],"58":[46.05,0.79],"59":[46.98,0.9],"60":[48.08,0.62],"61":[48.81,0.9],"62":[49.82,0.78],"63":[50.72,0.93],"64":[51.76,0.92],"65":[52.83,0.88],"66":[53.82,0.98],"67":[54.91,0.75],"68":[55.78,0.79],"69":[56.82,0.9],"70":[57.95,1.02],"71":[59.08,1.22],"72":[60.42,1.0],"73":[61.54,1.06],"74":[62.71,1.19],"75":[64.01,1.01],"76":[65.13,1.05],"77":[66.31,0.93],"78":[67.52,0.87],"79":[68.5,1.18],"80":[69.8,0.71],"81":[70.63,0.65],"82":[71.39,0.85],"83":[72.35,0.95],"84":[73.41,0.95],"85":[74.52,0.9],"86":[75.65,1.12],"87":[76.88,0.92],"88":[77.91,0.81],"89":[79.02,1.04],"90":[80.26,1.07]};
+const VOIX_MAP = {"1":[0.08,0.95],"2":[1.23,0.92],"3":[2.35,1.11],"4":[3.66,1.05],"5":[4.91,1.0],"6":[6.11,1.13],"7":[7.45,1.18],"8":[8.83,1.16],"9":[10.19,0.92],"10":[11.31,1.08],"11":[12.59,1.21],"12":[14.0,1.13],"13":[15.34,1.03],"14":[16.56,1.32],"15":[18.08,1.03],"16":[19.31,1.29],"17":[20.8,1.42],"18":[22.41,1.24],"19":[23.85,1.16],"20":[25.21,0.9],"21":[26.31,1.32],"22":[27.82,1.03],"23":[29.05,1.29],"24":[30.54,1.58],"25":[32.32,1.34],"26":[33.86,1.55],"27":[35.61,1.45],"28":[37.25,1.26],"29":[38.72,1.32],"30":[40.23,1.0],"31":[41.43,1.05],"32":[42.69,1.08],"33":[43.97,1.05],"34":[45.22,1.39],"35":[46.81,1.42],"36":[48.43,1.13],"37":[49.76,1.37],"38":[51.33,1.18],"39":[52.72,1.08],"40":[54.0,1.03],"41":[55.22,1.37],"42":[56.79,1.24],"43":[58.23,1.24],"44":[59.67,1.42],"45":[61.28,1.26],"46":[62.75,1.34],"47":[64.29,1.47],"48":[65.96,1.21],"49":[67.37,1.26],"50":[68.83,1.13],"51":[70.17,1.42],"52":[71.79,1.42],"53":[73.41,1.47],"54":[75.08,1.73],"55":[77.01,1.45],"56":[78.66,1.63],"57":[80.48,1.42],"58":[82.1,1.42],"59":[83.72,1.24],"60":[85.16,1.26],"61":[86.62,1.29],"62":[88.11,1.37],"63":[89.68,1.55],"64":[91.43,1.34],"65":[92.97,1.65],"66":[94.83,1.55],"67":[96.58,1.55],"68":[98.33,1.39],"69":[99.92,1.21],"70":[101.33,1.5],"71":[103.03,1.94],"72":[105.17,1.39],"73":[106.76,1.6],"74":[108.57,1.76],"75":[110.53,1.39],"76":[112.12,1.65],"77":[113.97,1.65],"78":[115.83,1.37],"79":[117.4,1.42],"80":[119.02,1.11],"81":[120.32,1.03],"82":[121.55,1.39],"83":[123.14,1.34],"84":[124.68,1.47],"85":[126.36,1.34],"86":[127.9,1.5],"87":[129.6,1.34],"88":[131.14,1.5],"89":[132.83,1.34],"90":[134.38,1.39]};  // bande v3 — VOIX A posée, nombres en toutes lettres
+const VOIX_CRIS = {"11":[135.97,1.76],"16":[137.93,1.05],"18":[139.18,1.39],"47":[140.78,1.32],"54":[142.29,0.98]};  // les 5 cris SMORFIA (remplacent le nombre sur sicilio/salute/pietra)
 let ctxAudio = null, spriteAudio = null, spriteEnCours = null, sourceEnCours = null;
 let annonceEnAttente = null;  // 🎙️ boule tirée pendant le chargement de la bande
 let etatBande = "attente";    // attente | chargement | prete | secours
@@ -445,7 +446,7 @@ function chargerBandeAudio() {
     }
     if (ctxAudio.state === "suspended") ctxAudio.resume();
     etatBande = "chargement"; majTemoinVoix();
-    spriteEnCours = fetch("/voix-caller.mp3", { cache: "force-cache" })
+    spriteEnCours = fetch("/voix-caller.mp3?v=3", { cache: "force-cache" })
       .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.arrayBuffer(); })
       .then(function (b) { return ctxAudio.decodeAudioData(b); })
       .then(function (buf) {
@@ -459,14 +460,17 @@ function chargerBandeAudio() {
 }
 
 function jouerBande(n) {
-  if (!spriteAudio || !VOIX_MAP[n]) return false;
+  // SMORFIA : sur sicilio/salute/pietra, la voix crie la SIGNIFICATION, pas le nombre
+  const seg = (typeof SMORFIA_JEUX !== "undefined" && SMORFIA_JEUX.includes(jeuActuel) && VOIX_CRIS[n])
+              ? VOIX_CRIS[n] : VOIX_MAP[n];
+  if (!spriteAudio || !seg) return false;
   try {
     if (ctxAudio.state === "suspended") ctxAudio.resume();
     if (sourceEnCours) { try { sourceEnCours.stop(); } catch (e) {} }
     const s = ctxAudio.createBufferSource();
     s.buffer = spriteAudio;
     s.connect(ctxAudio.destination);
-    const dep = VOIX_MAP[n][0], dur = VOIX_MAP[n][1] + 0.06;
+    const dep = seg[0], dur = seg[1] + 0.06;
     s.start(0, dep, dur);
     sourceEnCours = s;
     return true;
@@ -515,7 +519,8 @@ function parlerBoule(n) {
   try {
     if (!("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();  // ne pas empiler si on tire vite
-    const u = new SpeechSynthesisUtterance(nombreEnLettres(n));  // en toutes lettres, mieux articulé
+    const crierS = (typeof SMORFIA_JEUX !== "undefined" && SMORFIA_JEUX.includes(jeuActuel) && SMORFIA[n]);
+    const u = new SpeechSynthesisUtterance(crierS ? SMORFIA[n].cri.toLowerCase() : nombreEnLettres(n));  // en toutes lettres, mieux articulé
     u.lang = "fr-FR"; u.rate = 0.85; u.pitch = 1.0; u.volume = 1.0;
     window.speechSynthesis.speak(u);
   } catch (e) {}
@@ -560,7 +565,7 @@ function repeterBoule() {
 // ─── SMORFIA by 2KEA : le caller montre l'image à l'appel (panthéon validé 27/07) ───
 const SMORFIA_JEUX = ["sicilio", "salute", "pietra"];
 const SMORFIA = {
-  11: { cri: "TEPEA TOA ORUA", svg: '<svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="35" cy="18" r="9" fill="#fff"/><circle cx="65" cy="18" r="9" fill="#fff"/><line x1="35" y1="27" x2="35" y2="52"/><line x1="65" y1="27" x2="65" y2="52"/><line x1="35" y1="52" x2="26" y2="74"/><line x1="35" y1="52" x2="44" y2="74"/><line x1="65" y1="52" x2="56" y2="74"/><line x1="65" y1="52" x2="74" y2="74"/><line x1="35" y1="36" x2="20" y2="48"/><line x1="65" y1="36" x2="80" y2="48"/><line x1="35" y1="38" x2="65" y2="38" stroke-width="4"/></svg>' },
+  11: { cri: "TAPEA TO ORUA", svg: '<svg viewBox="0 0 100 80" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="35" cy="18" r="9" fill="#fff"/><circle cx="65" cy="18" r="9" fill="#fff"/><line x1="35" y1="27" x2="35" y2="52"/><line x1="65" y1="27" x2="65" y2="52"/><line x1="35" y1="52" x2="26" y2="74"/><line x1="35" y1="52" x2="44" y2="74"/><line x1="65" y1="52" x2="56" y2="74"/><line x1="65" y1="52" x2="74" y2="74"/><line x1="35" y1="36" x2="20" y2="48"/><line x1="65" y1="36" x2="80" y2="48"/><line x1="35" y1="38" x2="65" y2="38" stroke-width="4"/></svg>' },
   16: { cri: "TAIORO", svg: '<svg viewBox="0 0 100 80" fill="#fff" stroke="currentColor" stroke-width="3" stroke-linejoin="round"><polygon points="50,4 57,20 74,10 70,28 92,26 76,40 92,54 70,52 74,70 57,60 50,76 43,60 26,70 30,52 8,54 24,40 8,26 30,28 26,10 43,20"/><text x="50" y="52" font-size="34" font-weight="800" text-anchor="middle" fill="currentColor" stroke="none">!</text></svg>' },
   18: { cri: "MON ÂGE", svg: '<svg viewBox="0 0 100 80" fill="#fff" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="10" y1="72" x2="90" y2="72"/><rect x="20" y="50" width="60" height="22" rx="4"/><rect x="30" y="30" width="40" height="20" rx="4"/><line x1="40" y1="30" x2="40" y2="18"/><line x1="50" y1="30" x2="50" y2="16"/><line x1="60" y1="30" x2="60" y2="18"/><ellipse cx="40" cy="12" rx="2.6" ry="5" fill="currentColor" stroke="none"/><ellipse cx="50" cy="10" rx="2.6" ry="5" fill="currentColor" stroke="none"/><ellipse cx="60" cy="12" rx="2.6" ry="5" fill="currentColor" stroke="none"/></svg>' },
   47: { cri: "K7", svg: '<svg viewBox="0 0 100 80" fill="#fff" stroke="currentColor" stroke-width="3"><rect x="8" y="14" width="84" height="52" rx="6"/><rect x="22" y="30" width="56" height="22" rx="5"/><circle cx="36" cy="41" r="7"/><circle cx="64" cy="41" r="7"/><circle cx="36" cy="41" r="2.2" fill="currentColor" stroke="none"/><circle cx="64" cy="41" r="2.2" fill="currentColor" stroke="none"/><line x1="18" y1="22" x2="82" y2="22"/></svg>' },
