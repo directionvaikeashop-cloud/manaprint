@@ -44,7 +44,7 @@ try:
     _POLICE_ECO = "DJLECO"
 except Exception:
     _POLICE_ECO = "Helvetica"
-_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
+_GRIS_ECO = colors.Color(0.58, 0.58, 0.58)  # allégé (économie d'encre, 27/07)
 _POLICE_P15 = "Helvetica-Bold"
 _GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
 
@@ -83,7 +83,7 @@ def _dessiner_ticket(c, x0, y0, grille, couleur_hex, serie, couleur=True, titre_
     encre = NOIR if couleur else GRIS40  # chiffres noirs en couleur, gris 40% en N&B
 
     c.setStrokeColor(col)
-    c.setLineWidth(0.9)
+    c.setLineWidth(0.6)
     c.roundRect(x0, y0, CARD_W, CARD_H, 2 * mm, stroke=1, fill=0)
     if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
         _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
@@ -124,7 +124,7 @@ def _dessiner_ticket(c, x0, y0, grille, couleur_hex, serie, couleur=True, titre_
         cercle_y = gy + group_h * 0.60
         rayon = 6.4 * mm
         c.setStrokeColor(col)
-        c.setLineWidth(0.9)
+        c.setLineWidth(0.6)
         c.circle(cercle_x, cercle_y, rayon, stroke=1, fill=0)
         if _sec:  # chiffres "billet de banque" remplis de microtexte
             _sec.chiffre_micro(c, num_cercle, cercle_x, cercle_y - 9, 26, gris_ch, police_ch)
