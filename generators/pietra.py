@@ -228,7 +228,7 @@ def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
                 idx_img = -1
                 if _smor:  # SMORFIA : un numéro du panthéon prend sa place
                     try:
-                        ns = _smor.numero_pour_serie(serie)
+                        ns = _smor.numero_pour_serie(serie, [n for n in _smor.ANNONCES if n <= 30 or 46 <= n <= 75])
                         base, (a, b) = (0, (1, 15)) if ns <= 15 else (2, (16, 30)) if ns <= 30 else (4, (46, 60)) if ns <= 60 else (6, (61, 75))
                         autre = nums[base] if nums[base] != ns else nums[base + 1]
                         if autre == ns:
