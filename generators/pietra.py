@@ -25,6 +25,14 @@ except Exception:
     except Exception:
         _sec = None
 
+try:  # SMORFIA by 2KEA — le jeu des images (anti-panne : le jeu vit sans)
+    from generators import smorfia as _smor
+except Exception:
+    try:
+        import smorfia as _smor
+    except Exception:
+        _smor = None
+
 try:
     pdfmetrics.registerFont(TTFont("DJL", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
     POLICE = "DJL"
@@ -93,7 +101,7 @@ RX_MM, RY_MM = 8.5, 6.5        # les grandes ellipses du modèle
 TAILLE_CHIFFRE = 28
 
 
-def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
+def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id="", idx_img=-1):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
 
@@ -148,6 +156,9 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
         c.setFillColor(colors.white)
         c.setStrokeColor(gris_trait); c.setLineWidth(0.7)
         c.ellipse(ccx - RX_MM * mm, cy - RY_MM * mm, ccx + RX_MM * mm, cy + RY_MM * mm, stroke=1, fill=1)
+        if _smor and i == idx_img:  # SMORFIA : le chiffre devient l'image, dans son ellipse
+            _smor.poser_numero_image(c, nums[i], ccx, cy, 13.5, 9.5, gris_ch)
+            continue
         if _sec:
             _sec.chiffre_micro(c, nums[i], ccx, cy - taille * 0.36, taille, gris_ch, police_ch)
         else:
@@ -214,12 +225,30 @@ def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
                 zc = sorted(rng.sample(range(46, 61), 2))  # centre-droit, haut puis bas
                 zd = sorted(rng.sample(range(61, 76), 2))  # colonne droite, haut puis bas
                 nums = [za[0], za[1], zb[0], zb[1], zc[0], zc[1], zd[0], zd[1]]
+                idx_img = -1
+                if _smor:  # SMORFIA : un numéro du panthéon prend sa place
+                    try:
+                        ns = _smor.numero_pour_serie(serie)
+                        base, (a, b) = (0, (1, 15)) if ns <= 15 else (2, (16, 30)) if ns <= 30 else (4, (46, 60))
+                        autre = nums[base] if nums[base] != ns else nums[base + 1]
+                        if autre == ns:
+                            autre = ns + 1 if ns < b else ns - 1
+                        paire = sorted([ns, autre])
+                        nums[base], nums[base + 1] = paire
+                        idx_img = base + paire.index(ns)
+                    except Exception:
+                        idx_img = -1
                 coul = (couleur_perso if (couleur and couleur_perso)
                         else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
                 _dessiner_carte(c, x0, y0, nums, coul, serie, titre_jeu, telephone,
-                                style=style, evenement_id=evenement_id)
+                                style=style, evenement_id=evenement_id, idx_img=idx_img)
                 serie += 1
                 faites += 1
+        if _smor:
+            try:
+                _smor.credit_pied(c, PAGE_W)
+            except Exception:
+                pass
         c.showPage()
         no_page += 1
     c.save()
