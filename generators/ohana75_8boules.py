@@ -27,6 +27,14 @@ except Exception:
     except Exception:
         _sec = None
 
+try:  # SMORFIA by 2KEA — le jeu des images (anti-panne : le jeu vit sans)
+    from generators import smorfia as _smor
+except Exception:
+    try:
+        import smorfia as _smor
+    except Exception:
+        _smor = None
+
 
 try:
     pdfmetrics.registerFont(TTFont("DJL", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
@@ -88,7 +96,7 @@ def _gen_carte(rng):
     return out
 
 
-def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
+def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id="", idx_img=-1):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
 
@@ -129,6 +137,16 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
 
     for i, (val, rond) in enumerate(nums):
         x = xs[i]
+        if _smor and i == idx_img:  # SMORFIA : le chiffre devient l'image
+            if rond:
+                c.setStrokeColor(col); c.setLineWidth(0.7)
+                c.setDash([1.4, 1.4])
+                c.circle(x, cy, 6.6 * mm, stroke=1, fill=0)
+                c.setDash([])
+                _smor.poser_numero_image(c, val, x, cy, 10.5, 8.5, gris_ch)
+            else:
+                _smor.poser_numero_image(c, val, x, cy, 14, 11, gris_ch)
+            continue
         if rond:
             # petit chiffre dans rond pointillé
             c.setStrokeColor(col); c.setLineWidth(0.7)
@@ -162,7 +180,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
 
 def generer_pdf(nb_cartes=9, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id=""):
+                style="eco", evenement_id="", smorfia=False):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
@@ -183,17 +201,42 @@ def generer_pdf(nb_cartes=9, serie_start=1, theme="", couleur=True,
             y0 = MARGIN_BOT + (CARTES_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
             x0 = MARGIN_X
             nums = _gen_carte(rng)
+            idx_img = -1
+            if _smor and smorfia:  # SMORFIA : un numéro du panthéon prend sa place
+                try:
+                    ns = _smor.numero_pour_serie(serie)
+                    k = next(j for j, (a, b) in enumerate(RANGES) if a <= ns <= b)
+                    autre = nums[2 * k][0] if nums[2 * k][0] != ns else nums[2 * k + 1][0]
+                    if autre == ns:
+                        autre = ns + 1 if ns < RANGES[k][1] else ns - 1
+                    paire = sorted([ns, autre])
+                    nums[2 * k] = (paire[0], False)
+                    nums[2 * k + 1] = (paire[1], True)
+                    idx_img = 2 * k + paire.index(ns)
+                except Exception:
+                    idx_img = -1
             coul = (couleur_perso if (couleur and couleur_perso)
                     else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
-            _dessiner_carte(c, x0, y0, nums, coul, serie, titre_jeu, telephone, style=style, evenement_id=evenement_id)
+            _dessiner_carte(c, x0, y0, nums, coul, serie, titre_jeu, telephone, style=style, evenement_id=evenement_id, idx_img=idx_img)
             serie += 1
             faites += 1
+        if _smor and smorfia:
+            try:
+                _smor.credit_pied(c, PAGE_W)
+            except Exception:
+                pass
         c.showPage()
         no_page += 1
 
     c.save()
     buf.seek(0)
     return buf
+
+
+def generer_pdf_smorfia(**kw):
+    """OHANA 75 · 8 boules SMORFIA — le jumeau du jeu normal, l'image en plus."""
+    kw["smorfia"] = True
+    return generer_pdf(**kw)
 
 
 if __name__ == "__main__":
