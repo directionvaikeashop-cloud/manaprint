@@ -151,7 +151,7 @@ async function connexion(ev){
     document.getElementById('zone-bord').style.display='';
     document.getElementById('bord-nom').textContent = '\ud83c\udfea ' + (d.nom || 'Ma boutique');
     document.getElementById('bord-zone').textContent = d.zone || '';
-    charger();
+    charger().then(ok => { if(!ok) expliquerVide(); });
   }catch(e){ msg.style.color='var(--coral)'; msg.textContent='\u274c Erreur r\u00e9seau \u2014 r\u00e9essayez'; }
   finally{ if(btn){ btn.disabled = false; btn.textContent = 'Entrer dans ma boutique'; } }
 }
@@ -179,6 +179,7 @@ async function actualiser(){
   }else{
     msg.style.color = 'var(--coral)';
     msg.textContent = '\u274c Serveur occup\u00e9 (fabrication en cours\u2026) \u2014 r\u00e9essayez dans un instant';
+    expliquerVide();
   }
 }
 
@@ -219,6 +220,14 @@ async function charger(){
     }).join('');
     return true;
   }catch(e){ return false; }
+}
+
+// si la liste est encore vide au moment d'un échec, on l'explique à l'écran
+function expliquerVide(){
+  const zone = document.getElementById('liste-cmds');
+  if(zone && !zone.innerHTML.trim()){
+    zone.innerHTML = '<p class="msg" style="color:var(--muted)">\u23f3 Le serveur fabrique vos cartons \u2014 vos commandes s\u2019afficheront d\u00e8s qu\u2019il reprend son souffle. Appuyez sur \u21bb dans un instant.</p>';
+  }
 }
 
 function ouvrir(id, quoi){ window.open('/api/partenaire/pdf/' + id + '/' + quoi, '_blank'); }
