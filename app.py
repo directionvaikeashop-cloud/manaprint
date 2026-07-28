@@ -284,6 +284,7 @@ _enregistrer_paire("brown8",        "BROWN 8 boules",     "🟤", 8,  brown8.gen
 _enregistrer_paire("flash_quines",  "FLASH QUINES allongé","⚡", 9,  flash_quines_allonge.generer_pdf)
 _enregistrer_paire("kai",           "KAI 7 boules",       "🍽️", 12, kai.generer_pdf)
 _enregistrer_paire("ohana75_8b",    "OHANA 75 · 8 boules","🌺", 9,  ohana75_8boules.generer_pdf)
+_enregistrer_paire("ohana75_8b_smo","OHANA 75 · 8 boules SMORFIA","🎴", 9,  ohana75_8boules.generer_pdf_smorfia)
 _enregistrer_paire("ohana75_10b",   "OHANA 75 · 10 boules","🌺", 9,  ohana75_10boules.generer_pdf)
 _enregistrer_paire("quatre_coin",   "4 COIN","🎯", 6,  quatre_coin.generer_pdf)
 _enregistrer_paire("pol",           "POL 6 boules","🎲", 12, pol.generer_pdf)
@@ -953,6 +954,8 @@ _PLAGES_CALLER = {
     "wiz": (1, 45),
     "p15_marathon": (1, 75),
     "ohana20b": (1, 75),
+    "ohana75_8b": (1, 75),
+    "ohana75_8b_smo": (1, 75),
 }
 
 
@@ -991,6 +994,8 @@ _BOULES_CALLER = {
     "tesla": [n for n in range(1, 31)] + [n for n in range(46, 61)],  # TESLA — la voiture roule sur 1-30 et 46-60
     "salute": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # SALUTE — le X couvre 1-30 et 46-75
     "pietra": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # PIETRA — la couronne couvre 1-30 et 46-75
+    "ohana75_8b": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # OHANA 75 · 8 boules — le 31-45 n'existe pas
+    "ohana75_8b_smo": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # son jumeau SMORFIA — mêmes boules
     "triple_bo90": [n for n in range(1, 16)] + [n for n in range(61, 91)],  # TRIPLE BO90 — les 3 cases couvrent 1-15 et 61-90
     "triple_bg90": [n for n in range(1, 16)] + [n for n in range(46, 61)] + [n for n in range(76, 91)],  # TRIPLE BG90 — B, G et 90
     "triple_bn90": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(76, 91)],  # TRIPLE BN90 — B, N et 90
