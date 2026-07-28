@@ -3,7 +3,7 @@
 MANAPRINT — SMORFIA by 2KEA · le jeu des images (v4, 27/07/2026)
 LE CHIFFRE DEVIENT L'IMAGE : sur chaque carton, UN des numéros est rendu
 par son image de la smorfia du fenua (panthéon VALIDÉ par Maeva le 27/07) :
-  11 TEPEA TOA ORUA  → deux silhouettes qui se tiennent
+  11 TAPEA TO ORUA   → deux silhouettes qui se tiennent
   16 TAIORO          → éclat de BD (l'explosion du juron)
   18 MON ÂGE         → gâteau d'anniversaire
   47 K7              → cassette audio
@@ -16,7 +16,7 @@ from reportlab.lib import colors
 from reportlab.lib.units import mm
 
 ANNONCES = {
-    11: "TEPEA TOA ORUA",
+    11: "TAPEA TO ORUA",
     16: "TAIORO",
     18: "MON \u00c2GE",
     47: "K7",
