@@ -22,6 +22,14 @@ except Exception:
     except Exception:
         _sec = None
 
+try:  # SMORFIA by 2KEA — le jeu des images (anti-panne : le jeu vit sans)
+    from generators import smorfia as _smor
+except Exception:
+    try:
+        import smorfia as _smor
+    except Exception:
+        _smor = None
+
 
 RAINBOW = [
     "#E53935", "#FB8C00", "#F9A825", "#43A047", "#1E88E5",
@@ -78,7 +86,7 @@ def _gen_carte():
 
 
 def _dessiner_carte(c, x0, y0, rangs, couleur_hex, serie, encre,
-                    telephone="", titre_jeu="", style="eco", evenement_id=""):
+                    telephone="", titre_jeu="", style="eco", evenement_id="", idx_img=(-1, -1)):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
 
@@ -121,6 +129,17 @@ def _dessiner_carte(c, x0, y0, rangs, couleur_hex, serie, encre,
         cy = y0 + zone_h * (0.66 if ri == 0 else 0.18)
         for i, n in enumerate(rang):
             cx = gauche + (i + 0.5) * pas
+            if _smor and (ri, i) == idx_img:  # SMORFIA : le chiffre devient l'image
+                if i % 2 == 0:
+                    _smor.poser_numero_image(c, n, cx, cy + t_grand * 0.36, 14, 11, gris_ch)
+                else:
+                    cyc = cy + (t_grand - t_cercle) * 0.35
+                    c.setStrokeColor(col); c.setLineWidth(0.5)
+                    c.setDash(1.4, 1.6)
+                    c.circle(cx, cyc + t_cercle * 0.36, 7.9 * mm, stroke=1, fill=0)
+                    c.setDash()
+                    _smor.poser_numero_image(c, n, cx, cyc + t_cercle * 0.36, 11, 9, gris_ch)
+                continue
             if i % 2 == 0:
                 # GRAND numéro
                 if _sec:
@@ -178,13 +197,36 @@ def generer_pdf(nb_cartes=5, serie_start=1, theme="", couleur=True,
             x0 = MARGIN_X
             y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
             rangs = _gen_carte()
+            idx_img = (-1, -1)
+            if _smor:  # SMORFIA : un numéro du panthéon prend sa place
+                try:
+                    ns = _smor.numero_pour_serie(serie)
+                    q = next(j for j, (lo, hi) in enumerate(QUINZAINES) if lo <= ns <= hi)
+                    quatre = rangs[0][2 * q:2 * q + 2] + rangs[1][2 * q:2 * q + 2]
+                    if ns in quatre:
+                        p = quatre.index(ns)
+                        idx_img = (0, 2 * q + p) if p < 2 else (1, 2 * q + p - 2)
+                    else:
+                        r = 0 if _smor.choix_hote(serie, 4) < 2 else 1
+                        paire = rangs[r][2 * q:2 * q + 2]
+                        autre = paire[0] if paire[0] != ns else paire[1]
+                        npaire = sorted([ns, autre])
+                        rangs[r][2 * q], rangs[r][2 * q + 1] = npaire
+                        idx_img = (r, 2 * q + npaire.index(ns))
+                except Exception:
+                    idx_img = (-1, -1)
             coul = (couleur_perso if (couleur and couleur_perso)
                     else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur
                     else "#999999")
             _dessiner_carte(c, x0, y0, rangs, coul, serie, encre,
-                            telephone, titre_jeu, style=style, evenement_id=evenement_id)
+                            telephone, titre_jeu, style=style, evenement_id=evenement_id, idx_img=idx_img)
             serie += 1
 
+        if _smor:
+            try:
+                _smor.credit_pied(c, PAGE_W)
+            except Exception:
+                pass
         c.showPage()
         no_page += 1
 
