@@ -2314,7 +2314,11 @@ def api_partenaire_mes_commandes():
     mois = _date.today().isoformat()[:7]
     lignes = []
     nb_f = du_total = du_mois = 0
-    for cmd in db.lister_commandes():
+    try:
+        commandes = db.lister_commandes()
+    except Exception:  # base occupée par la fabrication : on répond poliment
+        return jsonify({"ok": False, "message": "Le serveur fabrique vos cartons — réessayez dans un instant"}), 200
+    for cmd in commandes:
         try:
             perso = _json.loads(cmd.get("params_perso") or "{}")
         except Exception:
