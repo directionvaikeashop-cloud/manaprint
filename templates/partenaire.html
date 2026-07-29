@@ -116,6 +116,25 @@
     </div>
 
     <div class="carte">
+      <h2 style="font-size:1.05rem;margin-bottom:.4rem">🖨️ Ma fabrique — mes PDF à mon enseigne</h2>
+      <p class="sous" style="margin-top:0">Choisissez un jeu : la plateforme fabrique le PDF à votre nom — OFFERT pour votre boutique. Vous imprimez et vendez chez vous.</p>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:.5rem">
+        <div style="flex:2 1 220px"><label class="sous">Le jeu</label>
+          <select id="fab-jeu" style="width:100%;text-transform:none;letter-spacing:0;margin-bottom:0"></select></div>
+        <div style="flex:1 1 150px"><label class="sous">Feuilles</label>
+          <select id="fab-feuilles" style="width:100%;text-transform:none;letter-spacing:0;margin-bottom:0"></select></div>
+      </div>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:.6rem">
+        <div style="flex:2 1 220px"><label class="sous">Titre sur les cartons (vide = votre enseigne)</label>
+          <input id="fab-titre" type="text" maxlength="40" placeholder="ex : RANIHEI AND SISTER RAROMATAI" style="text-transform:none;letter-spacing:0;margin-bottom:0"></div>
+        <div style="flex:1 1 150px"><label class="sous">Téléphone (vide = le vôtre)</label>
+          <input id="fab-tel" type="text" maxlength="24" placeholder="ex : 87 77 39 19" style="text-transform:none;letter-spacing:0;margin-bottom:0"></div>
+      </div>
+      <button id="btn-fab" class="btn" onclick="fabriquer()">🖨️ Lancer ma fabrique</button>
+      <span id="fab-msg" class="msg"></span>
+    </div>
+
+    <div class="carte">
       <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.8rem">
         <h2 style="font-size:1.05rem">📦 Mes commandes</h2>
         <button id="btn-actu" class="btn gris mini" style="margin-left:auto" onclick="actualiser()">↻ Actualiser</button>
@@ -199,6 +218,7 @@ async function charger(){
     document.getElementById('st-total').textContent = fmtF(d.stats.du_total);
     chargerPrix();
     chargerArticles();
+    chargerJeuxFabrique();
     const zone = document.getElementById('liste');
     if(!d.commandes.length){
       zone.innerHTML = '<p class="msg" style="color:var(--muted)">Aucune commande pour le moment — partagez l\u2019adresse de votre vitrine pour recevoir vos premi\u00e8res commandes !</p>';
@@ -227,6 +247,50 @@ function expliquerVide(){
   const zone = document.getElementById('liste-cmds');
   if(zone && !zone.innerHTML.trim()){
     zone.innerHTML = '<p class="msg" style="color:var(--muted)">\u23f3 Le serveur fabrique vos cartons \u2014 vos commandes s\u2019afficheront d\u00e8s qu\u2019il reprend son souffle. Appuyez sur \u21bb dans un instant.</p>';
+  }
+}
+
+async function chargerJeuxFabrique(){
+  const sel = document.getElementById('fab-jeu');
+  if(!sel || sel.options.length) return;
+  try{
+    const d = await (await fetch('/api/jeux')).json();
+    (d.jeux || []).forEach(function(j){
+      const o = document.createElement('option');
+      o.value = j.id; o.textContent = (j.emoji ? j.emoji + ' ' : '') + j.nom;
+      sel.appendChild(o);
+    });
+  }catch(e){}
+  const sf = document.getElementById('fab-feuilles');
+  if(sf && !sf.options.length){
+    for(let n = 25; n <= 250; n += 25){
+      const o = document.createElement('option');
+      o.value = n; o.textContent = n + ' feuilles (' + (n/25) + ' paquet' + (n>25?'s':'') + ' de 25)';
+      sf.appendChild(o);
+    }
+  }
+}
+
+async function fabriquer(){
+  const btn = document.getElementById('btn-fab');
+  const msg = document.getElementById('fab-msg');
+  if(btn.disabled) return;
+  btn.disabled = true; const avant = btn.textContent; btn.textContent = '⏳ Fabrication…';
+  msg.textContent = '';
+  try{
+    const r = await fetch('/api/partenaire/generer', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ programme: document.getElementById('fab-jeu').value,
+                             nb_feuilles: parseInt(document.getElementById('fab-feuilles').value, 10),
+                             titre: document.getElementById('fab-titre').value,
+                             telephone: document.getElementById('fab-tel').value })});
+    const d = await r.json();
+    msg.textContent = d.message || (d.ok ? '✅' : '❌ Réessayez');
+    msg.style.color = d.ok ? '#1a7f37' : '#c0392b';
+  }catch(e){
+    msg.textContent = '❌ Serveur occupé (fabrication en cours ?) — réessayez dans un instant.';
+    msg.style.color = '#c0392b';
+  }finally{
+    btn.disabled = false; btn.textContent = avant;
   }
 }
 
