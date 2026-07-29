@@ -3,7 +3,7 @@
 MANAPRINT — Générateur OHANA 90 · 12 BOULES (format A4)
 9 bandeaux pleine largeur par feuille A4 (1 colonne × 9 rangées).
 Chaque bandeau : boîte de série à gauche + titre « Le jeu OHANA 90 pour
-12 boules by TUKEA … » (le nom TOUJOURS visible), puis UNE LIGNE de
+12 boules … » (le nom TOUJOURS visible), puis UNE LIGNE de
 12 numéros TRIÉS — 2 par famille de quinze (la structure OHANA 90) :
   1-15 · 16-30 · 31-45 · 46-60 · 61-75 · 76-90
 Le 2e numéro de chaque paire est cerclé en POINTILLÉS (fidèle au modèle).
@@ -107,9 +107,9 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     c.line(x0 + serie_w, hdr_bas, x0 + serie_w, y0 + CARD_H)
     c.setFillColor(col); c.setFont(POLICE, 7)
     c.drawCentredString(x0 + serie_w / 2, hdr_bas + 1.5 * mm, "%06d" % serie)
-    titre = "Le jeu OHANA 90 pour 12 boules by TUKEA"
+    titre = "Le jeu OHANA 90 pour 12 boules"
     if titre_jeu and "OHANA" not in titre_jeu.strip().upper():
-        titre = "OHANA 90 \u00b7 12 boules \u00b7 " + titre_jeu.strip() + " by TUKEA"
+        titre = "OHANA 90 \u00b7 12 boules \u00b7 " + titre_jeu.strip() + ""
     if telephone:
         titre += " " + telephone
     c.setFont(POLICE, 5.5)

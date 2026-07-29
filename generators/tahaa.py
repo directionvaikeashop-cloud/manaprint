@@ -5,7 +5,7 @@ MANAPRINT — Générateur TAHAA (format A4 PAYSAGE)
 Chaque carte : 5 numéros dans des CERCLES (fidèle au modèle) :
   rangée haute : 1-15 (gauche) · 31-45 (centre) · 61-75 (droite)
   rangée basse :      16-30 (centre-gauche) · 46-60 (centre-droit)
-Ligne signature au centre : « TAHAA pour 5 boules by TUKEA … » (fidèle au modèle).
+Ligne signature au centre : « TAHAA pour 5 boules … » (fidèle au modèle).
 QR de vérification dans le coin bas-droit. Série discrète en bas à gauche.
 Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
 """
@@ -116,9 +116,9 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
             c.drawCentredString(cx, cy - taille * 0.36, str(val))
 
     # Ligne signature au CENTRE — le nom du jeu apparaît TOUJOURS (fidèle au modèle)
-    signature = "TAHAA pour 5 boules by TUKEA"
+    signature = "TAHAA pour 5 boules"
     if titre_jeu and "TAHAA" not in titre_jeu.strip().upper():
-        signature = "TAHAA \u00b7 " + titre_jeu.strip() + " by TUKEA"
+        signature = "TAHAA \u00b7 " + titre_jeu.strip() + ""
     if telephone:
         signature += " " + telephone
     c.setFillColor(col); c.setFont(POLICE, 4.2)

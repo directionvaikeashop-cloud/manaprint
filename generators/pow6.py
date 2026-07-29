@@ -2,7 +2,7 @@
 """
 MANAPRINT — Générateur POW 5 BOULES (format A4)
 12 cartes par feuille A4 (3 colonnes × 4 rangées).
-Chaque carte : en-tête « Le jeu POW 5 boules by TUKEA … » + « Carte N° 030001 »
+Chaque carte : en-tête « Le jeu POW 5 boules … » + « Carte N° 030001 »
 (fidèle au modèle), puis une grille 2 rangées × 3 colonnes — 5 BOULES
 en familles de NEUF :
   colonne 1 = 1-9 (×2) · colonne 2 = 10-18 (×1) · colonne 3 = 19-27 (×2)
@@ -116,9 +116,9 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     hdr_bas = y0 + CARD_H - HDR_H
     c.setStrokeColor(col); c.setLineWidth(0.4)
     c.line(x0, hdr_bas, x0 + CARD_W, hdr_bas)
-    l1 = "Le jeu POW 5 boules by TUKEA"
+    l1 = "Le jeu POW 5 boules"
     if titre_jeu and "POW" not in titre_jeu.strip().upper():
-        l1 = "POW 5 boules \u00b7 " + titre_jeu.strip() + " by TUKEA"
+        l1 = "POW 5 boules \u00b7 " + titre_jeu.strip() + ""
     if telephone:
         l1 += " " + telephone
     tx = x0 + CARD_W / 2                  # l'en-tête bien centré

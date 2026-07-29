@@ -7,7 +7,7 @@ Chaque carte : grille 4 colonnes × 5 rangées — 17 numéros triés par colonn
   col 1 = 1-15 (×5) · col 2 = 31-45 (×5) · col 3 = 46-60 (×2, rangées 1 et 5)
   col 4 = 61-75 (×5)          — le 16-30 n'existe pas (caller informé) !
 Le CŒUR de la colonne 3 (3 cases fusionnées) porte la signature
-« Le jeu AHURU by TUKEA + téléphone »… et le QR de vérification.
+« Le jeu AHURU + téléphone »… et le QR de vérification.
 Pied de carte : « N° SÉRIE | 000001 ».
 Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
 """
@@ -148,7 +148,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     c.setFillColor(col); c.setFont(POLICE, 4.6)
     c.drawCentredString(coeur_cx, coeur_haut - 2.6 * mm, l1[:26])
     c.setFont(POLICE, 4.2)
-    c.drawCentredString(coeur_cx, coeur_haut - 6.0 * mm, ("by TUKEA " + telephone if telephone else "by TUKEA")[:26])
+    c.drawCentredString(coeur_cx, coeur_haut - 6.0 * mm, (telephone if telephone else "")[:26])
     if _sec and evenement_id:
         try:
             _q = min(cell_w - 4 * mm, 3 * row_h - 9.5 * mm, 12.5 * mm)

@@ -113,7 +113,7 @@ def _dessiner_carte(c, x0, y0, paires, couleur_hex, serie, titre_jeu="", telepho
     c.line(x0, y0 + PIED_H, x0 + CARD_W, y0 + PIED_H)
     c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 4.2)
     c.drawString(x0 + 2 * mm, y0 + 1.4 * mm, "N\u00b0 SERIE")
-    signature = "TOPDAY by TUKEA"
+    signature = "TOPDAY"
     if titre_jeu and "TOPDAY" not in titre_jeu.strip().upper():
         signature += " \u00b7 " + titre_jeu.strip()
     if telephone:

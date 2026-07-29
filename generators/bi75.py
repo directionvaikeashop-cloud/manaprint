@@ -7,7 +7,7 @@ Chaque carte : en-tête B | I | 75, grille 2 rangées × 3 colonnes, 6 numéros 
   I  = 2 numéros 16-30 (triés)
   75 = 2 numéros 61-75 (triés)
 Colonnes NON contiguës : le 31-60 n'existe pas (caller informé).
-Bande dédiée à droite : signature « BI 75 by TUKEA » + QR de vérification.
+Bande dédiée à droite : signature « BI 75 » + QR de vérification.
 Pied « N° SERIE | 015001 » (fidèle au modèle).
 Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
 """
@@ -141,7 +141,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
 
     # Bande de droite : signature verticale + QR de vérification
     bande_cx = zx + zw + ZONE_QR / 2
-    signature = "BI 75 by TUKEA"
+    signature = "BI 75"
     if telephone:
         signature += " " + telephone
     c.saveState()

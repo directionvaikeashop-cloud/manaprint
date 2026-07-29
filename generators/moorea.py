@@ -8,7 +8,7 @@ Chaque carte : 13 numéros disposés EN LOSANGE (1-3-5-3-1) :
   col 3 = 5 numéros (31-45)    — le cœur du losange
   col 4 = 3 numéros (46-60)
   col 5 = 1 numéro  (61-75)    — la pointe droite
-Numéro de série en haut à droite, « MOOREA by TUKEA » en pied de carte.
+Numéro de série en haut à droite, « MOOREA » en pied de carte.
 Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
 """
 import io
@@ -137,8 +137,8 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
                 c.setFillColor(gris_ch); c.setFont(police_ch, taille)
                 c.drawCentredString(xs[ci], cyc - taille * 0.36, str(val))
 
-    # Pied de carte : signature du jeu (fidèle au modèle « MOOREA by TUKEA »)
-    pied = "MOOREA by TUKEA"
+    # Pied de carte : signature du jeu (fidèle au modèle « MOOREA »)
+    pied = "MOOREA"
     if telephone:
         pied += "  " + telephone
     c.setFillColor(col); c.setFont(POLICE, 4.5)

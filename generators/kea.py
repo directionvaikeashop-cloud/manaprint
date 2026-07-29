@@ -102,7 +102,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     hdr_bas = y0 + CARD_H - HDR_H
     c.setStrokeColor(col); c.setLineWidth(0.4)
     c.line(x0, hdr_bas, x0 + CARD_W, hdr_bas)
-    l1 = "KEA by TUKEA" + ((" " + telephone) if telephone else "")
+    l1 = "KEA" + ((" " + telephone) if telephone else "")
     if titre_jeu and "KEA" not in titre_jeu.strip().upper():
         l1 = "KEA · " + titre_jeu.strip() + ((" " + telephone) if telephone else "")
     c.setFillColor(col); c.setFont(POLICE, 4.4)

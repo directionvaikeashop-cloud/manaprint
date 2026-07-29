@@ -113,7 +113,7 @@ def _dessiner_carte(c, x0, y0, rangs, couleur_hex, serie, encre,
     else:
         titre = "Le jeu OHANA 75 pour 20 boules"
     if telephone:
-        titre += f" by TUKEA {telephone}"
+        titre += f" {telephone}"
     titre = titre[:60]
     c.setFillColor(col); c.setFont("Helvetica", 6)
     c.drawCentredString(x0 + CARD_W / 2, hdr_y + 2.2 * mm, titre)

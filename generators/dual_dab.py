@@ -112,7 +112,7 @@ def _dessiner_carte(c, x0, y0, donnees, couleur_hex, serie, encre,
     if _sec:
         _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
 
-    # En-tête double : titre à gauche, "by TUKEA" à droite
+    # En-tête double : titre à gauche, "" à droite
     hdr_y = y0 + CARD_H - HDR_H
     c.setStrokeColor(col); c.setLineWidth(0.4)
     c.line(x0, hdr_y, x0 + CARD_W, hdr_y)
@@ -121,7 +121,7 @@ def _dessiner_carte(c, x0, y0, donnees, couleur_hex, serie, encre,
     titre = titre_jeu[:18] if titre_jeu else "DUAL DAB 75"
     c.drawString(x0 + 3 * mm, hdr_y + 1.8 * mm, titre)
     c.setFillColor(GREY); c.setFont("Helvetica-Oblique", 5)
-    droite = f"by TUKEA {telephone}" if telephone else "by TUKEA"
+    droite = f"{telephone}" if telephone else ""
     c.drawRightString(x0 + CARD_W - 3 * mm, hdr_y + 2.0 * mm, droite)
 
     taille = 30  # GROS chiffres — les cartes sont spacieuses, on en profite !

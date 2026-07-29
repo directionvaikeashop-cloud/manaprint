@@ -146,7 +146,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
                 c.drawCentredString(cx, cyc - taille * 0.36, str(val))
 
     # Pied de carte : signature + série (le nom du jeu apparaît TOUJOURS)
-    signature = "MOON by TUKEA"
+    signature = "MOON"
     if titre_jeu and titre_jeu.strip().upper() != "MOON":
         signature += " · " + titre_jeu.strip()
     if telephone:

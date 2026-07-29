@@ -136,13 +136,13 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     pied_haut = y0 + PIED_H
     c.setStrokeColor(col); c.setLineWidth(0.35)
     c.line(x0, pied_haut, x0 + CARD_W, pied_haut)
-    signature = "P15 by TUKEA"
+    signature = "P15"
     if titre_jeu and "P15" not in titre_jeu.strip().upper():
         signature += " \u00b7 " + titre_jeu.strip()
     if telephone:
         signature += " \u00b7 " + telephone
     c.setFillColor(col); c.setFont(POLICE, 3.6)
-    c.drawString(x0 + 1.4 * mm, y0 + 1.0 * mm, signature[:44])
+    c.drawString(x0 + 1.4 * mm, y0 + 1.0 * mm, signature[:60])
     c.setFillColor(GRIS); c.setFont(POLICE, 4.6)
     c.drawRightString(x0 + CARD_W - 1.4 * mm, y0 + 0.9 * mm, "%06d" % serie)
 

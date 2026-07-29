@@ -7,7 +7,7 @@ Chaque bandeau : série centrée en tête, puis DEUX LIGNES de 12 numéros
 chaque paire (fidèle au modèle), le 2e de chaque paire CERCLÉ (trait plein) :
   1-15 · 16-30 · 31-45 · 46-60 · 61-75 · 76-90
 Les 4 numéros d'une même famille sont tous distincts sur la carte.
-Signature « Ohana 90 pour 24 boules by TUKEA … » au pied (nom TOUJOURS visible).
+Signature « Ohana 90 pour 24 boules … » au pied (nom TOUJOURS visible).
 QR de vérification au bout droit du bandeau.
 Couleur arc-en-ciel (par bandeau) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
 """
@@ -113,9 +113,9 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     c.drawCentredString(x0 + CARD_W / 2, hdr_bas + 1.3 * mm, "%06d" % serie)
 
     # Pied : signature — le nom du jeu apparaît TOUJOURS (fidèle au modèle)
-    signature = "Ohana 90 pour 24 boules by TUKEA"
+    signature = "Ohana 90 pour 24 boules"
     if titre_jeu and "OHANA" not in titre_jeu.strip().upper():
-        signature = "Ohana 90 \u00b7 24 boules \u00b7 " + titre_jeu.strip() + " by TUKEA"
+        signature = "Ohana 90 \u00b7 24 boules \u00b7 " + titre_jeu.strip() + ""
     if telephone:
         signature += " " + telephone
     c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 4.4)

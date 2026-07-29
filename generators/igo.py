@@ -7,7 +7,7 @@ Chaque carte, 3 étages séparés par des traits (fidèle au modèle) :
   étage 2 : un solitaire G (46-60), centré
   étage 3 : un solitaire G (46-60), centré
 5 numéros par carte — la colonne G en fournit 3 (tous distincts).
-En-tête à 2 lignes : « Le jeu IGO pour 5 boules by TUKEA … » + « Carte N° 030001 ».
+En-tête à 2 lignes : « Le jeu IGO pour 5 boules … » + « Carte N° 030001 ».
 Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
 """
 import io
@@ -109,9 +109,9 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     hdr_bas = y0 + CARD_H - HDR_H
     c.setStrokeColor(col); c.setLineWidth(0.4)
     c.line(x0, hdr_bas, x0 + CARD_W, hdr_bas)
-    l1 = "Le jeu IGO pour 5 boules by TUKEA" + ((" " + telephone) if telephone else "")
+    l1 = "Le jeu IGO pour 5 boules" + ((" " + telephone) if telephone else "")
     if titre_jeu and "IGO" not in titre_jeu.strip().upper():
-        l1 = "Le jeu IGO \u00b7 " + titre_jeu.strip() + " by TUKEA" + ((" " + telephone) if telephone else "")
+        l1 = "Le jeu IGO \u00b7 " + titre_jeu.strip() + "" + ((" " + telephone) if telephone else "")
     c.setFillColor(col); c.setFont(POLICE, 4.4)
     c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 3.2 * mm, l1[:64])
     c.setFont(POLICE, 5.5)

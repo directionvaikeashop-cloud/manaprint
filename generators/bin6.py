@@ -137,7 +137,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
                 c.drawCentredString(cx, cyc - taille * 0.36, str(val))
 
     # Bande du bas : signature à gauche + QR de vérification à droite
-    signature = "BIN 6 boules by TUKEA"
+    signature = "BIN 6 boules"
     if telephone:
         signature += " " + telephone
     c.setFillColor(col); c.setFont(POLICE, 4.2)

@@ -10,7 +10,7 @@ Chaque carte : 8 numéros en quinconce 2-1-2-1-2 dans 5 colonnes de huit :
   col 5 = 2 numéros empilés (33-40)
 Grille à traits : séparateurs verticaux entre colonnes, trait horizontal
 au milieu des colonnes empilées (fidèle au modèle).
-En-tête : « Le jeu 40 boules · 8 boules by TUKEA » — pied : « N° SÉRIE | 030001 ».
+En-tête : « Le jeu 40 boules · 8 boules » — pied : « N° SÉRIE | 030001 ».
 Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
 """
 import io
@@ -113,7 +113,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
 
     # En-tête — le nom du jeu apparaît TOUJOURS (fidèle au modèle)
     hdr_y = y0 + CARD_H - 3.4 * mm
-    titre = "Le jeu 40 boules · 8 boules by TUKEA"
+    titre = "Le jeu 40 boules · 8 boules"
     if titre_jeu and "40 BOULES" not in titre_jeu.strip().upper():
         titre += " · " + titre_jeu.strip()
     if telephone:

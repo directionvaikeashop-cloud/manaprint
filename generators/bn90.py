@@ -118,7 +118,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     c.line(x0, pied_haut, x0 + CARD_W, pied_haut)
     c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 4.2)
     c.drawString(x0 + 2 * mm, y0 + 1.4 * mm, "N\u00b0 SERIE")
-    signature = "BN 90 by TUKEA"
+    signature = "BN 90"
     if titre_jeu and "BN" not in titre_jeu.strip().upper():
         signature += " \u00b7 " + titre_jeu.strip()
     if telephone:

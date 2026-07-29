@@ -6,7 +6,7 @@ MANAPRINT — Générateur YES (format A4)
 Chaque carte : 6 boules en DEUX LIGNES de 3 numéros :
   position 1 = 1-30  ·  position 2 = 31-60  ·  position 3 = 61-90
 (un numéro de chaque famille par ligne, distincts sur la carte — tirage 1-90 !)
-En-tête ÉPURÉ, décision Maeva : UNIQUEMENT « Le jeu YES by TUKEA 89 22 23 05 »
+En-tête ÉPURÉ, décision Maeva : UNIQUEMENT « Le jeu YES 89 22 23 05 »
 (le nom TOUJOURS visible). N° de série discret + QR de vérification au centre.
 Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
 """
@@ -118,9 +118,9 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
                 c.drawCentredString(cx, cy - taille * 0.36, str(val))
 
     # L'étage du milieu ÉPURÉ (décision Maeva) : le nom seul + série + QR à droite
-    l1 = "Le jeu YES by TUKEA"
+    l1 = "Le jeu YES"
     if titre_jeu and "YES" not in titre_jeu.strip().upper():
-        l1 = "Le jeu YES \u00b7 " + titre_jeu.strip() + " by TUKEA"
+        l1 = "Le jeu YES \u00b7 " + titre_jeu.strip() + ""
     if telephone:
         l1 += " " + telephone
     c.setFillColor(col); c.setFont(POLICE, 4.6)

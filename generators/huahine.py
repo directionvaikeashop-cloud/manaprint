@@ -6,7 +6,7 @@ Chaque carte : 6 numéros disposés en croix (fidèle au modèle) :
   coin HAUT-GAUCHE  (1-15)     coin HAUT-DROIT  (76-90)
         PAIRE CENTRALE côte à côte (46-60)
   coin BAS-GAUCHE   (1-15)     coin BAS-DROIT   (76-90)
-En-tête : « Le jeu HUAHINE · pour 6 boules by TUKEA Tél : … »
+En-tête : « Le jeu HUAHINE · pour 6 boules Tél : … »
 Pied de carte : « N° SERIE | 036001 ».
 Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
 """
@@ -108,7 +108,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     titre = "Le jeu HUAHINE · pour 6 boules"
     if titre_jeu and "HUAHINE" not in titre_jeu.strip().upper():
         titre += " · " + titre_jeu.strip()
-    titre += " by TUKEA" + ((" Tél : " + telephone) if telephone else "")
+    titre += "" + ((" Tél : " + telephone) if telephone else "")
     c.setFillColor(col); c.setFont(POLICE, 4.8)
     c.drawCentredString(x0 + CARD_W / 2, hdr_y, titre[:78])
 

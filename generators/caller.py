@@ -149,7 +149,7 @@ def _suite_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu, telephone, styl
     titre = "CALLER 6 boules"
     if titre_jeu and titre_jeu.strip().upper() != titre.upper():
         titre += "  —  " + titre_jeu.strip()
-    titre += "  by TUKEA " + (telephone or "")
+    titre += "  " + (telephone or "")
     c.setFillColor(col); c.setFont(POLICE, 4.4)
     c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 3.6 * mm, titre[:64])
     c.setFillColor(col); c.setFont(POLICE, 5.2)

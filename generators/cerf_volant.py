@@ -125,7 +125,7 @@ def _dessiner_carte(c, x0, y0, donnees, couleur_hex, serie, encre,
     if titre_jeu:
         bandeau += "  \u2014  " + titre_jeu
     elif telephone:
-        bandeau += f"  \u00b7  by TUKEA {telephone}"
+        bandeau += f"  \u00b7  {telephone}"
     c.setFillColor(GREY); c.setFont("Helvetica", 4)
     c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 2.4 * mm, bandeau[:64])
 

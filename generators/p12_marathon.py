@@ -173,7 +173,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
         c.drawCentredString(cx_c, cy_c - 3.4 * mm, "THON")
 
     # Signature discrète sous la carte (marque + titre client + téléphone)
-    signature = "P12 by TUKEA"
+    signature = "P12"
     if titre_jeu and "P12" not in titre_jeu.strip().upper():
         signature += " \u00b7 " + titre_jeu.strip()
     if telephone:

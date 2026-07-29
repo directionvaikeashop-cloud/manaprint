@@ -116,7 +116,7 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
     if titre_jeu and "SUN" not in titre_jeu.strip().upper():
         titre = "SUN · " + titre_jeu.strip()
     if telephone:
-        titre += " by TUKEA " + telephone
+        titre += " " + telephone
     c.setFillColor(col); c.setFont(POLICE, 5.5)
     c.drawCentredString(x0 + CARD_W / 2, hdr_y, titre[:60])
 

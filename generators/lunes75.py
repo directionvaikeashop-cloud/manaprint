@@ -139,7 +139,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
             _sec.carton_qr(c, x0 + (CARD_W - _q) / 2, y0 + 1.4 * mm, _q, evenement_id, serie)
         except Exception:
             pass
-    signature = "by TUKEA"
+    signature = ""
     if telephone:
         signature += " " + telephone
     c.setFillColor(col); c.setFont(POLICE, 4.0)

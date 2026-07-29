@@ -2,7 +2,7 @@
 """
 MANAPRINT — Générateur RAI (format A4)
 12 cartes par feuille A4 (3 colonnes × 4 rangées).
-Chaque carte : en-tête « Le jeu RAI by TUKEA … » + « Carte N° 030001 »
+Chaque carte : en-tête « Le jeu RAI … » + « Carte N° 030001 »
 (fidèle au modèle), puis une grille 3×3 de 8 BOULES par familles de DIX :
   colonne 1 = 30-39 (×3) · colonne 2 = 40-49 (×2) · colonne 3 = 50-59 (×3)
 (numéros distincts par colonne, ordre LIBRE — fidèle au modèle)
@@ -104,9 +104,9 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     hdr_bas = y0 + CARD_H - HDR_H
     c.setStrokeColor(col); c.setLineWidth(0.4)
     c.line(x0, hdr_bas, x0 + CARD_W, hdr_bas)
-    l1 = "Le jeu RAI by TUKEA"
+    l1 = "Le jeu RAI"
     if titre_jeu and "RAI" not in titre_jeu.strip().upper():
-        l1 = "Le jeu RAI \u00b7 " + titre_jeu.strip() + " by TUKEA"
+        l1 = "Le jeu RAI \u00b7 " + titre_jeu.strip() + ""
     if telephone:
         l1 += " " + telephone
     tx = x0 + CARD_W / 2                  # l'en-tête bien centré

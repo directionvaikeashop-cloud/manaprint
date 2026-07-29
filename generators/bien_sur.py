@@ -8,7 +8,7 @@ MANAPRINT — Générateur BIEN SÛR (format A4)
   · BOÎTE BASSE (coin bas-droit) : 3 numéros 60-75 — le min en petit
     au-dessus, les deux autres empilés en GRAND
 8 boules par carte, partition complète du 1 à 75 (20 + 39 + 16).
-Centre : « Le jeu Bien Sûr 1 à 75 by TUKEA + tél + N° » (le nom TOUJOURS visible).
+Centre : « Le jeu Bien Sûr 1 à 75 + tél + N° » (le nom TOUJOURS visible).
 QR de vérification au centre-gauche. Couleur arc-en-ciel (par carte) ou gris (N&B).
 Chiffres en gris (2 gammes ÉCO/PREMIUM).
 """
@@ -154,9 +154,9 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     chiffre(bas[2], bx2 + bw * 0.74, by2 + bh * 0.26, t_grand)
 
     # ── Centre : le nom du jeu TOUJOURS visible (fidèle au modèle) ──
-    l1 = "Le jeu Bien S\u00fbr 1 \u00e0 75 by TUKEA"
+    l1 = "Le jeu Bien S\u00fbr 1 \u00e0 75"
     if titre_jeu and "BIEN" not in titre_jeu.strip().upper():
-        l1 = "Bien S\u00fbr \u00b7 " + titre_jeu.strip() + " by TUKEA"
+        l1 = "Bien S\u00fbr \u00b7 " + titre_jeu.strip() + ""
     c.setFillColor(col); c.setFont(POLICE, 5)
     c.drawCentredString(x0 + CARD_W * 0.52, y0 + CARD_H * 0.575, l1[:52])
     if telephone:

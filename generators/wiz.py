@@ -6,7 +6,7 @@ Chaque carte : 4 numéros en losange —
   haut   : 1 numéro (16-30), centré
   milieu : 2 numéros — gauche (1-15) | droite (31-45), séparés d'un trait vertical
   bas    : 1 numéro (16-30), centré  (jamais le même que celui du haut)
-En-tête « Le jeux WIZ pour 4 boules by TUKEA … », série en pied (fidèle au modèle).
+En-tête « Le jeux WIZ pour 4 boules … », série en pied (fidèle au modèle).
 Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
 """
 import io
@@ -111,7 +111,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     else:
         titre = "Le jeux WIZ pour 4 boules"
     if telephone:
-        titre += " by TUKEA " + telephone
+        titre += " " + telephone
     c.setFillColor(col); c.setFont(POLICE, 5)
     c.drawCentredString(x0 + CARD_W / 2, hdr_y, titre[:56])
 

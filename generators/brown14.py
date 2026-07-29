@@ -138,7 +138,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
                 c.drawCentredString(cx, cyc - taille * 0.36, str(val))
 
     # Bande basse : signature (le nom du jeu apparaît TOUJOURS) + QR
-    signature = "BROWN 14 boules by TUKEA"
+    signature = "BROWN 14 boules"
     if titre_jeu and "BROWN" not in titre_jeu.strip().upper():
         signature += " · " + titre_jeu.strip()
     if telephone:

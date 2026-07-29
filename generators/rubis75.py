@@ -110,7 +110,7 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
     # Bandeau titre
     bandeau = (titre_jeu or "RUBIS 75")
     if telephone:
-        bandeau += " by TUKEA " + telephone
+        bandeau += " " + telephone
     c.setFillColor(col); c.setFont(POLICE, 4.5)
     c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 2.5 * mm, bandeau[:64])
 

@@ -161,7 +161,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     centre_x = x0 + CARD_W / 2
     _personnage_u(c, centre_x, y0 + BAS_H + 44 * mm, 24 * mm, col)
 
-    signature = "LETTRE U by TUKEA"
+    signature = "LETTRE U"
     if titre_jeu and titre_jeu.strip().upper() not in ("LETTRE U", "U"):
         signature += " \u00b7 " + titre_jeu.strip()
     if telephone:

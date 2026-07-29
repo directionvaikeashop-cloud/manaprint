@@ -110,7 +110,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
         c.drawCentredString(x0 + (i + 0.5) * cell_w, hdr_bas + 1.8 * mm, lettre)
 
     # Le nom du jeu apparaît TOUJOURS : signature fine sous l'en-tête
-    signature = "TEA by TUKEA"
+    signature = "TEA"
     if titre_jeu and titre_jeu.strip().upper() != "TEA":
         signature += " · " + titre_jeu.strip()
     if telephone:

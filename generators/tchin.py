@@ -6,7 +6,7 @@ MANAPRINT — Générateur TCHIN (format A4)
 Chaque carte : 5 numéros « pour 5 boules » :
   en haut, le GRAND numéro 11-20 (×1)
   colonne gauche : 1-10 (×2)  ·  colonne droite : 21-30 (×2)
-En-tête : « Le jeu TCHIN pour 5 boules by TUKEA … » (le nom TOUJOURS visible).
+En-tête : « Le jeu TCHIN pour 5 boules … » (le nom TOUJOURS visible).
 QR de vérification en bas au centre, série discrète en bas à gauche.
 Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
 """
@@ -119,9 +119,9 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
         c.drawCentredString(ix0 + iw / 2, iy0 + ih - t_grand * 0.92, str(haut))
 
     # En-tête 2 lignes — le nom du jeu apparaît TOUJOURS (fidèle au modèle)
-    l1 = "Le jeu TCHIN pour 5 boules by TUKEA"
+    l1 = "Le jeu TCHIN pour 5 boules"
     if titre_jeu and "TCHIN" not in titre_jeu.strip().upper():
-        l1 = "Le jeu TCHIN \u00b7 " + titre_jeu.strip() + " by TUKEA"
+        l1 = "Le jeu TCHIN \u00b7 " + titre_jeu.strip() + ""
     l2 = telephone if telephone else "manaprint.app"
     c.setFillColor(col); c.setFont(POLICE, 4.2)
     c.drawCentredString(ix0 + iw / 2, iy0 + ih * 0.615, l1[:58])

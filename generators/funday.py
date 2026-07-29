@@ -144,7 +144,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     c.translate(x0 + CARD_W - 1.6 * mm, y0 + 2.5 * mm)
     c.rotate(90)
     c.setFillColor(col); c.setFont(POLICE, 4.2)
-    signature = "FUNDAY by TUKEA" + ("  " + telephone if telephone else "")
+    signature = "FUNDAY" + ("  " + telephone if telephone else "")
     c.drawString(0, 0, signature[:40])
     c.restoreState()
 

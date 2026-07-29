@@ -7,7 +7,7 @@ la diagonale du haut, la pointe en bas à droite, le bord droit et le
 plancher complets. Les cases vides sont BARRÉES d'une croix (fidèle au modèle).
 Colonnes classiques : 1-15 · 16-30 · 31-45 · 46-60 · 61-75, et tout est
 trié en DESCENDANT vers le bas (75, 74, 73… — l'élégance du modèle).
-En-tête : « Le jeu FLÈCHE by TUKEA … » + N° de série. Le QR de vérification
+En-tête : « Le jeu FLÈCHE … » + N° de série. Le QR de vérification
 occupe une case barrée du haut. Couleur arc-en-ciel (par carte) ou gris (N&B).
 Chiffres en gris (2 gammes ÉCO/PREMIUM).
 """
@@ -109,9 +109,9 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     hdr_bas = y0 + CARD_H - HDR_H
     c.setStrokeColor(col); c.setLineWidth(0.4)
     c.line(x0, hdr_bas, x0 + CARD_W, hdr_bas)
-    l1 = "Le jeu \u00ab FL\u00c8CHE \u00bb by TUKEA"
+    l1 = "Le jeu \u00ab FL\u00c8CHE \u00bb"
     if titre_jeu and "FLECHE" not in titre_jeu.strip().upper().replace("\u00c8", "E"):
-        l1 = "FL\u00c8CHE \u00b7 " + titre_jeu.strip() + " by TUKEA"
+        l1 = "FL\u00c8CHE \u00b7 " + titre_jeu.strip() + ""
     if telephone:
         l1 += " " + telephone
     c.setFillColor(col); c.setFont(POLICE, 5)
