@@ -85,6 +85,7 @@ from generators import tea
 from generators import ohana75_4series
 from generators import ohana90_4series
 from generators import ohana90_2series
+from generators import ohana90_3series
 from generators import bgo
 from generators import igo
 from generators import kea
@@ -375,6 +376,7 @@ _enregistrer_paire("tea",           "TEA",        "🍵", 12, tea.generer_pdf)
 _enregistrer_paire("ohana75_4series", "OHANA 75 · 4 séries", "🌺", 4, ohana75_4series.generer_pdf)
 _enregistrer_paire("ohana90_4series", "OHANA 90 · 4 séries", "🌸", 4, ohana90_4series.generer_pdf)
 _enregistrer_paire("ohana90_2series", "OHANA 90 · 2 séries", "🌸", 2, ohana90_2series.generer_pdf)
+_enregistrer_paire("ohana90_3series", "OHANA 90 · 3 séries", "🌸", 3, ohana90_3series.generer_pdf)
 _enregistrer_paire("bgo",           "BGO",        "🔠", 12, bgo.generer_pdf)
 _enregistrer_paire("igo",           "IGO",        "🎱", 12, igo.generer_pdf)
 _enregistrer_paire("kea",           "KEA",        "🌿", 12, kea.generer_pdf)
