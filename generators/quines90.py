@@ -65,10 +65,12 @@ except Exception:
 _GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
 
 def _style_chiffres(style):
-    """Retourne (police, gris) des chiffres selon la gamme choisie."""
+    """Les chiffres du QUINES 90 sont TOUJOURS GRAS, style P15
+    (décision Maeva 30/07 : « les chiffres ne sont pas gras comme le P15 ») —
+    quelle que soit la gamme, l'écriture DejaVu passe en Bold."""
     if str(style).lower() in ("p15", "premium"):
         return _POLICE_P15, _GRIS_P15
-    return _POLICE_ECO, _GRIS_ECO
+    return _POLICE_P15, _GRIS_ECO
 # ═════════════════════════════════════════════════════════════════════
 
 PAGE_W, PAGE_H = landscape(A4)   # 297 × 210 mm — fidèle au modèle
