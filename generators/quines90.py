@@ -55,7 +55,13 @@ try:
 except Exception:
     _POLICE_ECO = "Helvetica"
 _GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
-_POLICE_P15 = "Helvetica-Bold"
+# P15 : LA MÊME ÉCRITURE que l'ÉCO (DejaVu), simplement en GRAS
+# (décision Maeva 30/07 : « pour les chiffres du P15 la même écriture et gras »)
+try:
+    _pm.registerFont(_TF("DJBOLD", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"))
+    _POLICE_P15 = "DJBOLD"
+except Exception:
+    _POLICE_P15 = "Helvetica-Bold"
 _GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
 
 def _style_chiffres(style):
@@ -168,15 +174,12 @@ def _dessiner_ticket(c, x0, y0, cases, couleur_hex, serie, style="eco", evenemen
 
     # Les numéros — gros, au cœur de leur case (taille au calibre des cases)
     t_num = CELL_H * 0.66
-    derniere_vide = None
     for r in range(3):          # r = 0 en HAUT
         cy = y0 + TICKET_H - (r + 1) * CELL_H
         for ci in range(9):
             n = cases[r][ci]
             cx = x0 + ci * CELL_W + CELL_W / 2
             if n is None:
-                if r == 2:
-                    derniere_vide = (x0 + ci * CELL_W, cy)
                 continue
             if _sec:  # chiffres "billet de banque" remplis de microtexte
                 _sec.chiffre_micro(c, n, cx, cy + CELL_H / 2 - t_num * 0.36, t_num, gris_ch, police_ch)
@@ -188,14 +191,8 @@ def _dessiner_ticket(c, x0, y0, cases, couleur_hex, serie, style="eco", evenemen
     c.setFillColor(GRIS); c.setFont(POLICE, 4)
     c.drawRightString(x0 + TICKET_W - 0.5 * mm, y0 - 2.1 * mm, "N\u00b0 %06d" % serie)
 
-    # QR de vérification — logé dans une case VIDE de la dernière ligne
-    if _sec and evenement_id and derniere_vide:
-        try:
-            _q = min(CELL_W, CELL_H) - 1.6 * mm
-            vx, vy = derniere_vide
-            _sec.carton_qr(c, vx + (CELL_W - _q) / 2, vy + (CELL_H - _q) / 2, _q, evenement_id, serie)
-        except Exception:
-            pass
+    # 🚫 PAS DE QR sur ce jeu (décision Maeva 30/07 : le QUINES 90 est le seul
+    # jeu de la maison SANS QR CODE — le microtexte de sécurité reste en poste).
 
 
 def generer_pdf(nb_cartes=18, serie_start=1, theme="", couleur=True,
