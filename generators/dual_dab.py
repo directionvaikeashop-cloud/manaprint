@@ -53,7 +53,7 @@ def _style_chiffres(style):
 
 PAGE_W, PAGE_H = A4
 COLS_PAGE = 2
-ROWS_PAGE = 3
+ROWS_PAGE = 4          # 8 grilles par feuille A4 (décision Maeva, 28/07)
 MARGIN_X = 6 * mm
 MARGIN_TOP = 11 * mm
 MARGIN_BOT = 8 * mm
