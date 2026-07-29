@@ -333,7 +333,7 @@ NOUVEAUX_JEUX = {
     "gambier", "parata", "katiu", "ok", "feu", "vision", "taptap", "joie",
     "caller", "valider", "chance", "opoa", "francs", "tesla", "salute", "pietra",
     "triple_bo90", "triple_bg90", "triple_bn90", "triple_bi90",
-    "triple_bg75", "triple_bn75", "triple_bi75", "rubis75", "sicilio", "avinda", "losange", "italia",
+    "triple_bg75", "triple_bn75", "triple_bi75", "rubis75", "sicilio", "avinda", "avinda_myst", "losange", "italia",
 }
 
 def _base_jeu(programme):
@@ -348,6 +348,7 @@ _enregistrer_paire("rubis90",       "RUBIS 90","💎", 12, rubis90.generer_pdf)
 _enregistrer_paire("rubis75",       "RUBIS 75 · 32 pts","💎", 10, rubis75.generer_pdf)
 _enregistrer_paire("sicilio",       "SICILIO",          "🔷", 6,  sicilio.generer_pdf)
 _enregistrer_paire("avinda",        "A VINDA · 2 séries","🍷", 2,  avinda.generer_pdf)
+_enregistrer_paire("avinda_myst",   "A VINDA MYSTÈRE","🔮", 2,  avinda.generer_pdf_mystere)
 _enregistrer_paire("losange",       "LOSANGE · 8 boules","🪁", 6,  losange.generer_pdf)
 _enregistrer_paire("italia",        "ITALIA",     "🇮🇹", 10, italia.generer_pdf)
 _enregistrer_paire("vai",           "VAI 9 boules","🌊", 12, vai.generer_pdf)
@@ -893,6 +894,7 @@ _PLAGES_CALLER = {
     "rubis75": (1, 75),
     "sicilio": (1, 90),
     "avinda": (1, 75),
+    "avinda_myst": (1, 75),
     "losange": (1, 75),
     "italia": (1, 75),
     "vai": (61, 90),
@@ -1060,6 +1062,49 @@ def api_caller_tirer():
 def api_caller_journal(partie_id):
     """Journal horodaté d'une partie (preuve infalsifiable de l'ordre des tirages)."""
     return jsonify({"ok": True, "partie_id": partie_id, "journal": db.journal_partie(partie_id)})
+
+
+_MYSTERE_JEUX = {"avinda_myst"}   # 🔮 les jeux au verre mystère (vision Maeva 29/07)
+# 🔮 Les colonnes du mystère et leurs plages (sceau Maeva 29/07 : « BIO ») —
+# règle de colonne : un mystère dans le I ne peut valoir qu'un numéro du I.
+_MYSTERE_COLONNES = {"avinda_myst": (("B", 1, 15), ("I", 16, 30), ("O", 61, 75))}
+
+
+@app.route("/api/caller/mystere", methods=["POST"])
+def api_caller_mystere():
+    """🔮 LA RÉVÉLATION DU MYSTÈRE (vision Maeva) : l'hôte choisit le MOMENT,
+    le hasard choisit le NUMÉRO. La boule-mystère est une boule NORMALE tirée
+    du sac restant par le même moteur — journalisée, horodatée — et elle
+    remplit TOUS les verres « ? » de la salle au même instant.
+    Garde-fou : déverrouillée seulement après le premier quart du sac."""
+    d = request.get_json(force=True, silent=True) or {}
+    jeu = str(d.get("jeu") or "")
+    partie_id = (d.get("partie_id") or "").strip()
+    if jeu not in _MYSTERE_JEUX:
+        return jsonify({"ok": False, "message": "Ce jeu n'a pas de verre myst\u00e8re."}), 400
+    if not partie_id:
+        return jsonify({"ok": False, "message": "Tirez d'abord quelques boules \u2014 le myst\u00e8re doit m\u00fbrir."}), 400
+    bmin, bmax = _PLAGES_CALLER[jeu]
+    univers = _BOULES_CALLER.get(jeu) or list(range(bmin, bmax + 1))
+    tirees = db.boules_tirees(partie_id)
+    seuil = max(1, len(univers) // 4)
+    if len(tirees) < seuil:
+        return jsonify({"ok": False, "message": f"Le myst\u00e8re m\u00fbrit encore \u2014 "
+                        f"d\u00e9verrouillage \u00e0 la {seuil}e boule ({len(tirees)}/{seuil})."}), 403
+    # 🔮 TRIPLE RÉVÉLATION : une boule-mystère PAR COLONNE, chacune dans sa plage
+    mysteres = {}
+    for lettre, a, b in _MYSTERE_COLONNES[jeu]:
+        boule = db.tirer_boule(partie_id, bmin, bmax, list(range(a, b + 1)))
+        if boule is None:   # colonne épuisée (rarissime) : on le dit honnêtement
+            mysteres[lettre] = None
+            continue
+        mysteres[lettre] = boule
+        print(f"[MYSTERE] partie {partie_id} \u00b7 jeu {jeu} \u00b7 colonne {lettre} "
+              f"\u2192 boule-myst\u00e8re {boule}")
+    if not any(v for v in mysteres.values()):
+        return jsonify({"ok": False, "message": "Toutes les boules sont sorties."}), 409
+    return jsonify({"ok": True, "partie_id": partie_id, "mysteres": mysteres,
+                    "tirees": db.boules_tirees(partie_id)})
 
 
 @app.route("/evenement/<evenement_id>")
