@@ -1074,6 +1074,69 @@ _MYSTERE_JEUX = {"avinda_myst"}   # 🔮 les jeux au verre mystère (vision Maev
 _MYSTERE_COLONNES = {"avinda_myst": (("B", 1, 15), ("I", 16, 30), ("O", 61, 75))}
 
 
+# ══ 📴 FORMULE HORS-LIGNE (demande clients, 30/07) ═══════════════════
+# Deux formules du CALLER : ① /caller — tirage au SERVEUR, journal de preuve
+# horodaté chez MANAPRINT (recommandée pour les tournois à cagnotte) ;
+# ② /caller-local — la page s'installe dans l'appareil (service worker) et
+# fonctionne SANS INTERNET : sac, tirage (hasard crypto du navigateur), voix
+# et journal vivent localement, journal exportable en CSV en fin de partie.
+
+_SW_CALLER_LOCAL = """
+const CACHE = 'mpcl-v1';
+const PAGES = ['/caller-local', '/caller-local/manifest.json', '/caller-local/icone.svg'];
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(PAGES)).then(() => self.skipWaiting()));
+});
+self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
+self.addEventListener('fetch', e => {
+  const u = new URL(e.request.url);
+  if (!PAGES.includes(u.pathname)) return;
+  e.respondWith(
+    caches.match(e.request).then(r => r || fetch(e.request).then(rep => {
+      const copie = rep.clone();
+      caches.open(CACHE).then(c => c.put(e.request, copie));
+      return rep;
+    }))
+  );
+});
+"""
+
+_ICONE_CALLER_LOCAL = """<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
+<rect width='100' height='100' rx='22' fill='#0b1120'/>
+<circle cx='50' cy='50' r='30' fill='#38bdf8'/>
+<text x='50' y='62' font-size='34' text-anchor='middle' font-family='sans-serif'
+      font-weight='bold' fill='#06263a'>90</text></svg>"""
+
+
+@app.route("/caller-local")
+def caller_local():
+    """📴 La formule hors-ligne du caller."""
+    return render_template("caller_local.html")
+
+
+@app.route("/caller-local/sw.js")
+def caller_local_sw():
+    return Response(_SW_CALLER_LOCAL, mimetype="application/javascript")
+
+
+@app.route("/caller-local/manifest.json")
+def caller_local_manifest():
+    return jsonify({
+        "name": "MANAPRINT CALLER hors-ligne",
+        "short_name": "CALLER 📴",
+        "start_url": "/caller-local",
+        "display": "standalone",
+        "background_color": "#0b1120",
+        "theme_color": "#0b1120",
+        "icons": [{"src": "/caller-local/icone.svg", "sizes": "any", "type": "image/svg+xml"}],
+    })
+
+
+@app.route("/caller-local/icone.svg")
+def caller_local_icone():
+    return Response(_ICONE_CALLER_LOCAL, mimetype="image/svg+xml")
+
+
 @app.route("/api/caller/mystere", methods=["POST"])
 def api_caller_mystere():
     """🔮 LA RÉVÉLATION DU MYSTÈRE (vision Maeva) : l'hôte choisit le MOMENT,
