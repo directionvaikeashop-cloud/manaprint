@@ -3,7 +3,7 @@
 MANAPRINT — Générateur P15 MARATHON (format A4)
 15 grilles BINGO par feuille A4 (3 colonnes × 5 rangées) — le légendaire
 P15 des boutiques, fidèle au modèle historique de Maeva :
-  bandeau B·I·N·G·O turquoise, grille 5×5 du bingo américain,
+  bandeau B·I·N·G·O blanc lettré couleur (éco toner 28/07), grille 5×5 du bingo américain,
   B 1-15 · I 16-30 · N 31-45 · G 46-60 · O 61-75 (ordre LIBRE),
   la case CENTRALE est libre — élargie en SANCTUAIRE (croix centrale
   15 mm) pour loger ENTIÈREMENT le QR de vérification sans toucher
@@ -123,11 +123,12 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
         _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.7 * mm)
 
-    # Bandeau B·I·N·G·O plein turquoise (fidèle au modèle)
+    # Bandeau B·I·N·G·O en BLANC, lettres en couleur (économie de toner — décision Maeva 28/07)
     hdr_bas = y0 + CARD_H - HDR_H
-    c.setFillColor(col)
-    c.rect(x0, hdr_bas, CARD_W, HDR_H, stroke=0, fill=1)
-    c.setFillColor(colors.white); c.setFont("Helvetica-Bold", 6.5)
+    c.setFillColor(colors.white)
+    c.setStrokeColor(col); c.setLineWidth(0.5)
+    c.rect(x0, hdr_bas, CARD_W, HDR_H, stroke=1, fill=1)
+    c.setFillColor(col); c.setFont("Helvetica-Bold", 6.5)
     for i, lettre in enumerate(LETTRES):
         c.drawCentredString((X_COL[i] + X_COL[i + 1]) / 2, hdr_bas + 1.1 * mm, lettre)
 
