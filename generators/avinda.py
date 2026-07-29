@@ -12,6 +12,8 @@ Vérification à la loupe x10 : lettres nettes = original, trait flou = photocop
 """
 import io
 import random
+import hmac as _hmac
+import hashlib as _hashlib
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -68,6 +70,25 @@ def _style_chiffres(style):
     return _POLICE_ECO, _GRIS_ECO
 # ═════════════════════════════════════════════════════════════════════
 
+MYSTERE_COLONNES = ("B", "I", "O")   # 🔮 les colonnes du mystère (sceau Maeva 29/07 : « BIO »)
+# Un « ? » par colonne, LE MÊME TRIO DE COLONNES sur tous les cartons — la
+# révélation tire UNE boule-mystère PAR COLONNE, dans sa plage (règle Maeva :
+# un mystère dans le I ne peut valoir qu'un numéro du I). Pour monter selon
+# le retour des clients : ajouter une lettre ici (et au caller/app).
+
+
+def _positions_colonnes():
+    """position (0-23, ordre du dessin) -> répartition par colonne B·I·N·G·O."""
+    d = {lettre: [] for lettre, a, b in PLAGES}
+    pos = 0
+    for j in range(5):
+        for i, (lettre, a, b) in enumerate(PLAGES):
+            if i == 2 and j == 2:
+                continue
+            d[lettre].append(pos)
+            pos += 1
+    return d
+
 PAGE_W, PAGE_H = A4
 PLAGES = [("B", 1, 15), ("I", 16, 30), ("N", 31, 45), ("G", 46, 60), ("O", 61, 75)]
 
@@ -105,12 +126,18 @@ def _verre(c, cx, cy, col):
     c.restoreState()
 
 
-def _gen_carte(rng):
+def _gen_carte(rng, forcer=()):
     """Vision Maeva : 13 cases tirées au sort portent UN numéro dans un VERRE ;
     les 11 autres suivent la règle du OHANA 75 · 2 boules (paire de 2 numéros
     distincts, triée). Chaque colonne tire TOUS ses numéros d'un seul coup
     → aucun doublon possible sur la carte."""
     verres = set(rng.sample(range(24), 13))
+    for p in forcer:
+        # 🔮 les cases mystère DOIVENT être des verres : on force, à 13 constants
+        if p not in verres:
+            candidats = sorted(verres - set(forcer))
+            verres.remove(rng.choice(candidats))
+            verres.add(p)
     # position -> (colonne, rang de case) dans l'ordre du dessin (lignes puis colonnes, FREE sauté)
     pos = 0
     besoins = {lettre: [] for lettre, a, b in PLAGES}
@@ -132,7 +159,8 @@ def _gen_carte(rng):
 
 
 def _dessiner_carte(c, x0, y0, carte, verres, couleur_hex, serie, encre,
-                    telephone="", titre_jeu="", no_page=1, style="eco", evenement_id=""):
+                    telephone="", titre_jeu="", no_page=1, style="eco", evenement_id="",
+                    pos_mysteres=frozenset()):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
     ncols = 5
@@ -185,11 +213,13 @@ def _dessiner_carte(c, x0, y0, carte, verres, couleur_hex, serie, encre,
                 c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.3)
                 c.line(cell_x, grid_bot, cell_x, grid_top)
 
-            # Case centrale = FREE + série
+            # Case centrale (colonne N) = LE NOM DU JEU + série
             if i == 2 and j == 2:
-                # 🎯 Case centrale FREE : elle accueille le QR de sécurité
-                c.setFillColor(col); c.setFont(POLICE, 6.5)
-                c.drawCentredString(cell_x + cell_w / 2, cy + row_h / 2 - 3.4 * mm, "FREE SPACE")
+                # 🍷 Case vie du N (décision Maeva 29/07 : « c'est à cet endroit que
+                # tu mettras le jeu A VINDA ») : le nom trône au cœur du carton,
+                # et la case accueille toujours le QR de sécurité.
+                c.setFillColor(col); c.setFont("Helvetica-Bold", 8.5)
+                c.drawCentredString(cell_x + cell_w / 2, cy + row_h / 2 - 3.6 * mm, "A VINDA")
                 if _sec and evenement_id:
                     try:
                         _q = 13.0 * mm
@@ -209,8 +239,19 @@ def _dessiner_carte(c, x0, y0, carte, verres, couleur_hex, serie, encre,
                 # médaillon blanc (recette 100 FRANCS) : la coupe s'efface sous le chiffre
                 c.setFillColor(colors.white)
                 c.roundRect(cxc - 7.7 * mm, cy - 3.6 * mm, 15.4 * mm, 9.8 * mm, 1.8 * mm, stroke=0, fill=1)
-                # chiffre RÉTRÉCI à 32 pts (décision Maeva : le verre doit rester bien lisible)
-                if _sec:
+                if no_case in pos_mysteres:
+                    # 🔮 LES VERRES MYSTÈRE (décision Maeva 29/07 : « on va commencer
+                    # par 3 mystères, ensuite on attendra le retour de nos clients ») :
+                    # TROIS des 13 coupes attendent d'être remplies — un grand « ? »,
+                    # AUCUN numéro n'existe derrière (la boule-mystère naîtra du
+                    # tirage public au caller et remplira les coupes « ? » de toute
+                    # la salle au même instant). Un « ? » par colonne B·I·O — la boule de
+                    # chaque colonne respecte sa plage (règle Maeva).
+                    c.setFillColor(gris_ch); c.setFont("Helvetica-Bold", 34)
+                    c.drawCentredString(cxc, cy - 8, "?")
+                    c.setFillColor(col); c.setFont(POLICE, 4.6)
+                    c.drawCentredString(cxc, cy - 12.8 * mm, "N\u00b0 MYST\u00c8RE")
+                elif _sec:
                     _sec.chiffre_micro(c, nums_case[0], cxc, cy - 8, 32, gris_ch, police_ch)
                 else:
                     c.setFillColor(gris_ch); c.setFont(police_ch, 32)
@@ -243,6 +284,13 @@ def _dessiner_carte(c, x0, y0, carte, verres, couleur_hex, serie, encre,
     c.line(x0 + 2 * mm, grid_bot, x0 + CARD_W - 2 * mm, grid_bot)
     c.setFillColor(GRIS); c.setFont(POLICE, 5.5)
     c.drawString(x0 + 4 * mm, y0 + 2 * mm, "N° %06d" % serie)
+    if pos_mysteres:
+        # 🔮 LA RÈGLE GRAVÉE SUR LE CARTON (demande Maeva 29/07 : « comment le client
+        # peut savoir que le chiffre mystère sorti est son chiffre mystère ») :
+        # il n'y a qu'UN chiffre mystère pour toute la salle — le carton le dit.
+        c.setFillColor(col); c.setFont(POLICE, 4.8)
+        c.drawCentredString(x0 + CARD_W / 2, y0 + 2 * mm,
+                            "Les verres \u00ab ? \u00bb (B\u00b7I\u00b7O) = LES 3 N\u00b0 MYST\u00c8RE r\u00e9v\u00e9l\u00e9s en salle, un par colonne \u2014 les m\u00eames pour tous les cartons")
     if telephone:
         c.drawRightString(x0 + CARD_W - 4 * mm, y0 + 2 * mm, "Resp. " + telephone)
 
@@ -256,7 +304,7 @@ def _dessiner_carte(c, x0, y0, carte, verres, couleur_hex, serie, encre,
 
 def generer_pdf(nb_cartes=2, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id=""):
+                style="eco", evenement_id="", mystere=False):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
@@ -288,11 +336,19 @@ def generer_pdf(nb_cartes=2, serie_start=1, theme="", couleur=True,
             # carte du haut (slot 0) puis du bas (slot 1)
             y0 = MARGIN_BOT + (1 - slot) * (CARD_H + GUTTER_Y)
             x0 = MARGIN_X
-            carte, verres = _gen_carte(rng)
+            forcer = ()
+            if mystere:
+                # 🔮 un verre mystère PAR COLONNE B·I·O, déterministe (refab comprise)
+                h = _hmac.new(b"MYSTERE-2KEA", ("MYSTERE:%d" % serie).encode(), _hashlib.sha256)
+                rng_m = random.Random(int.from_bytes(h.digest()[:8], "big"))
+                cols = _positions_colonnes()
+                forcer = tuple(rng_m.choice(cols[lettre]) for lettre in MYSTERE_COLONNES)
+            carte, verres = _gen_carte(rng, forcer)
+            pos_mysteres = frozenset(forcer)
             coul = (couleur_perso if (couleur and couleur_perso)
                     else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
             _dessiner_carte(c, x0, y0, carte, verres, coul, serie, encre, telephone, titre_jeu, no_page,
-                            style=style, evenement_id=evenement_id)
+                            style=style, evenement_id=evenement_id, pos_mysteres=pos_mysteres)
             serie += 1
             faites += 1
 
@@ -330,3 +386,9 @@ if __name__ == "__main__":
     with open("test_avinda.pdf", "wb") as f:
         f.write(pdf.read())
     print("A VINDA généré")
+
+
+def generer_pdf_mystere(**kw):
+    """A VINDA MYSTÈRE 🔮 — le jumeau : un verre mystère par colonne B·I·O (MYSTERE_COLONNES)."""
+    kw["mystere"] = True
+    return generer_pdf(**kw)
