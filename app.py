@@ -170,6 +170,9 @@ PARTENAIRES = {
         "email": os.environ.get("RANIHEI_EMAIL", "tetuanuiheini@gmail.com"),
         "zone": "Raiatea",
         "tel": "87 77 39 19 · 87 27 62 26",
+        # 🖨️ L'enseigne imprimée sur les cartons de SA fabrique (demande Maeva 29/07)
+        "enseigne_pdf": "RANIHEI AND SISTER RAROMATAI",
+        "tel_pdf": "87 77 39 19",
         # 💡 Modèle spécial : la plateforme ne facture que le PDF (1,5 F la feuille) —
         # l'impression se règle DIRECTEMENT avec RANIHEI.
         "prix_pdf_seul": 1.5,
@@ -1953,8 +1956,8 @@ def lancer_fabrication(commande_id, seulement_rapport=False):
             # rangée au coffre ; l'email part si le facteur veut bien.
             # 📦 ...sauf le ravitaillement boutique : commande interne 2KEA, pas de facture.
             try:
-                if cmd["mode_paiement"] == "ravitaillement":
-                    raise StopIteration("ravitaillement interne — pas de facture du dû")
+                if cmd["mode_paiement"] in ("ravitaillement", "fabrique_partenaire"):
+                    raise StopIteration("commande interne — pas de facture du dû")
                 fact_pdf, fact_part, fact_montant = _facture_commande_pdf(cmd)
                 lien_fact = _ranger_au_coffre(commande_id, "facture", fact_pdf)
                 corps_fact = (
@@ -2330,7 +2333,7 @@ def api_partenaire_mes_commandes():
             perso = {}
         if (perso.get("partenaire") or "") != slug:
             continue
-        du = round(int(cmd.get("nb_feuilles") or 0) * 1.5)
+        du = 0 if cmd.get("mode_paiement") == "fabrique_partenaire" else round(int(cmd.get("nb_feuilles") or 0) * 1.5)
         au_coffre = os.path.exists(os.path.join(_dossier_lots(), f"cmd{cmd['id']}_cartons.pdf"))
         fact_ok = os.path.exists(os.path.join(_dossier_lots(), f"cmd{cmd['id']}_facture.pdf"))
         lignes.append({
@@ -2348,6 +2351,48 @@ def api_partenaire_mes_commandes():
                     "commandes": lignes,
                     "stats": {"nb": len(lignes), "feuilles": nb_f,
                               "du_mois": du_mois, "du_total": du_total}})
+
+
+@app.route("/api/partenaire/generer", methods=["POST"])
+def api_partenaire_generer():
+    """🖨️ MA FABRIQUE (vision Maeva, née pour RANIHEI de Raiatea) : le partenaire
+    génère lui-même ses PDF, à SON enseigne — OFFERT (décision Maeva 29/07 :
+    le dû 1,5 F ne s'applique qu'aux commandes de SES clients qui personnalisent
+    pour leurs tournois). Les cartons arrivent dans SA liste (bouton ⬇️)."""
+    import json as _json
+    slug, part = _partenaire_session()
+    if not slug:
+        return jsonify({"ok": False, "message": "connexion requise"}), 403
+    data = request.get_json(force=True, silent=True) or {}
+    programme = str(data.get("programme") or "")
+    if programme not in REGISTRE_JEUX or "_p15" in programme:
+        return jsonify({"ok": False, "message": "Choisissez un jeu (gamme \u00c9CO) dans la liste."}), 400
+    try:
+        nb_feuilles = int(data.get("nb_feuilles") or 0)
+    except Exception:
+        nb_feuilles = 0
+    if nb_feuilles < 25 or nb_feuilles > 250 or nb_feuilles % 25:
+        return jsonify({"ok": False, "message": "Choisissez de 25 \u00e0 250 feuilles, par paquets de 25."}), 400
+    enseigne = (str(data.get("titre") or "").strip() or part.get("enseigne_pdf") or part["nom"])[:40]
+    telephone = (str(data.get("telephone") or "").strip() or part.get("tel_pdf") or part.get("tel", ""))[:24]
+    perso = _json.dumps({
+        "theme": "", "nom_evenement": enseigne, "titre_jeu": enseigne,
+        "couleur_perso": "", "date_lieu": part.get("zone", ""), "telephone": telephone,
+        "partenaire": slug,
+    })
+    commande_id, _ = db.creer_commande(
+        identifiant=enseigne, origine="polynesien",
+        programme=programme, couleur=REGISTRE_JEUX[programme].get("couleur", True),
+        nb_feuilles=nb_feuilles, mode_paiement="fabrique_partenaire",
+        params_perso=perso, prix_feuille=0,
+    )
+    db.marquer_commande_payee(commande_id)
+    lancer_fabrication(commande_id)
+    jeu = REGISTRE_JEUX.get(programme, {})
+    return jsonify({"ok": True, "commande_id": commande_id,
+                    "message": (f"\U0001f5a8\ufe0f Fabrique #{commande_id} lanc\u00e9e : {nb_feuilles} feuilles de "
+                                f"{jeu.get('emoji','')} {jeu.get('nom', programme)} \u00e0 l'enseigne \u00ab {enseigne} \u00bb \u2014 "
+                                "appuyez sur \u21bb dans 1-2 minutes, le bouton \u2b07\ufe0f Cartons appara\u00eetra.")})
 
 
 _PRIX_PART_LOCK = _threading.Lock()
