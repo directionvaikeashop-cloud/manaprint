@@ -58,8 +58,11 @@ _GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
 # P15 : LA MÊME ÉCRITURE que l'ÉCO (DejaVu), simplement en GRAS
 # (décision Maeva 30/07 : « pour les chiffres du P15 la même écriture et gras »)
 try:
-    _pm.registerFont(_TF("DJBOLD", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"))
-    _POLICE_P15 = "DJBOLD"
+    # CONDENSÉ-Bold : la même écriture DejaVu en gras, chiffres plus étroits —
+    # c'est elle qui permet le MAXIMUM dans le carré (décision Maeva 30/07 :
+    # « grossis les chiffres au maximum qui peut rentrer dans chaque carré »)
+    _pm.registerFont(_TF("DJBOLDC", "/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed-Bold.ttf"))
+    _POLICE_P15 = "DJBOLDC"
 except Exception:
     _POLICE_P15 = "Helvetica-Bold"
 _GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
@@ -89,6 +92,22 @@ TICKET_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
 TICKET_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
 CELL_W = TICKET_W / 9
 CELL_H = TICKET_H / 3
+
+
+def _taille_max_chiffres():
+    """Le plus gros chiffre qui RENTRE dans le carré (décision Maeva 30/07) :
+    on pousse jusqu'à ce que « 88 » touche la marge de la case."""
+    marge = 0.9 * mm
+    t = 40.0
+    while t > 6:
+        if (pdfmetrics.stringWidth("88", _POLICE_P15, t) <= CELL_W - marge
+                and 0.729 * t <= CELL_H - marge):
+            return t
+        t -= 0.1
+    return CELL_H * 0.66
+
+
+T_NUM = _taille_max_chiffres()
 
 
 def _repartir_lignes(rng, comptes):
@@ -175,7 +194,7 @@ def _dessiner_ticket(c, x0, y0, cases, couleur_hex, serie, style="eco", evenemen
         c.line(x0, y0 + j * CELL_H, x0 + TICKET_W, y0 + j * CELL_H)
 
     # Les numéros — gros, au cœur de leur case (taille au calibre des cases)
-    t_num = CELL_H * 0.66
+    t_num = T_NUM   # le maximum mesuré qui rentre dans le carré
     for r in range(3):          # r = 0 en HAUT
         cy = y0 + TICKET_H - (r + 1) * CELL_H
         for ci in range(9):
