@@ -45,8 +45,17 @@ try:
     _POLICE_ECO = "DJLECO"
 except Exception:
     _POLICE_ECO = "Helvetica"
+# 🃏 CHIFFRES BIEN GRAS COMME LE QUINES 90 (sceau Maeva 30/07) : les DEUX
+# gammes écrivent en DejaVu GRAS (l'ÉCO garde son gris doux pour le toner).
+try:
+    _pm.registerFont(_TF("DJBOLD6", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"))
+    _POLICE_ECO = "DJBOLD6"
+    _POLICE_P15_G = "DJBOLD6"
+except Exception:
+    _POLICE_ECO = "Helvetica-Bold"
+    _POLICE_P15_G = "Helvetica-Bold"
 _GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
-_POLICE_P15 = "Helvetica-Bold"
+_POLICE_P15 = _POLICE_P15_G
 _GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
 
 def _style_chiffres(style):
@@ -132,7 +141,7 @@ def _carte_jeu(c, cx, cy, val, col, gris_ch):
     c.setFillColor(colors.white)
     c.roundRect(cx - w / 2, cy - h / 2, w, h, 1.5 * mm, stroke=1, fill=1)
     vtxt = _VALEURS_CARTES.get(val, str(val))
-    c.setFillColor(gris_ch); c.setFont("Helvetica-Bold", 17 if len(vtxt) < 2 else 14)
+    c.setFillColor(gris_ch); c.setFont(_POLICE_ECO, 17 if len(vtxt) < 2 else 14)
     c.drawCentredString(cx, cy - 2.1 * mm, vtxt)
     _enseigne(c, cx, cy + 4.4 * mm, 1.35 * mm, val % 4, gris_ch)
     _enseigne(c, cx, cy - 4.6 * mm, 1.35 * mm, val % 4, gris_ch)
@@ -181,7 +190,8 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
             elif cartes and nums[ri] <= 13:
                 # 🃏 jumeau CASINO : le numéro 1-13 vit dans sa carte à jouer
                 _carte_jeu(c, cx, cy + 5, nums[ri], col, gris_ch)
-            elif _sec:  # chiffres "billet de banque" remplis de microtexte
+            elif _sec and gris_ch is not _GRIS_ECO:
+                # PREMIUM : chiffres "billet de banque" gras remplis de microtexte
                 _sec.chiffre_micro(c, nums[ri], cx, cy, 30, gris_ch, police_ch)
             else:
                 c.setFillColor(gris_ch); c.setFont(police_ch, 30)
