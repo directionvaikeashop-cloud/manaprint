@@ -84,7 +84,61 @@ def _gen_carte():
     return cols
 
 
-def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", titre_jeu="", style="eco", evenement_id=""):
+# 🃏 LES CARTES À JOUER 1-13 (sceau Maeva 30/07, jumeau CASINO du P6) :
+# 1 = As (A), 2-10 = leur valeur, 11 = V, 12 = D, 13 = R — chaque numéro vit
+# dans une VRAIE carte (coin arrondi, valeur + enseigne dessinée à la main,
+# jamais un glyphe Unicode = tofu Helvetica) ; dès 14, le chiffre reste roi.
+_VALEURS_CARTES = {1: "A", 11: "V", 12: "D", 13: "R"}
+_JOKER_ACTIF = False   # 🃏 EN RÉSERVE (Maeva 30/07 : lancement sans joker,
+#     décision après les résultats du marché) — True réveille la règle au pied.
+
+
+def _enseigne(c, cx, cy, t, quelle, coul):
+    """♠♥♦♣ DESSINÉES : 0=pique 1=coeur 2=carreau 3=trèfle."""
+    c.setFillColor(coul)
+    if quelle == 2:   # carreau
+        p = c.beginPath()
+        p.moveTo(cx, cy + t); p.lineTo(cx + t * 0.72, cy)
+        p.lineTo(cx, cy - t); p.lineTo(cx - t * 0.72, cy); p.close()
+        c.drawPath(p, stroke=0, fill=1)
+        return
+    if quelle == 1:   # coeur
+        c.circle(cx - t * 0.42, cy + t * 0.28, t * 0.46, stroke=0, fill=1)
+        c.circle(cx + t * 0.42, cy + t * 0.28, t * 0.46, stroke=0, fill=1)
+        p = c.beginPath()
+        p.moveTo(cx - t * 0.85, cy + t * 0.16); p.lineTo(cx, cy - t)
+        p.lineTo(cx + t * 0.85, cy + t * 0.16); p.close()
+        c.drawPath(p, stroke=0, fill=1)
+        return
+    if quelle == 0:   # pique = coeur inversé + pied
+        c.circle(cx - t * 0.40, cy - t * 0.18, t * 0.42, stroke=0, fill=1)
+        c.circle(cx + t * 0.40, cy - t * 0.18, t * 0.42, stroke=0, fill=1)
+        p = c.beginPath()
+        p.moveTo(cx - t * 0.80, cy - t * 0.08); p.lineTo(cx, cy + t)
+        p.lineTo(cx + t * 0.80, cy - t * 0.08); p.close()
+        c.drawPath(p, stroke=0, fill=1)
+    else:             # trèfle = trois feuilles
+        c.circle(cx, cy + t * 0.42, t * 0.42, stroke=0, fill=1)
+        c.circle(cx - t * 0.42, cy - t * 0.10, t * 0.42, stroke=0, fill=1)
+        c.circle(cx + t * 0.42, cy - t * 0.10, t * 0.42, stroke=0, fill=1)
+    c.rect(cx - t * 0.12, cy - t, t * 0.24, t * 0.85, stroke=0, fill=1)
+
+
+def _carte_jeu(c, cx, cy, val, col, gris_ch):
+    """La carte à jouer du numéro : cadre blanc arrondi bordé couleur,
+    valeur Bold au centre, l'enseigne (n %% 4) au-dessus et en-dessous."""
+    w, h = 11.6 * mm, 14.8 * mm
+    c.setStrokeColor(col); c.setLineWidth(1.2)
+    c.setFillColor(colors.white)
+    c.roundRect(cx - w / 2, cy - h / 2, w, h, 1.5 * mm, stroke=1, fill=1)
+    vtxt = _VALEURS_CARTES.get(val, str(val))
+    c.setFillColor(gris_ch); c.setFont("Helvetica-Bold", 17 if len(vtxt) < 2 else 14)
+    c.drawCentredString(cx, cy - 2.1 * mm, vtxt)
+    _enseigne(c, cx, cy + 4.4 * mm, 1.35 * mm, val % 4, gris_ch)
+    _enseigne(c, cx, cy - 4.6 * mm, 1.35 * mm, val % 4, gris_ch)
+
+
+def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", titre_jeu="", style="eco", evenement_id="", cartes=False):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
     cell_w = CARD_W / GRID_N
@@ -97,7 +151,7 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
         _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
 
     # Mini-bandeau : nom du jeu + nom du tournoi (sécurité)
-    bandeau = "P6 MARATHON"
+    bandeau = "PJOKER" if cartes else "P6 MARATHON"
     if titre_jeu:
         bandeau += "  —  " + titre_jeu
     c.setFillColor(GREY); c.setFont("Helvetica", 4)
@@ -124,6 +178,9 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
             # case centrale (colonne N=2, ligne du milieu ri=2) = MARATHON
             if ci == 2 and ri == 2:
                 pass  # case libre : elle accueille le QR de sécurité (dessiné plus bas)
+            elif cartes and nums[ri] <= 13:
+                # 🃏 jumeau CASINO : le numéro 1-13 vit dans sa carte à jouer
+                _carte_jeu(c, cx, cy + 5, nums[ri], col, gris_ch)
             elif _sec:  # chiffres "billet de banque" remplis de microtexte
                 _sec.chiffre_micro(c, nums[ri], cx, cy, 30, gris_ch, police_ch)
             else:
@@ -138,6 +195,11 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
     c.line(x0, y0 + FOOT_H, x0 + CARD_W, y0 + FOOT_H)
     c.setFillColor(GREY); c.setFont("Helvetica", 4.5)
     c.drawString(x0 + 1.5 * mm, y0 + 1.3 * mm, f"N° {serie:06d}")
+    if cartes and _JOKER_ACTIF:
+        # 🃏 la règle du JOKER, imprimée sur le carton (rien n'est payé : c'est le jeu)
+        c.setFont("Helvetica", 4.2)
+        c.drawRightString(x0 + CARD_W - 1.5 * mm, y0 + 1.3 * mm,
+                          "JOKER : quand la boule JOKER sort, cochez UNE carte de votre choix")
     if telephone:
         c.drawRightString(x0 + CARD_W - 1.5 * mm, y0 + 1.3 * mm, f"Resp. {telephone}")
 
@@ -155,7 +217,7 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
 
 def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id=""):
+                style="eco", evenement_id="", cartes=False):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
@@ -171,7 +233,7 @@ def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
         if nom_evenement:
             c.setFillColor(NOIR); c.setFont("Helvetica-Bold", 11)
             c.drawCentredString(PAGE_W / 2, PAGE_H - 5 * mm, nom_evenement)
-        titre_aff = titre_jeu if titre_jeu else "P6 MARATHON"
+        titre_aff = titre_jeu if titre_jeu else ("PJOKER" if cartes else "P6 MARATHON")
         ligne2 = titre_aff
         if date_lieu: ligne2 += "  ·  " + date_lieu
         ligne2 += f"  ·  Page {no_page}"
@@ -186,7 +248,7 @@ def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
                 carte = _gen_carte()
                 coul = (couleur_perso if (couleur and couleur_perso)
                         else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#999999")
-                _dessiner_carte(c, x0, y0, carte, coul, serie, encre, telephone, titre_jeu, style=style, evenement_id=evenement_id)
+                _dessiner_carte(c, x0, y0, carte, coul, serie, encre, telephone, titre_jeu, style=style, evenement_id=evenement_id, cartes=cartes)
                 serie += 1
 
         c.showPage()
@@ -195,6 +257,12 @@ def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
     c.save()
     buf.seek(0)
     return buf
+
+
+def generer_pdf_casino(**kw):
+    """🃏 PJOKER (nom définitif, Maeva 30/07) — les numéros 1-13 vivent en cartes."""
+    kw["cartes"] = True
+    return generer_pdf(**kw)
 
 
 if __name__ == "__main__":
