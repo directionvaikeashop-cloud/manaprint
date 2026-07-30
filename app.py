@@ -292,7 +292,9 @@ _enregistrer_paire("quines90",      "QUINES 90","🎟️", 18, quines90.generer_
 _enregistrer_paire("kai",           "KAI 7 boules",       "🍽️", 12, kai.generer_pdf)
 _enregistrer_paire("ohana75_8b",    "OHANA 75 · 8 boules","🌺", 9,  ohana75_8boules.generer_pdf)
 _enregistrer_paire("ohana75_8b_smo","OHANA 75 · 8 boules SMORFIA","🎴", 9,  ohana75_8boules.generer_pdf_smorfia)
+_enregistrer_paire("ohana75_8b_myst","OHANA 75 · 8 boules MYSTÈRE","💰", 9,  ohana75_8boules.generer_pdf_mystere)
 _enregistrer_paire("ohana75_10b",   "OHANA 75 · 10 boules","🌺", 9,  ohana75_10boules.generer_pdf)
+_enregistrer_paire("ohana75_10b_myst","OHANA 75 · 10 boules MYSTÈRE","💰", 9,  ohana75_10boules.generer_pdf_mystere)
 _enregistrer_paire("quatre_coin",   "4 COIN","🎯", 6,  quatre_coin.generer_pdf)
 _enregistrer_paire("pol",           "POL 6 boules","🎲", 12, pol.generer_pdf)
 _enregistrer_paire("sun",           "SUN 8 boules","☀️", 12, sun.generer_pdf)
@@ -353,6 +355,7 @@ _enregistrer_paire("rubis75",       "RUBIS 75 · 32 pts","💎", 10, rubis75.gen
 _enregistrer_paire("sicilio",       "SICILIO",          "🔷", 6,  sicilio.generer_pdf)
 _enregistrer_paire("avinda",        "A VINDA · 2 séries","🍷", 2,  avinda.generer_pdf)
 _enregistrer_paire("avinda_myst",   "A VINDA MYSTÈRE","🔮", 2,  avinda.generer_pdf_mystere)
+_enregistrer_paire("avinda_fort",   "A VINDA FORTUNE","💰", 2,  avinda.generer_pdf_fortune)
 _enregistrer_paire("losange",       "LOSANGE · 8 boules","🪁", 6,  losange.generer_pdf)
 _enregistrer_paire("italia",        "ITALIA",     "🇮🇹", 10, italia.generer_pdf)
 _enregistrer_paire("vai",           "VAI 9 boules","🌊", 12, vai.generer_pdf)
@@ -422,6 +425,7 @@ _enregistrer_paire("p15_marathon",  "P15 Marathon", "🥥", 15, p15_marathon.gen
 _enregistrer_paire("p12_marathon",  "P12 Marathon", "🌴", 12, p12_marathon.generer_pdf)
 _enregistrer_paire("ohana20b",      "OHANA 75 · 20 boules","🌺", 5,  ohana75_20boules.generer_pdf)
 _enregistrer_paire("ohana20b_smo",  "OHANA 75 \u00b7 20 boules SMORFIA","\ud83c\udfb4", 5,  ohana75_20boules.generer_pdf_smorfia)
+_enregistrer_paire("ohana20b_myst", "OHANA 75 \u00b7 20 boules MYST\u00c8RE","\ud83d\udcb0", 5,  ohana75_20boules.generer_pdf_mystere)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
 
@@ -901,6 +905,9 @@ _PLAGES_CALLER = {
     "sicilio": (1, 90),
     "avinda": (1, 75),
     "avinda_myst": (1, 75),
+    "avinda_fort": (1, 75),
+    "ohana75_8b_myst": (1, 75),
+    "ohana75_10b_myst": (1, 75),
     "losange": (1, 75),
     "italia": (1, 75),
     "vai": (61, 90),
@@ -966,6 +973,7 @@ _PLAGES_CALLER = {
     "p15_marathon": (1, 75),
     "ohana20b": (1, 75),
     "ohana20b_smo": (1, 75),
+    "ohana20b_myst": (1, 75),
     "ohana75_8b": (1, 75),
     "ohana75_8b_smo": (1, 75),
 }
@@ -977,8 +985,15 @@ _PLAGES_CALLER = {
 # on tire le 1 ») : codes 101=A … 112=L, mêlés au sac, tirés par le même
 # moteur, journalisés pareil. Le caller affiche/chante la lettre.
 _LETTRE_CODES = {100 + i + 1: l for i, l in enumerate("ABCDEFGHIJKL")}
+# 💰 LES MONTANTS SONT DES BOULES (sceau Maeva 30/07, 19 montants — imprimés aux
+# coupes ils ne promettent rien, seul le tirage public journalisé attribue) :
+_MONTANT_CODES = {200 + i + 1: mv for i, mv in enumerate(avinda.MONTANTS)}
 
 _BOULES_CALLER = {
+    "avinda_fort": list(range(1, 76)) + sorted(_MONTANT_CODES),          # 94 boules 🍷💰
+    "ohana75_8b_myst": [n for n in range(1, 31)] + [n for n in range(46, 76)] + sorted(_MONTANT_CODES),  # 79 💰
+    "ohana75_10b_myst": list(range(1, 76)) + sorted(_MONTANT_CODES),     # 94 💰
+    "ohana20b_myst": list(range(1, 76)) + sorted(_MONTANT_CODES),        # 94 💰
     "avinda_myst": list(range(1, 76)) + sorted(_LETTRE_CODES),   # 87 boules 🍷🅰️
     "bno": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(61, 76)],
     "tureia": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # colonne 31-45 morte
