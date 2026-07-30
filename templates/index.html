@@ -365,6 +365,11 @@
       <button class="btn" style="width:auto;padding:0 1.4rem" onclick="adminRattrapageStripe()">💳 Lancer le rattrapage</button>
       <p id="stripe-msg" style="font-size:.82rem;line-height:1.7;margin-top:.6rem;word-break:break-word"></p>
 
+      <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">💳 Paiements carte reçus</h2>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:.6rem;line-height:1.7">Les commandes réglées par carte (Stripe) déjà encaissées sur la plateforme : combien, pour quel total, et les dernières lignes.</p>
+      <button class="btn" style="width:auto;padding:0 1.4rem" onclick="adminPaiementsStripe()">💳 Voir les paiements carte</button>
+      <div id="stripe-recus" style="font-size:.85rem;line-height:1.7;margin-top:.6rem"></div>
+
       <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">🔍 Historique d'un client</h2>
       <p style="color:var(--muted);font-size:.85rem;margin-bottom:.6rem;line-height:1.7">Toutes les commandes d'un client ou d'une association (cherché dans l'identifiant, l'événement, le titre et l'email) — avec le téléchargement des PDF du coffre-fort.</p>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
@@ -997,6 +1002,25 @@ async function adminRenvoyerEmails(){
     msg.style.color=d.ok?'var(--teal)':'var(--coral)';
     msg.textContent=d.message||(d.ok?'Relancé !':'Erreur');
   }catch(e){ msg.style.color='var(--coral)'; msg.textContent='Erreur réseau'; }
+}
+async function adminPaiementsStripe(){
+  const z=document.getElementById('stripe-recus');
+  z.innerHTML='<span class="spin"></span>';
+  try{
+    const r=await fetch('/api/admin/paiements-stripe');
+    const d=await r.json();
+    if(!d.ok){ z.innerHTML='<span style="color:var(--coral)">'+(d.message||'Erreur')+'</span>'; return; }
+    if(d.nombre===0){ z.innerHTML='<p style="color:var(--muted);font-style:italic">Aucun paiement par carte encaiss\u00e9 pour le moment.</p>'; return; }
+    var h='<p><b>'+d.nombre+'</b> paiement'+(d.nombre>1?'s':'')+' carte encaiss\u00e9'+(d.nombre>1?'s':'')+' \u00b7 total <b>'+d.total.toLocaleString('fr-FR')+' XPF</b></p>';
+    d.dernieres.forEach(function(c){
+      var quand=(c.cree_le||'').replace('T',' ').slice(0,16);
+      var etat=c.statut==='generee'?'\ud83d\udcc4 fabriqu\u00e9e':'\u2705 pay\u00e9e';
+      h+='<div style="display:flex;justify-content:space-between;gap:.6rem;padding:.45rem .8rem;border:1px solid var(--line);border-radius:6px;background:#fff;margin-top:.35rem;flex-wrap:wrap">'
+        +'<span>\ud83d\udcb3 #'+c.id+' \u00b7 '+quand+' \u00b7 '+c.programme+' \u00b7 '+c.nb_feuilles+' f.</span>'
+        +'<span><b>'+c.montant+' XPF</b> \u00b7 '+etat+'</span></div>';
+    });
+    z.innerHTML=h;
+  }catch(e){ z.innerHTML='<span style="color:var(--coral)">Serveur occup\u00e9 \u2014 r\u00e9essaie dans un instant.</span>'; }
 }
 async function adminRattrapageStripe(){
   const msg=document.getElementById('stripe-msg');
