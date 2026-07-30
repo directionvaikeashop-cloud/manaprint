@@ -72,6 +72,42 @@ ZONE_QR = 22 * mm  # zone droite réservée : la maison du QR
 QUINZAINES = [(1, 15), (16, 30), (31, 45), (46, 60), (61, 75)]
 
 
+# 💰 MYSTÈRE-MONTANTS (sceau Maeva 30/07) : 2 PAIRES condamnées par carton
+# deviennent des RECTANGLES au montant — imprimé, il ne promet RIEN : c'est
+# une boule tirée en public ; règle de salle + juriste gouvernent le bonus.
+import hmac as _hmac
+import hashlib as _hashlib
+MONTANTS = [100, 400, 600, 700, 800, 900, 2000, 3000, 4000, 5000, 6000, 7000,
+            8000, 9000, 100000, 500000, 1000000, 2000000, 3000000]
+
+
+def _mystere_carte(serie, nb_paires):
+    """(les QUATRE paires condamnées, leurs QUATRE montants — sceau Maeva 30/07)."""
+    h = _hmac.new(b"MONTANT-2KEA", ("OHMONT:%d" % serie).encode(), _hashlib.sha256)
+    rm = random.Random(h.digest())
+    return sorted(rm.sample(range(nb_paires), 4)), rm.sample(MONTANTS, 4)
+
+
+def _texte_montant(n):
+    return "{:,}".format(n).replace(",", " ")   # espace simple : Helvetica la connaît
+
+
+def _montant_rectangle(c, cx, cy, w, h, montant, col, gris_ch):
+    """Le RECTANGLE élégant qui accueille le montant de la paire condamnée."""
+    c.setStrokeColor(col); c.setLineWidth(1.2)
+    c.roundRect(cx - w / 2, cy - h / 2, w, h, 1.6 * mm, stroke=1, fill=0)
+    mtxt = _texte_montant(montant)
+    t = 15.0
+    while t > 6 and _pm.stringWidth(mtxt, "Helvetica-Bold", t) > w - 3.2 * mm:
+        t -= 0.5
+    c.setFillColor(gris_ch); c.setFont("Helvetica-Bold", t)
+    c.drawCentredString(cx, cy + 0.6 * mm, mtxt)
+    c.setFont("Helvetica-Bold", 4.4)
+    c.drawCentredString(cx, cy - 3.4 * mm, "FRANCS")
+    c.setFillColor(col); c.setFont("Helvetica", 3.6)
+    c.drawCentredString(cx, cy - h / 2 + 1.1 * mm, "MONTANT DE SALLE")
+
+
 def _gen_carte():
     """2 rangées × 5 paires triées (grand, cerclé) — SANS DOUBLON sur le carton :
     4 numéros DISTINCTS par quinzaine, 2 en haut et 2 en bas (règle marathon)."""
@@ -86,7 +122,7 @@ def _gen_carte():
 
 
 def _dessiner_carte(c, x0, y0, rangs, couleur_hex, serie, encre,
-                    telephone="", titre_jeu="", style="eco", evenement_id="", idx_img=(-1, -1)):
+                    telephone="", titre_jeu="", style="eco", evenement_id="", idx_img=(-1, -1), myst_pos=None, myst_mnt=None):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
 
@@ -123,12 +159,18 @@ def _dessiner_carte(c, x0, y0, rangs, couleur_hex, serie, encre,
     droite = x0 + CARD_W - ZONE_QR
     pas = (droite - gauche) / 10.0
     zone_h = hdr_y - y0
-    t_grand, t_cercle = 30, 30  # TOUT à 30 pts (décision Maeva, 24/07)
+    t_grand, t_cercle = 35, 30  # 35 hors bulle · 30 dans la bulle (sceau Maeva 30/07)
 
     for ri, rang in enumerate(rangs):
         cy = y0 + zone_h * (0.66 if ri == 0 else 0.18)
         for i, n in enumerate(rang):
             cx = gauche + (i + 0.5) * pas
+            k = ri * 5 + i // 2
+            if myst_pos is not None and k in myst_pos:   # 💰 paire condamnée
+                if i % 2 == 0:   # le rectangle, CENTRÉ sur la paire
+                    _montant_rectangle(c, gauche + (i + 1) * pas, cy + t_grand * 0.36,
+                                       24 * mm, 15 * mm, myst_mnt[myst_pos.index(k)], col, gris_ch)
+                continue
             if _smor and (ri, i) == idx_img:  # SMORFIA : le chiffre devient l'image
                 if i % 2 == 0:
                     _smor.poser_numero_image(c, n, cx, cy + t_grand * 0.36, 14, 11, gris_ch)
@@ -173,7 +215,7 @@ def _dessiner_carte(c, x0, y0, rangs, couleur_hex, serie, encre,
 
 def generer_pdf(nb_cartes=5, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id="", smorfia=False):
+                style="eco", evenement_id="", smorfia=False, mystere=False):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
@@ -215,11 +257,14 @@ def generer_pdf(nb_cartes=5, serie_start=1, theme="", couleur=True,
                         idx_img = (r, 2 * q + npaire.index(ns))
                 except Exception:
                     idx_img = (-1, -1)
+            mp, mv = (None, None)
+            if mystere:   # 💰 les 4 paires condamnées et leurs montants
+                mp, mv = _mystere_carte(serie, 10)
             coul = (couleur_perso if (couleur and couleur_perso)
                     else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur
                     else "#999999")
             _dessiner_carte(c, x0, y0, rangs, coul, serie, encre,
-                            telephone, titre_jeu, style=style, evenement_id=evenement_id, idx_img=idx_img)
+                            telephone, titre_jeu, style=style, evenement_id=evenement_id, idx_img=idx_img, myst_pos=mp, myst_mnt=mv)
             serie += 1
 
         if _smor and smorfia:
@@ -233,6 +278,12 @@ def generer_pdf(nb_cartes=5, serie_start=1, theme="", couleur=True,
     c.save()
     buf.seek(0)
     return buf
+
+
+def generer_pdf_mystere(**kw):
+    """💰 OHANA 75 · 20 boules MYSTÈRE — 2 rectangles à MONTANTS remplacent 2 paires."""
+    kw["mystere"] = True
+    return generer_pdf(**kw)
 
 
 def generer_pdf_smorfia(**kw):
