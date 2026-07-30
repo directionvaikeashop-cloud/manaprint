@@ -2858,6 +2858,18 @@ def admin_commandes():
     return jsonify({"ok": True, "commandes": db.lister_commandes()})
 
 
+@app.route("/api/admin/paiements-stripe", methods=["GET"])
+@admin_requis
+def admin_paiements_stripe():
+    """💳 L'encadré de caisse (sceau Maeva 30/07) : combien de paiements CARTE
+    sont arrivés, pour quel total, et les dernières lignes — lecture seule."""
+    lignes = [c for c in db.lister_commandes()
+              if c.get("mode_paiement") == "stripe" and c.get("statut") in ("payee", "generee")]
+    total = sum(int(c.get("montant") or 0) for c in lignes)
+    return jsonify({"ok": True, "nombre": len(lignes), "total": total,
+                    "dernieres": lignes[:15]})
+
+
 @app.route("/api/admin/commandes/<int:commande_id>/valider", methods=["POST"])
 @admin_requis
 def admin_valider_commande(commande_id):
