@@ -173,7 +173,7 @@ def _dessiner_carte(c, x0, y0, rangs, couleur_hex, serie, encre,
 
 def generer_pdf(nb_cartes=5, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id=""):
+                style="eco", evenement_id="", smorfia=False):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
@@ -198,7 +198,7 @@ def generer_pdf(nb_cartes=5, serie_start=1, theme="", couleur=True,
             y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
             rangs = _gen_carte()
             idx_img = (-1, -1)
-            if _smor:  # SMORFIA : un numéro du panthéon prend sa place
+            if _smor and smorfia:  # SMORFIA : un numéro du panthéon prend sa place
                 try:
                     ns = _smor.numero_pour_serie(serie, [n for n in _smor.ANNONCES if n <= 75])
                     q = next(j for j, (lo, hi) in enumerate(QUINZAINES) if lo <= ns <= hi)
@@ -222,7 +222,7 @@ def generer_pdf(nb_cartes=5, serie_start=1, theme="", couleur=True,
                             telephone, titre_jeu, style=style, evenement_id=evenement_id, idx_img=idx_img)
             serie += 1
 
-        if _smor:
+        if _smor and smorfia:
             try:
                 _smor.credit_pied(c, PAGE_W)
             except Exception:
@@ -233,6 +233,12 @@ def generer_pdf(nb_cartes=5, serie_start=1, theme="", couleur=True,
     c.save()
     buf.seek(0)
     return buf
+
+
+def generer_pdf_smorfia(**kw):
+    """OHANA 75 · 20 boules SMORFIA — le jumeau du jeu normal, l'image en plus."""
+    kw["smorfia"] = True
+    return generer_pdf(**kw)
 
 
 if __name__ == "__main__":
