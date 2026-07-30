@@ -223,6 +223,7 @@ const JEUX = {
   "ohana75":     { nom: "OHANA 75 / BINGO",    min: 1, max: 75, lettres: "BINGO" },
   "brown8":      { nom: "BROWN 8",             min: 1, max: 75, lettres: "BROWN" },
   "p6_marathon": { nom: "P6 / P12 / P15 MARATHON", min: 1, max: 75, lettres: "BINGO" },
+  "p6_casino":   { nom: "PJOKER \ud83c\udccf (1-75)", min: 1, max: 75, lettres: "BINGO" },
   "triple":      { nom: "TRIPLE ACTION 75",    min: 1, max: 75, lettres: "TRIPL" },
   "bingo_ball":  { nom: "BINGO BALL",          min: 1, max: 75, lettres: "BINGO" },
   "quatre_coin": { nom: "4 COIN",              min: 1, max: 75, lettres: "4COIN" },
@@ -521,16 +522,26 @@ function svgDe(n) {
   return '<svg viewBox="' + (-large / 2) + ' -55 ' + large + ' 110" style="height:0.95em;vertical-align:-0.12em" xmlns="http://www.w3.org/2000/svg">' + corps + '</svg>';
 }
 function estBouleDe(jeu, n) { return CASINO_JEUX.indexOf(jeu) >= 0 && n >= 1 && n <= 9; }
+function svgJoker() {
+  return '<svg viewBox="-42 -55 84 110" style="height:0.95em;vertical-align:-0.12em" xmlns="http://www.w3.org/2000/svg">' +
+    '<rect x="-38" y="-52" width="76" height="104" rx="10" fill="#fff" stroke="currentColor" stroke-width="6"/>' +
+    '<polygon points="0,-38 6,-24 21,-24 9,-14 14,1 0,-8 -14,1 -9,-14 -21,-24 -6,-24" fill="#444"/>' +
+    '<text x="0" y="22" text-anchor="middle" font-family="Helvetica,Arial" font-weight="bold" font-size="19" fill="#444">JO</text>' +
+    '<text x="0" y="42" text-anchor="middle" font-family="Helvetica,Arial" font-weight="bold" font-size="19" fill="#444">KER</text></svg>';
+}
 function afficherGrosseBoule(el, jeu, n) {
-  if (estBouleDe(jeu, n)) el.innerHTML = svgDe(n);
+  if (n === 300) el.innerHTML = svgJoker();
+  else if (estBouleDe(jeu, n)) el.innerHTML = svgDe(n);
   else el.textContent = nomBoule(n);
 }
 function nomBoule(n) {
+  if (n === 300) return "JOKER";
   if (n >= 201) return MONTANTS_AFF[n - 201];
   return n > 100 ? String.fromCharCode(64 + n - 100) : n;
 }
 
 function lettrePour(n) {
+  if (n === 300) return "\ud83c\udccf JOKER \u2014 cochez UNE carte de votre choix !";
   if (n >= 201) return "\ud83d\udcb0 MONTANT DE SALLE";
   if (n > 100) return "\ud83c\udd70\ufe0f LETTRE DE LA SALLE";
   const j = JEUX[jeuActuel];
@@ -646,6 +657,7 @@ function parlerBoule(n) {
     try {
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(
+        n === 300 ? "Le Joker ! Cochez une carte de votre choix !" :
         n >= 201 ? MONTANTS_VOIX[n - 201] + " !" : "La lettre... " + nomBoule(n) + " !");
       u.lang = "fr-FR"; u.rate = 0.85;
       window.speechSynthesis.speak(u);
