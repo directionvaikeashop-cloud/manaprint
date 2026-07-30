@@ -307,6 +307,14 @@ const JEUX = {
   "avinda":      { nom: "A VINDA \ud83c\udf77 (1-75)", min: 1, max: 75, lettres: "BINGO" },
   "avinda_myst": { nom: "A VINDA MYST\u00c8RE \ud83d\udd2e\ud83c\udd70\ufe0f (1-75 + lettres A-L)", min: 1, max: 75, lettres: "BINGO",
                    boules: Array.from({length:75},(_,i)=>i+1).concat(Array.from({length:12},(_,i)=>101+i)) },
+  "avinda_fort": { nom: "A VINDA FORTUNE \ud83d\udcb0 (1-75 + montants)", min: 1, max: 75, lettres: "BINGO",
+                   boules: Array.from({length:75},(_,i)=>i+1).concat(Array.from({length:19},(_,i)=>201+i)) },
+  "ohana75_8b_myst": { nom: "OHANA 75 \u00b7 8 boules MYST\u00c8RE \ud83d\udcb0", min: 1, max: 75, lettres: "BINGO",
+                   boules: Array.from({length:30},(_,i)=>i+1).concat(Array.from({length:30},(_,i)=>46+i)).concat(Array.from({length:19},(_,i)=>201+i)) },
+  "ohana75_10b_myst": { nom: "OHANA 75 \u00b7 10 boules MYST\u00c8RE \ud83d\udcb0", min: 1, max: 75, lettres: "BINGO",
+                   boules: Array.from({length:75},(_,i)=>i+1).concat(Array.from({length:19},(_,i)=>201+i)) },
+  "ohana20b_myst": { nom: "OHANA 75 \u00b7 20 boules MYST\u00c8RE \ud83d\udcb0", min: 1, max: 75, lettres: "BINGO",
+                   boules: Array.from({length:75},(_,i)=>i+1).concat(Array.from({length:19},(_,i)=>201+i)) },
   "losange":     { nom: "LOSANGE \ud83e\ude81 (1-75)", min: 1, max: 75, lettres: "" },
   "italia":      { nom: "ITALIA \ud83c\uddee\ud83c\uddf9 (1-75)", min: 1, max: 75, lettres: "BINGO" },
   "katiu":       { nom: "KATIU \ud83d\udc20 7 boules (1-75)", min: 1, max: 75, lettres: "" },
@@ -471,11 +479,31 @@ function changerJeu() {
 }
 
 // ── 🅰️ LES LETTRES SONT DES BOULES (Maeva 30/07) : codes 101=A … 112=L ──
+// ── 💰 LES MONTANTS SONT DES BOULES (sceau Maeva 30/07) : codes 201-219 ──
+const MONTANTS_F = [100, 400, 600, 700, 800, 900, 2000, 3000, 4000, 5000, 6000,
+                    7000, 8000, 9000, 100000, 500000, 1000000, 2000000, 3000000];
+const MONTANTS_AFF = ["100", "400", "600", "700", "800", "900", "2000", "3000",
+                      "4000", "5000", "6000", "7000", "8000", "9000", "100K",
+                      "500K", "1M", "2M", "3M"];
+const MONTANTS_VOIX = ["Cent francs", "Quatre cents francs", "Six cents francs",
+  "Sept cents francs", "Huit cents francs", "Neuf cents francs",
+  "Deux mille francs", "Trois mille francs", "Quatre mille francs",
+  "Cinq mille francs", "Six mille francs", "Sept mille francs",
+  "Huit mille francs", "Neuf mille francs", "Cent mille francs",
+  "Cinq cent mille francs", "Un million de francs", "Deux millions de francs",
+  "Trois millions de francs"];
+function boulesMontants() {
+  const s = [];
+  for (let i = 0; i < 19; i++) s.push(201 + i);
+  return s;
+}
 function nomBoule(n) {
+  if (n >= 201) return MONTANTS_AFF[n - 201];
   return n > 100 ? String.fromCharCode(64 + n - 100) : n;
 }
 
 function lettrePour(n) {
+  if (n >= 201) return "\ud83d\udcb0 MONTANT DE SALLE";
   if (n > 100) return "\ud83c\udd70\ufe0f LETTRE DE LA SALLE";
   const j = JEUX[jeuActuel];
   if (!j.lettres || j.max !== 75) return "";
@@ -589,7 +617,8 @@ function parlerBoule(n) {
   if (n > 100) {   // 🅰️ une boule-lettre : le robot l'annonce (la bande ne connaît que 1-90)
     try {
       window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance("La lettre... " + nomBoule(n) + " !");
+      const u = new SpeechSynthesisUtterance(
+        n >= 201 ? MONTANTS_VOIX[n - 201] + " !" : "La lettre... " + nomBoule(n) + " !");
       u.lang = "fr-FR"; u.rate = 0.85;
       window.speechSynthesis.speak(u);
     } catch (e) {}
