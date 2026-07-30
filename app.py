@@ -2861,13 +2861,42 @@ def admin_commandes():
 @app.route("/api/admin/paiements-stripe", methods=["GET"])
 @admin_requis
 def admin_paiements_stripe():
-    """💳 L'encadré de caisse (sceau Maeva 30/07) : combien de paiements CARTE
-    sont arrivés, pour quel total, et les dernières lignes — lecture seule."""
+    """💳 L'encadré de caisse (sceau Maeva 30/07, affiné le même jour) : la
+    vitrine demande LA VÉRITÉ À STRIPE (paniers réellement payés sur 90 jours,
+    recette du Rattrapage) et sépare les vrais encaissements des essais
+    validés à la main — lecture seule, rien n'est modifié."""
     lignes = [c for c in db.lister_commandes()
               if c.get("mode_paiement") == "stripe" and c.get("statut") in ("payee", "generee")]
+    paniers_payes = None
+    if STRIPE_SECRET_KEY:
+        try:
+            import stripe
+            import time as _t
+            stripe.api_key = STRIPE_SECRET_KEY
+            paniers_payes = set()
+            sessions = stripe.checkout.Session.list(
+                limit=100, created={"gte": int(_t.time()) - 90 * 86400})
+            for sess in sessions.auto_paging_iter():
+                if sess["payment_status"] != "paid":
+                    continue
+                try:
+                    paniers_payes.add(int(sess["metadata"]["panier_id"]))
+                except Exception:
+                    pass
+        except Exception:
+            paniers_payes = None   # Stripe injoignable : repli sans la vérité
+    if paniers_payes is not None:
+        reels = [c for c in lignes if c.get("panier_id") in paniers_payes]
+        essais = [c for c in lignes if c.get("panier_id") not in paniers_payes]
+        return jsonify({"ok": True, "verite_stripe": True,
+                        "nombre": len(reels),
+                        "total": sum(int(c.get("montant") or 0) for c in reels),
+                        "dernieres": reels[:15],
+                        "nombre_essais": len(essais),
+                        "total_essais": sum(int(c.get("montant") or 0) for c in essais)})
     total = sum(int(c.get("montant") or 0) for c in lignes)
-    return jsonify({"ok": True, "nombre": len(lignes), "total": total,
-                    "dernieres": lignes[:15]})
+    return jsonify({"ok": True, "verite_stripe": False, "nombre": len(lignes),
+                    "total": total, "dernieres": lignes[:15]})
 
 
 @app.route("/api/admin/commandes/<int:commande_id>/valider", methods=["POST"])
