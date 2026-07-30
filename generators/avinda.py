@@ -86,13 +86,53 @@ ALPHABET_LETTRES = "ABCDEFGHIJKL"   # 🅰️ LA LETTRE DU CARTON (décision Mae
 # public et journalisé. Pilote : la famille A VINDA (les 2 jumeaux).
 
 
+# 💰 LES MONTANTS DE SALLE (sceau Maeva 30/07 — 19 montants, jumeau FORTUNE).
+# Comme les lettres : imprimés aux verres, ils ne promettent RIEN — ce sont des
+# boules tirées en public ; la règle de salle et le juriste gouvernent le bonus.
+MONTANTS = [100, 400, 600, 700, 800, 900, 2000, 3000, 4000, 5000, 6000, 7000,
+            8000, 9000, 100000, 500000, 1000000, 2000000, 3000000]
+
+
+def _montants_carte(serie):
+    """LES 3 MONTANTS du carton FORTUNE — un par coupe B·I·O, tous différents,
+    déterministes par HMAC (la refab redonne exactement les mêmes)."""
+    h = _hmac.new(b"MONTANT-2KEA", ("MONTANT:%d" % serie).encode(), _hashlib.sha256)
+    rm = _random.Random(h.digest())
+    return rm.sample(MONTANTS, 13)   # un montant par emplacement, tous différents
+
+
+def _texte_montant(n):
+    """Le montant en chiffres groupés pour la coupe : 500 000 / 2 000…"""
+    return "{:,}".format(n).replace(",", " ")   # espace simple : Helvetica la connaît (l'espace fine dessinait un carré)
+
+
+def _montant_rect(c, cx, cy, w, h, montant, col, gris_ch):
+    """💰 Le RECTANGLE au montant (sceau Maeva 30/07 : FORTUNE = rectangles)."""
+    c.setStrokeColor(col); c.setLineWidth(1.3)
+    c.roundRect(cx - w / 2, cy - h / 2, w, h, 1.8 * mm, stroke=1, fill=0)
+    mtxt = _texte_montant(montant)
+    t = 15.0
+    while t > 6 and pdfmetrics.stringWidth(mtxt, "Helvetica-Bold", t) > w - 3.4 * mm:
+        t -= 0.5
+    c.setFillColor(gris_ch); c.setFont("Helvetica-Bold", t)
+    c.drawCentredString(cx, cy + 0.8 * mm, mtxt)
+    c.setFont("Helvetica-Bold", 4.8)
+    c.drawCentredString(cx, cy - 3.6 * mm, "FRANCS")
+    c.setFillColor(col); c.setFont(POLICE, 4.0)
+    c.drawCentredString(cx, cy - h / 2 + 1.2 * mm, "MONTANT DE SALLE")
+
+
 def _lettres_carte(serie):
     """LES 3 LETTRES du carton — une par coupe B·I·O, TOUTES DIFFÉRENTES
     (décision Maeva 30/07 : « différente lettre dans chaque coupe ») ;
     déterministes par HMAC : la refab redonne exactement les mêmes."""
     h = _hmac.new(b"LETTRE-2KEA", ("LETTRE:%d" % serie).encode(), _hashlib.sha256)
     rl = _random.Random(h.digest())
-    return rl.sample(ALPHABET_LETTRES, len(MYSTERE_COLONNES))
+    l = list(ALPHABET_LETTRES)
+    rl.shuffle(l)
+    l.append(rl.choice(ALPHABET_LETTRES))   # 13 verres pour 12 lettres : une doublée
+    rl.shuffle(l)
+    return l
 
 
 def _positions_colonnes():
@@ -184,7 +224,7 @@ def _gen_carte(rng, forcer=()):
 
 def _dessiner_carte(c, x0, y0, carte, verres, couleur_hex, serie, encre,
                     telephone="", titre_jeu="", no_page=1, style="eco", evenement_id="",
-                    pos_mysteres=frozenset()):
+                    pos_mysteres=frozenset(), fortune=False):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
     ncols = 5
@@ -227,6 +267,7 @@ def _dessiner_carte(c, x0, y0, carte, verres, couleur_hex, serie, encre,
     r_cercle = min(cell_w, row_h) * 0.42
 
     no_case = 0                 # compteur des 24 cases (pour les 13 verres)
+    idx_solo = 0                # compteur des 13 emplacements solo (lettres/montants)
     for j in range(5):          # rangées (0 = haut)
         cy = grid_top - (j + 0.5) * row_h
         for i, (lettre, a, b) in enumerate(PLAGES):
@@ -257,35 +298,32 @@ def _dessiner_carte(c, x0, y0, carte, verres, couleur_hex, serie, encre,
             idx = j if i != 2 else (j if j < 2 else j - 1)  # N saute la case centrale
             nums_case = carte[lettre][idx]
             if no_case in verres:
-                # 🍷 un seul numéro, servi au centre dans son verre
+                # 🍷 un emplacement solo — le jumeau décide de son habit
                 cxc = cell_x + cell_w * 0.50
-                _verre(c, cxc, cy, col)
-                # médaillon blanc (recette 100 FRANCS) : la coupe s'efface sous le chiffre
-                c.setFillColor(colors.white)
-                c.roundRect(cxc - 7.7 * mm, cy - 3.6 * mm, 15.4 * mm, 9.8 * mm, 1.8 * mm, stroke=0, fill=1)
-                if no_case in pos_mysteres:
-                    # 🔮 LES VERRES MYSTÈRE (décision Maeva 29/07 : « on va commencer
-                    # par 3 mystères, ensuite on attendra le retour de nos clients ») :
-                    # TROIS des 13 coupes attendent d'être remplies — un grand « ? »,
-                    # AUCUN numéro n'existe derrière (la boule-mystère naîtra du
-                    # tirage public au caller et remplira les coupes « ? » de toute
-                    # la salle au même instant). Un « ? » par colonne B·I·O — la boule de
-                    # chaque colonne respecte sa plage (règle Maeva).
-                    # 🅰️ LES LETTRES SONT DANS LE VERRE (idée Maeva 30/07) : la coupe
-                    # mystère porte LA LETTRE DU CARTON avec son « ? » — la salle
-                    # tire sa lettre au caller, le porteur se reconnaît dans ses verres.
-                    k = MYSTERE_COLONNES.index(_COL_DE_CASE[no_case])
-                    c.setFillColor(gris_ch); c.setFont("Helvetica-Bold", 30)
-                    c.drawCentredString(cxc - 3.2 * mm, cy - 8, _lettres_carte(serie)[k])
-                    c.setFont("Helvetica-Bold", 17)
-                    c.drawCentredString(cxc + 5.6 * mm, cy + 1.5 * mm, "?")
-                    c.setFillColor(col); c.setFont(POLICE, 4.6)
-                    c.drawCentredString(cxc, cy - 12.8 * mm, "LETTRE DE SALLE")
-                elif _sec:
-                    _sec.chiffre_micro(c, nums_case[0], cxc, cy - 8, 32, gris_ch, police_ch)
+                if pos_mysteres and fortune:
+                    # 💰 TOUS LES RECTANGLES portent un montant (sceau Maeva 30/07)
+                    _montant_rect(c, cxc, cy - 1.2 * mm, 27 * mm, 17 * mm,
+                                  _montants_carte(serie)[idx_solo], col, gris_ch)
                 else:
-                    c.setFillColor(gris_ch); c.setFont(police_ch, 32)
-                    c.drawCentredString(cxc, cy - 8, str(nums_case[0]))
+                    _verre(c, cxc, cy, col)
+                    # médaillon blanc (recette 100 FRANCS) : la coupe s'efface sous le chiffre
+                    c.setFillColor(colors.white)
+                    c.roundRect(cxc - 7.7 * mm, cy - 3.6 * mm, 15.4 * mm, 9.8 * mm, 1.8 * mm, stroke=0, fill=1)
+                    if pos_mysteres:
+                        # 🅰️ TOUS LES VERRES portent leur lettre (sceau Maeva 30/07) —
+                        # A→L au complet + une lettre doublée, tirées du sac au caller.
+                        c.setFillColor(gris_ch); c.setFont("Helvetica-Bold", 30)
+                        c.drawCentredString(cxc - 3.2 * mm, cy - 8, _lettres_carte(serie)[idx_solo])
+                        c.setFont("Helvetica-Bold", 17)
+                        c.drawCentredString(cxc + 5.6 * mm, cy + 1.5 * mm, "?")
+                        c.setFillColor(col); c.setFont(POLICE, 4.6)
+                        c.drawCentredString(cxc, cy - 12.8 * mm, "LETTRE DE SALLE")
+                    elif _sec:
+                        _sec.chiffre_micro(c, nums_case[0], cxc, cy - 8, 32, gris_ch, police_ch)
+                    else:
+                        c.setFillColor(gris_ch); c.setFont(police_ch, 32)
+                        c.drawCentredString(cxc, cy - 8, str(nums_case[0]))
+                idx_solo += 1
             else:
                 # règle du OHANA 75 · 2 boules : gros cerclé + petit à côté
                 cxc = cell_x + cell_w * 0.30
@@ -320,7 +358,7 @@ def _dessiner_carte(c, x0, y0, carte, verres, couleur_hex, serie, encre,
         # il n'y a qu'UN chiffre mystère pour toute la salle — le carton le dit.
         c.setFillColor(col); c.setFont(POLICE, 4.8)
         c.drawCentredString(x0 + CARD_W / 2, y0 + 2 * mm,
-                            "LES 3 LETTRES des verres (B\u00b7I\u00b7O) = VOS lettres de salle (A\u2192L) \u2014 tir\u00e9es du sac avec les boules, cochez quand la v\u00f4tre sort !")
+                            ("TOUS LES RECTANGLES portent un montant \u2014 tir\u00e9s du sac avec les boules ; la r\u00e8gle d'attribution est annonc\u00e9e en salle" if fortune else "TOUS LES VERRES portent leur lettre (A\u2192L, une doubl\u00e9e) \u2014 tir\u00e9es du sac avec les boules, cochez quand la v\u00f4tre sort !"))
     if telephone:
         c.drawRightString(x0 + CARD_W - 4 * mm, y0 + 2 * mm, "Resp. " + telephone)
 
@@ -334,7 +372,7 @@ def _dessiner_carte(c, x0, y0, carte, verres, couleur_hex, serie, encre,
 
 def generer_pdf(nb_cartes=2, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id="", mystere=False):
+                style="eco", evenement_id="", mystere=False, fortune=False):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
@@ -378,7 +416,7 @@ def generer_pdf(nb_cartes=2, serie_start=1, theme="", couleur=True,
             coul = (couleur_perso if (couleur and couleur_perso)
                     else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
             _dessiner_carte(c, x0, y0, carte, verres, coul, serie, encre, telephone, titre_jeu, no_page,
-                            style=style, evenement_id=evenement_id, pos_mysteres=pos_mysteres)
+                            style=style, evenement_id=evenement_id, pos_mysteres=pos_mysteres, fortune=fortune)
             serie += 1
             faites += 1
 
@@ -416,6 +454,13 @@ if __name__ == "__main__":
     with open("test_avinda.pdf", "wb") as f:
         f.write(pdf.read())
     print("A VINDA généré")
+
+
+def generer_pdf_fortune(**kw):
+    """💰 A VINDA FORTUNE — le 3e jumeau : les MONTANTS vivent dans les verres."""
+    kw["mystere"] = True
+    kw["fortune"] = True
+    return generer_pdf(**kw)
 
 
 def generer_pdf_mystere(**kw):
