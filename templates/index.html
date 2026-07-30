@@ -283,7 +283,11 @@
       <div id="sante-bar" style="display:none;border-radius:12px;padding:.8rem 1rem;margin-bottom:1.4rem;font-size:.85rem;line-height:1.6"></div>
       <h2 class="display" style="font-size:1.4rem;margin-bottom:.4rem">Commandes à valider</h2>
       <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem;line-height:1.6">Valider = paiement reçu. Si « FUN AND CO », le PDF leur est envoyé automatiquement.</p>
-      <div id="admin-commandes" style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:2rem"></div>
+      <div id="admin-commandes" style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem"></div>
+      <!-- 💳 le tiroir des cartes abandonnées (sceau Maeva 30/07 : « sortir les cartes
+           abandonnées de commandes à valider ») — rien à valider ici : si le client
+           finit par payer, Stripe/le Rattrapage validera TOUT SEUL. -->
+      <div id="admin-cartes-abandonnees" style="margin-bottom:2rem"></div>
       <!-- 📦 Ravitaillement boutique -->
       <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">📦 Ravitaillement boutique</h2>
       <p style="color:var(--muted);font-size:.85rem;margin-bottom:.8rem;line-height:1.6">Commande interne <b>gratuite</b> de <b>250 feuilles</b> pour le stock 2KEA & Associé — auto-validée, les PDF filent droit au coffre 🔍.</p>
@@ -1129,11 +1133,27 @@ async function lancerRavitaillement(){
   }catch(e){ msg.style.color="var(--coral)"; msg.textContent="Erreur r\u00e9seau."; }
   btn.disabled=false;
 }
+function afficherCartesAbandonnees(cartes){
+  const z=document.getElementById('admin-cartes-abandonnees');
+  if(!z) return;
+  if(!cartes.length){ z.innerHTML=''; return; }
+  var h='<h3 style="font-size:1.02rem;margin:0 0 .3rem">\ud83d\udcb3 Paiements carte non aboutis ('+cartes.length+')</h3>'
+    +'<p style="color:var(--muted);font-size:.8rem;margin-bottom:.6rem;line-height:1.6">Le client a ouvert le paiement carte sans le terminer \u2014 <b>rien \u00e0 valider ni \u00e0 fabriquer</b>. S\u2019il finit par payer, Stripe validera tout seul (webhook ou Rattrapage). Le balai supprime la trace.</p>';
+  cartes.forEach(function(c){
+    var quand=(c.cree_le||'').replace('T',' ').slice(0,16);
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;padding:.5rem .9rem;border:1px dashed var(--line);border-radius:6px;background:#fafafa;margin-top:.35rem;flex-wrap:wrap">'
+      +'<span style="font-size:.82rem;color:var(--muted)">\ud83d\udcb3 #'+c.id+' \u00b7 '+quand+' \u00b7 '+c.programme+' \u00b7 '+c.nb_feuilles+' f. \u00b7 '+c.montant+' XPF</span>'
+      +'<button class="btn" title="Supprimer cette commande abandonn\u00e9e" style="width:auto;padding:.35rem .7rem;background:var(--coral)" onclick="adminSupprimerCommande('+c.id+')">\ud83d\uddd1\ufe0f</button></div>';
+  });
+  z.innerHTML=h;
+}
 async function chargerCommandes(){
   const cont=document.getElementById('admin-commandes');
   try{
     const r=await fetch('/api/admin/commandes'); const d=await r.json();
-    const cmds=(d.commandes||[]).filter(function(c){ return c.statut==='en_attente'; });
+    const attente=(d.commandes||[]).filter(function(c){ return c.statut==='en_attente'; });
+    const cmds=attente.filter(function(c){ return c.mode_paiement!=='stripe'; });
+    afficherCartesAbandonnees(attente.filter(function(c){ return c.mode_paiement==='stripe'; }));
     if(cmds.length===0){ cont.innerHTML='<p style="color:var(--muted);font-style:italic;font-size:.85rem">Aucune commande en attente.</p>'; return; }
     cont.innerHTML="";
     cmds.forEach(function(c){
