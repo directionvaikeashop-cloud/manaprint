@@ -101,7 +101,39 @@ def _gen_carte(rng):
     return grille
 
 
-def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id="", motif=""):
+# 🎲 LES PETITS NUMÉROS EN VRAIS DÉS (sceau Maeva 30/07) : 1-6 = un dé à
+# points ; 7, 8, 9 = DEUX dés dont les points s'additionnent (7=4+3, 8=4+4,
+# 9=5+4) ; à partir de 10, le chiffre reste roi (un dé ne sait pas dire 47).
+_DECOMP_DES = {7: (4, 3), 8: (4, 4), 9: (5, 4)}
+
+
+def _un_de(c, cx, cy, t, valeur, col, gris_ch):
+    """Un vrai dé : carré arrondi blanc bordé couleur, points gris disposés
+    comme sur les dés du commerce."""
+    r = t / 2.0
+    c.setStrokeColor(col); c.setLineWidth(1.1)
+    c.setFillColor(colors.white)
+    c.roundRect(cx - r, cy - r, t, t, t * 0.18, stroke=1, fill=1)
+    q = t * 0.26
+    pos = {1: [(0, 0)], 2: [(-q, q), (q, -q)], 3: [(-q, q), (0, 0), (q, -q)],
+           4: [(-q, q), (q, q), (-q, -q), (q, -q)],
+           5: [(-q, q), (q, q), (0, 0), (-q, -q), (q, -q)],
+           6: [(-q, q), (q, q), (-q, 0), (q, 0), (-q, -q), (q, -q)]}[valeur]
+    c.setFillColor(gris_ch)
+    for dx, dy in pos:
+        c.circle(cx + dx, cy + dy, t * 0.085, stroke=0, fill=1)
+
+
+def _dessine_des(c, valeur, cx, cy, col, gris_ch):
+    if valeur <= 6:
+        _un_de(c, cx, cy, 11.5 * mm, valeur, col, gris_ch)
+    else:
+        a, b = _DECOMP_DES[valeur]
+        _un_de(c, cx - 4.4 * mm, cy, 7.8 * mm, a, col, gris_ch)
+        _un_de(c, cx + 4.4 * mm, cy, 7.8 * mm, b, col, gris_ch)
+
+
+def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id="", motif="", des=False):
     # 🖼️ filigrane décoratif (option client) — dessiné EN PREMIER, tout passe dessus
     if _motifs and motif:
         _motifs.dessiner_filigrane(c, x0, y0, CARD_W, CARD_H, motif, graine=serie, nb=2, echelle=0.9)
@@ -150,7 +182,9 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
             val = grille[r][cc]
             if val is None:
                 continue  # case du QR
-            if _sec:  # chiffres "billet de banque" remplis de microtexte
+            if des and val <= 9:   # 🎲 jumeau CASINO : le petit numéro vit en dés
+                _dessine_des(c, val, cx, cyc, col, gris_ch)
+            elif _sec:  # chiffres "billet de banque" remplis de microtexte
                 _sec.chiffre_micro(c, val, cx, cyc - 11, 32, gris_ch, police_ch)
             else:
                 c.setFillColor(gris_ch); c.setFont(police_ch, 32)
@@ -170,7 +204,7 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
 
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id="", motif=""):
+                style="eco", evenement_id="", motif="", des=False):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
@@ -200,7 +234,7 @@ def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
                 grille = _gen_carte(rng)
                 coul = (couleur_perso if (couleur and couleur_perso)
                         else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
-                _dessiner_carte(c, x0, y0, grille, coul, serie, titre_jeu, telephone, style=style, evenement_id=evenement_id, motif=motif)
+                _dessiner_carte(c, x0, y0, grille, coul, serie, titre_jeu, telephone, style=style, evenement_id=evenement_id, motif=motif, des=des)
                 serie += 1
                 faites += 1
 
@@ -210,6 +244,12 @@ def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
     c.save()
     buf.seek(0)
     return buf
+
+
+def generer_pdf_casino(**kw):
+    """🎲 POW CASINO — le jumeau où les numéros 1-9 vivent en vrais dés."""
+    kw["des"] = True
+    return generer_pdf(**kw)
 
 
 if __name__ == "__main__":
