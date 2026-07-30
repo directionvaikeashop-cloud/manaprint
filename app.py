@@ -284,6 +284,7 @@ def _enregistrer_paire(base_id, nom, emoji, cpf, fn, kwarg_nb="nb_cartes"):
 _enregistrer_paire("triple_action", "Triple Action 75",  "🎯", 10, triple_action.generer_pdf, kwarg_nb="nb_tickets")
 _enregistrer_paire("aloha75",       "Aloha 75",          "🌺", 12, aloha75.generer_pdf)
 _enregistrer_paire("p6_marathon",   "P6 Marathon",       "6️⃣", 6,  p6_marathon.generer_pdf)
+_enregistrer_paire("p6_casino",     "PJOKER",            "🃏", 6,  p6_marathon.generer_pdf_casino)
 _enregistrer_paire("bingo_ball",    "Bingo Ball",        "🎱", 10, bingo_ball.generer_pdf)
 _enregistrer_paire("ohana75_2s",    "OHANA 75 · 2 séries","🌺", 2,  ohana75_2series.generer_pdf)
 _enregistrer_paire("brown8",        "BROWN 8 boules",     "🟤", 8,  brown8.generer_pdf)
@@ -872,6 +873,7 @@ _PLAGES_CALLER = {
     "pol": (30, 60),
     "sun": (1, 24),
     "sun_casino": (1, 24),
+    "p6_casino": (1, 75),
     "pow": (1, 27),
     "pow_casino": (1, 27),
     "poe_parau": (1, 75),
@@ -994,6 +996,10 @@ _LETTRE_CODES = {100 + i + 1: l for i, l in enumerate("ABCDEFGHIJKL")}
 # 💰 LES MONTANTS SONT DES BOULES (sceau Maeva 30/07, 19 montants — imprimés aux
 # coupes ils ne promettent rien, seul le tirage public journalisé attribue) :
 _MONTANT_CODES = {200 + i + 1: mv for i, mv in enumerate(avinda.MONTANTS)}
+_JOKER_CODE = 300   # 🃏 LA BOULE JOKER — EN RÉSERVE (décision Maeva 30/07 :
+#     « pour le lancement pas le joker, après les résultats du marché ») ;
+#     pour la réveiller : remettre "p6_casino" au sac ci-dessous avec [_JOKER_CODE],
+#     et rallumer _JOKER_ACTIF dans p6_marathon.py + les entrées des 2 callers.
 
 _BOULES_CALLER = {
     "avinda_fort": list(range(1, 76)) + sorted(_MONTANT_CODES),          # 94 boules 🍷💰
