@@ -1077,7 +1077,7 @@ def api_caller_journal(partie_id):
     return jsonify({"ok": True, "partie_id": partie_id, "journal": db.journal_partie(partie_id)})
 
 
-_MYSTERE_JEUX = {"avinda_myst"}   # 🔮 les jeux au verre mystère (vision Maeva 29/07)
+_MYSTERE_JEUX = set()   # 🔮 éteint (Maeva 30/07 : les lettres-boules remplacent la révélation)   # 🔮 les jeux au verre mystère (vision Maeva 29/07)
 # 🔮 Les colonnes du mystère et leurs plages (sceau Maeva 29/07 : « BIO ») —
 # règle de colonne : un mystère dans le I ne peut valoir qu'un numéro du I.
 _MYSTERE_COLONNES = {"avinda_myst": (("B", 1, 15), ("I", 16, 30), ("O", 61, 75))}
