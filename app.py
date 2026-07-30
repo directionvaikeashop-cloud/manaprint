@@ -421,6 +421,7 @@ _enregistrer_paire("wiz",           "WIZ 4 boules", "🧙", 12, wiz.generer_pdf)
 _enregistrer_paire("p15_marathon",  "P15 Marathon", "🥥", 15, p15_marathon.generer_pdf)
 _enregistrer_paire("p12_marathon",  "P12 Marathon", "🌴", 12, p12_marathon.generer_pdf)
 _enregistrer_paire("ohana20b",      "OHANA 75 · 20 boules","🌺", 5,  ohana75_20boules.generer_pdf)
+_enregistrer_paire("ohana20b_smo",  "OHANA 75 \u00b7 20 boules SMORFIA","\ud83c\udfb4", 5,  ohana75_20boules.generer_pdf_smorfia)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
 
@@ -964,6 +965,7 @@ _PLAGES_CALLER = {
     "wiz": (1, 45),
     "p15_marathon": (1, 75),
     "ohana20b": (1, 75),
+    "ohana20b_smo": (1, 75),
     "ohana75_8b": (1, 75),
     "ohana75_8b_smo": (1, 75),
 }
