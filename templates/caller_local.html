@@ -293,6 +293,40 @@ function svgDe(n) {
   return '<svg viewBox="' + (-large / 2) + ' -55 ' + large + ' 110" style="height:0.95em;vertical-align:-0.12em" xmlns="http://www.w3.org/2000/svg">' + corps + '</svg>';
 }
 function estBouleDe(jeu, n) { return CASINO_JEUX.indexOf(jeu) >= 0 && n >= 1 && n <= 9; }
+// 🃏 LA CARTE À L'ÉCRAN ET À LA VOIX (sceau Maeva 30/07) : sur PJOKER,
+// boule 1-13 → la grosse boule MONTRE la carte à jouer et la voix l'épelle
+// (« L'As de coeur ! ») — l'enseigne suit le numéro (n % 4) comme sur le carton.
+var VALEURS_CARTES_AFF = {1: "A", 11: "V", 12: "D", 13: "R"};
+var VALEURS_CARTES_VOIX = {1: "L'As", 11: "Le Valet", 12: "La Dame", 13: "Le Roi"};
+var ENSEIGNES_VOIX = ["de pique", "de c\u0153ur", "de carreau", "de tr\u00e8fle"];
+function nomCarteVoix(n) {
+  return (VALEURS_CARTES_VOIX[n] || ("Le " + n)) + " " + ENSEIGNES_VOIX[n % 4];
+}
+function estCarteJeu(jeu, n) { return jeu === "p6_casino" && n >= 1 && n <= 13; }
+function svgEnseigne(q, cy, t, coul) {
+  var s = '<g transform="translate(0,' + cy + ')" fill="' + coul + '">';
+  if (q === 2) return s + '<polygon points="0,' + (-t) + ' ' + (t * 0.72) + ',0 0,' + t + ' ' + (-t * 0.72) + ',0"/></g>';
+  if (q === 1) return s + '<circle cx="' + (-t * 0.42) + '" cy="' + (-t * 0.28) + '" r="' + (t * 0.46) + '"/>' +
+    '<circle cx="' + (t * 0.42) + '" cy="' + (-t * 0.28) + '" r="' + (t * 0.46) + '"/>' +
+    '<polygon points="' + (-t * 0.85) + ',' + (-t * 0.16) + ' 0,' + t + ' ' + (t * 0.85) + ',' + (-t * 0.16) + '"/></g>';
+  if (q === 0) return s + '<circle cx="' + (-t * 0.40) + '" cy="' + (t * 0.18) + '" r="' + (t * 0.42) + '"/>' +
+    '<circle cx="' + (t * 0.40) + '" cy="' + (t * 0.18) + '" r="' + (t * 0.42) + '"/>' +
+    '<polygon points="' + (-t * 0.80) + ',' + (t * 0.08) + ' 0,' + (-t) + ' ' + (t * 0.80) + ',' + (t * 0.08) + '"/>' +
+    '<rect x="' + (-t * 0.12) + '" y="' + (t * 0.15) + '" width="' + (t * 0.24) + '" height="' + (t * 0.85) + '"/></g>';
+  return s + '<circle cx="0" cy="' + (-t * 0.42) + '" r="' + (t * 0.42) + '"/>' +
+    '<circle cx="' + (-t * 0.42) + '" cy="' + (t * 0.10) + '" r="' + (t * 0.42) + '"/>' +
+    '<circle cx="' + (t * 0.42) + '" cy="' + (t * 0.10) + '" r="' + (t * 0.42) + '"/>' +
+    '<rect x="' + (-t * 0.12) + '" y="' + (t * 0.15) + '" width="' + (t * 0.24) + '" height="' + (t * 0.85) + '"/></g>';
+}
+function svgCarte(n) {
+  var q = n % 4, coul = (q === 1 || q === 2) ? "#C0392B" : "#333";
+  var v = VALEURS_CARTES_AFF[n] || String(n);
+  return '<svg viewBox="-42 -55 84 110" style="height:0.95em;vertical-align:-0.12em" xmlns="http://www.w3.org/2000/svg">' +
+    '<rect x="-38" y="-52" width="76" height="104" rx="10" fill="#fff" stroke="currentColor" stroke-width="6"/>' +
+    svgEnseigne(q, -30, 11, coul) +
+    '<text x="0" y="' + (v.length > 1 ? 11 : 13) + '" text-anchor="middle" font-family="Helvetica,Arial" font-weight="bold" font-size="' + (v.length > 1 ? 30 : 38) + '" fill="' + coul + '">' + v + '</text>' +
+    svgEnseigne(q, 38, 11, coul) + '</svg>';
+}
 function svgJoker() {
   return '<svg viewBox="-42 -55 84 110" style="height:0.95em;vertical-align:-0.12em" xmlns="http://www.w3.org/2000/svg">' +
     '<rect x="-38" y="-52" width="76" height="104" rx="10" fill="#fff" stroke="currentColor" stroke-width="6"/>' +
@@ -302,6 +336,7 @@ function svgJoker() {
 }
 function afficherGrosseBoule(el, jeu, n) {
   if (n === 300) el.innerHTML = svgJoker();
+  else if (estCarteJeu(jeu, n)) el.innerHTML = svgCarte(n);
   else if (estBouleDe(jeu, n)) el.innerHTML = svgDe(n);
   else el.textContent = nomBoule(n);
 }
@@ -359,7 +394,7 @@ function tirer() {
   sauver();
   afficherGrosseBoule(document.getElementById("boule-big"), P.jeu, n);
   document.getElementById("boule-lettre").textContent = n > 100 ? "🅰️ LETTRE DE LA SALLE" : lettrePour(n);
-  parlerBoule(n, n === 300 ? "Le Joker ! Cochez une carte de votre choix !" : (n >= 201 ? MONTANTS_VOIX[n - 201] + " !" : (n > 100 ? "La lettre... " + nomBoule(n) + " !" : null)));
+  parlerBoule(n, n === 300 ? "Le Joker ! Cochez une carte de votre choix !" : (n >= 201 ? MONTANTS_VOIX[n - 201] + " !" : (n > 100 ? "La lettre... " + nomBoule(n) + " !" : (estCarteJeu(P.jeu, n) ? nomCarteVoix(n) + " !" : null))));
   maj();
 }
 
