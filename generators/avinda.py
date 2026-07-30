@@ -358,7 +358,7 @@ def _dessiner_carte(c, x0, y0, carte, verres, couleur_hex, serie, encre,
         # il n'y a qu'UN chiffre mystère pour toute la salle — le carton le dit.
         c.setFillColor(col); c.setFont(POLICE, 4.8)
         c.drawCentredString(x0 + CARD_W / 2, y0 + 2 * mm,
-                            ("TOUS LES RECTANGLES portent un montant \u2014 tir\u00e9s du sac avec les boules ; la r\u00e8gle d'attribution est annonc\u00e9e en salle" if fortune else "TOUS LES VERRES portent leur lettre (A\u2192L, une doubl\u00e9e) \u2014 tir\u00e9es du sac avec les boules, cochez quand la v\u00f4tre sort !"))
+                            ("TOUS LES RECTANGLES portent un montant \u2014 tir\u00e9 du sac comme une boule, COCHEZ quand le v\u00f4tre sort ! (rien n'est pay\u00e9 : c'est le jeu)" if fortune else "TOUS LES VERRES portent leur lettre (A\u2192L, une doubl\u00e9e) \u2014 tir\u00e9es du sac avec les boules, cochez quand la v\u00f4tre sort !"))
     if telephone:
         c.drawRightString(x0 + CARD_W - 4 * mm, y0 + 2 * mm, "Resp. " + telephone)
 
