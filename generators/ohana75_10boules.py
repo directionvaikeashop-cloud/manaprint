@@ -78,6 +78,43 @@ CARD_W = PAGE_W - 2 * MARGIN_X
 CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (CARTES_PAGE - 1) * GUTTER_Y) / CARTES_PAGE
 
 
+# 💰 MYSTÈRE-MONTANTS (sceau Maeva 30/07) : 2 positions CONDAMNÉES par carton
+# deviennent des coupes portant un MONTANT — imprimé, il ne promet RIEN : c'est
+# une boule tirée en public ; règle de salle + juriste gouvernent le bonus.
+import hmac as _hmac
+import hashlib as _hashlib
+MONTANTS = [100, 400, 600, 700, 800, 900, 2000, 3000, 4000, 5000, 6000, 7000,
+            8000, 9000, 100000, 500000, 1000000, 2000000, 3000000]
+
+
+def _mystere_carte(serie, nb_cols):
+    """(les DEUX colonnes condamnées, leurs DEUX montants) — chaque paire
+    (chiffre nu + cerclé) s'efface pour SON rectangle (sceau Maeva 30/07)."""
+    h = _hmac.new(b"MONTANT-2KEA", ("OHMONT:%d" % serie).encode(), _hashlib.sha256)
+    rm = random.Random(h.digest())
+    return sorted(rm.sample(range(nb_cols), 2)), rm.sample(MONTANTS, 2)
+
+
+def _texte_montant(n):
+    return "{:,}".format(n).replace(",", " ")   # espace simple : Helvetica la connaît (l'espace fine dessinait un carré)
+
+
+def _montant_rectangle(c, cx, cy, w, h, montant, col, gris_ch):
+    """Le RECTANGLE élégant qui accueille le montant de la colonne condamnée."""
+    c.setStrokeColor(col); c.setLineWidth(1.2)
+    c.roundRect(cx - w / 2, cy - h / 2, w, h, 1.6 * mm, stroke=1, fill=0)
+    mtxt = _texte_montant(montant)
+    t = 15.0
+    while t > 6 and pdfmetrics.stringWidth(mtxt, "Helvetica-Bold", t) > w - 3.2 * mm:
+        t -= 0.5
+    c.setFillColor(gris_ch); c.setFont("Helvetica-Bold", t)
+    c.drawCentredString(cx, cy + 0.8 * mm, mtxt)
+    c.setFont("Helvetica-Bold", 4.6)
+    c.drawCentredString(cx, cy - 3.4 * mm, "FRANCS")
+    c.setFillColor(col); c.setFont(POLICE, 3.8)
+    c.drawCentredString(cx, cy - h / 2 + 1.2 * mm, "MONTANT DE SALLE")
+
+
 def _gen_carte(rng):
     """8 entrées (valeur, rond_pointille) : par plage, petit=gros chiffre, grand=rond."""
     out = []
@@ -88,7 +125,7 @@ def _gen_carte(rng):
     return out
 
 
-def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
+def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id="", myst_pos=None, myst_mnt=None):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
 
@@ -133,22 +170,26 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
         small_val = nums[2 * p + 1][0]
         # gros chiffre
         bx = pleft + pair_w * 0.30
+        if myst_pos is not None and p in myst_pos:   # 💰 colonne condamnée : le rectangle
+            _montant_rectangle(c, pleft + pair_w * 0.52, cy, 24 * mm, 16.5 * mm,
+                               myst_mnt[myst_pos.index(p)], col, gris_ch)
+            continue
         if _sec:  # chiffres "billet de banque" remplis de microtexte
-            _sec.chiffre_micro(c, big_val, bx, cy - 15, 44, gris_ch, police_ch)
+            _sec.chiffre_micro(c, big_val, bx, cy - 12.5, 35, gris_ch, police_ch)
         else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, 44)
-            c.drawCentredString(bx, cy - 15, str(big_val))
-        # petit chiffre dans rond pointillé (collé au gros)
+            c.setFillColor(gris_ch); c.setFont(police_ch, 35)
+            c.drawCentredString(bx, cy - 12.5, str(big_val))
+        # petit chiffre dans rond pointillé — ou la coupe 💰
         sx = pleft + pair_w * 0.74
         c.setStrokeColor(col); c.setLineWidth(0.7)
         c.setDash([1.4, 1.4])
-        c.circle(sx, cy, 6.3 * mm, stroke=1, fill=0)
+        c.circle(sx, cy, 6.6 * mm, stroke=1, fill=0)
         c.setDash([])
         if _sec:
-            _sec.chiffre_micro(c, small_val, sx, cy - 9, 26, gris_ch, police_ch)
+            _sec.chiffre_micro(c, small_val, sx, cy - 10.8, 30, gris_ch, police_ch)
         else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, 26)
-            c.drawCentredString(sx, cy - 9, str(small_val))
+            c.setFillColor(gris_ch); c.setFont(police_ch, 30)
+            c.drawCentredString(sx, cy - 10.8, str(small_val))
 
     # QR de vérification par grille (anti-duplication) — coin bas-droit
     if _sec and evenement_id:
@@ -164,7 +205,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
 
 def generer_pdf(nb_cartes=9, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id=""):
+                style="eco", evenement_id="", mystere=False):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
@@ -185,9 +226,12 @@ def generer_pdf(nb_cartes=9, serie_start=1, theme="", couleur=True,
             y0 = MARGIN_BOT + (CARTES_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
             x0 = MARGIN_X
             nums = _gen_carte(rng)
+            mp, mv = (None, None)
+            if mystere:   # 💰 LA colonne condamnée et SON montant
+                mp, mv = _mystere_carte(serie, 5)
             coul = (couleur_perso if (couleur and couleur_perso)
                     else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
-            _dessiner_carte(c, x0, y0, nums, coul, serie, titre_jeu, telephone, style=style, evenement_id=evenement_id)
+            _dessiner_carte(c, x0, y0, nums, coul, serie, titre_jeu, telephone, style=style, evenement_id=evenement_id, myst_pos=mp, myst_mnt=mv)
             serie += 1
             faites += 1
         c.showPage()
@@ -196,6 +240,12 @@ def generer_pdf(nb_cartes=9, serie_start=1, theme="", couleur=True,
     c.save()
     buf.seek(0)
     return buf
+
+
+def generer_pdf_mystere(**kw):
+    """💰 OHANA 75 \u00b7 10 boules MYSTÈRE — 2 coupes à MONTANTS remplacent 2 numéros."""
+    kw["mystere"] = True
+    return generer_pdf(**kw)
 
 
 if __name__ == "__main__":
