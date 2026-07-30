@@ -280,7 +280,7 @@ def _dessiner_carte(c, x0, y0, carte, verres, couleur_hex, serie, encre,
                     c.setFont("Helvetica-Bold", 17)
                     c.drawCentredString(cxc + 5.6 * mm, cy + 1.5 * mm, "?")
                     c.setFillColor(col); c.setFont(POLICE, 4.6)
-                    c.drawCentredString(cxc, cy - 12.8 * mm, "N\u00b0 MYST\u00c8RE")
+                    c.drawCentredString(cxc, cy - 12.8 * mm, "LETTRE DE SALLE")
                 elif _sec:
                     _sec.chiffre_micro(c, nums_case[0], cxc, cy - 8, 32, gris_ch, police_ch)
                 else:
@@ -320,7 +320,7 @@ def _dessiner_carte(c, x0, y0, carte, verres, couleur_hex, serie, encre,
         # il n'y a qu'UN chiffre mystère pour toute la salle — le carton le dit.
         c.setFillColor(col); c.setFont(POLICE, 4.8)
         c.drawCentredString(x0 + CARD_W / 2, y0 + 2 * mm,
-                            "Les verres \u00ab ? \u00bb (B\u00b7I\u00b7O) = LES 3 N\u00b0 MYST\u00c8RE r\u00e9v\u00e9l\u00e9s en salle \u00b7 LES 3 LETTRES des verres = VOS lettres de salle (A\u2192L), tir\u00e9es au caller")
+                            "LES 3 LETTRES des verres (B\u00b7I\u00b7O) = VOS lettres de salle (A\u2192L) \u2014 tir\u00e9es du sac avec les boules, cochez quand la v\u00f4tre sort !")
     if telephone:
         c.drawRightString(x0 + CARD_W - 4 * mm, y0 + 2 * mm, "Resp. " + telephone)
 
