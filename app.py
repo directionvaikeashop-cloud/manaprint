@@ -424,8 +424,8 @@ _enregistrer_paire("wiz",           "WIZ 4 boules", "🧙", 12, wiz.generer_pdf)
 _enregistrer_paire("p15_marathon",  "P15 Marathon", "🥥", 15, p15_marathon.generer_pdf)
 _enregistrer_paire("p12_marathon",  "P12 Marathon", "🌴", 12, p12_marathon.generer_pdf)
 _enregistrer_paire("ohana20b",      "OHANA 75 · 20 boules","🌺", 5,  ohana75_20boules.generer_pdf)
-_enregistrer_paire("ohana20b_smo",  "OHANA 75 \u00b7 20 boules SMORFIA","\ud83c\udfb4", 5,  ohana75_20boules.generer_pdf_smorfia)
-_enregistrer_paire("ohana20b_myst", "OHANA 75 \u00b7 20 boules MYST\u00c8RE","\ud83d\udcb0", 5,  ohana75_20boules.generer_pdf_mystere)
+_enregistrer_paire("ohana20b_smo",  "OHANA 75 · 20 boules SMORFIA","🎴", 5,  ohana75_20boules.generer_pdf_smorfia)
+_enregistrer_paire("ohana20b_myst", "OHANA 75 · 20 boules MYSTÈRE","💰", 5,  ohana75_20boules.generer_pdf_mystere)
 # --- Ajouter un futur jeu A4 = UNE ligne _enregistrer_paire(...) (crée Couleur + N&B) ---
 # _enregistrer_paire("ohana90", "OHANA 90", "🌺", 8, ohana90.generer_pdf)
 
@@ -572,7 +572,7 @@ def _rapport_confidentiel(commande_id, cmd, perso, evenement_id, nb_cartes):
         infos = "%s  \u00b7  %s carton(s), s\u00e9ries %06d \u00e0 %06d" % (
             perso.get("nom_evenement", ""), nb_cartes, 1, nb_cartes)
         if perso.get("date_tournoi"):
-            infos += "  \u00b7  \ud83d\udd10 actif le %s" % perso["date_tournoi"]
+            infos += "  \u00b7  🔐 actif le %s" % perso["date_tournoi"]
         c.drawString(15 * _mm, H - 28 * _mm, infos)
         c.setFillColor(_co.HexColor("#6b7280")); c.setFont("Helvetica", 7)
         c.drawRightString(W - 12 * _mm, H - 23 * _mm, "page %d" % page)
