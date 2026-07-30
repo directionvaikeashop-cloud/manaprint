@@ -5,6 +5,7 @@ Déployable sur Railway (même stack que Ticket Bingo).
 """
 import os
 import hashlib
+import secrets
 from flask import Flask, request, jsonify, send_file, render_template, session, Response, make_response
 from functools import wraps
 
@@ -969,7 +970,14 @@ _PLAGES_CALLER = {
 
 
 # Jeux à colonnes NON contiguës : liste explicite des boules valides
+# 🅰️ LES LETTRES SONT DES BOULES (décision Maeva 30/07 : « les boules de
+# lettre seront tirées comme les boules de chiffres normales — on tire le A,
+# on tire le 1 ») : codes 101=A … 112=L, mêlés au sac, tirés par le même
+# moteur, journalisés pareil. Le caller affiche/chante la lettre.
+_LETTRE_CODES = {100 + i + 1: l for i, l in enumerate("ABCDEFGHIJKL")}
+
 _BOULES_CALLER = {
+    "avinda_myst": list(range(1, 76)) + sorted(_LETTRE_CODES),   # 87 boules 🍷🅰️
     "bno": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(61, 76)],
     "tureia": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # colonne 31-45 morte
     "fan90": [n for n in range(1, 11)] + [n for n in range(20, 91)],   # sans le 11 à 19
@@ -1046,7 +1054,8 @@ def api_caller_tirer():
                 continue   # une valeur farfelue n'annule pas les autres
         # le sac = tout SAUF les cochés d'office
         boules_valides = [n for n in base
-                          if not (n % 2 == reste or (n % 10) in finalites)]
+                          if n > 100   # les lettres ne sont jamais cochées d'office
+                          or not (n % 2 == reste or (n % 10) in finalites)]
 
     partie_id = (d.get("partie_id") or "").strip()
     if not partie_id:
