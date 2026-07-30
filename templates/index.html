@@ -282,7 +282,7 @@
       <!-- Commandes -->
       <div id="sante-bar" style="display:none;border-radius:12px;padding:.8rem 1rem;margin-bottom:1.4rem;font-size:.85rem;line-height:1.6"></div>
       <h2 class="display" style="font-size:1.4rem;margin-bottom:.4rem">Commandes à valider</h2>
-      <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem;line-height:1.6">Valider = paiement reçu. Si « FUN AND CO », le PDF leur est envoyé automatiquement.</p>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:1rem;line-height:1.6">Valider = paiement reçu. Le 📞 permet d'appeler le client <b>avant</b> d'exécuter (boutique &amp; virement). Si « FUN AND CO », le PDF leur est envoyé automatiquement.</p>
       <div id="admin-commandes" style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem"></div>
       <!-- 💳 le tiroir des cartes abandonnées (sceau Maeva 30/07 : « sortir les cartes
            abandonnées de commandes à valider ») — rien à valider ici : si le client
@@ -1141,8 +1141,10 @@ function afficherCartesAbandonnees(cartes){
     +'<p style="color:var(--muted);font-size:.8rem;margin-bottom:.6rem;line-height:1.6">Le client a ouvert le paiement carte sans le terminer \u2014 <b>rien \u00e0 valider ni \u00e0 fabriquer</b>. S\u2019il finit par payer, Stripe validera tout seul (webhook ou Rattrapage). Le balai supprime la trace.</p>';
   cartes.forEach(function(c){
     var quand=(c.cree_le||'').replace('T',' ').slice(0,16);
+    var telc2=''; try{ telc2=(JSON.parse(c.params_perso||"{}").telephone||'').trim(); }catch(e){}
+    var telH2=telc2?(' \u00b7 \ud83d\udcde <a href="tel:'+telc2.replace(/[^0-9+]/g,'')+'" style="color:var(--teal-d);text-decoration:none">'+telc2+'</a>'):'';
     h+='<div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;padding:.5rem .9rem;border:1px dashed var(--line);border-radius:6px;background:#fafafa;margin-top:.35rem;flex-wrap:wrap">'
-      +'<span style="font-size:.82rem;color:var(--muted)">\ud83d\udcb3 #'+c.id+' \u00b7 '+quand+' \u00b7 '+c.programme+' \u00b7 '+c.nb_feuilles+' f. \u00b7 '+c.montant+' XPF</span>'
+      +'<span style="font-size:.82rem;color:var(--muted)">\ud83d\udcb3 #'+c.id+' \u00b7 '+quand+' \u00b7 '+c.programme+' \u00b7 '+c.nb_feuilles+' f. \u00b7 '+c.montant+' XPF'+telH2+'</span>'
       +'<button class="btn" title="Supprimer cette commande abandonn\u00e9e" style="width:auto;padding:.35rem .7rem;background:var(--coral)" onclick="adminSupprimerCommande('+c.id+')">\ud83d\uddd1\ufe0f</button></div>';
   });
   z.innerHTML=h;
@@ -1157,11 +1159,13 @@ async function chargerCommandes(){
     if(cmds.length===0){ cont.innerHTML='<p style="color:var(--muted);font-style:italic;font-size:.85rem">Aucune commande en attente.</p>'; return; }
     cont.innerHTML="";
     cmds.forEach(function(c){
-      var funco=""; try{ funco=JSON.parse(c.params_perso||"{}").fun_and_co?' · 🖨️ FUN AND CO':''; }catch(e){}
+      var funco="", telc=""; try{ var pp=JSON.parse(c.params_perso||"{}"); funco=pp.fun_and_co?' · 🖨️ FUN AND CO':''; telc=(pp.telephone||'').trim(); }catch(e){}
+      // 📞 sceau Maeva 30/07 : appeler le client AVANT d'exécuter (boutique/virement)
+      var telHtml=telc?(' · \ud83d\udcde <a href="tel:'+telc.replace(/[^0-9+]/g,'')+'" style="color:var(--teal-d);font-weight:600;text-decoration:none">'+telc+'</a>'):' · \ud83d\udcde <span style="color:var(--coral)">sans t\u00e9l\u00e9phone</span>';
       const div=document.createElement('div');
       div.style.cssText="display:flex;justify-content:space-between;align-items:center;padding:.7rem 1rem;border:1px solid var(--line);border-radius:6px;background:#fff;gap:.6rem";
       var modeIco=({stripe:'💳',virement:'🏦',boutique:'🏪',manuel:'🏪',ravitaillement:'📦'})[c.mode_paiement]||'';
-      div.innerHTML='<span style="font-size:.85rem">'+modeIco+' #'+c.id+' · '+c.programme+' · '+c.nb_feuilles+' f. · <b>'+c.montant+' XPF</b><span style="color:var(--coral)">'+funco+'</span></span>'
+      div.innerHTML='<span style="font-size:.85rem">'+modeIco+' #'+c.id+' · '+c.programme+' · '+c.nb_feuilles+' f. · <b>'+c.montant+' XPF</b>'+telHtml+'<span style="color:var(--coral)">'+funco+'</span></span>'
         +'<span style="display:flex;gap:.4rem;flex-shrink:0"><button class="btn" title="Télécharger le PDF des cartons (coffre-fort)" style="width:auto;padding:.4rem .7rem;white-space:nowrap" onclick="window.open(\'/api/admin/commandes/\'+String('+c.id+')+\'/pdf/cartons\',\'_blank\')">⬇️</button>'
         +'<button class="btn" title="Télécharger le rapport confidentiel des couleurs" style="width:auto;padding:.4rem .7rem;white-space:nowrap" onclick="window.open(\'/api/admin/commandes/\'+String('+c.id+')+\'/pdf/rapport\',\'_blank\')">🗂️</button>'
         +'<button class="btn" title="Éditer la facture du dû 2KEA" style="width:auto;padding:.4rem .7rem;white-space:nowrap" onclick="factureCommande('+c.id+')">🧾</button>'
