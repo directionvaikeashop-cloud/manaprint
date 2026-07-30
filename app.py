@@ -298,7 +298,9 @@ _enregistrer_paire("ohana75_10b_myst","OHANA 75 · 10 boules MYSTÈRE","💰", 9
 _enregistrer_paire("quatre_coin",   "4 COIN","🎯", 6,  quatre_coin.generer_pdf)
 _enregistrer_paire("pol",           "POL 6 boules","🎲", 12, pol.generer_pdf)
 _enregistrer_paire("sun",           "SUN 8 boules","☀️", 12, sun.generer_pdf)
+_enregistrer_paire("sun_casino",    "SUN CASINO","🎲", 12, sun.generer_pdf_casino)
 _enregistrer_paire("pow",           "POW 8 boules","💥", 12, powgen.generer_pdf)
+_enregistrer_paire("pow_casino",    "POW CASINO","🎲", 12, powgen.generer_pdf_casino)
 _enregistrer_paire("poe_parau",     "POE PARAU 6 boules", "🦪", 12, poeparaugen.generer_pdf)
 _enregistrer_paire("hakari",        "HAKARI 6 boules", "🥥", 12, hakarigen.generer_pdf)
 _enregistrer_paire("henua_enana",   "HENUA ENANA 7 boules", "🗺️", 12, henuaenanagen.generer_pdf)
@@ -350,6 +352,7 @@ def _base_jeu(programme):
             return p[:-len(suf)]
     return p
 _enregistrer_paire("win",           "WIN 9 boules","🏆", 12, win.generer_pdf)
+_enregistrer_paire("win_casino",    "WIN CASINO","🎲", 12, win.generer_pdf_casino)
 _enregistrer_paire("rubis90",       "RUBIS 90","💎", 12, rubis90.generer_pdf)
 _enregistrer_paire("rubis75",       "RUBIS 75 · 32 pts","💎", 10, rubis75.generer_pdf)
 _enregistrer_paire("sicilio",       "SICILIO",          "🔷", 6,  sicilio.generer_pdf)
@@ -868,7 +871,9 @@ _PLAGES_CALLER = {
     "kai": (1, 29), "flash90": (1, 90), "quines90": (1, 90),
     "pol": (30, 60),
     "sun": (1, 24),
+    "sun_casino": (1, 24),
     "pow": (1, 27),
+    "pow_casino": (1, 27),
     "poe_parau": (1, 75),
     "hakari": (1, 75),
     "henua_enana": (1, 75),
@@ -900,6 +905,7 @@ _PLAGES_CALLER = {
     "triple_bn75": (1, 75),
     "triple_bi75": (1, 75),
     "win": (1, 45),
+    "win_casino": (1, 45),
     "rubis90": (1, 90),
     "rubis75": (1, 75),
     "sicilio": (1, 90),
