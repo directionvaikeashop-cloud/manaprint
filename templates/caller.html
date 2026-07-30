@@ -462,7 +462,7 @@ function revelerMystere() {
       morceaux.push(L + " " + n);
       setTimeout(function() {
         derniereBoule = n;
-        document.getElementById("boule-big").textContent = n;
+        afficherGrosseBoule(document.getElementById("boule-big"), jeuActuel, n);
         document.getElementById("boule-lettre").textContent = "\ud83d\udd2e " + L;
         parlerBoule(n);
         maj();
@@ -499,6 +499,31 @@ function boulesMontants() {
   const s = [];
   for (let i = 0; i < 19; i++) s.push(201 + i);
   return s;
+}
+// 🎲 LE DÉ SUR LA GROSSE BOULE (sceau Maeva 30/07) : sur les jeux CASINO,
+// quand une boule 1-9 sort, on MONTRE le dé (1-6 = un dé ; 7/8/9 = deux dés
+// qui s'additionnent) — la voix l'annonce ensuite comme les autres.
+const CASINO_JEUX = ["pow_casino", "sun_casino", "win_casino"];
+const DECOMP_DES = {7: [4, 3], 8: [4, 4], 9: [5, 4]};
+function unDeSVG(v, x) {
+  const q = 26, pos = {1: [[0,0]], 2: [[-q,-q],[q,q]], 3: [[-q,-q],[0,0],[q,q]],
+    4: [[-q,-q],[q,-q],[-q,q],[q,q]], 5: [[-q,-q],[q,-q],[0,0],[-q,q],[q,q]],
+    6: [[-q,-q],[q,-q],[-q,0],[q,0],[-q,q],[q,q]]}[v];
+  let s = '<g transform="translate(' + x + ',0)">' +
+    '<rect x="-46" y="-46" width="92" height="92" rx="17" fill="#fff" stroke="currentColor" stroke-width="7"/>';
+  for (const p of pos) s += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="9.5" fill="#444"/>';
+  return s + '</g>';
+}
+function svgDe(n) {
+  let corps, large;
+  if (n <= 6) { corps = unDeSVG(n, 0); large = 110; }
+  else { const d = DECOMP_DES[n]; corps = unDeSVG(d[0], -52) + unDeSVG(d[1], 52); large = 210; }
+  return '<svg viewBox="' + (-large / 2) + ' -55 ' + large + ' 110" style="height:0.95em;vertical-align:-0.12em" xmlns="http://www.w3.org/2000/svg">' + corps + '</svg>';
+}
+function estBouleDe(jeu, n) { return CASINO_JEUX.indexOf(jeu) >= 0 && n >= 1 && n <= 9; }
+function afficherGrosseBoule(el, jeu, n) {
+  if (estBouleDe(jeu, n)) el.innerHTML = svgDe(n);
+  else el.textContent = nomBoule(n);
 }
 function nomBoule(n) {
   if (n >= 201) return MONTANTS_AFF[n - 201];
@@ -731,7 +756,7 @@ function tirer() {
     tirees = res.tirees;
     const n = res.boule;
     derniereBoule = n;
-    document.getElementById("boule-big").textContent = nomBoule(n);
+    afficherGrosseBoule(document.getElementById("boule-big"), jeuActuel, n);
     document.getElementById("boule-lettre").textContent = lettrePour(n);
     montrerSmorfia(n);
     parlerBoule(n);
