@@ -3,7 +3,7 @@
 MANAPRINT — Générateur OHANA 75 · 2 SÉRIES (format A4)
 2 cartes (séries) par feuille A4, séparées par un trait de découpe.
 Chaque carte : grille 5×5 B·I·N·G·O, 2 numéros par case (un grand entouré + un petit),
-case centrale FREE avec le N° de série. Règle MARATHON.
+case centrale FREE avec le N° de série. Règle MARATHON.\n🅰️ 3 LETTRES DIFFÉRENTES (A→L) vivent DANS les verres mystère, une par coupe — pilote LETTRE DE SALLE.
 Plages : B 1-15, I 16-30, N 31-45, G 46-60, O 61-75.
 Couleur arc-en-ciel (par carte) ou gris (économie d'encre). Personnalisation + responsable.
 SÉCURITÉ ANTI-PHOTOCOPIE (module generators/securite.py) : cadre intérieur en
@@ -13,6 +13,7 @@ Vérification à la loupe x10 : lettres nettes = original, trait flou = photocop
 import io
 import random
 import hmac as _hmac
+import random as _random
 import hashlib as _hashlib
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -77,6 +78,23 @@ MYSTERE_COLONNES = ("B", "I", "O")   # 🔮 les colonnes du mystère (sceau Maev
 # le retour des clients : ajouter une lettre ici (et au caller/app).
 
 
+ALPHABET_LETTRES = "ABCDEFGHIJKL"   # 🅰️ LA LETTRE DU CARTON (décision Maeva 30/07)
+# 12 lettres (pas 26) : 1 chance sur 12 par carton — presque chaque soirée a son
+# porteur. Chaque carton PORTE SA LETTRE, visible dans un médaillon de la case
+# vie ; en salle, le caller tire LA LETTRE (A→L) en public — le porteur gagne
+# le bonus du comptoir. Rien de caché : la lettre est imprimée, le tirage est
+# public et journalisé. Pilote : la famille A VINDA (les 2 jumeaux).
+
+
+def _lettres_carte(serie):
+    """LES 3 LETTRES du carton — une par coupe B·I·O, TOUTES DIFFÉRENTES
+    (décision Maeva 30/07 : « différente lettre dans chaque coupe ») ;
+    déterministes par HMAC : la refab redonne exactement les mêmes."""
+    h = _hmac.new(b"LETTRE-2KEA", ("LETTRE:%d" % serie).encode(), _hashlib.sha256)
+    rl = _random.Random(h.digest())
+    return rl.sample(ALPHABET_LETTRES, len(MYSTERE_COLONNES))
+
+
 def _positions_colonnes():
     """position (0-23, ordre du dessin) -> répartition par colonne B·I·N·G·O."""
     d = {lettre: [] for lettre, a, b in PLAGES}
@@ -89,8 +107,14 @@ def _positions_colonnes():
             pos += 1
     return d
 
+
 PAGE_W, PAGE_H = A4
+# position 0-23 -> lettre de colonne (⚠️ le saut de la case vie décale la
+# numérotation : un modulo 5 mentirait dès la 3e rangée)
 PLAGES = [("B", 1, 15), ("I", 16, 30), ("N", 31, 45), ("G", 46, 60), ("O", 61, 75)]
+# position 0-23 -> lettre de colonne (⚠️ le saut de la case vie décale la
+# numérotation : un modulo 5 mentirait dès la 3e rangée)
+_COL_DE_CASE = {pos: lettre for lettre, ps in _positions_colonnes().items() for pos in ps}
 
 MARGIN_X = 8 * mm
 MARGIN_TOP = 9 * mm
@@ -247,8 +271,14 @@ def _dessiner_carte(c, x0, y0, carte, verres, couleur_hex, serie, encre,
                     # tirage public au caller et remplira les coupes « ? » de toute
                     # la salle au même instant). Un « ? » par colonne B·I·O — la boule de
                     # chaque colonne respecte sa plage (règle Maeva).
-                    c.setFillColor(gris_ch); c.setFont("Helvetica-Bold", 34)
-                    c.drawCentredString(cxc, cy - 8, "?")
+                    # 🅰️ LES LETTRES SONT DANS LE VERRE (idée Maeva 30/07) : la coupe
+                    # mystère porte LA LETTRE DU CARTON avec son « ? » — la salle
+                    # tire sa lettre au caller, le porteur se reconnaît dans ses verres.
+                    k = MYSTERE_COLONNES.index(_COL_DE_CASE[no_case])
+                    c.setFillColor(gris_ch); c.setFont("Helvetica-Bold", 30)
+                    c.drawCentredString(cxc - 3.2 * mm, cy - 8, _lettres_carte(serie)[k])
+                    c.setFont("Helvetica-Bold", 17)
+                    c.drawCentredString(cxc + 5.6 * mm, cy + 1.5 * mm, "?")
                     c.setFillColor(col); c.setFont(POLICE, 4.6)
                     c.drawCentredString(cxc, cy - 12.8 * mm, "N\u00b0 MYST\u00c8RE")
                 elif _sec:
@@ -290,7 +320,7 @@ def _dessiner_carte(c, x0, y0, carte, verres, couleur_hex, serie, encre,
         # il n'y a qu'UN chiffre mystère pour toute la salle — le carton le dit.
         c.setFillColor(col); c.setFont(POLICE, 4.8)
         c.drawCentredString(x0 + CARD_W / 2, y0 + 2 * mm,
-                            "Les verres \u00ab ? \u00bb (B\u00b7I\u00b7O) = LES 3 N\u00b0 MYST\u00c8RE r\u00e9v\u00e9l\u00e9s en salle, un par colonne \u2014 les m\u00eames pour tous les cartons")
+                            "Les verres \u00ab ? \u00bb (B\u00b7I\u00b7O) = LES 3 N\u00b0 MYST\u00c8RE r\u00e9v\u00e9l\u00e9s en salle \u00b7 LES 3 LETTRES des verres = VOS lettres de salle (A\u2192L), tir\u00e9es au caller")
     if telephone:
         c.drawRightString(x0 + CARD_W - 4 * mm, y0 + 2 * mm, "Resp. " + telephone)
 
