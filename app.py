@@ -1157,13 +1157,19 @@ _ICONE_CALLER_LOCAL = """<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10
 
 @app.route("/caller-local")
 def caller_local():
-    """📴 La formule hors-ligne du caller."""
-    return render_template("caller_local.html")
+    """📴 La formule hors-ligne du caller (no-store : le cache HTTP du
+    navigateur ne doit JAMAIS retenir cette page — le gardien s'en charge)."""
+    rep = make_response(render_template("caller_local.html"))
+    rep.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    rep.headers["Pragma"] = "no-cache"
+    return rep
 
 
 @app.route("/caller-local/sw.js")
 def caller_local_sw():
-    return Response(_SW_CALLER_LOCAL, mimetype="application/javascript")
+    rep = Response(_SW_CALLER_LOCAL, mimetype="application/javascript")
+    rep.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return rep
 
 
 @app.route("/caller-local/manifest.json")
