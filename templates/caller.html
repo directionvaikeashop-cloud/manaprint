@@ -121,6 +121,18 @@
       </div>
       <div style="display:flex;gap:6px;margin-top:8px">
         <button class="btn-sec" id="btn-voix" onclick="basculerVoix()" style="flex:1;margin:0">🔊 Voix : ACTIVE</button>
+      <details style="margin-top:.5rem">
+        <summary style="cursor:pointer;font-size:.85rem">\ud83c\udf99\ufe0f Choisir la voix du crieur</summary>
+        <div style="display:flex;flex-direction:column;gap:.45rem;padding:.6rem .2rem">
+          <select id="choix-voix" onchange="changerVoix()" style="padding:.45rem;border-radius:6px;border:1px solid #ccc;font-size:.85rem"></select>
+          <label style="font-size:.8rem">Vitesse <span id="voix-vitesse-val">0.85</span>
+            <input type="range" min="0.6" max="1.2" step="0.05" value="0.85" style="width:100%" oninput="changerVitesseVoix(this.value)"></label>
+          <label style="font-size:.8rem">Hauteur <span id="voix-hauteur-val">1.00</span>
+            <input type="range" min="0.7" max="1.4" step="0.05" value="1.0" style="width:100%" oninput="changerHauteurVoix(this.value)"></label>
+          <button class="btn-sec" onclick="essayerVoix()" style="margin:0">\ud83d\udd0a Essayer cette voix</button>
+          <p style="font-size:.72rem;color:#888;margin:0;line-height:1.5">Astuce : sur Android, installez \u00ab\u00a0Services de reconnaissance vocale Google\u00a0\u00bb puis revenez ici \u2014 de nouvelles voix plus naturelles appara\u00eetront.</p>
+        </div>
+      </details>
         <button class="btn-sec" id="btn-repeter" onclick="repeterBoule()" style="flex:1;margin:0">🔁 Répéter</button>
       </div>
     </div>
@@ -528,6 +540,82 @@ function estBouleDe(jeu, n) { return CASINO_JEUX.indexOf(jeu) >= 0 && n >= 1 && 
 var VALEURS_CARTES_AFF = {1: "A", 11: "V", 12: "D", 13: "R"};
 var VALEURS_CARTES_VOIX = {1: "L'As", 11: "Le Valet", 12: "La Dame", 13: "Le Roi"};
 var ENSEIGNES_VOIX = ["de pique", "de c\u0153ur", "de carreau", "de tr\u00e8fle"];
+// \ud83c\udf99\ufe0f LE CHOIX DE LA VOIX (sceau Maeva 30/07) : chaque appareil cache
+// plusieurs voix fran\u00e7aises \u2014 on laisse Tatie choisir la plus belle, r\u00e9gler
+// vitesse et hauteur, l'essayer, et on s'en souvient (localStorage).
+var VOIX_PREF = { nom: "", rate: 0.85, pitch: 1.0 };
+try {
+  VOIX_PREF.nom = localStorage.getItem("mp_voix_nom") || "";
+  VOIX_PREF.rate = parseFloat(localStorage.getItem("mp_voix_rate") || "0.85") || 0.85;
+  VOIX_PREF.pitch = parseFloat(localStorage.getItem("mp_voix_pitch") || "1") || 1.0;
+} catch (e) {}
+function voixFrancaises() {
+  try {
+    return window.speechSynthesis.getVoices().filter(function (v) {
+      return (v.lang || "").toLowerCase().indexOf("fr") === 0;
+    });
+  } catch (e) { return []; }
+}
+function voixChoisie() {
+  var vs = voixFrancaises();
+  if (!vs.length) return null;
+  for (var i = 0; i < vs.length; i++) if (vs[i].name === VOIX_PREF.nom) return vs[i];
+  for (var j = 0; j < vs.length; j++) if (/google|neural|natural/i.test(vs[j].name)) return vs[j];
+  return vs[0];
+}
+function reglerUtterance(u) {
+  u.lang = "fr-FR"; u.rate = VOIX_PREF.rate; u.pitch = VOIX_PREF.pitch; u.volume = 1.0;
+  var v = voixChoisie();
+  if (v) u.voice = v;
+}
+function remplirChoixVoix() {
+  var sel = document.getElementById("choix-voix");
+  if (!sel) return;
+  var vs = voixFrancaises();
+  sel.innerHTML = "";
+  if (!vs.length) {
+    var o = document.createElement("option");
+    o.textContent = "Voix du t\u00e9l\u00e9phone (par d\u00e9faut)"; o.value = "";
+    sel.appendChild(o); return;
+  }
+  vs.forEach(function (v) {
+    var o = document.createElement("option");
+    o.value = v.name; o.textContent = v.name.replace(/fran\u00e7ais|French/i, "fr");
+    sel.appendChild(o);
+  });
+  var c = voixChoisie();
+  if (c) sel.value = c.name;
+}
+function changerVoix() {
+  var sel = document.getElementById("choix-voix");
+  VOIX_PREF.nom = sel ? sel.value : "";
+  try { localStorage.setItem("mp_voix_nom", VOIX_PREF.nom); } catch (e) {}
+}
+function changerVitesseVoix(val) {
+  VOIX_PREF.rate = parseFloat(val) || 0.85;
+  var t = document.getElementById("voix-vitesse-val");
+  if (t) t.textContent = VOIX_PREF.rate.toFixed(2);
+  try { localStorage.setItem("mp_voix_rate", String(VOIX_PREF.rate)); } catch (e) {}
+}
+function changerHauteurVoix(val) {
+  VOIX_PREF.pitch = parseFloat(val) || 1.0;
+  var t = document.getElementById("voix-hauteur-val");
+  if (t) t.textContent = VOIX_PREF.pitch.toFixed(2);
+  try { localStorage.setItem("mp_voix_pitch", String(VOIX_PREF.pitch)); } catch (e) {}
+}
+function essayerVoix() {
+  try {
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance("Le quarante-quatre\u2026 quarante-quatre ! Et le sept, le petit sept !");
+    reglerUtterance(u);
+    window.speechSynthesis.speak(u);
+  } catch (e) {}
+}
+if ("speechSynthesis" in window) {
+  try { window.speechSynthesis.onvoiceschanged = remplirChoixVoix; } catch (e) {}
+  setTimeout(remplirChoixVoix, 400);
+}
+
 function nomCarteVoix(n) {
   return (VALEURS_CARTES_VOIX[n] || ("Le " + n)) + " " + ENSEIGNES_VOIX[n % 4];
 }
@@ -692,7 +780,7 @@ function parlerBoule(n) {
     try {
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(nomCarteVoix(n) + " !");
-      u.lang = "fr-FR"; u.rate = 0.85;
+      reglerUtterance(u);
       window.speechSynthesis.speak(u);
     } catch (e) {}
     return;
@@ -703,7 +791,7 @@ function parlerBoule(n) {
       const u = new SpeechSynthesisUtterance(
         n === 300 ? "Le Joker ! Cochez une carte de votre choix !" :
         n >= 201 ? MONTANTS_VOIX[n - 201] + " !" : "La lettre... " + nomBoule(n) + " !");
-      u.lang = "fr-FR"; u.rate = 0.85;
+      reglerUtterance(u);
       window.speechSynthesis.speak(u);
     } catch (e) {}
     return;
@@ -717,7 +805,7 @@ function parlerBoule(n) {
     window.speechSynthesis.cancel();  // ne pas empiler si on tire vite
     const crierS = (typeof SMORFIA_JEUX !== "undefined" && SMORFIA_JEUX.includes(jeuActuel) && SMORFIA[n]);
     const u = new SpeechSynthesisUtterance(crierS ? SMORFIA[n].cri.toLowerCase() : nombreEnLettres(n));  // en toutes lettres, mieux articulé
-    u.lang = "fr-FR"; u.rate = 0.85; u.pitch = 1.0; u.volume = 1.0;
+    reglerUtterance(u);
     window.speechSynthesis.speak(u);
   } catch (e) {}
 }
