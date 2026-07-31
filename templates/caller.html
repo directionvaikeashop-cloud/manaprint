@@ -99,7 +99,7 @@
     <div style="margin-top:12px">
       <button class="btn-tirer" id="btn-tirer" onclick="tirer()">TIRER UNE BOULE</button>
       <button class="btn-sec" id="btn-mystere" onclick="revelerMystere()"
-              style="display:none;width:100%;margin-top:8px;border:2px solid #C9A227;color:#8a6d1a;background:#FFFBEA;font-weight:800">\ud83d\udd2e R\u00c9V\u00c9LATION DU MYST\u00c8RE</button>
+              style="display:none;width:100%;margin-top:8px;border:2px solid #C9A227;color:#8a6d1a;background:#FFFBEA;font-weight:800">🔮 RÉVÉLATION DU MYSTÈRE</button>
       <div id="mode-bloc" style="display:none">
         <div style="font-size:.72rem;color:var(--muted);margin:10px 0 4px;letter-spacing:.06em">✔ COCHÉS D'OFFICE — le tirage sort les boules RESTANTES (changer démarre une nouvelle partie)</div>
         <div style="display:flex;gap:6px">
@@ -121,20 +121,21 @@
       </div>
       <div style="display:flex;gap:6px;margin-top:8px">
         <button class="btn-sec" id="btn-voix" onclick="basculerVoix()" style="flex:1;margin:0">🔊 Voix : ACTIVE</button>
-      <details style="margin-top:.5rem">
-        <summary style="cursor:pointer;font-size:.85rem">\ud83c\udf99\ufe0f Choisir la voix du crieur</summary>
-        <div style="display:flex;flex-direction:column;gap:.45rem;padding:.6rem .2rem">
-          <select id="choix-voix" onchange="changerVoix()" style="padding:.45rem;border-radius:6px;border:1px solid #ccc;font-size:.85rem"></select>
-          <label style="font-size:.8rem">Vitesse <span id="voix-vitesse-val">0.85</span>
-            <input type="range" min="0.6" max="1.2" step="0.05" value="0.85" style="width:100%" oninput="changerVitesseVoix(this.value)"></label>
-          <label style="font-size:.8rem">Hauteur <span id="voix-hauteur-val">1.00</span>
-            <input type="range" min="0.7" max="1.4" step="0.05" value="1.0" style="width:100%" oninput="changerHauteurVoix(this.value)"></label>
-          <button class="btn-sec" onclick="essayerVoix()" style="margin:0">\ud83d\udd0a Essayer cette voix</button>
-          <p style="font-size:.72rem;color:#888;margin:0;line-height:1.5">Astuce : sur Android, installez \u00ab\u00a0Services de reconnaissance vocale Google\u00a0\u00bb puis revenez ici \u2014 de nouvelles voix plus naturelles appara\u00eetront.</p>
-        </div>
-      </details>
         <button class="btn-sec" id="btn-repeter" onclick="repeterBoule()" style="flex:1;margin:0">🔁 Répéter</button>
       </div>
+      <details style="margin-top:.6rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:.35rem .6rem">
+        <summary style="cursor:pointer;font-size:.9rem;font-weight:600">🎙️ Choisir la voix du crieur</summary>
+        <div style="display:flex;flex-direction:column;gap:.45rem;padding:.6rem .1rem">
+          <select id="choix-voix" onchange="changerVoix()" style="padding:.5rem;border-radius:6px;border:1px solid #ccc;font-size:.9rem;color:#123"></select>
+          <label style="font-size:.82rem">Vitesse <span id="voix-vitesse-val">0.85</span>
+            <input type="range" min="0.6" max="1.2" step="0.05" value="0.85" style="width:100%" oninput="changerVitesseVoix(this.value)"></label>
+          <label style="font-size:.82rem">Hauteur <span id="voix-hauteur-val">1.00</span>
+            <input type="range" min="0.7" max="1.4" step="0.05" value="1.0" style="width:100%" oninput="changerHauteurVoix(this.value)"></label>
+          <button class="btn-sec" onclick="essayerVoix()" style="margin:0">🔊 Essayer cette voix</button>
+          <p style="font-size:.74rem;opacity:.75;margin:0;line-height:1.5">Astuce : sur Android, installez « Synthèse vocale Google » (Play Store) puis rouvrez cette page — de nouvelles voix plus naturelles apparaîtront.</p>
+        </div>
+      </details>
+
     </div>
     <div class="row" style="margin-top:10px">
       <button class="btn-sec" onclick="reinitialiser()">🔄 Nouvelle partie</button>
@@ -179,14 +180,14 @@
     </div>
     <!-- 🔎 Plan B : vérification SANS scanner (N° + code imprimés sous le QR) -->
     <div style="display:flex;gap:8px;margin-top:10px">
-      <input id="man-serie" type="number" inputmode="numeric" placeholder="N\u00b0 carton (ex : 2)"
+      <input id="man-serie" type="number" inputmode="numeric" placeholder="N° carton (ex : 2)"
              style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);font-size:1rem">
       <input id="man-code" maxlength="6" placeholder="Code (ex : UKGVRZ)" autocapitalize="characters"
              style="flex:1.2;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);font-size:1rem;text-transform:uppercase">
     </div>
-    <button class="btn-sec" style="width:100%;margin-top:8px" onclick="verifManuel()">\ud83d\udd0e V\u00e9rifier sans scanner</button>
+    <button class="btn-sec" style="width:100%;margin-top:8px" onclick="verifManuel()">🔎 Vérifier sans scanner</button>
     <input type="file" id="man-photo" accept="image/*" capture="environment" style="display:none" onchange="scanPhoto(this)">
-    <button class="btn-sec" style="width:100%;margin-top:8px" onclick="document.getElementById('man-photo').click()">\ud83d\udcf8 Photographier le QR (le plus fiable)</button>
+    <button class="btn-sec" style="width:100%;margin-top:8px" onclick="document.getElementById('man-photo').click()">📸 Photographier le QR (le plus fiable)</button>
     <div class="verdict" id="verdict">
       <div class="emoji" id="v-emoji"></div>
       <div class="titre" id="v-titre"></div>
