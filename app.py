@@ -1120,21 +1120,30 @@ _MYSTERE_COLONNES = {"avinda_myst": (("B", 1, 15), ("I", 16, 30), ("O", 61, 75))
 # et journal vivent localement, journal exportable en CSV en fin de partie.
 
 _SW_CALLER_LOCAL = """
-const CACHE = 'mpcl-v1';
+// 📴→🔄 v2 (sceau Maeva 30/07) : RÉSEAU D'ABORD quand il y a internet (les
+// mises à jour arrivent toutes seules), CACHE EN SECOURS quand il n'y en a
+// pas (la promesse hors-ligne tient) ; les vieux caches sont balayés.
+const CACHE = 'mpcl-v2';
 const PAGES = ['/caller-local', '/caller-local/manifest.json', '/caller-local/icone.svg'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(PAGES)).then(() => self.skipWaiting()));
 });
-self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys()
+      .then(noms => Promise.all(noms.filter(n => n !== CACHE).map(n => caches.delete(n))))
+      .then(() => self.clients.claim())
+  );
+});
 self.addEventListener('fetch', e => {
   const u = new URL(e.request.url);
   if (!PAGES.includes(u.pathname)) return;
   e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request).then(rep => {
+    fetch(e.request).then(rep => {
       const copie = rep.clone();
       caches.open(CACHE).then(c => c.put(e.request, copie));
       return rep;
-    }))
+    }).catch(() => caches.match(e.request))
   );
 });
 """
