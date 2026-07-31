@@ -328,11 +328,22 @@ function voixFrancaises() {
     });
   } catch (e) { return []; }
 }
+// 👑 LA LOI DE LA VOIX MANAPRINT (sceau Maeva 30/07) : ordre officiel —
+// les grandes voix naturelles françaises d'abord (Denise, Eloise, Vivienne,
+// Henri), puis toute Natural fr-FR, puis les Google, puis le reste.
+var LOI_VOIX_MANAPRINT = [
+  /denise/i, /eloise/i, /vivienne/i, /henri/i,
+  /natural[^,]*fr[-_ ]?fr|fr[-_ ]?fr[^,]*natural/i,
+  /google[^,]*français|français[^,]*google/i,
+  /natural|neural/i, /google/i
+];
 function voixChoisie() {
   var vs = voixFrancaises();
   if (!vs.length) return null;
   for (var i = 0; i < vs.length; i++) if (vs[i].name === VOIX_PREF.nom) return vs[i];
-  for (var j = 0; j < vs.length; j++) if (/google|neural|natural/i.test(vs[j].name)) return vs[j];
+  for (var r = 0; r < LOI_VOIX_MANAPRINT.length; r++)
+    for (var j = 0; j < vs.length; j++)
+      if (LOI_VOIX_MANAPRINT[r].test(vs[j].name + " " + (vs[j].lang || ""))) return vs[j];
   return vs[0];
 }
 function reglerUtterance(u) {
