@@ -58,19 +58,20 @@
   <div class="ligne-btn">
     <button onclick="nouvellePartie()">🆕 Nouvelle partie</button>
     <button onclick="basculerVoix(this)" id="btn-voix" class="on">🔊 Voix</button>
-      <details style="margin-top:.5rem">
-        <summary style="cursor:pointer;font-size:.85rem">\ud83c\udf99\ufe0f Choisir la voix du crieur</summary>
-        <div style="display:flex;flex-direction:column;gap:.45rem;padding:.6rem .2rem">
-          <select id="choix-voix" onchange="changerVoix()" style="padding:.45rem;border-radius:6px;border:1px solid #ccc;font-size:.85rem"></select>
-          <label style="font-size:.8rem">Vitesse <span id="voix-vitesse-val">0.85</span>
+  </div>
+      <details style="margin-top:.6rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:.35rem .6rem">
+        <summary style="cursor:pointer;font-size:.9rem;font-weight:600">🎙️ Choisir la voix du crieur</summary>
+        <div style="display:flex;flex-direction:column;gap:.45rem;padding:.6rem .1rem">
+          <select id="choix-voix" onchange="changerVoix()" style="padding:.5rem;border-radius:6px;border:1px solid #ccc;font-size:.9rem;color:#123"></select>
+          <label style="font-size:.82rem">Vitesse <span id="voix-vitesse-val">0.85</span>
             <input type="range" min="0.6" max="1.2" step="0.05" value="0.85" style="width:100%" oninput="changerVitesseVoix(this.value)"></label>
-          <label style="font-size:.8rem">Hauteur <span id="voix-hauteur-val">1.00</span>
+          <label style="font-size:.82rem">Hauteur <span id="voix-hauteur-val">1.00</span>
             <input type="range" min="0.7" max="1.4" step="0.05" value="1.0" style="width:100%" oninput="changerHauteurVoix(this.value)"></label>
-          <button class="btn" onclick="essayerVoix()" style="margin:0">\ud83d\udd0a Essayer cette voix</button>
-          <p style="font-size:.72rem;color:#888;margin:0;line-height:1.5">Astuce : sur Android, installez \u00ab\u00a0Services de reconnaissance vocale Google\u00a0\u00bb puis revenez ici \u2014 de nouvelles voix plus naturelles appara\u00eetront.</p>
+          <button class="petit" onclick="essayerVoix()" style="margin:0">🔊 Essayer cette voix</button>
+          <p style="font-size:.74rem;opacity:.75;margin:0;line-height:1.5">Astuce : sur Android, installez « Synthèse vocale Google » (Play Store) puis rouvrez cette page — de nouvelles voix plus naturelles apparaîtront.</p>
         </div>
       </details>
-  </div>
+
 </div>
 
 <div class="card">
