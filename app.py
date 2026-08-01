@@ -6,7 +6,7 @@ Déployable sur Railway (même stack que Ticket Bingo).
 import os
 import hashlib
 import secrets
-from flask import Flask, request, jsonify, send_file, render_template, session, Response, make_response
+from flask import Flask, request, jsonify, send_file, render_template, session, Response, make_response, redirect
 from functools import wraps
 
 import database as db
@@ -810,10 +810,21 @@ def api_verifier_carton():
 @app.route("/caller")
 @app.route("/caller/<evenement_id>")
 def caller(evenement_id=None):
-    """MANAPRINT CALLER : tirage des boules + vérification QR intégrée."""
-    # 📱 toujours frais : certains téléphones gardaient l'ancienne page en cache
+    """🔁 PORTE TOURNANTE (sceau Maeva 01/08, « résous-le définitivement ») :
+    l'adresse historique renvoie vers l'adresse du jour, qui porte l'empreinte
+    de la version. Aucun cache au monde ne peut resservir une vieille copie
+    sur une adresse qu'il n'a jamais vue."""
+    if request.args.get("v") == _VERSION_EMPREINTE:
+        return _rendre_caller(evenement_id)
+    rep = redirect(f"{request.path}?v={_VERSION_EMPREINTE}", code=302)
+    rep.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return rep
+
+
+def _rendre_caller(evenement_id=None):
     resp = make_response(render_template("caller.html", tampon=TAMPON_VERSION))
     resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    resp.headers["Pragma"] = "no-cache"
     return resp
 
 
@@ -1243,8 +1254,15 @@ def crieur_local_neuf():
 
 @app.route("/caller-local")
 def caller_local():
-    """📴 La formule hors-ligne du caller (no-store : le cache HTTP du
-    navigateur ne doit JAMAIS retenir cette page — le gardien s'en charge)."""
+    """🔁 PORTE TOURNANTE de la formule hors-ligne (même principe)."""
+    if request.args.get("v") == _VERSION_EMPREINTE:
+        return _rendre_caller_local()
+    rep = redirect(f"{request.path}?v={_VERSION_EMPREINTE}", code=302)
+    rep.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return rep
+
+
+def _rendre_caller_local():
     rep = make_response(render_template("caller_local.html", tampon=TAMPON_VERSION))
     rep.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     rep.headers["Pragma"] = "no-cache"
