@@ -155,6 +155,10 @@ PARTENAIRES = {
         "email": FUN_AND_CO_EMAIL,
         "zone": "Presqu'île (Tahiti Iti)",
         "tel": "87 26 73 24",
+        # 🖨️ L'enseigne imprimée sur les cartons de SA fabrique (demande Maeva 01/08 :
+        # « FUN&CO veut le même outil que RANIHEI, à son nom »).
+        "enseigne_pdf": "FUN&CO",
+        "tel_pdf": "87 26 73 24",
         # 💡 Mêmes conditions que RANIHEI : PDF 1,5 F (2KEA & Associé) —
         # tarif d'impression à demander directement au partenaire.
         "prix_pdf_seul": 1.5,
