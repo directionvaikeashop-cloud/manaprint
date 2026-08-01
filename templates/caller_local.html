@@ -726,12 +726,24 @@ function maj() {
 
 // ── le mode hors-ligne : la page s'installe dans l'appareil ──
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/caller-local/sw.js").then(function () {
+  // 🛡️ le gardien vient de la RACINE : de là il couvre la page (depuis un
+  // sous-dossier il n'en avait pas le droit — cause du « non installé »).
+  navigator.serviceWorker.register("/sw-manaprint.js", { scope: "/" }).then(function () {
+    return navigator.serviceWorker.ready;
+  }).then(function () {
     document.getElementById("etat").innerHTML =
-      "<b class=ok>📴 HORS-LIGNE PRÊT</b> — cette page fonctionne désormais sans internet sur cet appareil.";
-  }).catch(function () {
-    document.getElementById("etat").textContent = "⚠️ mode hors-ligne non installé (navigateur trop ancien) — la page reste utilisable.";
+      "<b class=ok>📴 HORS-LIGNE PRÊT</b> — cette page et la voix enregistrée sont gardées dans l'appareil : elle fonctionne sans internet.";
+  }).catch(function (e) {
+    // repli sur l'ancienne adresse, puis message HONNÊTE avec la vraie cause
+    navigator.serviceWorker.register("/caller-local/sw.js").then(function () {
+      document.getElementById("etat").innerHTML = "<b class=ok>📴 HORS-LIGNE PRÊT</b> — gardé dans l'appareil.";
+    }).catch(function (e2) {
+      document.getElementById("etat").textContent =
+        "⚠️ mode hors-ligne non installé (" + ((e2 && e2.message) || (e && e.message) || "raison inconnue") + ") — la page reste utilisable avec internet.";
+    });
   });
+} else {
+  document.getElementById("etat").textContent = "⚠️ ce navigateur ne sait pas garder la page hors-ligne — elle reste utilisable avec internet.";
 } 
 </script>
 </body>
