@@ -808,7 +808,7 @@ def api_verifier_carton():
 def caller(evenement_id=None):
     """MANAPRINT CALLER : tirage des boules + vérification QR intégrée."""
     # 📱 toujours frais : certains téléphones gardaient l'ancienne page en cache
-    resp = make_response(render_template("caller.html"))
+    resp = make_response(render_template("caller.html", tampon=TAMPON_VERSION))
     resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     return resp
 
@@ -1171,6 +1171,42 @@ _ICONE_CALLER_LOCAL = """<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10
       font-weight='bold' fill='#06263a'>90</text></svg>"""
 
 
+# ══ 🏷️ TAMPON DE VERSION AUTOMATIQUE (sceau Maeva 31/07) ═══════════════
+# Calculé au démarrage à partir des fichiers EUX-MÊMES : plus jamais besoin
+# d'écrire une date à la main, et on sait toujours quelle version tourne.
+def _empreinte_version():
+    import hashlib
+    h = hashlib.md5()
+    for nom in ("app.py", "templates/caller.html", "templates/caller_local.html"):
+        try:
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), nom), "rb") as f:
+                h.update(f.read())
+        except Exception:
+            pass
+    return h.hexdigest()[:6]
+
+
+_VERSION_EMPREINTE = _empreinte_version()
+import datetime as _dt
+_VERSION_DEPART = _dt.datetime.now().strftime("%d/%m %H:%M")
+TAMPON_VERSION = f"{_VERSION_EMPREINTE} \u00b7 {_VERSION_DEPART}"
+
+
+@app.route("/version")
+def page_version():
+    """🏷️ Carte d'identité de la version EN LIGNE (lisible par tous)."""
+    rep = make_response(
+        "MANAPRINT — version en ligne\n"
+        f"empreinte : {_VERSION_EMPREINTE}\n"
+        f"serveur démarré : {_VERSION_DEPART}\n"
+        f"jeux au registre : {len(REGISTRE_JEUX) // 4}\n",
+        200,
+    )
+    rep.headers["Content-Type"] = "text/plain; charset=utf-8"
+    rep.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return rep
+
+
 @app.route("/sw-manaprint.js")
 def sw_racine():
     """🛡️ Le gardien hors-ligne SERVI À LA RACINE (sceau Maeva 31/07) : depuis
@@ -1186,7 +1222,7 @@ def sw_racine():
 def crieur_neuf():
     """🆕 PORTE NEUVE (sceau Maeva 31/07) : même page que /caller, mais à une
     adresse SANS PASSÉ — aucun cache, aucun gardien ne peut servir du vieux."""
-    rep = make_response(render_template("caller.html"))
+    rep = make_response(render_template("caller.html", tampon=TAMPON_VERSION))
     rep.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     rep.headers["Pragma"] = "no-cache"
     return rep
@@ -1195,7 +1231,7 @@ def crieur_neuf():
 @app.route("/crieur-local")
 def crieur_local_neuf():
     """🆕 PORTE NEUVE de la formule hors-ligne."""
-    rep = make_response(render_template("caller_local.html"))
+    rep = make_response(render_template("caller_local.html", tampon=TAMPON_VERSION))
     rep.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     rep.headers["Pragma"] = "no-cache"
     return rep
@@ -1205,7 +1241,7 @@ def crieur_local_neuf():
 def caller_local():
     """📴 La formule hors-ligne du caller (no-store : le cache HTTP du
     navigateur ne doit JAMAIS retenir cette page — le gardien s'en charge)."""
-    rep = make_response(render_template("caller_local.html"))
+    rep = make_response(render_template("caller_local.html", tampon=TAMPON_VERSION))
     rep.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     rep.headers["Pragma"] = "no-cache"
     return rep
