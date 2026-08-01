@@ -1123,10 +1123,15 @@ _SW_CALLER_LOCAL = """
 // 📴→🔄 v2 (sceau Maeva 30/07) : RÉSEAU D'ABORD quand il y a internet (les
 // mises à jour arrivent toutes seules), CACHE EN SECOURS quand il n'y en a
 // pas (la promesse hors-ligne tient) ; les vieux caches sont balayés.
-const CACHE = 'mpcl-v2';
+const CACHE = 'mpcl-v3';
 const PAGES = ['/caller-local', '/caller-local/manifest.json', '/caller-local/icone.svg'];
+const BANDE = '/voix-caller.mp3';   // 🎙️ la voix enregistrée, gardée pour les salles sans réseau
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(PAGES)).then(() => self.skipWaiting()));
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(c => c.addAll(PAGES).then(() => c.add(BANDE).catch(() => null)))
+      .then(() => self.skipWaiting())
+  );
 });
 self.addEventListener('activate', e => {
   e.waitUntil(
@@ -1137,6 +1142,17 @@ self.addEventListener('activate', e => {
 });
 self.addEventListener('fetch', e => {
   const u = new URL(e.request.url);
+  // 🎙️ la bande ne change jamais : cache d'abord, et on la garde au passage
+  if (u.pathname === BANDE) {
+    e.respondWith(
+      caches.match(e.request, { ignoreSearch: true }).then(r => r || fetch(e.request).then(rep => {
+        const copie = rep.clone();
+        caches.open(CACHE).then(c => c.put(e.request, copie));
+        return rep;
+      }))
+    );
+    return;
+  }
   if (!PAGES.includes(u.pathname)) return;
   e.respondWith(
     fetch(e.request).then(rep => {
