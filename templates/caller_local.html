@@ -50,7 +50,7 @@
 </head>
 <body>
 <h1>🎱 MANAPRINT CALLER</h1>
-<div class="sub">Formule hors-ligne</a> <span style="opacity:.5;font-size:.75em">· version {{ tampon }}</span><a style="display:none"> · le tirage vit dans l'appareil</div>
+<div class="sub">Formule hors-ligne</a> <span style="opacity:.5;font-size:.75em">· version {{ tampon }} · <a href="/version" style="color:inherit;opacity:.6;text-decoration:none">v</a></span><a style="display:none"> · le tirage vit dans l'appareil</div>
 <div class="etat" id="etat">⏳ préparation du mode hors-ligne…</div>
 
 <div class="card">
@@ -777,6 +777,38 @@ setTimeout(function () {
     + "<div style='opacity:.6;font-size:.8rem'>MANAPRINT \u00b7 formule hors-ligne</div>";
   document.body.appendChild(d);
 }, 4000);
+
+
+// 🔁 AUTO-MISE À JOUR : plus jamais une vieille page affichée sans le savoir.
+(function () {
+  var MIENNE = "{{ tampon }}".split(" ")[0];
+  function reparerPuisRecharger(cible) {
+    var fin = function () { location.replace(location.pathname + "?v=" + cible); };
+    try {
+      var t = [];
+      if (window.caches && caches.keys) t.push(caches.keys().then(function (n) {
+        return Promise.all(n.map(function (c) { return caches.delete(c); }));
+      }));
+      Promise.all(t).then(fin).catch(fin);
+      setTimeout(fin, 2000);
+    } catch (e) { fin(); }
+  }
+  try {
+    fetch("/version?t=" + Date.now(), { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.text() : ""; })
+      .then(function (txt) {
+        var m = txt.match(/empreinte : ([0-9a-f]+)/);
+        if (!m) return;                       // page /version pas encore en ligne
+        var enLigne = m[1];
+        if (enLigne === MIENNE) return;       // \u2705 d\u00e9j\u00e0 \u00e0 jour
+        var deja = null;
+        try { deja = sessionStorage.getItem("mp_maj"); } catch (e) {}
+        if (deja === enLigne) return;         // on a d\u00e9j\u00e0 essay\u00e9 : pas de boucle
+        try { sessionStorage.setItem("mp_maj", enLigne); } catch (e) {}
+        reparerPuisRecharger(enLigne);
+      }).catch(function () {});
+  } catch (e) {}
+})();
 
 </script>
 </body>
