@@ -50,7 +50,7 @@
 </head>
 <body>
 <h1>🎱 MANAPRINT CALLER</h1>
-<div class="sub">Formule hors-ligne</a> <span style="opacity:.5;font-size:.75em">· version 31.07 · salle</span><a style="display:none"> · le tirage vit dans l'appareil</div>
+<div class="sub">Formule hors-ligne</a> <span style="opacity:.5;font-size:.75em">· version 31.07 · filet</span><a style="display:none"> · le tirage vit dans l'appareil</div>
 <div class="etat" id="etat">⏳ préparation du mode hors-ligne…</div>
 
 <div class="card">
@@ -745,6 +745,39 @@ if ("serviceWorker" in navigator) {
 } else {
   document.getElementById("etat").textContent = "⚠️ ce navigateur ne sait pas garder la page hors-ligne — elle reste utilisable avec internet.";
 } 
+
+// 🩹 FILET DE SÉCURITÉ (sceau Maeva 31/07, « tout est noir ») : si 4 secondes
+// après l'ouverture la page ne s'est pas construite (menu vide, grille vide),
+// on ne laisse PAS Tatie devant un écran noir : on lui tend un bouton qui
+// jette les vieilles copies gardées dans l'appareil et recharge proprement.
+function reparerEtRecharger() {
+  var fin = function () { location.replace("/caller-local?neuf=" + Date.now()); };
+  try {
+    var taches = [];
+    if (window.caches && caches.keys) taches.push(caches.keys().then(function (n) {
+      return Promise.all(n.map(function (c) { return caches.delete(c); }));
+    }));
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations)
+      taches.push(navigator.serviceWorker.getRegistrations().then(function (rs) {
+        return Promise.all(rs.map(function (r) { return r.unregister(); }));
+      }));
+    Promise.all(taches).then(fin).catch(fin);
+    setTimeout(fin, 2500);
+  } catch (e) { fin(); }
+}
+setTimeout(function () {
+  var m = document.getElementById("jeu"), g = document.getElementById("grille");
+  var vide = (!m || m.options.length < 5) || (!g || g.children.length < 5);
+  if (!vide) return;
+  var d = document.createElement("div");
+  d.style.cssText = "position:fixed;inset:0;z-index:9999;background:#0b1120;color:#e5e7eb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:1.5rem;text-align:center;font-size:1rem";
+  d.innerHTML = "<div style='font-size:1.3rem;font-weight:700'>\ud83e\ude79 La page n'a pas fini de se charger</div>"
+    + "<div style='opacity:.85;max-width:22rem;line-height:1.6'>Une ancienne copie gard\u00e9e dans l'appareil bloque l'affichage. Un seul geste suffit \u2014 vos parties enregistr\u00e9es ne sont pas touch\u00e9es.</div>"
+    + "<button onclick='reparerEtRecharger()' style='padding:.8rem 1.4rem;border-radius:10px;border:0;background:#38bdf8;color:#0b1120;font-weight:700;font-size:1rem;cursor:pointer'>\ud83d\udd04 R\u00e9parer et recharger</button>"
+    + "<div style='opacity:.6;font-size:.8rem'>MANAPRINT \u00b7 formule hors-ligne</div>";
+  document.body.appendChild(d);
+}, 4000);
+
 </script>
 </body>
 </html>
