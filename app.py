@@ -1171,6 +1171,25 @@ _ICONE_CALLER_LOCAL = """<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10
       font-weight='bold' fill='#06263a'>90</text></svg>"""
 
 
+@app.route("/crieur")
+def crieur_neuf():
+    """🆕 PORTE NEUVE (sceau Maeva 31/07) : même page que /caller, mais à une
+    adresse SANS PASSÉ — aucun cache, aucun gardien ne peut servir du vieux."""
+    rep = make_response(render_template("caller.html"))
+    rep.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    rep.headers["Pragma"] = "no-cache"
+    return rep
+
+
+@app.route("/crieur-local")
+def crieur_local_neuf():
+    """🆕 PORTE NEUVE de la formule hors-ligne."""
+    rep = make_response(render_template("caller_local.html"))
+    rep.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    rep.headers["Pragma"] = "no-cache"
+    return rep
+
+
 @app.route("/caller-local")
 def caller_local():
     """📴 La formule hors-ligne du caller (no-store : le cache HTTP du
