@@ -63,6 +63,11 @@
         <summary style="cursor:pointer;font-size:.9rem;font-weight:600">🎙️ Choisir la voix du crieur</summary>
         <div style="display:flex;flex-direction:column;gap:.45rem;padding:.6rem .1rem">
           <select id="choix-voix" onchange="changerVoix()" style="padding:.5rem;border-radius:6px;border:1px solid #ccc;font-size:.9rem;color:#123"></select>
+          <label style="font-size:.82rem">Qui annonce les boules
+            <select id="source-voix" onchange="changerSourceVoix()" style="width:100%;padding:.45rem;border-radius:6px;border:1px solid #ccc;font-size:.85rem;color:#123">
+              <option value="bande">🎛️ La bande enregistrée (sort sur enceinte JBL)</option>
+              <option value="appareil">👩 Ma voix choisie ci-dessus (Denise…)</option>
+            </select></label>
           <label style="font-size:.82rem">Vitesse <span id="voix-vitesse-val">0.85</span>
             <input type="range" min="0.6" max="1.2" step="0.05" value="0.85" style="width:100%" oninput="changerVitesseVoix(this.value)"></label>
           <label style="font-size:.82rem">Hauteur <span id="voix-hauteur-val">1.00</span>
@@ -375,6 +380,24 @@ function jouerBande(n) {
   } catch (e) { return false; }
 }
 
+// 🎚️ QUI CRIE LES BOULES : "bande" (enregistrée, sort sur JBL) ou "appareil"
+// (la voix choisie au panneau — Denise sur PC, sa sœur ailleurs).
+var SOURCE_VOIX = "bande";
+try { SOURCE_VOIX = localStorage.getItem("mp_source_voix") || "bande"; } catch (e) {}
+function changerSourceVoix() {
+  var s = document.getElementById("source-voix");
+  SOURCE_VOIX = s ? s.value : "bande";
+  try { localStorage.setItem("mp_source_voix", SOURCE_VOIX); } catch (e) {}
+}
+function parlerAvecAppareil(texte) {
+  try {
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(texte);
+    reglerUtterance(u);
+    window.speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
 // 👑 LA LOI DE LA VOIX MANAPRINT (sceau Maeva 30/07) : ordre officiel —
 // les grandes voix naturelles françaises d'abord (Denise, Eloise, Vivienne,
 // Henri), puis toute Natural fr-FR, puis les Google, puis le reste.
@@ -415,6 +438,8 @@ function remplirChoixVoix() {
   });
   var c = voixChoisie();
   if (c) sel.value = c.name;
+  var sv = document.getElementById("source-voix");
+  if (sv) sv.value = SOURCE_VOIX;
 }
 function changerVoix() {
   var sel = document.getElementById("choix-voix");
@@ -523,7 +548,7 @@ function lettrePour(n) {
 function parlerBoule(n, texte) {
   if (!voixActive) return;
   // 🎙️ LA BANDE D'ABORD (même voix partout, marche sans internet)
-  if (!texte && n <= 90) {
+  if (!texte && n <= 90 && SOURCE_VOIX === "bande") {
     if (jouerBande(n)) return;
     if (etatBande === "chargement") { annonceEnAttente = n; return; }
     chargerBandeAudio();
