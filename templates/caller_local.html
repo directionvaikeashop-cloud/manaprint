@@ -50,7 +50,7 @@
 </head>
 <body>
 <h1>🎱 MANAPRINT CALLER</h1>
-<div class="sub">Formule hors-ligne</a> <span style="opacity:.5;font-size:.75em">· version 31.07 · bande</span><a style="display:none"> · le tirage vit dans l'appareil</div>
+<div class="sub">Formule hors-ligne</a> <span style="opacity:.5;font-size:.75em">· version 31.07 · salle</span><a style="display:none"> · le tirage vit dans l'appareil</div>
 <div class="etat" id="etat">⏳ préparation du mode hors-ligne…</div>
 
 <div class="card">
@@ -59,6 +59,7 @@
     <button onclick="nouvellePartie()">🆕 Nouvelle partie</button>
     <button onclick="basculerVoix(this)" id="btn-voix" class="on">🔊 Voix</button>
   </div>
+      <div id="etat-salle" style="margin-top:.6rem;padding:.5rem .7rem;border:1px solid rgba(255,255,255,.25);border-radius:8px;font-size:.85rem;line-height:1.5">⏳ Vérification…</div>
       <details style="margin-top:.6rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:.35rem .6rem">
         <summary style="cursor:pointer;font-size:.9rem;font-weight:600">🎙️ Choisir la voix du crieur</summary>
         <div style="display:flex;flex-direction:column;gap:.45rem;padding:.6rem .1rem">
@@ -378,6 +379,39 @@ function jouerBande(n) {
     s.start(0, seg[0], seg[1] + 0.06);
     sourceEnCours = s; return true;
   } catch (e) { return false; }
+}
+
+// 🟢 MODE SALLE : auto-contrôle au démarrage (bande prête ? voix prête ?)
+// + bouton d'essai du son qui passe TOUJOURS par la bande (celle qui sort
+// sur les enceintes Bluetooth). Aucun réglage à faire par Tatie.
+function majEtatSalle() {
+  var z = document.getElementById("etat-salle");
+  if (!z) return;
+  var pret = (typeof spriteAudio !== "undefined" && spriteAudio);
+  var enCours = (typeof etatBande !== "undefined" && etatBande === "chargement");
+  if (pret) {
+    z.style.background = "rgba(34,197,94,.14)"; z.style.borderColor = "rgba(34,197,94,.5)";
+    z.innerHTML = '<b>\u2705 Pr\u00eat pour la salle</b> \u00b7 voix enregistr\u00e9e charg\u00e9e (sort sur enceinte) '
+      + '<button onclick="testerEnceinte()" style="margin-left:.4rem;padding:.2rem .55rem;border-radius:6px;border:1px solid rgba(255,255,255,.35);background:transparent;color:inherit;cursor:pointer;font-size:.8rem">\ud83d\udd0a Tester l\'enceinte</button>';
+  } else if (enCours) {
+    z.style.background = "rgba(250,204,21,.12)"; z.style.borderColor = "rgba(250,204,21,.45)";
+    z.innerHTML = "\u23f3 Pr\u00e9paration de la voix\u2026 (quelques secondes)";
+  } else {
+    z.style.background = "rgba(248,113,113,.12)"; z.style.borderColor = "rgba(248,113,113,.45)";
+    z.innerHTML = '\u26a0\ufe0f Voix enregistr\u00e9e pas encore charg\u00e9e \u2014 '
+      + '<button onclick="chargerBandeAudio();setTimeout(majEtatSalle,1500)" style="padding:.2rem .55rem;border-radius:6px;border:1px solid rgba(255,255,255,.35);background:transparent;color:inherit;cursor:pointer;font-size:.8rem">charger maintenant</button>';
+  }
+}
+function testerEnceinte() {
+  // toujours par la bande : c'est elle qui part vers la JBL
+  if (typeof jouerBande === "function" && jouerBande(44)) return;
+  if (typeof parlerAvecAppareil === "function") parlerAvecAppareil("quarante-quatre");
+}
+if ("addEventListener" in window) {
+  window.addEventListener("load", function () {
+    majEtatSalle();
+    var n = 0, t = setInterval(function () { majEtatSalle(); if (++n > 12) clearInterval(t); }, 1200);
+  });
 }
 
 // 🎚️ QUI CRIE LES BOULES : "bande" (enregistrée, sort sur JBL) ou "appareil"
