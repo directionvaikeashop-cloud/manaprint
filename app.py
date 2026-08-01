@@ -1124,7 +1124,7 @@ _SW_CALLER_LOCAL = """
 // mises à jour arrivent toutes seules), CACHE EN SECOURS quand il n'y en a
 // pas (la promesse hors-ligne tient) ; les vieux caches sont balayés.
 const CACHE = 'mpcl-v3';
-const PAGES = ['/caller-local', '/caller-local/manifest.json', '/caller-local/icone.svg'];
+const PAGES = ['/caller-local', '/crieur-local', '/caller-local/manifest.json', '/caller-local/icone.svg'];
 const BANDE = '/voix-caller.mp3';   // 🎙️ la voix enregistrée, gardée pour les salles sans réseau
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -1169,6 +1169,17 @@ _ICONE_CALLER_LOCAL = """<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10
 <circle cx='50' cy='50' r='30' fill='#38bdf8'/>
 <text x='50' y='62' font-size='34' text-anchor='middle' font-family='sans-serif'
       font-weight='bold' fill='#06263a'>90</text></svg>"""
+
+
+@app.route("/sw-manaprint.js")
+def sw_racine():
+    """🛡️ Le gardien hors-ligne SERVI À LA RACINE (sceau Maeva 31/07) : depuis
+    un sous-dossier il n'avait pas le droit de veiller sur la page elle-même
+    — c'était la cause du « mode hors-ligne non installé »."""
+    rep = Response(_SW_CALLER_LOCAL, mimetype="application/javascript")
+    rep.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    rep.headers["Service-Worker-Allowed"] = "/"
+    return rep
 
 
 @app.route("/crieur")
