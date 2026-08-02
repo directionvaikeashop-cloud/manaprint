@@ -1,17 +1,11 @@
-# -*- coding: utf-8 -*-
 """
-MANAPRINT — Générateur MOOREA (format A4)
-8 cartes par feuille A4 (2 colonnes × 4 rangées).
-Chaque carte : 13 numéros disposés EN LOSANGE (1-3-5-3-1) :
-  col 1 = 1 numéro  (1-15)     — la pointe gauche
-  col 2 = 3 numéros (16-30)
-  col 3 = 5 numéros (31-45)    — le cœur du losange
-  col 4 = 3 numéros (46-60)
-  col 5 = 1 numéro  (61-75)    — la pointe droite
-Numéro de série en haut à droite, « MOOREA » en pied de carte.
-Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
+🏝️ MOOREA — LA GRILLE DE L'ÎLE SŒUR (revisité 01/08 sur le croquis de Maeva)
+Chaque commune du tour de l'île porte son numéro dans un rond blanc ;
+la côte est tracée AU TRAIT (économie de toner : les montagnes crayonnées
+du croquis ne sont PAS reprises). 12 grilles par feuille A4, comme POW.
 """
 import io
+import json
 import random
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -20,176 +14,208 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
-# SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne : si le module securite
-# est absent, les cartons sortent normalement, simplement sans microtexte.
 try:
     from generators import securite as _sec
-except Exception:
+except ImportError:
     try:
         import securite as _sec
-    except Exception:
+    except ImportError:
         _sec = None
 
-
+# ── fonte des chiffres (grasse, comme POW/QUINES) ────────────────────────
+_POLICE_ECO = "Helvetica-Bold"
 try:
-    pdfmetrics.registerFont(TTFont("DJL", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    POLICE = "DJL"
+    pdfmetrics.registerFont(TTFont("DJBOLDM", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"))
+    _POLICE_ECO = "DJBOLDM"
 except Exception:
-    POLICE = "Helvetica"
+    pass
+_GRIS_ECO = colors.Color(0.5, 0.5, 0.5)
+_GRIS_P15 = colors.Color(0.25, 0.25, 0.25)
 
-RAINBOW = [
-    "#E53935", "#FB8C00", "#F9A825", "#43A047", "#00ACC1",
-    "#1E88E5", "#3949AB", "#8E24AA", "#D81B60", "#6D4C41",
-]
-GRIS = colors.Color(0.42, 0.42, 0.42)
-GRIS_CLAIR = colors.Color(0.80, 0.80, 0.80)
-
-
-# ══ DEUX GAMMES COMMERCIALES (vision Maeva) ══════════════════════════
-# ÉCO      : écriture fine DejaVu ExtraLight, gris 0,50 — économie de toner
-# PREMIUM  : écriture grasse Helvetica-Bold, gris 0,55 — style P15
-from reportlab.pdfbase import pdfmetrics as _pm
-from reportlab.pdfbase.ttfonts import TTFont as _TF
-try:
-    _pm.registerFont(_TF("DJLECO", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    _POLICE_ECO = "DJLECO"
-except Exception:
-    _POLICE_ECO = "Helvetica"
-_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
-_POLICE_P15 = "Helvetica-Bold"
-_GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
 
 def _style_chiffres(style):
-    """Retourne (police, gris) des chiffres selon la gamme choisie."""
     if str(style).lower() in ("p15", "premium"):
-        return _POLICE_P15, _GRIS_P15
+        return _POLICE_ECO, _GRIS_P15
     return _POLICE_ECO, _GRIS_ECO
-# ═════════════════════════════════════════════════════════════════════
+
 
 PAGE_W, PAGE_H = A4
-# (min, max) par colonne — MOOREA, le losange 1-3-5-3-1
-PLAGES = [(1, 15), (16, 30), (31, 45), (46, 60), (61, 75)]
-COMPTES = [1, 3, 5, 3, 1]  # nombre de numéros par colonne
-
-COLS_PAGE = 2
-ROWS_PAGE = 4
-MARGIN_X = 8 * mm
-MARGIN_TOP = 10 * mm
-MARGIN_BOT = 8 * mm
-GUTTER_X = 5 * mm
-GUTTER_Y = 4 * mm
-
+COLS_PAGE, ROWS_PAGE = 2, 3          # 6 grilles / A4 — l'île en grand, sans blanc perdu
+MARGIN_X, MARGIN_TOP, MARGIN_BOT = 8 * mm, 10 * mm, 10 * mm
+GUTTER_X, GUTTER_Y = 4 * mm, 4 * mm
 CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
 CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
 
+T_NUM = 30                            # 🔢 chiffres 30 points (sceau Maeva)
+GRAINE = 983000                       # graine propre (982000 = QUINES 90)
+
+RAINBOW = ["#E63946", "#F4A261", "#E9C46A", "#2A9D8F", "#264653",
+           "#8E7DBE", "#D62828", "#457B9D", "#6A994E", "#BC6C25",
+           "#7209B7", "#F72585"]
+
+# ── la côte de MOOREA, relevée sur le croquis de Maeva (fractions) ───────
+COTE = [
+    (0.9472, 0.9862), (0.9074, 1.0000), (0.8778, 0.9585), (0.7352, 0.9194),
+    (0.6389, 0.9228), (0.6148, 0.8975), (0.5944, 0.7846), (0.5481, 0.9055),
+    (0.5407, 0.8675), (0.5287, 0.9055), (0.5417, 0.9101), (0.4907, 0.9124),
+    (0.5231, 0.9412), (0.4556, 0.9562), (0.4546, 0.9274), (0.4648, 0.9389),
+    (0.4898, 0.9171), (0.4000, 0.8963), (0.3824, 0.7753), (0.3657, 0.7638),
+    (0.3917, 0.7742), (0.3778, 0.7477), (0.3435, 0.7684), (0.3380, 0.8065),
+    (0.3639, 0.7650), (0.3380, 0.8479), (0.2991, 0.8940), (0.2093, 0.8975),
+    (0.2037, 0.9147), (0.1889, 0.8963), (0.1278, 0.9171), (0.0972, 0.9055),
+    (0.0843, 0.9516), (0.0389, 0.9505), (0.0000, 0.8825), (0.0176, 0.8283),
+    (0.0074, 0.7684), (0.0333, 0.6959), (0.0296, 0.6325), (0.1407, 0.4493),
+    (0.1750, 0.4205), (0.1843, 0.4309), (0.1907, 0.3548), (0.2361, 0.2788),
+    (0.2361, 0.2512), (0.2602, 0.2454), (0.2620, 0.2235), (0.2481, 0.2270),
+    (0.3019, 0.1751), (0.3194, 0.1198), (0.3639, 0.1152), (0.3796, 0.0438),
+    (0.5315, 0.0000), (0.5787, 0.0046), (0.5907, 0.0518), (0.6509, 0.0876),
+    (0.6833, 0.1382), (0.6972, 0.1371), (0.6963, 0.1152), (0.7694, 0.1221),
+    (0.7046, 0.1302), (0.6880, 0.1509), (0.7870, 0.3341), (0.8204, 0.3641),
+    (0.8463, 0.4493), (0.9139, 0.4747), (0.9880, 0.4643), (0.9361, 0.4758),
+    (0.9241, 0.6060), (0.9315, 0.6647), (0.9583, 0.6993), (0.9583, 0.7454),
+    (1.0000, 0.8018), (0.9907, 0.8848),
+]
+
+# ── les 9 communes du tour de l'île (fractions de la zone, écartées pour
+#    qu'un nombre de 30 pts tienne dans chaque rond sans toucher son voisin)
+COMMUNES = [
+    ("Haapiti", 0.1725, 0.8766),
+    ("Paopao", 0.4857, 0.9084),
+    ("Maharepa", 0.6852, 0.9040),
+    ("Temae", 0.9799, 0.8218),
+    ("Afareaitu", 0.0588, 0.5779),
+    ("Vaiare", 0.9033, 0.4855),
+    ("Papetoai", 0.2409, 0.2547),
+    ("Teavaro", 0.6817, 0.1522),
+    ("Pihaena", 0.4822, 0.0368),
+]
+
+# chaque commune tire dans SA plage : le carton fait le tour de 1 à 75
+PLAGES_COMMUNES = [(1, 15), (1, 15), (16, 30), (16, 30), (31, 45),
+                   (31, 45), (46, 60), (46, 60), (61, 75)]
+
 
 def _gen_carte(rng):
-    """13 numéros en losange : 1 + 3 + 5 + 3 + 1, chaque colonne dans sa plage, triés."""
-    return [sorted(rng.sample(range(pmin, pmax + 1), n))
-            for (pmin, pmax), n in zip(PLAGES, COMPTES)]
+    """9 numéros — un par commune, chacun dans sa plage, jamais deux fois le même."""
+    pris, nums = set(), []
+    for a, b in PLAGES_COMMUNES:
+        while True:
+            n = rng.randint(a, b)
+            if n not in pris:
+                pris.add(n)
+                nums.append(n)
+                break
+    return nums
 
 
-def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
+import os as _os
+_IMAGE_ILE = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "moorea_ile.png")
+_RATIO_ILE = 1105.0 / 893.0     # proportions du croquis de Maeva
+
+
+def _ile(c, x0, y0, zx, zy, zw, zh, col):
+    """Le croquis de Maeva, pâli pour l'encre — repli : la côte au trait."""
+    if _os.path.exists(_IMAGE_ILE):
+        try:
+            iw = zw
+            ih = iw / _RATIO_ILE
+            if ih > zh:
+                ih = zh; iw = ih * _RATIO_ILE
+            c.drawImage(_IMAGE_ILE, x0 + zx + (zw - iw) / 2, y0 + zy + (zh - ih) / 2,
+                        iw, ih, mask="auto", preserveAspectRatio=True)
+            return (zx + (zw - iw) / 2, zy + (zh - ih) / 2, iw, ih)
+        except Exception:
+            pass
+    c.setStrokeColor(col)
+    c.setLineWidth(0.7)
+    p = c.beginPath()
+    px, py = COTE[0]
+    p.moveTo(x0 + zx + px * zw, y0 + zy + py * zh)
+    for px, py in COTE[1:]:
+        p.lineTo(x0 + zx + px * zw, y0 + zy + py * zh)
+    p.close()
+    c.drawPath(p, stroke=1, fill=0)
+    return (zx, zy, zw, zh)
+
+
+def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone="",
+                    style="eco", evenement_id=""):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
 
-    # Bordure carte
     c.setStrokeColor(col); c.setLineWidth(0.8)
     c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
+    if _sec:
         _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
 
-    # En-tête — le nom du jeu apparaît TOUJOURS + série en haut à droite (fidèle au modèle)
-    hdr_y = y0 + CARD_H - 4.0 * mm
-    titre = "MOOREA"
-    if titre_jeu and titre_jeu.strip().upper() != titre.upper():
-        titre += "  —  " + titre_jeu.strip()
-    c.setFillColor(col); c.setFont(POLICE, 6)
-    c.drawString(x0 + 3 * mm, hdr_y, titre[:48])
-    c.setFont(POLICE, 6.5)
-    c.drawRightString(x0 + CARD_W - 3 * mm, hdr_y, "N\u00b0 %06d" % serie)
-
-    # Zone du losange (le QR vit dans la bande dédiée du bas)
-    zone_top = hdr_y - 4.0 * mm
-    zone_bot = y0 + 17 * mm
-    zone_h = zone_top - zone_bot
-    # 5 colonnes : pointes étroites, cœur large
-    lx = x0 + 4 * mm
-    lw = CARD_W - 8 * mm
-    frac = [0.11, 0.20, 0.24, 0.20, 0.11]           # largeurs relatives (pointe/aile/cœur)
-    xs, cursor = [], lx + (lw - lw * sum(frac)) / 2  # centré
-    for f in frac:
-        xs.append(cursor + (lw * f) / 2)
-        cursor += lw * f
-
-    # tailles : gros chiffres au cœur, moyens sur les ailes
-    taille = 25  # bien gros (Maeva, juil. 2026)
-    pas5 = zone_h / 5                       # pas vertical du cœur (5 rangées)
-    for ci, nums in enumerate(cols_nums):
-        n = len(nums)
-        # rangées occupées, centrées verticalement sur les 5 rangées du cœur
-        premiere = (5 - n) / 2.0
-        for ri, val in enumerate(nums):
-            cyc = zone_top - (premiere + ri + 0.5) * pas5
-            if _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, val, xs[ci], cyc - taille * 0.36, taille, gris_ch, police_ch)
-            else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-                c.drawCentredString(xs[ci], cyc - taille * 0.36, str(val))
-
-    # Pied de carte : signature du jeu (fidèle au modèle « MOOREA »)
-    pied = "MOOREA"
+    # en-tête : le nom du jeu s'écrit TOUJOURS, le titre client s'ajoute
+    c.setFillColor(col); c.setFont("Helvetica-Bold", 9.0)
+    tete = "MOOREA \u00b7 le tour de l'\u00eele"
+    if titre_jeu:
+        tete += "  \u2014  " + str(titre_jeu)[:26]
     if telephone:
-        pied += "  " + telephone
-    c.setFillColor(col); c.setFont(POLICE, 4.5)
-    c.drawRightString(x0 + CARD_W - 3 * mm, y0 + 2.2 * mm, pied[:52])
+        tete += "  " + str(telephone)[:16]
+    c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 6.4 * mm, tete[:70])
+    c.setFont("Helvetica", 7.0)
+    c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 10.4 * mm, "Carte N\u00b0 %05d" % serie)
 
-    # QR de vérification par carte (anti-duplication) — bande dédiée bas-gauche
+    zx, zy, zw, zh = 4.0 * mm, 5.0 * mm, CARD_W - 8.0 * mm, CARD_H - 18.0 * mm
+    zx, zy, zw, zh = _ile(c, x0, y0, zx, zy, zw, zh, col)
+
+    # les 9 communes : rond blanc + numéro 30 pts + nom minuscule
+    r = 7.6 * mm
+    # 🛟 aucune boule ne sort de la grille (sceau Maeva 01/08) : chaque rond
+    # se range à l'intérieur du cadre, avec le nom qui tient dessous.
+    BORD = 1.6 * mm
+    for (nom, fx, fy), n in zip(COMMUNES, nums):
+        cx = x0 + zx + fx * zw
+        cy = y0 + zy + fy * zh
+        cx = min(max(cx, x0 + r + BORD), x0 + CARD_W - r - BORD)
+        cy = min(max(cy, y0 + r + 4.4 * mm), y0 + CARD_H - r - 12.0 * mm)
+        c.setFillColor(colors.white); c.setStrokeColor(col); c.setLineWidth(0.6)
+        c.circle(cx, cy, r, stroke=1, fill=1)
+        if _sec:
+            _sec.chiffre_micro(c, n, cx, cy - T_NUM * 0.34, T_NUM, gris_ch, police_ch)
+        else:
+            c.setFillColor(gris_ch); c.setFont(police_ch, T_NUM)
+            c.drawCentredString(cx, cy - T_NUM * 0.34, str(n))
+        c.setFillColor(col); c.setFont("Helvetica", 5.6)
+        c.drawCentredString(cx, cy - r - 3.0 * mm, nom)
+
+    # QR de contrôle — au cœur de l'île, là où sont les monts
     if _sec and evenement_id:
         try:
-            _q = 13.0 * mm
-            _sec.carton_qr(c, x0 + 2.0 * mm, y0 + 2.5 * mm, _q, evenement_id, serie)
+            q = 14.0 * mm
+            _sec.carton_qr(c, x0 + CARD_W / 2 - q / 2, y0 + zy + zh * 0.44 - q / 2,
+                           q, evenement_id, serie)
         except Exception:
             pass
 
 
-def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
-                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id=""):
+def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
+                nom_evenement="", titre_jeu="", telephone="", date_lieu="",
+                couleur_perso=None, style="eco", evenement_id="", motif=""):
     buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
+    c = canvas.Canvas(buf, pagesize=A4)
+    rng = random.Random(GRAINE + serie_start)
+    serie, faites, no_page = serie_start, 0, 1
 
-    nb_cartes = max(1, min(int(nb_cartes), 10000))
-    par_page = COLS_PAGE * ROWS_PAGE
-    nb_pages = (nb_cartes + par_page - 1) // par_page
-
-    rng = random.Random(930000 + int(serie_start))
-    serie = int(serie_start)
-    no_page = 1
-    faites = 0
-
-    for _ in range(nb_pages):
-        # en-tête de page
-        if nom_evenement:
-            c.setFillColor(colors.black); c.setFont(POLICE, 9)
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 5 * mm, nom_evenement)
-        c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 6)
-        c.drawCentredString(PAGE_W / 2, PAGE_H - 7.2 * mm, "%03d" % no_page)
-
+    while faites < nb_cartes:
         for row in range(ROWS_PAGE):
-            for col_i in range(COLS_PAGE):
+            for coln in range(COLS_PAGE):
                 if faites >= nb_cartes:
                     break
-                x0 = MARGIN_X + col_i * (CARD_W + GUTTER_X)
+                x0 = MARGIN_X + coln * (CARD_W + GUTTER_X)
                 y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
-                cols_nums = _gen_carte(rng)
+                nums = _gen_carte(rng)
                 coul = (couleur_perso if (couleur and couleur_perso)
                         else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
-                _dessiner_carte(c, x0, y0, cols_nums, coul, serie, titre_jeu, telephone,
+                _dessiner_carte(c, x0, y0, nums, coul, serie, titre_jeu, telephone,
                                 style=style, evenement_id=evenement_id)
                 serie += 1
                 faites += 1
-
+        c.setFillColor(colors.Color(0.72, 0.72, 0.72)); c.setFont("Helvetica", 5.4)
+        c.drawCentredString(PAGE_W / 2, PAGE_H - 6 * mm, "%03d" % no_page)
         c.showPage()
         no_page += 1
 
@@ -199,9 +225,7 @@ def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
 
 
 if __name__ == "__main__":
-    pdf = generer_pdf(nb_cartes=8, couleur=True,
-                      nom_evenement="ASSOCIATION TE MANU", titre_jeu="Grand Loto",
-                      telephone="89.22.23.05")
+    pdf = generer_pdf(nb_cartes=6, couleur=True, titre_jeu="MOOREA", telephone="89 22 23 05")
     with open("test_moorea.pdf", "wb") as f:
         f.write(pdf.read())
     print("MOOREA généré")
