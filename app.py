@@ -369,7 +369,9 @@ _enregistrer_paire("italia",        "ITALIA",     "🇮🇹", 10, italia.generer
 _enregistrer_paire("vai",           "VAI 9 boules","🌊", 12, vai.generer_pdf)
 _enregistrer_paire("wow4",          "WOW 4","🎆", 12, wow4.generer_pdf)
 _enregistrer_paire("bno",           "BNO 8 boules","🎯", 12, bno.generer_pdf)
+_enregistrer_paire("bno_casino",    "BNO CASINO","🎰", 12, bno.generer_pdf_casino)
 _enregistrer_paire("ngo",           "NGO 8 boules","🎳", 12, ngo.generer_pdf)
+_enregistrer_paire("ngo_casino",    "NGO CASINO","🎰", 12, ngo.generer_pdf_casino)
 _enregistrer_paire("diamant",       "DIAMANT","💎", 6,  diamant.generer_pdf)
 _enregistrer_paire("rui",           "RUI","🎴", 12, rui.generer_pdf)
 _enregistrer_paire("tureia",        "TUREIA","🔶", 6,  tureia.generer_pdf)
@@ -404,6 +406,7 @@ _enregistrer_paire("boules60",      "60 BOULES",  "🔵", 12, boules60.generer_p
 _enregistrer_paire("ahuru",         "AHURU",      "🔟", 10, ahuru.generer_pdf)
 _enregistrer_paire("tchin",         "TCHIN",      "🍻", 12, tchin.generer_pdf)
 _enregistrer_paire("ing",           "ING",        "🧭", 12, ing.generer_pdf)
+_enregistrer_paire("ing_casino",    "ING CASINO","🎰", 12, ing.generer_pdf_casino)
 _enregistrer_paire("lunes75",       "LUNES 75",   "🌜", 12, lunes75.generer_pdf)
 _enregistrer_paire("miss75",        "MISS 75",    "👑", 4,  miss75.generer_pdf)
 _enregistrer_paire("bien_sur",      "BIEN SÛR",   "✅", 8,  bien_sur.generer_pdf)
@@ -936,7 +939,9 @@ _PLAGES_CALLER = {
     "vai": (61, 90),
     "wow4": (30, 60),
     "bno": (1, 75),
+    "bno_casino": (1, 75),
     "ngo": (31, 75),
+    "ngo_casino": (31, 75),
     "diamant": (1, 75),
     "rui": (30, 59),
     "tureia": (1, 75),
@@ -968,6 +973,7 @@ _PLAGES_CALLER = {
     "ahuru": (1, 75),
     "tchin": (1, 30),
     "ing": (16, 60),
+    "ing_casino": (16, 60),
     "lunes75": (1, 75),
     "miss75": (1, 75),
     "bien_sur": (1, 75),
@@ -1011,6 +1017,10 @@ _LETTRE_CODES = {100 + i + 1: l for i, l in enumerate("ABCDEFGHIJKL")}
 # 💰 LES MONTANTS SONT DES BOULES (sceau Maeva 30/07, 19 montants — imprimés aux
 # coupes ils ne promettent rien, seul le tirage public journalisé attribue) :
 _MONTANT_CODES = {200 + i + 1: mv for i, mv in enumerate(avinda.MONTANTS)}
+# 💰 LES PIONS DE VALEUR AU TIRAGE (sceau Maeva 01/08) : 6 boules de plus dans
+# les 3 sacs CASINO — elles ne cochent aucun numéro, elles se gagnent.
+_PIONS_CALLER = [201, 202, 203, 204, 205, 206]   # 5 · 10 · 15 · 20 · 50 · 100 F
+
 _JOKER_CODE = 300   # 🃏 LA BOULE JOKER — EN RÉSERVE (décision Maeva 30/07 :
 #     « pour le lancement pas le joker, après les résultats du marché ») ;
 #     pour la réveiller : remettre "p6_casino" au sac ci-dessous avec [_JOKER_CODE],
@@ -1023,6 +1033,9 @@ _BOULES_CALLER = {
     "ohana20b_myst": list(range(1, 76)) + sorted(_MONTANT_CODES),        # 94 💰
     "avinda_myst": list(range(1, 76)) + sorted(_LETTRE_CODES),   # 87 boules 🍷🅰️
     "bno": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(61, 76)],
+    "bno_casino": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(61, 76)] + _PIONS_CALLER,
+    "ing_casino": [n for n in range(16, 61)] + _PIONS_CALLER,
+    "ngo_casino": [n for n in range(31, 76)] + _PIONS_CALLER,
     "tureia": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # colonne 31-45 morte
     "fan90": [n for n in range(1, 11)] + [n for n in range(20, 91)],   # sans le 11 à 19
     "oaoa": [n for n in range(16, 31)] + [n for n in range(61, 76)],   # O 16-30 et A 61-75
