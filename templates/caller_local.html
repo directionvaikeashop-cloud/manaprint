@@ -49,6 +49,37 @@
 </style>
 </head>
 <body>
+<!-- 🕵️ ATTRAPE-ERREUR (sceau Maeva 02/08, « c'est toujours noir ») : si le
+     moteur de la page meurt, on ne laisse PAS un écran noir — on écrit la
+     panne À L'ÉCRAN pour pouvoir la lire et la réparer. -->
+<div id="panne-visible" style="display:none;position:fixed;left:0;right:0;top:0;z-index:99999;background:#7f1d1d;color:#fff;padding:.7rem .9rem;font:13px/1.5 system-ui,sans-serif;white-space:pre-wrap"></div>
+<script>
+(function () {
+  function montrer(txt) {
+    try {
+      var z = document.getElementById("panne-visible");
+      if (!z) return;
+      z.style.display = "block";
+      z.textContent = "\u26a0\ufe0f Panne de la page \u2014 lisez cette ligne \u00e0 Tr\u00e9sor :\n" + txt;
+    } catch (e) {}
+  }
+  window.addEventListener("error", function (e) {
+    montrer((e.message || "erreur") + "  [" + (e.filename || "") + " ligne " + (e.lineno || "?") + "]");
+  });
+  window.addEventListener("unhandledrejection", function (e) {
+    montrer("promesse refus\u00e9e : " + ((e.reason && e.reason.message) || e.reason || "?"));
+  });
+  // et si au bout de 6 s la page n'a rien construit, on le dit aussi
+  setTimeout(function () {
+    var m = document.getElementById("jeu"), g = document.getElementById("grille");
+    if ((!m || m.options.length < 5) || (!g || g.children.length < 5)) {
+      montrer("la page ne s'est pas construite (menu " + (m ? m.options.length : "absent") +
+              ", grille " + (g ? g.children.length : "absente") + ")");
+    }
+  }, 6000);
+})();
+</script>
+
 <h1>🎱 MANAPRINT CALLER</h1>
 <div class="sub">Formule hors-ligne</a> <span style="opacity:.5;font-size:.75em">· version {{ tampon }} · <a href="/version" style="color:inherit;opacity:.6;text-decoration:none">v</a></span><a style="display:none"> · le tirage vit dans l'appareil</div>
 <div class="etat" id="etat">⏳ préparation du mode hors-ligne…</div>
