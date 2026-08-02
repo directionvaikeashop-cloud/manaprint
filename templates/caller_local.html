@@ -752,6 +752,32 @@ function maj() {
 })();
 
 // ── le mode hors-ligne : la page s'installe dans l'appareil ──
+// 🧹 NETTOYEUR DES VIEUX GARDIENS (sceau Maeva 02/08, « écran noir sur la
+// formule hors-ligne ») : un gardien d'AVANT (scope /caller-local/) et ses
+// vieux caches peuvent servir une copie abîmée. On les congédie AVANT tout,
+// une seule fois, puis on repart proprement.
+(function () {
+  try {
+    if (!navigator.serviceWorker || !navigator.serviceWorker.getRegistrations) return;
+    navigator.serviceWorker.getRegistrations().then(function (rs) {
+      var vieux = rs.filter(function (r) {
+        var s = (r.scope || "");
+        return s.indexOf("/caller-local") >= 0 || s.indexOf("/crieur-local") >= 0;
+      });
+      if (vieux.length) {
+        Promise.all(vieux.map(function (r) { return r.unregister(); })).then(function () {
+          if (window.caches && caches.keys) {
+            caches.keys().then(function (n) {
+              return Promise.all(n.filter(function (c) { return c !== "mpcl-v3"; })
+                                  .map(function (c) { return caches.delete(c); }));
+            });
+          }
+        });
+      }
+    }).catch(function () {});
+  } catch (e) {}
+})();
+
 if ("serviceWorker" in navigator) {
   // 🛡️ le gardien vient de la RACINE : de là il couvre la page (depuis un
   // sous-dossier il n'en avait pas le droit — cause du « non installé »).
