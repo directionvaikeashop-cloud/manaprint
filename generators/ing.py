@@ -93,23 +93,97 @@ def _gen_carte(rng):
     return cols
 
 
-def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
+# 🎰 LE JETON DE CASINO (sceau Maeva 01/08) : rondelle à créneaux alternés,
+# anneau intérieur, le numéro au centre — dessiné au trait, jamais de pavé plein.
+_CRENEAUX = 6          # créneaux du pourtour (6 = allure du jeton, encre légère)
+
+
+def _jeton(c, cx, cy, r, valeur, col, gris_ch, police_ch):
+    """Un pion de casino : le numéro trône au centre de la rondelle."""
+    from reportlab.lib import colors as _c
+    # rondelle
+    c.setStrokeColor(col); c.setLineWidth(0.7)
+    c.circle(cx, cy, r, stroke=1, fill=0)
+    # créneaux : un arc épais un sur deux (l'alternance du jeton de casino)
+    c.setLineWidth(r * 0.15)
+    pas = 360.0 / _CRENEAUX
+    for k in range(0, _CRENEAUX, 2):
+        c.arc(cx - r * 0.86, cy - r * 0.86, cx + r * 0.86, cy + r * 0.86,
+              k * pas + pas * 0.18, pas * 0.64)
+    # anneau intérieur (la plage claire où s'inscrit la valeur)
+    c.setLineWidth(0.5)
+    c.circle(cx, cy, r * 0.66, stroke=1, fill=0)
+    # le numéro, au calibre de la rondelle
+    t = r * 1.02
+    if _sec:
+        _sec.chiffre_micro(c, valeur, cx, cy - t * 0.34, t, gris_ch, police_ch)
+    else:
+        c.setFillColor(gris_ch); c.setFont(police_ch, t)
+        c.drawCentredString(cx, cy - t * 0.34, str(valeur))
+
+
+# 💰 PIONS DE VALEUR (sceau Maeva 01/08) : 2 cases condamnées par carton
+_PIONS_VALEURS = [5, 10, 15, 20, 50, 100]     # nos références, en francs
+_PIONS_PAR_CARTE = 2
+
+
+def _pions_de_la_carte(serie):
+    """Deux cases condamnées + leur valeur — mêmes pour une même série."""
+    import random as _r
+    rng = _r.Random(932900 * 7 + serie * 131)
+    postes = rng.sample(range(8), _PIONS_PAR_CARTE)      # toute carte a >= 8 cases
+    return {p: rng.choice(_PIONS_VALEURS) for p in postes}
+
+
+def _jeton_valeur(c, cx, cy, r, francs, col, gris_ch, police_ch):
+    """Le pion de valeur : la rondelle, et la somme au centre."""
+    c.setStrokeColor(col); c.setLineWidth(0.9)
+    c.circle(cx, cy, r, stroke=1, fill=0)
+    c.setLineWidth(r * 0.15)
+    pas = 360.0 / _CRENEAUX
+    for k in range(0, _CRENEAUX, 2):
+        c.arc(cx - r * 0.86, cy - r * 0.86, cx + r * 0.86, cy + r * 0.86,
+              k * pas + pas * 0.18, pas * 0.64)
+    c.setLineWidth(0.6)
+    c.circle(cx, cy, r * 0.70, stroke=1, fill=0)
+    t = r * 0.66 if francs < 100 else r * 0.54
+    c.setFillColor(col); c.setFont(police_ch, t)
+    c.drawCentredString(cx, cy - t * 0.22, str(francs))
+    c.setFont("Helvetica-Bold", r * 0.32)
+    c.drawCentredString(cx, cy - r * 0.52, "FRANCS")
+
+
+def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id="", jetons=False):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
     cell_w = CARD_W / 3
 
     # Bordure carte
-    c.setStrokeColor(col); c.setLineWidth(0.8)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
+    _cond = _pions_de_la_carte(serie) if jetons else {}
+    _rang = [0]
+    if jetons:
+        # ✍️ signature à la manière de MOOREA revisité (sceau Maeva 01/08)
+        _t = "ING CASINO \u00b7 le jeu des pions"
+        if titre_jeu and "CASINO" not in titre_jeu.strip().upper():
+            _t += "  \u2014  " + titre_jeu.strip()[:26]
+        if telephone:
+            _t += "  " + str(telephone)[:16]
+        c.setFillColor(col); c.setFont("Helvetica-Bold", 6.4)
+        c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 5.0 * mm, _t[:70])
+        c.setFont("Helvetica", 5.4)
+        c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 8.4 * mm, "Carte N\u00b0 %05d" % serie)
+    if not jetons:            # 🎰 CASINO : pas de contour, les pions flottent
+        c.setStrokeColor(col); c.setLineWidth(0.8)
+        c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
     if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
         _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.9 * mm)
 
     # En-tête T | E | A — bande à séparateurs verticaux (fidèle au modèle)
     hdr_bas = y0 + CARD_H - HDR_H
     c.setStrokeColor(col); c.setLineWidth(0.5)
-    c.line(x0, hdr_bas, x0 + CARD_W, hdr_bas)
+    if not jetons: c.line(x0, hdr_bas, x0 + CARD_W, hdr_bas)
     for i in (1, 2):
-        c.line(x0 + i * cell_w, hdr_bas, x0 + i * cell_w, y0 + CARD_H)
+        if not jetons: c.line(x0 + i * cell_w, hdr_bas, x0 + i * cell_w, y0 + CARD_H)
     c.setFillColor(col); c.setFont(POLICE, 7.5)
     for i, lettre in enumerate(LETTRES):
         c.drawCentredString(x0 + (i + 0.5) * cell_w, hdr_bas + 1.8 * mm, lettre)
@@ -121,12 +195,12 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     if telephone:
         signature += " · " + telephone
     c.setFillColor(col); c.setFont(POLICE, 3.8)
-    c.drawCentredString(x0 + CARD_W / 2, hdr_bas - 2.4 * mm, signature[:60])
+    if not jetons: c.drawCentredString(x0 + CARD_W / 2, hdr_bas - 2.4 * mm, signature[:60])
 
     # Pied de carte : « N° SERIE | 030001 »
     c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0 + 1.5 * mm, y0 + PIED_H, x0 + CARD_W - 1.5 * mm, y0 + PIED_H)
-    c.line(x0 + CARD_W * 0.42, y0 + 0.8 * mm, x0 + CARD_W * 0.42, y0 + PIED_H - 0.6 * mm)
+    if not jetons: c.line(x0 + 1.5 * mm, y0 + PIED_H, x0 + CARD_W - 1.5 * mm, y0 + PIED_H)
+    if not jetons: c.line(x0 + CARD_W * 0.42, y0 + 0.8 * mm, x0 + CARD_W * 0.42, y0 + PIED_H - 0.6 * mm)
     c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 4.2)
     c.drawString(x0 + 2.5 * mm, y0 + 1.5 * mm, "N\u00b0 SERIE")
     c.setFillColor(col); c.setFont(POLICE, 6)
@@ -139,15 +213,23 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     # traits de la grille (fidèle au modèle : cases complètes)
     c.setStrokeColor(col); c.setLineWidth(0.4)
     for i in (1, 2):
-        c.line(x0 + i * cell_w, z_bot, x0 + i * cell_w, hdr_bas)
+        if not jetons: c.line(x0 + i * cell_w, z_bot, x0 + i * cell_w, hdr_bas)
     for i in range(4):
-        c.line(x0 + 1.5 * mm, z_top - i * row_h, x0 + CARD_W - 1.5 * mm, z_top - i * row_h)
+        if not jetons: c.line(x0 + 1.5 * mm, z_top - i * row_h, x0 + CARD_W - 1.5 * mm, z_top - i * row_h)
     taille = 38  # AU MAX physique (Maeva)
     for ci, ((pmin, pmax, n), nums) in enumerate(zip(COLONNES, cols_nums)):
         cx = x0 + (ci + 0.5) * cell_w
         rangees = (0, 2) if n == 2 else (0, 1, 2)   # le N saute la rangée centrale
         for val, ri in zip(nums, rangees):
             cyc = z_top - (ri + 0.5) * row_h
+            if jetons:
+                _k = _rang[0]; _rang[0] += 1
+                _r_jeton = min(cell_w, row_h) * 0.40
+                if _k in _cond:
+                    _jeton_valeur(c, cx, cyc, _r_jeton, _cond[_k], col, gris_ch, police_ch)
+                else:
+                    _jeton(c, cx, cyc, _r_jeton, val, col, gris_ch, police_ch)
+                continue
             if _sec:  # chiffres "billet de banque" remplis de microtexte
                 _sec.chiffre_micro(c, val, cx, cyc - taille * 0.36, taille, gris_ch, police_ch)
             else:
@@ -166,7 +248,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
 
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id=""):
+                style="eco", evenement_id="", jetons=False):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
@@ -197,7 +279,7 @@ def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
                 coul = (couleur_perso if (couleur and couleur_perso)
                         else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
                 _dessiner_carte(c, x0, y0, cols_nums, coul, serie, titre_jeu, telephone,
-                                style=style, evenement_id=evenement_id)
+                                style=style, evenement_id=evenement_id, jetons=jetons)
                 serie += 1
                 faites += 1
 
@@ -208,6 +290,12 @@ def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
     buf.seek(0)
     return buf
 
+
+
+def generer_pdf_casino(**kw):
+    """🎰 Le jumeau CASINO : chaque numéro vit dans un pion de casino."""
+    kw["jetons"] = True
+    return generer_pdf(**kw)
 
 if __name__ == "__main__":
     pdf = generer_pdf(nb_cartes=12, couleur=True,
