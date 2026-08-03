@@ -677,7 +677,12 @@ def _page_verif(statut, message, evenement_id, serie, code, ev=None, extra=""):
         "TERMINE": ("#dc2626", "⛔", "TOURNOI TERMINÉ"),
     }
     coul, emoji, titre = couleurs.get(statut, ("#334155", "❔", statut))
-    nom_ev = (ev or {}).get("nom") or evenement_id or "—"
+    # 🛟 l'événement arrive parfois en TEXTE (carton générique, événement
+    # inconnu) : on ne plante plus, on affiche simplement ce qu'on a.
+    if isinstance(ev, dict):
+        nom_ev = ev.get("nom") or evenement_id or "—"
+    else:
+        nom_ev = (ev if isinstance(ev, str) and ev.strip() else None) or evenement_id or "—"
     bouton = ""
     if statut == "VALIDE":
         bouton = (
@@ -707,6 +712,18 @@ def _page_verif(statut, message, evenement_id, serie, code, ev=None, extra=""):
     %s
   </div>
   %s
+  <!-- 🎱 LA PORTE DU CALLER (sceau Maeva 02/08) : chaque QR de carton devient
+       un chemin vers notre application de tirage, en ligne ET hors-ligne. -->
+  <div style="background:#1e293b;border-radius:14px;padding:18px;margin-top:16px">
+    <div style="font-size:.95rem;font-weight:700;margin-bottom:4px">🎱 Envie d'animer votre propre loto\u00a0?</div>
+    <div style="font-size:.85rem;color:#94a3b8;line-height:1.6">Le tirage des boules MANAPRINT, gratuit, dans votre t\u00e9l\u00e9phone.</div>
+    <a href="/caller" style="display:block;margin-top:12px;padding:14px;border-radius:10px;background:#38bdf8;color:#0b1120;
+       font-weight:800;text-align:center;text-decoration:none">📡 Ouvrir le CALLER (avec internet)</a>
+    <a href="/caller-local" style="display:block;margin-top:8px;padding:14px;border-radius:10px;background:#22c55e;color:#0b1120;
+       font-weight:800;text-align:center;text-decoration:none">📴 Ouvrir le CALLER HORS-LIGNE (sans r\u00e9seau)</a>
+    <a href="/" style="display:block;margin-top:8px;padding:12px;border-radius:10px;border:1px solid #475569;color:#e2e8f0;
+       font-weight:700;text-align:center;text-decoration:none;font-size:.9rem">🛒 Commander mes cartons</a>
+  </div>
   <p style="text-align:center;font-size:.72rem;color:#64748b;margin-top:22px">
     Sécurité 2KEA & Associé — un carton ne peut être validé qu'une seule fois.</p>
 </div></body></html>""" % (
