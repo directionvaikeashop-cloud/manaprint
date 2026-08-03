@@ -71,6 +71,7 @@ from generators import ngo
 from generators import diamant
 from generators import rui
 from generators import tureia
+from generators import tureia_atoll
 from generators import champagne
 from generators import fan90
 from generators import oaoa
@@ -377,6 +378,7 @@ _enregistrer_paire("ngo_casino",    "NGO CASINO","🎰", 12, ngo.generer_pdf_cas
 _enregistrer_paire("diamant",       "DIAMANT","💎", 6,  diamant.generer_pdf)
 _enregistrer_paire("rui",           "RUI","🎴", 12, rui.generer_pdf)
 _enregistrer_paire("tureia",        "TUREIA","🔶", 6,  tureia.generer_pdf)
+_enregistrer_paire("tureia_atoll", "TUREIA ATOLL","🏝️", 6,  tureia_atoll.generer_pdf)
 _enregistrer_paire("champagne",     "CHAMPAGNE","🥂", 6,  champagne.generer_pdf)
 _enregistrer_paire("fan90",         "FAN 90","☀️", 8,  fan90.generer_pdf)
 _enregistrer_paire("oaoa",          "OAOA","⭕", 12, oaoa.generer_pdf)
@@ -948,6 +950,7 @@ _PLAGES_CALLER = {
     "diamant": (1, 75),
     "rui": (30, 59),
     "tureia": (1, 75),
+    "tureia_atoll": (1, 75),
     "champagne": (1, 75),
     "fan90": (1, 90),
     "oaoa": (16, 75),
@@ -1039,7 +1042,8 @@ _BOULES_CALLER = {
     "bno_casino": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(61, 76)] + _PIONS_CALLER,
     "ing_casino": [n for n in range(16, 61)] + _PIONS_CALLER,
     "ngo_casino": [n for n in range(31, 76)] + _PIONS_CALLER,
-    "tureia": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # colonne 31-45 morte
+    "tureia": [n for n in range(1, 31)] + [n for n in range(46, 76)],
+    "tureia_atoll": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # colonne 31-45 morte
     "fan90": [n for n in range(1, 11)] + [n for n in range(20, 91)],   # sans le 11 à 19
     "oaoa": [n for n in range(16, 31)] + [n for n in range(61, 76)],   # O 16-30 et A 61-75
     "cerf_volant": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # sans le 31-45
