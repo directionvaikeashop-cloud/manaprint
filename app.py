@@ -72,6 +72,7 @@ from generators import diamant
 from generators import rui
 from generators import tureia
 from generators import tureia_atoll
+from generators import spacex
 from generators import champagne
 from generators import fan90
 from generators import oaoa
@@ -379,6 +380,7 @@ _enregistrer_paire("diamant",       "DIAMANT","💎", 6,  diamant.generer_pdf)
 _enregistrer_paire("rui",           "RUI","🎴", 12, rui.generer_pdf)
 _enregistrer_paire("tureia",        "TUREIA","🔶", 6,  tureia.generer_pdf)
 _enregistrer_paire("tureia_atoll", "TUREIA ATOLL","🏝️", 6,  tureia_atoll.generer_pdf)
+_enregistrer_paire("spacex",       "SPACE X",   "🚀", 1,  spacex.generer_pdf)
 _enregistrer_paire("champagne",     "CHAMPAGNE","🥂", 6,  champagne.generer_pdf)
 _enregistrer_paire("fan90",         "FAN 90","☀️", 8,  fan90.generer_pdf)
 _enregistrer_paire("oaoa",          "OAOA","⭕", 12, oaoa.generer_pdf)
@@ -968,6 +970,7 @@ _PLAGES_CALLER = {
     "rui": (30, 59),
     "tureia": (1, 75),
     "tureia_atoll": (1, 75),
+    "spacex": (1, 90),
     "champagne": (1, 75),
     "fan90": (1, 90),
     "oaoa": (16, 75),
