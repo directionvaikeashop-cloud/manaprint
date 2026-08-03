@@ -63,6 +63,7 @@ from generators import sicilio
 from generators import avinda
 from generators import losange
 from generators import italia
+from generators import italia_villes
 from generators import vai
 from generators import wow4
 from generators import bno
@@ -366,6 +367,7 @@ _enregistrer_paire("avinda_myst",   "A VINDA MYSTÈRE LETTRE","🔮", 2,  avinda
 _enregistrer_paire("avinda_fort",   "A VINDA FORTUNO","💰", 2,  avinda.generer_pdf_fortune)
 _enregistrer_paire("losange",       "LOSANGE · 8 boules","🪁", 6,  losange.generer_pdf)
 _enregistrer_paire("italia",        "ITALIA",     "🇮🇹", 10, italia.generer_pdf)
+_enregistrer_paire("italia_villes", "ITALIA VILLES","🗺️", 6,  italia_villes.generer_pdf)
 _enregistrer_paire("vai",           "VAI 9 boules","🌊", 12, vai.generer_pdf)
 _enregistrer_paire("wow4",          "WOW 4","🎆", 12, wow4.generer_pdf)
 _enregistrer_paire("bno",           "BNO 8 boules","🎯", 12, bno.generer_pdf)
@@ -936,6 +938,7 @@ _PLAGES_CALLER = {
     "ohana75_10b_myst": (1, 75),
     "losange": (1, 75),
     "italia": (1, 75),
+    "italia_villes": (1, 75),
     "vai": (61, 90),
     "wow4": (30, 60),
     "bno": (1, 75),
