@@ -350,7 +350,7 @@ NOUVEAUX_JEUX = {
     "gambier", "parata", "katiu", "ok", "feu", "vision", "taptap", "joie",
     "caller", "valider", "chance", "opoa", "francs", "tesla", "salute", "pietra",
     "triple_bo90", "triple_bg90", "triple_bn90", "triple_bi90",
-    "triple_bg75", "triple_bn75", "triple_bi75", "rubis75", "sicilio", "avinda", "avinda_myst", "losange", "italia",
+    "triple_bg75", "triple_bn75", "triple_bi75", "rubis75", "sicilio", "sicilio_smo", "avinda", "avinda_myst", "losange", "italia",
 }
 
 def _base_jeu(programme):
@@ -365,6 +365,7 @@ _enregistrer_paire("win_casino",    "WIN CASINO","🎲", 12, win.generer_pdf_cas
 _enregistrer_paire("rubis90",       "RUBIS 90","💎", 12, rubis90.generer_pdf)
 _enregistrer_paire("rubis75",       "RUBIS 75 · 32 pts","💎", 10, rubis75.generer_pdf)
 _enregistrer_paire("sicilio",       "SICILIO",          "🔷", 6,  sicilio.generer_pdf)
+_enregistrer_paire("sicilio_smo",   "SICILIO SMORFIA",  "🎴", 6,  sicilio.generer_pdf_smorfia)
 _enregistrer_paire("avinda",        "A VINDA · 2 séries","🍷", 2,  avinda.generer_pdf)
 _enregistrer_paire("avinda_myst",   "A VINDA MYSTÈRE LETTRE","🔮", 2,  avinda.generer_pdf_mystere)
 _enregistrer_paire("avinda_fort",   "A VINDA FORTUNO","💰", 2,  avinda.generer_pdf_fortune)
@@ -954,6 +955,7 @@ _PLAGES_CALLER = {
     "rubis90": (1, 90),
     "rubis75": (1, 75),
     "sicilio": (1, 90),
+    "sicilio_smo": (1, 90),
     "avinda": (1, 75),
     "avinda_myst": (1, 75),
     "avinda_fort": (1, 75),
