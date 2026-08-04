@@ -138,7 +138,7 @@ def _dessiner_carte(c, x0, y0, donnees, couleur_hex, serie, encre,
         xx = x0 + i * cell_w
         c.line(xx, y0 + FOOT_H, xx, grid_top)
 
-    taille = 24
+    taille = 30          # calibre maison (demande Maeva 04/08 : 24 → 30 pts)
     for ri in range(GRID_N):
         for ci in range(GRID_N):
             cx = x0 + (ci + 0.5) * cell_w
