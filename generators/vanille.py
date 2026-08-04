@@ -85,7 +85,9 @@ def _gen_carte(rng):
 
 import os as _os
 _DOSSIER = _os.path.dirname(_os.path.abspath(__file__))
-_NOMS_IMAGE = ['vanille_dona.png']
+# 🖼️ le dessin est accepté sous ses noms possibles (nom final d'abord,
+# puis le nom de livraison) : plus besoin de renommer quoi que ce soit.
+_NOMS_IMAGE = ['vanille_dona.png', '2_TELEVERSER_vanille_dona.png']
 _IMAGE_VANILLE = next((_os.path.join(_DOSSIER, n) for n in _NOMS_IMAGE
                        if _os.path.exists(_os.path.join(_DOSSIER, n))),
                       _os.path.join(_DOSSIER, _NOMS_IMAGE[0]))
