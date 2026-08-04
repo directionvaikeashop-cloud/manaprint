@@ -86,11 +86,48 @@ GRID_N = 5  # 5x5
 
 
 def _gen_carte():
-    """5 colonnes × 5 numéros distincts triés. Case centrale (col N, ligne 2) = MARATHON."""
+    """5 colonnes × 5 numéros distincts triés. Case centrale (col N, ligne 2) = MARATHON.
+    ⚠️ Tirage libre, gardé pour compatibilité : la COLONNE DE GRILLES se
+    fabrique désormais par _gen_bande (règle MARATHON, voir ci-dessous)."""
     cols = []
     for (lo, hi) in RANGES:
         cols.append(sorted(random.sample(range(lo, hi + 1), GRID_N)))
     return cols
+
+
+# ══ 🏃 LA RÈGLE MARATHON (enseignée par Maeva 04/08, celle du QUINES 90) ═══
+# « dans une colonne, sur les 3 grilles, les nombres de 1 à 15 suivent une
+#   chronologie aléatoire, avec un seul nombre 1 qui doit sortir »
+# → l'unité du marathon est la COLONNE DE GRILLES : 3 grilles empilées.
+#   Chaque quinzaine y est distribuée AU HASARD et EN ENTIER :
+#     colonnes B · I · G · O : 3 grilles × 5 cases = 15 → 1-15 EXACTEMENT
+#                              UNE FOIS chacun, aucun doublon dans la colonne ;
+#     colonne  N (centre libre) : 3 × 4 = 12 cases seulement → 12 des 15,
+#                              les 3 restants tirés au sort à chaque bande.
+#   Dans chaque grille, la colonne reste TRIÉE croissante (règle P6).
+
+def _gen_bande(n_grilles=3):
+    """Fabrique une COLONNE DE GRILLES : n_grilles cartes qui portent,
+    ensemble, chaque quinzaine une seule fois. Renvoie la liste des cartes."""
+    cartes = [[None] * len(RANGES) for _ in range(n_grilles)]
+    for ci, (lo, hi) in enumerate(RANGES):
+        centre_libre = (ci == 2)               # colonne N : case du milieu libre
+        par_grille = GRID_N - (1 if centre_libre else 0)
+        sac = list(range(lo, hi + 1))
+        random.shuffle(sac)                    # la chronologie aléatoire de Maeva
+        besoin = n_grilles * par_grille
+        while len(sac) < besoin:               # (bandes plus hautes que 3 grilles)
+            rab = list(range(lo, hi + 1))
+            random.shuffle(rab)
+            sac += rab
+        pos = 0
+        for gi in range(n_grilles):
+            part = sorted(sac[pos:pos + par_grille])   # triée dans la grille
+            pos += par_grille
+            if centre_libre:                   # on réserve la place du centre
+                part = part[:2] + [None] + part[2:]
+            cartes[gi][ci] = part
+    return cartes
 
 
 # 🃏 LES CARTES À JOUER 1-13 (sceau Maeva 30/07, jumeau CASINO du P6) :
@@ -251,11 +288,14 @@ def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
         y2 = (PAGE_H - 8.5 * mm) if nom_evenement else (PAGE_H - 6 * mm)
         c.drawCentredString(PAGE_W / 2, y2, ligne2)
 
+        # 🏃 une bande par COLONNE de la feuille : 3 grilles empilées qui
+        # portent ensemble toute la quinzaine de chaque colonne B·I·N·G·O
+        bandes = [_gen_bande(ROWS_PAGE) for _ in range(COLS_PAGE)]
         for row in range(ROWS_PAGE):
             for col_i in range(COLS_PAGE):
                 x0 = MARGIN_X + col_i * (CARD_W + GUTTER_X)
                 y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
-                carte = _gen_carte()
+                carte = bandes[col_i][row]
                 coul = (couleur_perso if (couleur and couleur_perso)
                         else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#999999")
                 _dessiner_carte(c, x0, y0, carte, coul, serie, encre, telephone, titre_jeu, style=style, evenement_id=evenement_id, cartes=cartes)
