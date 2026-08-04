@@ -147,7 +147,9 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
 
 def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id="", motif=""):
+                style="eco", evenement_id="", motif="", smorfia=False):
+    """SICILIO — le jeu d'origine : SIX numéros en chiffres derrière leurs diamants.
+    smorfia=True réveille le jumeau imagé (voir generer_pdf_smorfia)."""
     telephone = (telephone or "").strip() or "89 22 23 05"
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
@@ -172,7 +174,7 @@ def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
                 y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
                 nums = [rng.randint(a, b) for (a, b) in PLAGES]  # un numéro par plage, ordre du billet
                 idx_img = -1
-                if _smor:  # SMORFIA : un numéro du panthéon prend sa place
+                if smorfia and _smor:  # SMORFIA : un numéro du panthéon prend sa place
                     try:
                         ns = _smor.numero_pour_serie(serie)
                         hotes = [j for j, (a, b) in enumerate(PLAGES) if a <= ns <= b]
@@ -186,7 +188,7 @@ def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
                                 style=style, evenement_id=evenement_id, idx_img=idx_img)
                 serie += 1
                 faites += 1
-        if _smor:
+        if smorfia and _smor:
             try:
                 _smor.credit_pied(c, PAGE_W)
             except Exception:
@@ -203,3 +205,10 @@ if __name__ == "__main__":
     with open("test_sicilio.pdf", "wb") as f:
         f.write(pdf.read())
     print("SICILIO généré")
+
+
+def generer_pdf_smorfia(*a, **k):
+    """🎴 SICILIO SMORFIA — le jumeau imagé : un numéro par bande devient
+    son image du panthéon. L'original (generer_pdf) reste en chiffres purs."""
+    k["smorfia"] = True
+    return generer_pdf(*a, **k)
