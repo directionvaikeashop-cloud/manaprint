@@ -388,7 +388,7 @@ _enregistrer_paire("champagne",     "CHAMPAGNE","🥂", 6,  champagne.generer_pd
 _enregistrer_paire("fan90",         "FAN 90","☀️", 8,  fan90.generer_pdf)
 _enregistrer_paire("oaoa",          "OAOA","⭕", 12, oaoa.generer_pdf)
 _enregistrer_paire("lagoon",        "LAGOON 5 boules","🏝️", 12, lagoon.generer_pdf)
-_enregistrer_paire("havai",         "HAVAI","🌋", 6,  havai.generer_pdf)
+_enregistrer_paire("havai",         "HAVAI","🌋", 8,  havai.generer_pdf)  # 2×4 = 8 cartons/feuille (corrigé 04/08 : 6 déclarés → 188 pages au lieu de 250)
 _enregistrer_paire("flash_debout",  "FLASH QUINES DEBOUT","⚡", 8,  flash_debout.generer_pdf)
 _enregistrer_paire("dual_dab",      "DUAL DAB 75","🤜", 8,  dual_dab.generer_pdf)
 _enregistrer_paire("cerf_volant",   "CERF VOLANT","🪁", 6,  cerf_volant.generer_pdf)
