@@ -50,6 +50,15 @@ def _style_chiffres(style):
 
 
 import os as _os
+# 🎚️ RÉGLAGE DE DOUCEUR de la nacre (04/08) : plus petit = plus doux.
+# 0,18 = l'ancien aplat qui sortait noir · 0,10 = le réglage retenu.
+DOUCEUR_NACRE = 0.10
+
+# 🎚️ LES TEINTES DE LA PERLE (au trait depuis le 04/08)
+PERLE_TRAIT = colors.Color(0.55, 0.55, 0.55)     # le cercle du corps
+PERLE_OMBRE = colors.Color(0.74, 0.74, 0.74)     # les arcs du galbe
+PERLE_LUMIERE = colors.Color(0.82, 0.82, 0.82)   # le reflet
+
 _NACRE_IMG = None
 
 
@@ -69,8 +78,15 @@ def _charger_nacre():
             fondb = _Image.new("RGBA", brut.size, (255, 255, 255, 255))
             brut = _Image.alpha_composite(fondb, brut)
         img = brut.convert("L")
-        # les traits noirs deviennent gris très pâle (filigrane)
-        img = img.point(lambda p: int(255 - (255 - p) * 0.18))
+        # 🦪 ADOUCI LE 04/08 — le filigrane était un APLAT gris : à l'impression
+        # noir & blanc « au seuil », toute la nacre basculait en NOIR PLEIN.
+        # Remède d'imprimeur : la TRAME DE POINTS (demi-teinte). L'image est
+        # d'abord très éclaircie, puis convertie en points noirs clairsemés
+        # (tramage Floyd-Steinberg). Un point reste un point sur toutes les
+        # machines : à l'œil c'est un gris doux, jamais un pavé.
+        img = img.point(lambda p: int(255 - (255 - p) * DOUCEUR_NACRE))
+        img = img.resize((img.width * 2, img.height * 2), _Image.LANCZOS)
+        img = img.convert("1", dither=_Image.FLOYDSTEINBERG)      # la trame
         _NACRE_IMG = img.convert("RGB")
     except Exception:
         _NACRE_IMG = False
@@ -105,7 +121,7 @@ def _dessiner_fond(c, x0, y0, w, h):
         ratio = min(zone_w / iw, zone_h / ih)
         dw, dh = iw * ratio, ih * ratio
         c.drawImage(ImageReader(img), x0 + (w - dw) / 2, y0 + h * 0.07, dw, dh,
-                    mask=[238, 255, 238, 255, 238, 255])
+                    mask=[250, 255, 250, 255, 250, 255])   # seul le blanc pur devient transparent
         # mention de licence (formule gratuite Freepik)
         c.setFillColor(colors.Color(0.62, 0.62, 0.62)); c.setFont(POLICE, 3.2)
         c.drawCentredString(x0 + w / 2, y0 + 0.9 * mm, "Illustration : Designed by Freepik")
@@ -169,11 +185,15 @@ def _dessiner_fond(c, x0, y0, w, h):
 
     # ── la petite perle POE, nichée à la charnière (signature du jeu) ──
     pr = R * 0.085
-    for k, g in ((1.0, 0.82), (0.80, 0.88), (0.60, 0.93)):
-        c.setFillColor(colors.Color(g, g, g))
-        c.circle(bx - pr * (1 - k) * 0.4, by + R * 0.055 + pr * (1 - k) * 0.4, pr * k, stroke=0, fill=1)
+    # 🦪 la perle AU TRAIT (adoucie le 04/08) : plus d'aplats gris à noircir,
+    # juste son cercle et un croissant de lumière — douce à l'impression.
     c.setFillColor(colors.white)
-    c.circle(bx - pr * 0.25, by + R * 0.055 + pr * 0.25, pr * 0.35, stroke=0, fill=1)
+    c.setStrokeColor(colors.Color(0.58, 0.58, 0.58))
+    c.setLineWidth(0.6)
+    c.circle(bx, by + R * 0.055, pr, stroke=1, fill=1)
+    c.setStrokeColor(colors.Color(0.74, 0.74, 0.74))
+    c.setLineWidth(0.4)
+    c.circle(bx + pr * 0.22, by + R * 0.055 - pr * 0.18, pr * 0.62, stroke=1, fill=0)
 
 
 def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
@@ -209,11 +229,27 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
         # boule ombrée en relief (dégradé simulé par anneaux)
         r_b = TAILLE_CHIFFRE * 0.72
         cyb = cy - TAILLE_CHIFFRE * 0.14
-        for k, g in ((1.0, 0.84), (0.90, 0.88), (0.78, 0.92), (0.62, 0.96)):
-            c.setFillColor(colors.Color(g, g, g))
-            c.circle(cx - r_b * (1 - k) * 0.5, cyb + r_b * (1 - k) * 0.5, r_b * k, stroke=0, fill=1)
+        # 🦪 LA PERLE ADOUCIE (04/08) — avant : 4 disques gris pleins imbriqués
+        # pour simuler le relief ; à l'impression noir & blanc « au seuil »,
+        # toute la perle basculait en NOIR PLEIN et avalait le numéro.
+        # Maintenant : le relief est rendu AU TRAIT (cercles fins), le ventre
+        # de la perle reste BLANC — le numéro respire sur toutes les machines.
         c.setFillColor(colors.white)
-        c.circle(cx - r_b * 0.22, cyb + r_b * 0.22, r_b * 0.44, stroke=0, fill=1)
+        c.setStrokeColor(PERLE_TRAIT)
+        c.setLineWidth(0.8)
+        c.circle(cx, cyb, r_b, stroke=1, fill=1)          # le corps, blanc
+        # le galbe : un SEUL arc fin le long du bord bas-droit (pas de cercle
+        # entier, qui viendrait barrer le numéro)
+        c.setStrokeColor(PERLE_OMBRE)
+        c.setLineWidth(0.5)
+        rg = r_b * 0.86
+        c.arc(cx - rg, cyb - rg, cx + rg, cyb + rg, -75, 150)
+        # le reflet : un petit arc clair en haut à gauche
+        c.setStrokeColor(PERLE_LUMIERE)
+        c.setLineWidth(0.45)
+        rl = r_b * 0.30
+        gx, gy = cx - r_b * 0.40, cyb + r_b * 0.40
+        c.arc(gx - rl, gy - rl, gx + rl, gy + rl, 20, 150)
         if _sec:
             _sec.chiffre_micro(c, nums[i], cx, cy - TAILLE_CHIFFRE * 0.36, TAILLE_CHIFFRE, gris_ch, police_ch)
         else:
