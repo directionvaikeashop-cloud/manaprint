@@ -359,6 +359,17 @@ function svgDe(n) {
   return '<svg viewBox="' + (-large / 2) + ' -55 ' + large + ' 110" style="height:0.95em;vertical-align:-0.12em" xmlns="http://www.w3.org/2000/svg">' + corps + '</svg>';
 }
 function estBouleDe(jeu, n) { return CASINO_JEUX.indexOf(jeu) >= 0 && n >= 1 && n <= 9; }
+// 🎲 LE KIKIRI — LES NOMS DES DÉS DU FENUA (enseignés par Maeva 05/08).
+// Sur les jeux de dés (POW · SUN · WIN CASINO), la voix crie le nom kikiri
+// au lieu du nombre, et l'écran l'écrit sous les dés.
+// 7, 8 et 9 se disent par leurs deux dés — exactement notre DECOMP_DES.
+const KIKIRI = {1: "hei", 2: "ni", 3: "sam", 4: "maha", 5: "pae", 6: "ono",
+                7: "maha-sam", 8: "piti maha", 9: "pae-maha"};
+// écriture pour la voix française : on marque les appuis que Tatie a dictés
+const KIKIRI_VOIX = {1: "h\u00e9\u00ef", 2: "nii", 3: "sam", 4: "mahaa",
+                     5: "pa\u00e8", 6: "ono", 7: "mahaa sam", 8: "piti mahaa",
+                     9: "pa\u00e8 mahaa"};
+function nomKikiri(jeu, n) { return estBouleDe(jeu, n) ? (KIKIRI[n] || "") : ""; }
 // 🃏 LA CARTE À L'ÉCRAN ET À LA VOIX (sceau Maeva 30/07) : sur PJOKER,
 // boule 1-13 → la grosse boule MONTRE la carte à jouer et la voix l'épelle
 // (« L'As de coeur ! ») — l'enseigne suit le numéro (n % 4) comme sur le carton.
@@ -644,6 +655,8 @@ function nouvellePartie() {
 }
 
 function lettrePour(n) {
+  const kk = nomKikiri(P.jeu, n);              // 🎲 le nom kikiri sous les dés
+  if (kk) return "\ud83c\udfb2 KIKIRI \u00b7 " + kk;
   const j = JEUX[P.jeu];
   if (!j.lettres || j.max !== 75) return "";
   return j.lettres[Math.floor((n - 1) / 15)] || "";
@@ -652,6 +665,15 @@ function lettrePour(n) {
 function parlerBoule(n, texte) {
   if (!voixActive) return;
   if (PIONS_VALEUR[n]) { parlerAvecAppareil("Pion " + PIONS_VOIX[PIONS_VALEUR[n]] + " francs !"); return; }
+  if (estBouleDe(P.jeu, n)) {   // 🎲 le nom KIKIRI, crié par l'appareil
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(KIKIRI_VOIX[n] + " !");
+      reglerUtterance(u);
+      window.speechSynthesis.speak(u);
+    } catch (e) {}
+    return;
+  }
   // 🎙️ LA BANDE D'ABORD (même voix partout, marche sans internet)
   if (!texte && n <= 90 && SOURCE_VOIX === "bande") {
     if (jouerBande(n)) return;
