@@ -259,7 +259,9 @@ const JEUX = {
   "francs":      { nom: "100 FRANCS \ud83e\ude99 7 boules (46-90)", min: 46, max: 90, lettres: "" },
   "tesla":       { nom: "TESLA \ud83d\ude97 5 boules (1-30 \u00b7 46-60)", min: 1, max: 60, lettres: "", boules: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60] },
   "salute":      { nom: "SALUTE \ud83d\uddfa\ufe0f 6 boules (1-30 \u00b7 46-75)", min: 1, max: 75, lettres: "", boules: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75] },
+  "salute_smo":      { nom: "SALUTE SMORFIA \ud83c\udfb4 (1-75)", min: 1, max: 75, lettres: "", boules: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75] },
   "pietra":      { nom: "PIETRA \ud83c\udf30 8 boules (1-30 \u00b7 46-75)", min: 1, max: 75, lettres: "", boules: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75] },
+  "pietra_smo":      { nom: "PIETRA SMORFIA \ud83c\udfb4 (1-75)", min: 1, max: 75, lettres: "", boules: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75] },
   "triple_bo90":  { nom: "TRIPLE BO90 3\ufe0f\u20e3 9 boules (1-15 \u00b7 61-90)", min: 1, max: 90, lettres: "", boules: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90] },
   "triple_bg90": { nom: "TRIPLE BG90 \ud83c\udd71\ufe0f 9 boules (1-15 \u00b7 46-60 \u00b7 76-90)", min: 1, max: 90, lettres: "", boules: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90] },
   "triple_bn90": { nom: "TRIPLE BN90 \ud83d\udfe4 9 boules (1-15 \u00b7 31-45 \u00b7 76-90)", min: 1, max: 90, lettres: "", boules: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90] },
@@ -366,7 +368,10 @@ function estBouleDe(jeu, n) { return CASINO_JEUX.indexOf(jeu) >= 0 && n >= 1 && 
 const KIKIRI = {1: "hei", 2: "ni", 3: "sam", 4: "maha", 5: "pae", 6: "ono",
                 7: "maha-sam", 8: "piti maha", 9: "pae-maha"};
 // écriture pour la voix française : on marque les appuis que Tatie a dictés
-const KIKIRI_VOIX = {1: "h\u00e9\u00ef", 2: "nii", 3: "sam", 4: "mahaa",
+// \u2699\ufe0f corrig\u00e9 le 05/08 apr\u00e8s l'essai de Maeva au caller :
+// le 1 se crie comme le \u00ab hey \u00bb qu'on lance pour appeler quelqu'un,
+// et le 2 sonne comme le \u00ab nid \u00bb de l'oiseau (le d ne s'entend pas).
+const KIKIRI_VOIX = {1: "hey", 2: "nid", 3: "sam", 4: "mahaa",
                      5: "pa\u00e8", 6: "ono", 7: "mahaa sam", 8: "piti mahaa",
                      9: "pa\u00e8 mahaa"};
 function nomKikiri(jeu, n) { return estBouleDe(jeu, n) ? (KIKIRI[n] || "") : ""; }
