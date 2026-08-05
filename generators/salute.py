@@ -183,7 +183,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
             c.drawCentredString(ccx, cy - taille * 0.36, str(nums[i]))
 
     # QR de vérification (anti-duplication) — bas-droit
-    if _smor:
+    if _smor and idx_img >= 0:   # ✂️ 05/08 : la vignette suit le JUMEAU seulement
         try:  # vignette SMORFIA, dans le cartouche central (8 mm)
             _smor.poser_smorfia(c, x0 + CARD_W * 0.5, y0 + CARD_H * 0.46, 8, serie, couleur_hex)
         except Exception:
@@ -198,7 +198,9 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
 
 def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id="", motif=""):
+                style="eco", evenement_id="", motif="", smorfia=False):
+    """SALUTE — le jeu d'origine : TOUS les numéros en chiffres.
+    smorfia=True réveille le jumeau imagé (voir generer_pdf_smorfia)."""
     telephone = (telephone or "").strip() or "89 22 23 05"
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
@@ -227,7 +229,7 @@ def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
                 zd = rng.randint(61, 75)                   # le compartiment droit
                 nums = [za, zb[0], zb[1], zc[0], zc[1], zd]
                 idx_img = -1
-                if _smor:  # SMORFIA : un numéro du panthéon prend sa place
+                if smorfia and _smor:  # SMORFIA : un numéro du panthéon prend sa place
                     try:
                         ns = _smor.numero_pour_serie(serie, [n for n in _smor.ANNONCES if n <= 30 or 46 <= n <= 75])
                         if ns <= 15:
@@ -250,7 +252,7 @@ def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
                                 style=style, evenement_id=evenement_id, idx_img=idx_img)
                 serie += 1
                 faites += 1
-        if _smor:
+        if smorfia and _smor:
             try:
                 _smor.credit_pied(c, PAGE_W)
             except Exception:
@@ -260,3 +262,10 @@ def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
     c.save()
     buf.seek(0)
     return buf
+
+
+def generer_pdf_smorfia(*a, **k):
+    """🎴 SALUTE SMORFIA — le jumeau imagé : un numéro par carton devient
+    son image du panthéon. L'original (generer_pdf) reste en chiffres purs."""
+    k["smorfia"] = True
+    return generer_pdf(*a, **k)
