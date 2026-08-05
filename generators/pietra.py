@@ -197,7 +197,9 @@ def _chataigne_maison(c, ccx, cy, gris_trait):
 
 def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id="", motif=""):
+                style="eco", evenement_id="", motif="", smorfia=False):
+    """PIETRA — le jeu d'origine : TOUS les numéros en chiffres.
+    smorfia=True réveille le jumeau imagé (voir generer_pdf_smorfia)."""
     telephone = (telephone or "").strip() or "89 22 23 05"
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
@@ -226,7 +228,7 @@ def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
                 zd = sorted(rng.sample(range(61, 76), 2))  # colonne droite, haut puis bas
                 nums = [za[0], za[1], zb[0], zb[1], zc[0], zc[1], zd[0], zd[1]]
                 idx_img = -1
-                if _smor:  # SMORFIA : un numéro du panthéon prend sa place
+                if smorfia and _smor:  # SMORFIA : un numéro du panthéon prend sa place
                     try:
                         ns = _smor.numero_pour_serie(serie, [n for n in _smor.ANNONCES if n <= 30 or 46 <= n <= 75])
                         base, (a, b) = (0, (1, 15)) if ns <= 15 else (2, (16, 30)) if ns <= 30 else (4, (46, 60)) if ns <= 60 else (6, (61, 75))
@@ -244,7 +246,7 @@ def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
                                 style=style, evenement_id=evenement_id, idx_img=idx_img)
                 serie += 1
                 faites += 1
-        if _smor:
+        if smorfia and _smor:
             try:
                 _smor.credit_pied(c, PAGE_W)
             except Exception:
@@ -254,3 +256,10 @@ def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
     c.save()
     buf.seek(0)
     return buf
+
+
+def generer_pdf_smorfia(*a, **k):
+    """🎴 PIETRA SMORFIA — le jumeau imagé : un numéro par carton devient
+    son image du panthéon. L'original (generer_pdf) reste en chiffres purs."""
+    k["smorfia"] = True
+    return generer_pdf(*a, **k)
