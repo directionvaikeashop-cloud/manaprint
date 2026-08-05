@@ -913,8 +913,19 @@ def kikiri_mp3(n):
     synthèse du téléphone reste parfois muette."""
     if n < 1 or n > 9:
         return ("", 404)
-    chemin = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                          "generators", "kikiri", "kikiri-%d.mp3" % n)
+    dossier = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "generators", "kikiri")
+    chemin = os.path.join(dossier, "kikiri-%d.mp3" % n)
+    if not os.path.exists(chemin):
+        # 🛟 ANTI-PANNE : le navigateur ajoute parfois « (1) » au nom d'un
+        # fichier téléchargé deux fois (vécu le 05/08 avec kikiri-3).
+        # On accepte donc « kikiri-3 (1).mp3 » et compagnie.
+        try:
+            import glob as _glob
+            trouves = sorted(_glob.glob(os.path.join(dossier, "kikiri-%d*.mp3" % n)))
+            chemin = trouves[0] if trouves else chemin
+        except Exception:
+            pass
     if not os.path.exists(chemin):
         return ("", 404)
     return send_file(chemin, mimetype="audio/mpeg", max_age=86400)
