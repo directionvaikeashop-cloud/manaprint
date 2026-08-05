@@ -430,6 +430,46 @@ function chargerBandeAudio() {
       .catch(function () { spriteEnCours = null; etatBande = "secours"; majTemoinBande(); });
   } catch (e) {}
 }
+// 🎲🎙️ LA VOIX DE TATIE MAEVA POUR LES DÉS (enregistrée le 05/08).
+// Un vrai fichier audio par mot : ça sort sur la JBL, là où la synthèse
+// du téléphone reste parfois muette. La synthèse ne sert plus que de
+// secours, si un mot n'a pas pu être chargé.
+const KIKIRI_SONS = {};        // n -> AudioBuffer
+function chargerVoixKikiri() {
+  try {
+    if (!ctxAudio) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      ctxAudio = new AC();
+    }
+    if (ctxAudio.state === "suspended") ctxAudio.resume();
+    for (let n = 1; n <= 9; n++) {
+      if (KIKIRI_SONS[n]) continue;
+      (function (k) {
+        fetch("/kikiri/" + k + ".mp3", { cache: "force-cache" })
+          .then(function (r) { if (!r.ok) throw 0; return r.arrayBuffer(); })
+          .then(function (b) { return ctxAudio.decodeAudioData(b); })
+          .then(function (buf) { KIKIRI_SONS[k] = buf; })
+          .catch(function () {});      // la synthèse prendra le relais
+      })(n);
+    }
+  } catch (e) {}
+}
+function jouerKikiri(n) {
+  const buf = KIKIRI_SONS[n];
+  if (!buf || !ctxAudio) return false;
+  try {
+    if (ctxAudio.state === "suspended") ctxAudio.resume();
+    if (sourceEnCours) { try { sourceEnCours.stop(); } catch (e) {} }
+    const s = ctxAudio.createBufferSource();
+    s.buffer = buf;
+    s.connect(ctxAudio.destination);
+    s.start(0);
+    sourceEnCours = s;
+    return true;
+  } catch (e) { return false; }
+}
+
 function jouerBande(n) {
   var seg = (typeof SMORFIA_JEUX !== "undefined" && SMORFIA_JEUX.indexOf(P && P.jeu) >= 0 && VOIX_CRIS[n])
             ? VOIX_CRIS[n] : VOIX_MAP[n];
@@ -671,7 +711,8 @@ function parlerBoule(n, texte) {
   if (!voixActive) return;
   if (PIONS_VALEUR[n]) { parlerAvecAppareil("Pion " + PIONS_VOIX[PIONS_VALEUR[n]] + " francs !"); return; }
   if (estBouleDe(P.jeu, n)) {   // 🎲 le nom KIKIRI, crié par l'appareil
-    try {
+    if (jouerKikiri(n)) return;          // 🎙️ d'abord LA VOIX DE TATIE
+    try {                                 // secours : la synthèse du téléphone
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(KIKIRI_VOIX[n] + " !");
       reglerUtterance(u);
@@ -755,7 +796,7 @@ function arreterAuto() {
 
 function basculerVoix(btn) { voixActive = !voixActive; btn.classList.toggle("on", voixActive); }
 document.addEventListener("click", function amorce() {
-  chargerBandeAudio();  // le 1er geste débloque l'audio des mobiles
+  chargerBandeAudio(); chargerVoixKikiri();  // le 1er geste débloque l'audio des mobiles
   document.removeEventListener("click", amorce);
 });
 chargerBandeAudio();
