@@ -906,6 +906,20 @@ def voix_caller_mp3():
     return send_file(chemin, mimetype="audio/mpeg", max_age=86400)
 
 
+@app.route("/kikiri/<int:n>.mp3")
+def kikiri_mp3(n):
+    """🎲🎙️ LA VOIX DE TATIE MAEVA pour les dés (kikiri), enregistrée le 05/08.
+    Un vrai fichier audio sort sur les enceintes Bluetooth (JBL), là où la
+    synthèse du téléphone reste parfois muette."""
+    if n < 1 or n > 9:
+        return ("", 404)
+    chemin = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          "generators", "kikiri", "kikiri-%d.mp3" % n)
+    if not os.path.exists(chemin):
+        return ("", 404)
+    return send_file(chemin, mimetype="audio/mpeg", max_age=86400)
+
+
 @app.route("/caller-qr")
 def caller_qr():
     """Page imprimable : un QR code qui ouvre le CALLER. À coller sur la table de l'organisateur."""
@@ -1228,10 +1242,15 @@ _SW_CALLER_LOCAL = """
 const CACHE = 'mpcl-v3';
 const PAGES = ['/caller-local', '/crieur-local', '/caller-local/manifest.json', '/caller-local/icone.svg'];
 const BANDE = '/voix-caller.mp3';   // 🎙️ la voix enregistrée, gardée pour les salles sans réseau
+// 🎲🎙️ les 9 mots du kikiri dits par Tatie Maeva : mis en réserve eux aussi,
+// pour que les dés parlent dans les vallées sans réseau.
+const KIKIRI = [1,2,3,4,5,6,7,8,9].map(n => '/kikiri/' + n + '.mp3');
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE)
-      .then(c => c.addAll(PAGES).then(() => c.add(BANDE).catch(() => null)))
+      .then(c => c.addAll(PAGES)
+        .then(() => c.add(BANDE).catch(() => null))
+        .then(() => Promise.all(KIKIRI.map(u => c.add(u).catch(() => null)))))
       .then(() => self.skipWaiting())
   );
 });
