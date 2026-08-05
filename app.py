@@ -332,7 +332,9 @@ _enregistrer_paire("opoa",          "OPOA 7 boules", "🏔️", 8, opoagen.gener
 _enregistrer_paire("francs",        "100 FRANCS 7 boules", "🪙", 12, francsgen.generer_pdf)
 _enregistrer_paire("tesla",         "TESLA 5 boules", "🚗", 8, teslagen.generer_pdf)
 _enregistrer_paire("salute",        "SALUTE 6 boules", "🗺️", 8, salutegen.generer_pdf)
+_enregistrer_paire("salute_smo",    "SALUTE SMORFIA", "🎴", 8, salutegen.generer_pdf_smorfia)
 _enregistrer_paire("pietra",        "PIETRA 8 boules", "🌰", 8, pietragen.generer_pdf)
+_enregistrer_paire("pietra_smo",    "PIETRA SMORFIA", "🎴", 8, pietragen.generer_pdf_smorfia)
 _enregistrer_paire("triple_bo90",   "TRIPLE BO90 9 boules", "3️⃣", 7, triplegen.generer_pdf)
 _enregistrer_paire("triple_bg90",   "TRIPLE BG90 9 boules", "🅱️", 7, tbg90gen.generer_pdf)
 _enregistrer_paire("triple_bn90",   "TRIPLE BN90 9 boules", "🟤", 7, tbn90gen.generer_pdf)
@@ -980,7 +982,9 @@ _PLAGES_CALLER = {
     "francs": (46, 90),
     "tesla": (1, 60),
     "salute": (1, 75),
+    "salute_smo": (1, 75),
     "pietra": (1, 75),
+    "pietra_smo": (1, 75),
     "triple_bo90": (1, 90),
     "triple_bg90": (1, 90),
     "triple_bn90": (1, 90),
