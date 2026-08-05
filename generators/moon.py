@@ -91,12 +91,36 @@ def _gen_carte(rng):
 
 
 def _croissant(c, cx, cy, r, teinte):
-    """Le croissant de lune en filigrane (fidèle au modèle)."""
+    """🌙 Le croissant de lune — MÊME SILHOUETTE qu'à l'origine, mais rempli
+    d'un SEMIS DE POINTS au lieu d'un aplat gris (adouci le 04/08).
+
+    Avant : un disque gris plein moins une morsure. À l'impression noir &
+    blanc « au seuil », toute la surface basculait en NOIR PLEIN et la lune
+    sortait comme un pâté. Maintenant : des points fins. À l'œil, le même
+    croissant doux ; pour l'imprimante, plus aucun aplat à noircir.
+    """
+    mx, my, mr = cx + r * 0.42, cy + r * 0.18, r * 0.88   # la morsure
     c.saveState()
+    p = c.beginPath()
+    p.circle(cx, cy, r)
+    c.clipPath(p, stroke=0, fill=0)          # on ne peint que dans la lune
     c.setFillColor(teinte)
-    c.circle(cx, cy, r, stroke=0, fill=1)
-    c.setFillColor(colors.white)
-    c.circle(cx + r * 0.42, cy + r * 0.18, r * 0.88, stroke=0, fill=1)
+    pas, rp = 2.1, 0.36                      # espacement et rayon des points
+    j = 0
+    yy = cy - r - pas
+    while yy <= cy + r + pas:
+        xx = cx - r - pas + (pas / 2 if j % 2 else 0)      # semis en quinconce
+        while xx <= cx + r + pas:
+            c.circle(xx, yy, rp, stroke=0, fill=1)
+            xx += pas
+        yy += pas
+        j += 1
+    c.setStrokeColor(teinte); c.setLineWidth(0.5)
+    c.circle(cx, cy, r, stroke=1, fill=0)    # le bord extérieur
+    c.setFillColor(colors.white)             # la morsure : du BLANC, zéro encre
+    c.circle(mx, my, mr, stroke=0, fill=1)
+    c.setStrokeColor(teinte); c.setLineWidth(0.5)
+    c.circle(mx, my, mr, stroke=1, fill=0)   # le bord intérieur du croissant
     c.restoreState()
 
 
@@ -131,7 +155,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
 
     # Le croissant de lune en filigrane — au cœur de la grille, sous les chiffres
     _croissant(c, x0 + CARD_W / 2, z_top - row_h,
-               row_h * 0.52, colors.Color(0.90, 0.90, 0.93))
+               row_h * 0.52, colors.Color(0.48, 0.48, 0.52))
 
     # Les 8 numéros : chaque colonne empile ses 2 numéros (haut puis bas)
     taille = 40  # gros chiffres au maximum
