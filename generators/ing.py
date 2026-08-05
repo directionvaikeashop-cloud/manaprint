@@ -16,6 +16,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import mm
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lgv
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
@@ -163,13 +164,21 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     _rang = [0]
     if jetons:
         # ✍️ signature à la manière de MOOREA revisité (sceau Maeva 01/08)
-        _t = "ING CASINO \u00b7 le jeu des pions"
+        # ✂️ 05/08 (demande Maeva) : la mention qui suivait le nom est RETIRÉE
+        # (elle faisait sortir la ligne de la grille). On ne garde que le NOM
+        # du jeu, et la taille se règle seule pour ne JAMAIS déborder.
+        _t = "ING CASINO"
         if titre_jeu and "CASINO" not in titre_jeu.strip().upper():
             _t += "  \u2014  " + titre_jeu.strip()[:26]
         if telephone:
             _t += "  " + str(telephone)[:16]
-        c.setFillColor(col); c.setFont("Helvetica-Bold", 6.4)
-        c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 5.0 * mm, _t[:70])
+        _ts = 6.4
+        while _ts > 4.4 and _lgv(_t, "Helvetica-Bold", _ts) > CARD_W - 6 * mm:
+            _ts -= 0.2
+        while _lgv(_t, "Helvetica-Bold", _ts) > CARD_W - 6 * mm and len(_t) > 12:
+            _t = _t[:-1]                      # dernier recours : on raccourcit
+        c.setFillColor(col); c.setFont("Helvetica-Bold", _ts)
+        c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 5.0 * mm, _t)
         c.setFont("Helvetica", 5.4)
         c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 8.4 * mm, "Carte N\u00b0 %05d" % serie)
     if not jetons:            # 🎰 CASINO : pas de contour, les pions flottent
