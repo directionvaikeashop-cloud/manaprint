@@ -353,6 +353,44 @@ NOUVEAUX_JEUX = {
     "triple_bg75", "triple_bn75", "triple_bi75", "rubis75", "sicilio", "sicilio_smo", "avinda", "avinda_myst", "losange", "italia",
 }
 
+# 💰 GRILLE DU 05/08 (décision Maeva) — les 25 feuilles :
+#     • COULEUR : 250 F pour TOUS les jeux (10 F la feuille)
+#     • NOIR & BLANC : 150 F pour les jeux ci-dessous (6 F la feuille)
+#                      185 F pour tous les autres (7,4 F la feuille)
+# Les prix fixés par un partenaire et le tarif international restent souverains.
+TARIF_NB_150 = {
+    "igo",            # IGO 5 boules
+    "boules40",       # 40 BOULES
+    "fan90",          # FAN 90
+    "lunes75",        # LUNES 75
+    "rubis75",        # RUBIS 75
+    "lettre_u",       # LETTRE U
+    "boules60",       # 60 BOULES
+    "lettre_l",       # LETTRE L
+    "champagne",      # CHAMPAGNE
+    "topday",         # TOP DAY
+    "bo75",           # BO 75
+    "diamant",        # DIAMANT
+    "yes",            # YES
+    "fleche",         # FLÈCHE
+    "p6_marathon",    # P6 MARATHON
+    "quatre_coin",    # 4 COIN
+    "bg75",           # BG 75
+    "funday",         # FUNDAY
+    "bn75",           # BN 75
+    "ohana90_24b",    # OHANA 90 · 24 boules
+    "huahine",        # HUAHINE
+    "ohana90_12b",    # OHANA 90 · 12 boules
+    "bi90",           # BI 90
+    "bn90",           # BN 90
+    "bgo5",           # BGO 5 boules
+    "bno",            # BNO 8 boules (la normale)
+    "moorea",         # MOOREA
+    "ino",            # INO 5 boules (la normale)
+    "rubis90",        # RUBIS 90
+}
+PRIX_NB_AUTRES = 7.4   # 185 F les 25 feuilles
+
 def _base_jeu(programme):
     """Identifiant du jeu sans son suffixe de variante (_p15_couleur, _nb…)."""
     p = str(programme or "")
@@ -1811,8 +1849,14 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
     # 💰 NOUVEAUX JEUX (22-23/07) : 250 F N&B / 300 F Couleur les 25 feuilles.
     # Tarif standard 2KEA seulement — prix partenaires et PDF seul
     # international restent souverains.
-    if prix_special is None and session.get("acces") != "international" and _base_jeu(programme) in NOUVEAUX_JEUX:
-        prix_special = 12 if couleur else 10
+    # 💰 GRILLE DU 05/08 : la couleur reste au tarif de base (250 F les 25) ;
+    # en noir & blanc, seuls les jeux de TARIF_NB_150 gardent 150 F —
+    # tous les autres passent à 185 F les 25 feuilles.
+    if (prix_special is None and not couleur
+            and session.get("acces") != "international"
+            and db._gamme_du_programme(programme) == "eco"
+            and _base_jeu(programme) not in TARIF_NB_150):
+        prix_special = PRIX_NB_AUTRES
     commande_id, montant = db.creer_commande(
         identifiant=session.get("identifiant"),
         origine=session["acces"],
