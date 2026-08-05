@@ -316,13 +316,21 @@ let voixActive = true;
 let autoTimer = null, autoSecondes = 0;
 
 function sacDe(jeu) {
+  // 🐛 CORRIGÉ 05/08 (signalé par Maeva : « le caller ne tire pas les montants
+  // trésor sur NGO CASINO ») — le sac se fabriquait à partir de min..max et
+  // IGNORAIT la liste "boules" écrite au menu : les pions de valeur 201-206
+  // des jeux CASINO à jetons n'entraient donc jamais dans le sac hors-ligne.
+  // La liste du menu est désormais lue EN PREMIER : elle fait foi.
+  const jj = JEUX[jeu];
   const cleSac = SACS_SPECIAUX[jeu] ? jeu
     : (SACS_SPECIAUX[jeu.replace(/_myst$/, "")] ? jeu.replace(/_myst$/, "") : null);
-  const s = cleSac ? SACS_SPECIAUX[cleSac].slice() : (function () {
-    const j = JEUX[jeu]; const arr = [];
-    for (let n = j.min; n <= j.max; n++) arr.push(n);
-    return arr;
-  })();
+  const s = (jj && Array.isArray(jj.boules) && jj.boules.length)
+    ? jj.boules.slice()
+    : (cleSac ? SACS_SPECIAUX[cleSac].slice() : (function () {
+        const j = JEUX[jeu]; const arr = [];
+        for (let n = j.min; n <= j.max; n++) arr.push(n);
+        return arr;
+      })());
   // 🅰️ LES LETTRES SONT DES BOULES (Maeva 30/07) : codes 101=A … 112=L
   if (LETTRE_JEUX.includes(jeu)) for (let i = 0; i < 12; i++) s.push(101 + i);
   if (MONTANT_JEUX.includes(jeu)) for (const b of boulesMontants()) s.push(b);
