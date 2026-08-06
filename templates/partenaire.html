@@ -224,7 +224,12 @@ async function charger(){
       zone.innerHTML = '<p class="msg" style="color:var(--muted)">Aucune commande pour le moment — partagez l\u2019adresse de votre vitrine pour recevoir vos premi\u00e8res commandes !</p>';
       return true;
     }
-    zone.innerHTML = d.commandes.map(function(c){
+    // \u26a1 06/08 : seules les 150 derni\u00e8res commandes sont detaillees ;
+    // les compteurs du haut, eux, portent sur la totalite.
+    var avis = d.detail_limite
+      ? '<p class="msg" style="color:var(--muted);font-size:.82rem">\u2139\ufe0f Vos '+d.commandes.length+' derni\u00e8res commandes sont affich\u00e9es ci-dessous \u2014 les compteurs du haut portent, eux, sur la totalit\u00e9 de vos '+d.stats.nb+' commandes.</p>'
+      : '';
+    zone.innerHTML = avis + d.commandes.map(function(c){
       return '<div class="cmd">'
         + '<span class="id">#' + c.id + '</span>'
         + '<span class="muet">' + c.date + '</span>'
