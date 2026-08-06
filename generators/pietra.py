@@ -135,8 +135,16 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
         zh = zw * ih / float(iw)
         zh = min(zh, CARD_H * 0.70)
         zw2 = zh * iw / float(ih)
+        # 🖨️ CORRIGÉ LE 05/08 — l'imprimante refusait ce PDF.
+        # La châtaigne est en NIVEAUX DE GRIS (une seule composante), mais le
+        # masque de transparence était écrit pour de la couleur (six valeurs
+        # au lieu de deux). Les lecteurs d'écran l'ignoraient ; le moteur de
+        # l'imprimante, lui, refusait la page. Le masque suit désormais le
+        # vrai nombre de composantes de l'image.
+        _comp = len(img.getbands()) if hasattr(img, "getbands") else 1
+        _masque = [238, 255] * max(1, _comp)
         c.drawImage(ImageReader(img), x0 + (CARD_W - zw2) / 2, y0 + (CARD_H - 12 * mm - zh) / 2 + 2.5 * mm,
-                    zw2, zh, mask=[238, 255, 238, 255, 238, 255])
+                    zw2, zh, mask=_masque)
     else:
         _chataigne_maison(c, x0 + CARD_W * 0.50, y0 + CARD_H * 0.575, gris_trait)
 
