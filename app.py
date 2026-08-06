@@ -3310,7 +3310,14 @@ def admin_repondre_impression():
 @app.route("/api/admin/commandes", methods=["GET"])
 @admin_requis
 def admin_commandes():
-    return jsonify({"ok": True, "commandes": db.lister_commandes()})
+    """L'ecran de gestion n'affiche que les commandes EN ATTENTE.
+    Avant le 06/08 cette route renvoyait TOUTE l'histoire de la boutique
+    (645 Ko et plus de 1600 lignes) : l'onglet mettait un temps fou a
+    s'ouvrir sur un telephone. Elle repond desormais au filtre demande,
+    et sans filtre elle garde son ancien comportement (compatibilite)."""
+    statut = (request.args.get("statut") or "").strip()
+    lignes = db.lister_commandes(statut) if statut else db.lister_commandes()
+    return jsonify({"ok": True, "commandes": lignes})
 
 
 @app.route("/api/admin/paiements-stripe", methods=["GET"])
