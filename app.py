@@ -2680,6 +2680,54 @@ def _veilleur_stripe():
 _threading.Thread(target=_veilleur_stripe, daemon=True).start()
 
 
+# ── 🏭 LE VEILLEUR DES FABRICATIONS (sceau Maeva, 06/08) ──────────────────
+# Une fabrication tourne dans un thread. Si le serveur redemarre pendant
+# ce temps — un deploiement, une mise en veille de Railway — le thread
+# meurt et la commande reste bloquee sur « ⏳ fabrication… » pour toujours.
+# Vecu le 06/08 avec deux ravitaillements du jeu 100 FRANCS.
+# Ce veilleur repere ces commandes oubliees et relance leur fabrication,
+# sans aucun geste de l'administratrice.
+_FABRIC_RELANCES = {}          # commande_id -> nombre de relances tentees
+DELAI_FABRICATION_FIGEE = 1500  # 25 minutes : au-dela, la fabrication est perdue
+MAX_RELANCES = 3
+
+
+def _fabrications_figees():
+    """Les commandes payees dont la fabrication n'a jamais abouti."""
+    from datetime import datetime as _dtt, timedelta as _td
+    limite = _dtt.now() - _td(seconds=DELAI_FABRICATION_FIGEE)
+    figees = []
+    for c in db.lister_commandes("payee"):
+        try:
+            quand = _dtt.fromisoformat(str(c.get("cree_le") or ""))
+        except Exception:
+            continue
+        if quand < limite and _FABRIC_RELANCES.get(c["id"], 0) < MAX_RELANCES:
+            figees.append(c)
+    return figees
+
+
+def _veilleur_fabrications():
+    """👁️🏭 Toutes les 10 minutes : relance les fabrications restees en rade."""
+    import time as _t
+    _t.sleep(120)
+    while True:
+        try:
+            for c in _fabrications_figees():
+                cid = c["id"]
+                _FABRIC_RELANCES[cid] = _FABRIC_RELANCES.get(cid, 0) + 1
+                print(f"[VEILLEUR FABRICATION] commande {cid} figee depuis "
+                      f"{c.get('cree_le')} — relance "
+                      f"{_FABRIC_RELANCES[cid]}/{MAX_RELANCES}")
+                lancer_fabrication(cid)
+        except Exception as e:
+            print(f"[VEILLEUR FABRICATION] {e}")
+        _t.sleep(600)
+
+
+_threading.Thread(target=_veilleur_fabrications, daemon=True).start()
+
+
 @app.route("/api/admin/historique-client", methods=["POST"])
 @admin_requis
 def admin_historique_client():
