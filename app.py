@@ -251,6 +251,44 @@ NOMS_RESERVES = ["tukea", "2kea", "maeva", "2kea&associe", "2kea & associe", "2k
 #                       2) ajoute UNE seule ligne _enregistrer_jeu(...) ci-dessous.
 # Le jeu apparaît AUTOMATIQUEMENT dans le menu du générateur. C'est tout.
 # ============================================================
+# ── 🖨️ LA TEINTE DES CHIFFRES EN NOIR & BLANC (sceau Maeva, 05/08) ─────────
+# « pour la teneur du noir et blanc de nos PDF, utilise le gris 30 % ».
+# Chacun des 125 générateurs porte son propre _GRIS_ECO (0,50 d'origine).
+# Plutôt que de retoucher 125 fichiers, la maison impose ici SA teinte à
+# tous : un seul réglage, un seul déploiement.
+# Maeva veut 30 % D'ENCRE : « le noir en impression est très fort ».
+# En clarté, 30 % d'encre = 0,70 (plus PÂLE que l'ancien 0,50).
+#   0,70 = le réglage retenu — un tiers de toner en moins sur les gros jeux
+#   0,50 = l'ancien (trop chargé)   ·   0,30 = très foncé
+# Le microtexte intérieur suit automatiquement (il vaut la teinte × 0,45).
+# La gamme PREMIUM (_GRIS_P15) n'est pas touchée.
+GRIS_CHIFFRES_ECO = 0.70
+
+
+def _imposer_gris_maison():
+    """Applique GRIS_CHIFFRES_ECO à tous les générateurs déjà chargés."""
+    try:
+        from reportlab.lib import colors as _col
+        teinte = _col.Color(GRIS_CHIFFRES_ECO, GRIS_CHIFFRES_ECO, GRIS_CHIFFRES_ECO)
+    except Exception:
+        return 0
+    import sys as _sys
+    poses = 0
+    for _nom, _mod in list(_sys.modules.items()):
+        if not _nom.startswith("generators.") or _mod is None:
+            continue
+        if hasattr(_mod, "_GRIS_ECO"):
+            try:
+                _mod._GRIS_ECO = teinte
+                poses += 1
+            except Exception:
+                pass
+    return poses
+
+
+_GRIS_POSES = _imposer_gris_maison()
+print(f"[TEINTE] gris des chiffres {GRIS_CHIFFRES_ECO} appliqué à {_GRIS_POSES} jeux")
+
 REGISTRE_JEUX = {}
 
 def _enregistrer_jeu(jeu_id, nom, emoji, cartes_par_feuille, generer, kwarg_nb="nb_cartes", couleur=True):
