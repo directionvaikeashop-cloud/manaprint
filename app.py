@@ -28,6 +28,7 @@ from generators import sun
 from generators import pow as powgen
 from generators import poe_parau as poeparaugen
 from generators import poe as poegen
+from generators import bng as bnggen
 from generators import hakari as hakarigen
 from generators import henua_enana as henuaenanagen
 from generators import tiare as tiaregen
@@ -351,6 +352,7 @@ _enregistrer_paire("pow",           "POW 8 boules","💥", 12, powgen.generer_pd
 _enregistrer_paire("pow_casino",    "POW CASINO","🎲", 12, powgen.generer_pdf_casino)
 _enregistrer_paire("poe_parau",     "POE PARAU 6 boules", "🦪", 12, poeparaugen.generer_pdf)
 _enregistrer_paire("poe",           "POE 6 boules", "⚪", 6, poegen.generer_pdf)
+_enregistrer_paire("bng",           "BNG 5 boules", "🟢", 6, bnggen.generer_pdf)
 _enregistrer_paire("hakari",        "HAKARI 6 boules", "🥥", 12, hakarigen.generer_pdf)
 _enregistrer_paire("henua_enana",   "HENUA ENANA 7 boules", "🗺️", 12, henuaenanagen.generer_pdf)
 _enregistrer_paire("tiare",         "TIARE 50-90", "🌼", 12, tiaregen.generer_pdf)
@@ -1039,6 +1041,7 @@ _PLAGES_CALLER = {
     "pow_casino": (1, 27),
     "poe_parau": (1, 75),
     "poe": (45, 90),
+    "bng": (1, 60),
     "hakari": (1, 75),
     "henua_enana": (1, 75),
     "tiare": (50, 90),
@@ -1178,6 +1181,9 @@ _JOKER_CODE = 300   # 🃏 LA BOULE JOKER — EN RÉSERVE (décision Maeva 30/07
 #     et rallumer _JOKER_ACTIF dans p6_marathon.py + les entrées des 2 callers.
 
 _BOULES_CALLER = {
+    # 🟢 BNG : ses lettres sautent des quinzaines entieres
+    #   B 1-15  ·  N 31-45  ·  G 46-60  = 45 boules, pas 60
+    "bng": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(46, 61)],
     "avinda_fort": list(range(1, 76)) + sorted(_MONTANT_CODES),          # 94 boules 🍷💰
     "ohana75_8b_myst": [n for n in range(1, 31)] + [n for n in range(46, 76)] + sorted(_MONTANT_CODES),  # 79 💰
     "ohana75_10b_myst": list(range(1, 76)) + sorted(_MONTANT_CODES),     # 94 💰
