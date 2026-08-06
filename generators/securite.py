@@ -55,6 +55,19 @@ def activer_mode_rapide(actif=True):
 def mode_rapide_actif():
     return getattr(_mode_local, "rapide", False)
 
+
+# SIGNATURE TUKEA (sceau Maeva, 05/08) — pour l'offre « PDF seul ».
+# Le client emporte le fichier : il l'imprimera, et le photocopiera. Le QR
+# de verification n'a plus de sens hors de nos machines ; a sa place, notre
+# adresse. Chaque photocopie devient alors une petite publicite.
+def activer_signature(actif=True):
+    """Remplace le QR par la signature TUKEA, pour le thread courant."""
+    _mode_local.signature = bool(actif)
+
+
+def signature_active():
+    return getattr(_mode_local, "signature", False)
+
 # QR de vérification (anti-duplication) — anti-panne : optionnel
 try:
     from generators import qr_verif as _qr
@@ -65,9 +78,38 @@ except Exception:
         _qr = None
 
 
+def _signature_a_la_place(c, x, y, taille):
+    """Ecrit la signature TUKEA dans la case du QR, sur trois lignes
+    ajustees a la largeur disponible. Tout au trait, presque pas d'encre."""
+    from reportlab.lib import colors as _c
+    from reportlab.pdfbase.pdfmetrics import stringWidth as _w
+    lignes = ["by TUKEA", "89 22 23 05", "manaprint.app"]
+    largeur = max(taille * 2.3, 26.0)
+    c.saveState()
+    c.setFillColor(_c.Color(0.42, 0.42, 0.42))
+    t = 6.2
+    while t > 3.4 and max(_w(s, "Helvetica-Bold", t) for s in lignes) > largeur:
+        t -= 0.1
+    interligne = t * 1.25
+    haut = y + taille / 2 + interligne
+    cx = x + taille / 2
+    for i, s in enumerate(lignes):
+        c.setFont("Helvetica-Bold" if i == 0 else "Helvetica", t)
+        c.drawCentredString(cx, haut - i * interligne, s)
+    c.restoreState()
+    return True
+
+
 def carton_qr(c, x, y, taille, evenement_id, serie, **options):
     """Dessine le QR de vérification si le module est disponible. Renvoie True/False.
-    options : position_code="bas" (défaut) ou "droite"."""
+    options : position_code="bas" (défaut) ou "droite".
+    En mode SIGNATURE (offre « PDF seul »), la signature TUKEA prend la
+    place du QR : le fichier part chez le client, la copie fait la publicite."""
+    if signature_active():
+        try:
+            return _signature_a_la_place(c, x, y, taille)
+        except Exception:
+            return False
     if _qr is None:
         return False
     try:
