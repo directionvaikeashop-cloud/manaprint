@@ -1295,7 +1295,7 @@ async function chargerCommandes(){
         +'<button class="btn" style="width:auto;padding:.4rem 1rem;white-space:nowrap" onclick="validerCommande('+c.id+',this)">Valider</button></span>';
       cont.appendChild(div);
     });
-  }catch(e){ cont.innerHTML='<p style="color:var(--coral);font-size:.85rem">Erreur de chargement.</p>'; }
+  }catch(e){ cont.innerHTML='<p style="color:var(--coral);font-size:.85rem">Le serveur n\'a pas pu envoyer les commandes \u2014 '+(e&&e.message?e.message:'raison inconnue')+'. R\u00e9essaie dans un instant ; si cela persiste, envoie-moi une capture de ce message.</p>'; }
 }
 async function validerCommande(id,btn){
   btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
