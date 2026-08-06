@@ -1105,7 +1105,7 @@ async function adminPaiementsStripe(){
       var etat=c.statut==='generee'?'\ud83d\udcc4 fabriqu\u00e9e':'\u2705 pay\u00e9e';
       h+='<div style="display:flex;justify-content:space-between;gap:.6rem;padding:.45rem .8rem;border:1px solid var(--line);border-radius:6px;background:#fff;margin-top:.35rem;flex-wrap:wrap">'
         +'<span>\ud83d\udcb3 #'+c.id+' \u00b7 '+quand+' \u00b7 '+c.programme+' \u00b7 '+c.nb_feuilles+' f.</span>'
-        +'<span><b>'+c.montant+' XPF</b> \u00b7 '+etat+'</span></div>';
+        +'<span style="display:flex;align-items:center;gap:.45rem"><b>'+c.montant+' XPF</b> \u00b7 '+etat+' <button class="btn" title="T\u00e9l\u00e9charger le PDF des cartons" style="width:auto;padding:.2rem .55rem;font-size:.8rem" onclick="window.open(\'/api/admin/commandes/'+c.id+'/pdf/cartons\',\'_blank\')">\u2b07\ufe0f</button>'+'</span></div>';
     });
     z.innerHTML=h;
   }catch(e){ z.innerHTML='<span style="color:var(--coral)">Serveur occup\u00e9 \u2014 r\u00e9essaie dans un instant.</span>'; }
