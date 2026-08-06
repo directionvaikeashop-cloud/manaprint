@@ -1,9 +1,15 @@
 # -*- coding: utf-8 -*-
 """
 MANAPRINT — Générateur ITALIA (format A4)
-10 billets larges/page (2×5) — L'ESCALIER : 5 cases qui descendent de gauche
-à droite, une par quinzaine (1-15 · 16-30 · 31-45 · 46-60 · 61-75), titre en
-haut-droit, QR dans le coin libre bas-gauche. Modèle billet escalier de Maeva.
+
+🍕 REFAIT LE 06/08 (sceau Maeva) : l'escalier laisse la place à LA PIZZA,
+l'emblème de l'Italie. Six parts, SIX NUMÉROS — un par part. Le joueur voit
+sa pizza se remplir à mesure que ses numéros sortent.
+
+RÈGLE : chaque part porte sa tranche de numéros. 75 se partage presque
+exactement en six : 1-13 · 14-25 · 26-38 · 39-50 · 51-63 · 64-75. Tout
+1-75 est ainsi couvert, et deux parts ne peuvent jamais porter le même
+numéro. Titre en haut-droit, QR dans le coin libre.
 QR de sécurité · série · microtexte · Tèl par défaut 89 22 23 05.
 """
 import io
@@ -61,9 +67,10 @@ GUTTER_Y = 4 * mm
 CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
 CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
 
-NB_NUMS = 5
+NB_NUMS = 6
 TAILLE_CHIFFRE = 32
-PLAGES = [(1, 15), (16, 30), (31, 45), (46, 60), (61, 75)]
+# 🍕 une tranche par part de pizza — ensemble, elles couvrent tout 1-75
+PLAGES = [(1, 13), (14, 25), (26, 38), (39, 50), (51, 63), (64, 75)]
 
 
 def _gen_nums(rng):
@@ -81,21 +88,43 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     if _sec:
         _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.6 * mm)
 
-    # L'ESCALIER : 5 cases en diagonale, coin à coin (fidèle au modèle)
-    m = 1.2 * mm
-    esc_w = (CARD_W - 2 * m) / 5
-    esc_h = (CARD_H - 2 * m) / 5
-    for i, (a, b) in enumerate(PLAGES):
-        bx = x0 + m + i * esc_w
-        btop = y0 + CARD_H - m - i * esc_h
-        c.setStrokeColor(col); c.setLineWidth(0.8)
-        c.rect(bx, btop - esc_h, esc_w, esc_h, stroke=1, fill=0)
+    # 🍕 LA PIZZA EN SIX PARTS — un numéro par part.
+    # Tout est au trait : la pâte, la croûte, les traits de coupe et les
+    # garnitures. Aucun aplat, donc presque pas d'encre.
+    r = min(CARD_H * 0.465, CARD_W * 0.262)
+    cx = x0 + 2.5 * mm + r
+    cy = y0 + CARD_H / 2
+    c.setFillColor(colors.white)
+    c.setStrokeColor(col)
+    c.setLineWidth(1.5)
+    c.circle(cx, cy, r, stroke=1, fill=1)          # la pâte
+    c.setLineWidth(0.9)
+    c.circle(cx, cy, r * 0.945, stroke=1, fill=0)  # la croûte
+    for i in range(6):                              # les six traits de coupe
+        a_ = math.radians(90 + i * 60)
+        c.setLineWidth(0.7)
+        c.line(cx + math.cos(a_) * r * 0.06, cy + math.sin(a_) * r * 0.06,
+               cx + math.cos(a_) * r * 0.99, cy + math.sin(a_) * r * 0.99)
+    # ⚠️ Les six parts sont etroites : place au milieu, deux nombres voisins
+    # se SOUDENT a la lecture (« 32 49 » devenait « 3249 »). On ecarte donc
+    # chaque nombre vers le bord de sa part, la ou elle est la plus large,
+    # et on verifie la distance : elle ne descend jamais sous 11 mm.
+    for i, n in enumerate(nums[:6]):
+        a_ = math.radians(120 + i * 60)             # le milieu de chaque part
+        nx = cx + math.cos(a_) * r * 0.66
+        ny = cy + math.sin(a_) * r * 0.66 - TAILLE_CHIFFRE * 0.36
         if _sec:
-            _sec.chiffre_micro(c, nums[i], bx + esc_w / 2, btop - esc_h + 0.72 * mm,
-                               TAILLE_CHIFFRE, gris_ch, police_ch)
+            _sec.chiffre_micro(c, n, nx, ny, TAILLE_CHIFFRE, gris_ch, police_ch)
         else:
             c.setFillColor(gris_ch); c.setFont(police_ch, TAILLE_CHIFFRE)
-            c.drawCentredString(bx + esc_w / 2, btop - esc_h + 0.72 * mm, str(nums[i]))
+            c.drawCentredString(nx, ny, str(n))
+        # une rondelle de garniture, glissée près de la croûte
+        gx = cx + math.cos(a_ + 0.50) * r * 0.40
+        gy = cy + math.sin(a_ + 0.50) * r * 0.40
+        c.setFillColor(colors.white)
+        c.setStrokeColor(col)
+        c.setLineWidth(0.7)
+        c.circle(gx, gy, r * 0.05, stroke=1, fill=1)
 
     # Le nom ITALIA s'écrit TOUJOURS (leçon du 25/07) ; le titre client vient EN PLUS
     c.setFillColor(col); c.setFont("Helvetica-Bold", 11)
@@ -111,11 +140,12 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
 
     # Série + QR dans le triangle libre du bas-gauche
     c.setFillColor(colors.Color(0.55, 0.55, 0.55)); c.setFont(POLICE, 4.6)
-    c.drawString(x0 + 3.5 * mm, y0 + 3.2 * mm, "N\u00b0 %06d \u00b7 by 2KEA" % serie)
+    c.drawString(x0 + 2 * r + 6 * mm, y0 + 3.2 * mm, "N\u00b0 %06d \u00b7 by 2KEA" % serie)
     if _sec and evenement_id:
         try:
             _q = 11.5 * mm
-            _sec.carton_qr(c, x0 + 3.5 * mm, y0 + 6.5 * mm, _q, evenement_id, serie)
+            _sec.carton_qr(c, x0 + CARD_W - _q - 4.0 * mm, y0 + 3.0 * mm,
+                           _q, evenement_id, serie, avec_code=False)
         except Exception:
             pass
 
