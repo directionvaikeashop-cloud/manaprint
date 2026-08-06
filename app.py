@@ -2862,11 +2862,22 @@ def api_partenaire_mes_commandes():
         return jsonify({"ok": False, "message": "connexion requise"}), 403
     mois = _date.today().isoformat()[:7]
     lignes = []
-    nb_f = du_total = du_mois = 0
+    nb_f = du_total = du_mois = total_lignes = 0
     try:
         commandes = db.lister_commandes()
     except Exception:  # base occupée par la fabrication : on répond poliment
         return jsonify({"ok": False, "message": "Le serveur fabrique vos cartons — réessayez dans un instant"}), 200
+    # \u26a1 06/08 : le coffre est lu UNE SEULE FOIS. Avant, on demandait au
+    # disque « ce fichier existe-t-il ? » deux fois par commande — plus de
+    # 3000 questions a chaque ouverture, et l'espace partenaire restait
+    # bloque sur « Actualisation... » (le disque de Railway est en reseau).
+    try:
+        au_coffre_tous = set(os.listdir(_dossier_lots()))
+    except Exception:
+        au_coffre_tous = set()
+    # Et on n'affiche que les 150 dernieres commandes : les TOTAUX, eux,
+    # restent calcules sur la totalite.
+    DETAIL_MAX = 150
     for cmd in commandes:
         try:
             perso = _json.loads(cmd.get("params_perso") or "{}")
@@ -2875,8 +2886,15 @@ def api_partenaire_mes_commandes():
         if (perso.get("partenaire") or "") != slug:
             continue
         du = 0 if cmd.get("mode_paiement") == "fabrique_partenaire" else round(int(cmd.get("nb_feuilles") or 0) * 1.5)
-        au_coffre = os.path.exists(os.path.join(_dossier_lots(), f"cmd{cmd['id']}_cartons.pdf"))
-        fact_ok = os.path.exists(os.path.join(_dossier_lots(), f"cmd{cmd['id']}_facture.pdf"))
+        nb_f += int(cmd.get("nb_feuilles") or 0)
+        du_total += du
+        if (cmd.get("cree_le") or "")[:7] == mois:
+            du_mois += du
+        total_lignes = total_lignes + 1
+        if len(lignes) >= DETAIL_MAX:
+            continue
+        au_coffre = f"cmd{cmd['id']}_cartons.pdf" in au_coffre_tous
+        fact_ok = f"cmd{cmd['id']}_facture.pdf" in au_coffre_tous
         lignes.append({
             "id": cmd["id"], "date": (cmd.get("cree_le") or "")[:16].replace("T", " "),
             "identifiant": cmd.get("identifiant", ""), "programme": cmd.get("programme", ""),
@@ -2884,14 +2902,11 @@ def api_partenaire_mes_commandes():
             "du": du, "cartons": au_coffre, "facture": fact_ok,
             "evenement": perso.get("nom_evenement", "") or perso.get("titre_jeu", ""),
         })
-        nb_f += int(cmd.get("nb_feuilles") or 0)
-        du_total += du
-        if (cmd.get("cree_le") or "")[:7] == mois:
-            du_mois += du
     return jsonify({"ok": True, "nom": part["nom"], "zone": part.get("zone", ""),
                     "commandes": lignes,
-                    "stats": {"nb": len(lignes), "feuilles": nb_f,
-                              "du_mois": du_mois, "du_total": du_total}})
+                    "stats": {"nb": total_lignes, "feuilles": nb_f,
+                              "du_mois": du_mois, "du_total": du_total},
+                    "detail_limite": total_lignes > len(lignes)})
 
 
 @app.route("/api/partenaire/generer", methods=["POST"])
