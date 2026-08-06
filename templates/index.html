@@ -231,9 +231,23 @@
         <p style="font-size:.8rem;color:var(--teal-d);margin-top:.4rem;line-height:1.5;font-weight:500">💡 <span data-i18n="part_3f">Chez 2KEA & Associé — Papeete : prix tout compris PDF + impression — ÉCO 6 F (N&B) / 10 F (Couleur) · PREMIUM 10 F (N&B) / 14 F (Couleur) la feuille.</span></p>
       </div>
 
+      <div id="offre-couleur" style="display:none;border:1px solid #C9A227;background:#FFFBEA;border-radius:8px;padding:.8rem;margin-bottom:1rem">
+        <div style="font-weight:600;margin-bottom:.5rem">🎨 Ce jeu est en COULEUR — deux formules :</div>
+        <label style="display:block;margin-bottom:.5rem;cursor:pointer">
+          <input type="radio" name="offre-c" value="pdf" checked onchange="majOffreCouleur()">
+          <b>📄 Le fichier PDF seul — 3,5 F la feuille</b>
+          <div style="font-size:.8rem;color:var(--muted);margin-left:1.5rem">Tu reçois ton fichier tout de suite et tu l'imprimes où tu veux.</div>
+        </label>
+        <label style="display:block;cursor:pointer">
+          <input type="radio" name="offre-c" value="impression" onchange="majOffreCouleur()">
+          <b>🖨️ L'impression par nos soins — 250 F les 25 feuilles</b>
+          <div style="font-size:.8rem;color:var(--muted);margin-left:1.5rem">Nous vérifions si nos machines peuvent imprimer en couleur et nous te répondons. <b>Tu ne paies qu'après notre accord.</b></div>
+        </label>
+      </div>
       <div style="display:flex;gap:.7rem;flex-wrap:wrap">
         <button class="btn" id="gen-cmd-btn" data-i18n="btn_commander" onclick="commanderPanier()" style="flex:1;min-width:170px">🛒 Commander</button>
         <button class="btn" id="gen-panier-btn" data-i18n="btn_panier" onclick="ajouterPanier()" style="flex:1;min-width:170px;background:var(--coral)">🛒 Ajouter au panier</button>
+        <button class="btn" id="gen-demande-btn" onclick="demanderImpression()" style="flex:1;min-width:210px;background:#C9A227;display:none">🖨️ Demander l'impression</button>
       </div>
       <p id="gen-cmd-msg" style="margin-top:.8rem;font-size:.85rem;line-height:1.6"></p>
     </div>
@@ -287,6 +301,7 @@
       <!-- 💳 le tiroir des cartes abandonnées (sceau Maeva 30/07 : « sortir les cartes
            abandonnées de commandes à valider ») — rien à valider ici : si le client
            finit par payer, Stripe/le Rattrapage validera TOUT SEUL. -->
+      <div id="admin-demandes-impression" style="margin-bottom:2rem"></div>
       <div id="admin-cartes-abandonnees" style="margin-bottom:2rem"></div>
       <!-- 📦 Ravitaillement boutique -->
       <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">📦 Ravitaillement boutique</h2>
@@ -651,7 +666,7 @@ function rendreProgrammes(){
     const desc=p.cpf+(LANG==='en'?" cards / sheet":" cartes / feuille");
     b.style.cssText="display:flex;align-items:center;gap:.6rem;padding:.65rem .85rem;border-radius:4px;text-align:left;width:100%;border:1px solid "+(on?p.teinte:'var(--line)')+";background:"+(on?p.teinte+'12':'#fff');
     b.innerHTML='<img src="/apercu/'+p.id+'.png" alt="" loading="lazy" onerror="this.style.display=&quot;none&quot;" style="width:46px;height:64px;object-fit:cover;object-position:top;border-radius:3px;border:1px solid var(--line);background:#fff;flex-shrink:0"><div style="width:8px;height:8px;border-radius:50%;background:'+p.teinte+';flex-shrink:0"></div><div><div style="font-weight:600;font-size:.85rem">'+(p.emoji?p.emoji+" ":"")+p.nom+'</div><div style="font-size:.7rem;color:var(--muted)">'+desc+'</div></div>';
-    b.onclick=function(){ progChoisi=p.id; rendreProgrammes(); majPrix(); };
+    b.onclick=function(){ progChoisi=p.id; rendreProgrammes(); majOffreCouleur(); };
     cont.appendChild(b);
   });
 }
@@ -682,6 +697,8 @@ function prixFeuilleCourant(partId){
   // 6 F pour les jeux de la liste, 7,4 F (185 F les 25) pour les autres.
   if(origineAcces!=='international' && gamme==='eco' && !couleur
      && TARIF_NB_150.indexOf(baseJeu)<0){ prix = 7.4; }
+  // 🎨 en couleur, la formule « PDF seul » vaut 3,5 F la feuille
+  if(origineAcces!=='international' && couleur && offreCouleurChoisie()==='pdf'){ prix = 3.5; }
   // 🖼️💰 supplément motif (+2 F) : jeux décorables, tarif standard seulement
   if(motifChoisi){ prix += 2; }
   return prix;
@@ -863,6 +880,51 @@ function retourPaiement(){
 }
 majBadgePanier(); retourPaiement();
 
+// 🎨 LES DEUX OFFRES EN COULEUR (05/08) : PDF seul à 3,5 F la feuille, ou
+// impression par 2KEA — mais celle-ci part en DEMANDE : le client ne paie
+// qu'après le « oui » de la gestion. Le noir & blanc ne change pas.
+function estJeuCouleur(){
+  return typeof progChoisi === 'string' && progChoisi.indexOf('_couleur') >= 0;
+}
+function offreCouleurChoisie(){
+  if(!estJeuCouleur()) return '';
+  const r=document.querySelector('input[name="offre-c"]:checked');
+  return r ? r.value : 'pdf';
+}
+function majOffreCouleur(){
+  const bloc=document.getElementById('offre-couleur');
+  const bDem=document.getElementById('gen-demande-btn');
+  const bCmd=document.getElementById('gen-cmd-btn');
+  const bPan=document.getElementById('gen-panier-btn');
+  const couleur=estJeuCouleur();
+  if(bloc) bloc.style.display = couleur ? 'block' : 'none';
+  const demande = couleur && offreCouleurChoisie()==='impression';
+  if(bDem) bDem.style.display = demande ? '' : 'none';
+  // en mode demande, on ne passe NI par la commande directe NI par le panier :
+  // rien ne se paie tant que 2KEA n'a pas répondu.
+  if(bCmd) bCmd.style.display = demande ? 'none' : '';
+  if(bPan) bPan.style.display = demande ? 'none' : '';
+  if(typeof majPrix === 'function') majPrix();
+}
+async function demanderImpression(){
+  const msg=document.getElementById('gen-cmd-msg');
+  const perso=collectPerso(msg); if(!perso) return;
+  const nb=parseInt(document.getElementById('gen-nb-feuilles').value)||0;
+  if(nb<1){ msg.style.color="var(--coral)"; msg.textContent=t("nb_invalide"); return; }
+  const sel=document.getElementById('gen-partenaire');
+  const partenaire=sel?sel.value:"";
+  if(!partenaire){ msg.style.color="var(--coral)"; msg.textContent="Choisis un imprimeur partenaire dans la liste."; return; }
+  const btn=document.getElementById('gen-demande-btn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> Envoi…';
+  try{
+    const body=Object.assign({programme:progChoisi,nb_feuilles:nb,partenaire:partenaire},perso);
+    const r=await fetch('/api/demande-impression',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    msg.style.color = d.ok ? "var(--teal)" : "var(--coral)";
+    msg.textContent = d.message || (d.ok ? "Demande enregistrée." : "Erreur.");
+  }catch(e){ msg.style.color="var(--coral)"; msg.textContent=t("msg_erreur_reseau"); }
+  btn.disabled=false; btn.innerHTML="🖨️ Demander l'impression";
+}
 async function commander(){
   const msg=document.getElementById('gen-cmd-msg');
   const perso=collectPerso(msg); if(!perso) return;
@@ -1141,6 +1203,45 @@ async function lancerRavitaillement(){
   }catch(e){ msg.style.color="var(--coral)"; msg.textContent="Erreur r\u00e9seau."; }
   btn.disabled=false;
 }
+// 🎨🖨️ LES DEMANDES D'IMPRESSION COULEUR (05/08) : le client attend ta
+// réponse et n'a rien payé. « Oui » : la commande passe en attente de
+// paiement. « Non » : elle est refusée (il peut reprendre en PDF seul).
+async function chargerDemandesImpression(){
+  const z=document.getElementById('admin-demandes-impression');
+  if(!z) return;
+  let d={};
+  try{ const r=await fetch('/api/admin/demandes-impression'); d=await r.json(); }catch(e){ return; }
+  const L=(d&&d.demandes)||[];
+  if(!L.length){ z.innerHTML=''; return; }
+  let h='<h3 style="margin:0 0 .6rem">🎨🖨️ Demandes d\'impression couleur ('+L.length+')</h3>'
+       +'<div style="font-size:.8rem;color:var(--muted);margin-bottom:.8rem">'
+       +'Le client attend ta réponse et n\'a rien payé. Appelle-le si besoin, puis réponds.</div>';
+  L.forEach(function(c){
+    const tel=(c.telephone||'').replace(/[^0-9+]/g,'');
+    h+='<div style="border:1px solid #C9A227;background:#FFFBEA;border-radius:8px;padding:.7rem;margin-bottom:.6rem">'
+      +'<div style="font-weight:600">'+(c.jeu||'')+' — '+c.nb_feuilles+' feuille(s) · '+c.montant+' XPF</div>'
+      +'<div style="font-size:.8rem;color:var(--muted)">n°'+c.id+' · '+(c.nom_evenement||'')+' · '+(c.identifiant||'')+'</div>'
+      +'<div style="margin:.45rem 0">'+(tel
+          ? '📞 <a href="tel:'+tel+'" style="color:var(--teal-d);font-weight:600">'+(c.telephone||'')+'</a>'
+          : '<span style="color:var(--coral)">sans téléphone</span>')+'</div>'
+      +'<button class="btn" onclick="repondreImpression('+c.id+',&quot;oui&quot;)" style="margin-right:.5rem">✅ Oui, on peut imprimer</button>'
+      +'<button class="btn" onclick="repondreImpression('+c.id+',&quot;non&quot;)" style="background:var(--muted)">❌ Non</button>'
+      +'</div>';
+  });
+  z.innerHTML=h;
+}
+async function repondreImpression(id, reponse){
+  if(reponse==='non' && !confirm('Refuser la demande n°'+id+' ?')) return;
+  try{
+    const r=await fetch('/api/admin/repondre-impression',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({commande_id:id, reponse:reponse})});
+    const d=await r.json();
+    alert(d.message||'');
+  }catch(e){ alert('Serveur occupé, réessaie.'); }
+  chargerDemandesImpression();
+  if(typeof chargerCommandes==='function') chargerCommandes();
+}
 function afficherCartesAbandonnees(cartes){
   const z=document.getElementById('admin-cartes-abandonnees');
   if(!z) return;
@@ -1161,6 +1262,7 @@ async function chargerCommandes(){
   const cont=document.getElementById('admin-commandes');
   try{
     const r=await fetch('/api/admin/commandes'); const d=await r.json();
+    chargerDemandesImpression();
     const attente=(d.commandes||[]).filter(function(c){ return c.statut==='en_attente'; });
     const cmds=attente.filter(function(c){ return c.mode_paiement!=='stripe'; });
     afficherCartesAbandonnees(attente.filter(function(c){ return c.mode_paiement==='stripe'; }));
