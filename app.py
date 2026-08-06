@@ -393,6 +393,18 @@ TARIF_NB_150 = {
 }
 PRIX_NB_AUTRES = 7.4   # 185 F les 25 feuilles
 
+# 🎨 LES DEUX OFFRES EN COULEUR (décision Maeva, 05/08 — nouvelles machines
+# attendues en novembre) :
+#   ① « PDF seul »   : 3,5 F la feuille (87 F les 25) — le client reçoit son
+#                      fichier tout de suite, il l'imprime où il veut ;
+#   ② « Impression » : 250 F les 25 (le tarif de base), mais la commande part
+#                      d'abord en DEMANDE : Maeva répond depuis son espace de
+#                      gestion « oui on peut imprimer » ou « non ». Le client
+#                      ne paie qu'APRÈS un oui.
+# Le noir & blanc ne change pas : impression directe, 150 ou 185 F les 25.
+PRIX_PDF_SEUL_COULEUR = 3.5
+STATUT_DEMANDE = "attente_reponse"   # la commande attend la réponse de 2KEA
+
 def _base_jeu(programme):
     """Identifiant du jeu sans son suffixe de variante (_p15_couleur, _nb…)."""
     p = str(programme or "")
@@ -1853,6 +1865,9 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
         # 🖨️ MODE BOUTIQUE RAPIDE : cartons sans microtexte (QR conservé),
         # pour l'impression directe par clé USB sans pause.
         "impression_rapide": bool(data.get("impression_rapide")),
+        # 🎨 l'offre choisie en couleur : "pdf" (fichier seul) ou "impression"
+        "offre": ("pdf" if (couleur and (data.get("offre") or "").strip().lower() == "pdf")
+                  else ("impression" if couleur else "")),
     })
 
     # 💡 Tarif spécial partenaire (ex. RANIHEI : PDF seul à 1,5 F —
@@ -1891,6 +1906,12 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
             and db._gamme_du_programme(programme) == "eco"
             and _base_jeu(programme) not in TARIF_NB_150):
         prix_special = PRIX_NB_AUTRES
+    # 🎨 OFFRE « PDF SEUL » EN COULEUR : 3,5 F la feuille. Le tarif partenaire,
+    # le PDF seul international et le supplément motif restent souverains.
+    offre = (data.get("offre") or "").strip().lower()
+    if (couleur and offre == "pdf" and prix_special is None
+            and session.get("acces") != "international"):
+        prix_special = PRIX_PDF_SEUL_COULEUR
     commande_id, montant = db.creer_commande(
         identifiant=session.get("identifiant"),
         origine=session["acces"],
@@ -1954,6 +1975,31 @@ def _session_stripe_panier(panier_id):
     )
     db.maj_panier(panier_id, total=total, stripe_session=s.id)
     return s.url, total
+
+
+@app.route("/api/demande-impression", methods=["POST"])
+def demande_impression():
+    """🎨🖨️ LA DEMANDE D'IMPRESSION EN COULEUR (décision Maeva du 05/08).
+    Le client ne paie RIEN ici : sa commande part en attente et 2KEA répond
+    « oui on peut imprimer » ou « non » depuis l'espace de gestion."""
+    if "acces" not in session:
+        return jsonify({"ok": False, "message": "Accès non autorisé"}), 403
+    data = request.get_json(force=True, silent=True) or {}
+    data["offre"] = "impression"
+    err, res = _valider_creer_commande(data, mode_paiement="demande")
+    if err:
+        return err
+    commande_id, montant = res["commande_id"], res["montant"]
+    with db.get_db() as conn:
+        conn.execute("UPDATE commandes SET statut = ? WHERE id = ?",
+                     (STATUT_DEMANDE, commande_id))
+    return jsonify({
+        "ok": True, "commande_id": commande_id, "montant": int(montant),
+        "mode": "demande",
+        "message": ("Demande enregistrée. Nous vérifions si nos machines peuvent "
+                    "imprimer en couleur et nous te répondons rapidement. "
+                    "Tu ne paieras qu'après notre accord."),
+    })
 
 
 @app.route("/api/commander", methods=["POST"])
@@ -3092,6 +3138,70 @@ def admin_renvoyer_emails():
                     f"rapport confidentiel → {dest_rapport}. "
                     "Les envois partent en arrière-plan (1 à 3 min pour les grosses commandes) "
                     "— une copie arrive aussi dans ta boîte SMTP."})
+
+
+@app.route("/api/admin/demandes-impression", methods=["GET"])
+@admin_requis
+def admin_demandes_impression():
+    """La liste des demandes d'impression couleur qui attendent une réponse."""
+    with db.get_db() as conn:
+        lignes = conn.execute(
+            "SELECT id, identifiant, programme, couleur, nb_feuilles, montant,"
+            "       params_perso, cree_le, statut "
+            "FROM commandes WHERE statut = ? ORDER BY id DESC",
+            (STATUT_DEMANDE,)).fetchall()
+    out = []
+    for r in lignes:
+        try:
+            import json as _json
+            perso = _json.loads(r["params_perso"] or "{}")
+        except Exception:
+            perso = {}
+        jeu = REGISTRE_JEUX.get(r["programme"], {})
+        out.append({
+            "id": r["id"],
+            "identifiant": r["identifiant"],
+            "jeu": f"{jeu.get('emoji','')} {jeu.get('nom', r['programme'])}".strip(),
+            "nb_feuilles": r["nb_feuilles"],
+            "montant": r["montant"],
+            "telephone": perso.get("telephone", ""),
+            "nom_evenement": perso.get("nom_evenement", ""),
+            "partenaire": perso.get("partenaire", ""),
+            "cree_le": r["cree_le"],
+        })
+    return jsonify({"ok": True, "demandes": out})
+
+
+@app.route("/api/admin/repondre-impression", methods=["POST"])
+@admin_requis
+def admin_repondre_impression():
+    """✅ / ❌ La réponse de 2KEA à une demande d'impression couleur.
+    « oui »  -> la commande rejoint les commandes à valider (le client paie) ;
+    « non »  -> la demande est refusée (le client peut reprendre en PDF seul)."""
+    data = request.get_json(force=True, silent=True) or {}
+    try:
+        cid = int(data.get("commande_id") or 0)
+    except Exception:
+        cid = 0
+    reponse = (data.get("reponse") or "").strip().lower()
+    if not cid or reponse not in ("oui", "non"):
+        return jsonify({"ok": False, "message": "Demande ou réponse manquante."}), 400
+    with db.get_db() as conn:
+        row = conn.execute("SELECT statut FROM commandes WHERE id = ?", (cid,)).fetchone()
+        if not row:
+            return jsonify({"ok": False, "message": "Commande introuvable."}), 404
+        if row["statut"] != STATUT_DEMANDE:
+            return jsonify({"ok": False,
+                            "message": "Cette demande a déjà reçu une réponse."}), 409
+        if reponse == "oui":
+            conn.execute("UPDATE commandes SET statut = 'en_attente', mode_paiement = 'virement' "
+                         "WHERE id = ?", (cid,))
+        else:
+            conn.execute("UPDATE commandes SET statut = 'refusee' WHERE id = ?", (cid,))
+    return jsonify({"ok": True, "reponse": reponse,
+                    "message": ("Oui envoyé : la commande passe en attente de paiement."
+                                if reponse == "oui"
+                                else "Non enregistré : la demande est refusée.")})
 
 
 @app.route("/api/admin/commandes", methods=["GET"])
