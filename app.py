@@ -2226,6 +2226,11 @@ def generer_commande(commande_id):
     try:
         from generators import securite as _secs
         _secs.activer_mode_rapide(bool(perso.get("impression_rapide")))
+        # VENTE DE PDF SEUL, EN COULEUR UNIQUEMENT (sceau Maeva 05/08) :
+        # le client emporte le fichier et l'imprime lui-meme, donc le QR de
+        # verification n'a plus de sens -> la signature TUKEA prend sa place,
+        # et chaque photocopie devient une petite publicite.
+        _secs.activer_signature(bool(couleur) and perso.get("offre") == "pdf")
     except Exception:
         pass
     try:
@@ -2234,6 +2239,7 @@ def generer_commande(commande_id):
     finally:
         try:
             _secs.activer_mode_rapide(False)
+            _secs.activer_signature(False)
         except Exception:
             pass
 
@@ -2336,6 +2342,7 @@ def lancer_fabrication(commande_id, seulement_rapport=False):
             try:
                 from generators import securite as _secm
                 _secm.activer_mode_rapide(bool(perso.get("impression_rapide")))
+                _secm.activer_signature(bool(couleur) and perso.get("offre") == "pdf")
             except Exception:
                 pass
             try:
@@ -2347,6 +2354,7 @@ def lancer_fabrication(commande_id, seulement_rapport=False):
             finally:
                 try:
                     _secm.activer_mode_rapide(False)
+                    _secm.activer_signature(False)
                 except Exception:
                     pass
             # 🗄️ AU COFFRE-FORT d'abord : le PDF est sauvé sur le disque —
