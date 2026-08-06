@@ -1103,8 +1103,11 @@ async function adminPaiementsStripe(){
     d.dernieres.forEach(function(c){
       var quand=(c.cree_le||'').replace('T',' ').slice(0,16);
       var etat=c.statut==='generee'?'\ud83d\udcc4 fabriqu\u00e9e':'\u2705 pay\u00e9e';
+      // \ud83d\udcde sceau Maeva 05/08 : le num\u00e9ro du client, ici aussi
+      var telp=''; try{ telp=(JSON.parse(c.params_perso||"{}").telephone||'').trim(); }catch(e){}
+      var telHp=telp?(' \u00b7 \ud83d\udcde <a href="tel:'+telp.replace(/[^0-9+]/g,'')+'" style="color:var(--teal-d);font-weight:600;text-decoration:none">'+telp+'</a>'):'';
       h+='<div style="display:flex;justify-content:space-between;gap:.6rem;padding:.45rem .8rem;border:1px solid var(--line);border-radius:6px;background:#fff;margin-top:.35rem;flex-wrap:wrap">'
-        +'<span>\ud83d\udcb3 #'+c.id+' \u00b7 '+quand+' \u00b7 '+c.programme+' \u00b7 '+c.nb_feuilles+' f.</span>'
+        +'<span>\ud83d\udcb3 #'+c.id+' \u00b7 '+quand+' \u00b7 '+c.programme+' \u00b7 '+c.nb_feuilles+' f.'+telHp+'</span>'
         +'<span style="display:flex;align-items:center;gap:.45rem"><b>'+c.montant+' XPF</b> \u00b7 '+etat+' <button class="btn" title="T\u00e9l\u00e9charger le PDF des cartons" style="width:auto;padding:.2rem .55rem;font-size:.8rem" onclick="window.open(\'/api/admin/commandes/'+c.id+'/pdf/cartons\',\'_blank\')">\u2b07\ufe0f</button>'+'</span></div>';
     });
     z.innerHTML=h;
