@@ -3316,8 +3316,32 @@ def admin_commandes():
     s'ouvrir sur un telephone. Elle repond desormais au filtre demande,
     et sans filtre elle garde son ancien comportement (compatibilite)."""
     statut = (request.args.get("statut") or "").strip()
-    lignes = db.lister_commandes(statut) if statut else db.lister_commandes()
-    return jsonify({"ok": True, "commandes": lignes})
+    try:
+        lignes = db.lister_commandes(statut) if statut else db.lister_commandes()
+    except Exception as e:
+        print(f"[COMMANDES] lecture impossible : {e}")
+        return jsonify({"ok": False, "message": f"Base illisible : {e}"}), 500
+    # 🛟 BLINDAGE (06/08) : une SEULE commande abimee (octets illisibles
+    # venus d'un vieil enregistrement) faisait tomber TOUTE la liste, et
+    # l'ecran affichait « Erreur de chargement ». Chaque valeur est
+    # desormais rendue lisible, et une ligne impossible est ecartee
+    # plutot que de tout emporter.
+    propres, ecartees = [], 0
+    for c in lignes:
+        try:
+            ligne = {}
+            for cle, val in dict(c).items():
+                if isinstance(val, (bytes, bytearray)):
+                    val = val.decode("utf-8", "replace")
+                elif val is not None and not isinstance(val, (str, int, float, bool)):
+                    val = str(val)
+                ligne[str(cle)] = val
+            propres.append(ligne)
+        except Exception:
+            ecartees += 1
+    if ecartees:
+        print(f"[COMMANDES] {ecartees} ligne(s) illisible(s) ecartee(s)")
+    return jsonify({"ok": True, "commandes": propres, "ecartees": ecartees})
 
 
 @app.route("/api/admin/paiements-stripe", methods=["GET"])
