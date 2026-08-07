@@ -104,6 +104,52 @@ def verifier(evenement_id, serie, code):
     return str(code).upper() == code_verif(evenement_id, serie)
 
 
+
+def _poser_qr_image(c, data, x, y, taille):
+    """🖨️ Pose le QR sous forme d'IMAGE — une seule forme au lieu de
+    centaines de rectangles.
+
+    C'est ce qui a rendu les tirages fluides le 07/08 : le processeur de
+    l'imprimante n'a plus qu'un bloc à poser au lieu de dessiner chaque
+    module un par un. Le QR reste NET : chaque module devient un carré
+    de pixels plein, sans lissage, et l'image est assez fine pour que
+    l'impression laser ne perde rien.
+
+    Renvoie True si l'image a pu être posée, False sinon (on retombe
+    alors sur l'ancien dessin, pour ne jamais laisser un carton sans QR).
+    """
+    try:
+        from PIL import Image
+        from reportlab.lib.utils import ImageReader
+        widget = qr.QrCodeWidget(data)
+        widget.barLevel = "M"      # ~15 % de correction : robuste au laser
+        widget.draw()              # remplit la matrice
+        matrice = widget.qr.modules
+        n = len(matrice)
+        if not n:
+            return False
+        BORDURE = 4                # la zone de silence exigée par la norme
+        PX = 4                    # 4 pixels par module : le point juste, mesure le 07/08 — au-dela l'image
+                                   # devient lourde a decompresser (reportlab la stocke en couleur),
+                                   # en deca les modules perdent leur nettete
+        cote = (n + 2 * BORDURE) * PX
+        im = Image.new("1", (cote, cote), 1)      # 1 = blanc
+        pix = im.load()
+        for i, ligne in enumerate(matrice):
+            for j, plein in enumerate(ligne):
+                if not plein:
+                    continue
+                x0 = (j + BORDURE) * PX
+                y0 = (i + BORDURE) * PX
+                for a in range(PX):
+                    for b in range(PX):
+                        pix[x0 + a, y0 + b] = 0    # 0 = noir
+        c.drawImage(ImageReader(im), x, y, taille, taille)
+        return True
+    except Exception:
+        return False
+
+
 def dessiner_qr(c, x, y, taille, evenement_id, serie, avec_code=True,
                 couleur_texte=colors.Color(0.42, 0.42, 0.42), position_code="bas"):
     """Dessine le QR (taille x taille, coin bas-gauche en x,y) + le code court dessous.
@@ -134,14 +180,16 @@ def dessiner_qr(c, x, y, taille, evenement_id, serie, avec_code=True,
     c.restoreState()
 
     data = url_verif(evenement_id, serie)
-    widget = qr.QrCodeWidget(data)
-    widget.barLevel = "M"  # ~15% de correction d'erreur : robuste à l'impression laser
-    b = widget.getBounds()
-    w = b[2] - b[0]
-    h = b[3] - b[1]
-    d = Drawing(taille, taille, transform=[taille / w, 0, 0, taille / h, 0, 0])
-    d.add(widget)
-    renderPDF.draw(d, c, x, y)
+    if not _poser_qr_image(c, data, x, y, taille):
+        # repli : l'ancien dessin, module par module
+        widget = qr.QrCodeWidget(data)
+        widget.barLevel = "M"
+        b = widget.getBounds()
+        w = b[2] - b[0]
+        h = b[3] - b[1]
+        d = Drawing(taille, taille, transform=[taille / w, 0, 0, taille / h, 0, 0])
+        d.add(widget)
+        renderPDF.draw(d, c, x, y)
     if avec_code:
         # 🤫 SÉCURITÉ SILENCIEUSE : la couleur officielle N'EST PAS imprimée.
         # Les joueurs ne voient que le code — la couleur n'apparaît qu'au SCAN
