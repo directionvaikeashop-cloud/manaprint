@@ -170,6 +170,7 @@ async function connexion(ev){
     document.getElementById('zone-bord').style.display='';
     document.getElementById('bord-nom').textContent = '\ud83c\udfea ' + (d.nom || 'Ma boutique');
     document.getElementById('bord-zone').textContent = d.zone || '';
+    chargerJeuxFabrique();          // la fabrique ne depend plus du tableau
     charger().then(ok => { if(!ok) expliquerVide(); });
   }catch(e){ msg.style.color='var(--coral)'; msg.textContent='\u274c Erreur r\u00e9seau \u2014 r\u00e9essayez'; }
   finally{ if(btn){ btn.disabled = false; btn.textContent = 'Entrer dans ma boutique'; } }
@@ -292,15 +293,43 @@ function expliquerVide(){
 
 async function chargerJeuxFabrique(){
   const sel = document.getElementById('fab-jeu');
-  if(!sel || sel.options.length) return;
-  try{
-    const d = await (await fetch('/api/jeux')).json();
-    (d.jeux || []).forEach(function(j){
-      const o = document.createElement('option');
-      o.value = j.id; o.textContent = (j.emoji ? j.emoji + ' ' : '') + j.nom;
-      sel.appendChild(o);
-    });
-  }catch(e){}
+  if(!sel) return;
+  // \u26a1 06/08 : DEUX defauts corriges ici.
+  // 1) Le garde « la liste est deja pleine ? » etait pose AVANT d'attendre
+  //    le reseau : deux appels simultanes remplissaient la liste deux fois.
+  // 2) La liste ne se remplissait QUE si le tableau de bord avait pu se
+  //    charger. Quand le serveur etait occupe, la fabrique restait vide
+  //    et le bouton ne servait a rien. Elle est desormais independante,
+  //    elle reessaie, et elle dit tout haut si elle n'y arrive pas.
+  if(sel.dataset.charge === 'oui' || sel.dataset.charge === 'encours') return;
+  sel.dataset.charge = 'encours';
+  var msgF = document.getElementById('fab-msg');
+  for (var essai = 0; essai < 3; essai++){
+    try{
+      if (essai) await new Promise(function(r){ setTimeout(r, 1200 * essai); });
+      const d = await (await fetch('/api/jeux', {cache:'no-store'})).json();
+      const jeux = (d && d.jeux) || [];
+      if (jeux.length){
+        sel.innerHTML = '';
+        jeux.forEach(function(j){
+          const o = document.createElement('option');
+          o.value = j.id; o.textContent = (j.emoji ? j.emoji + ' ' : '') + j.nom;
+          sel.appendChild(o);
+        });
+        sel.dataset.charge = 'oui';
+        if (msgF && msgF.dataset.err === 'jeux'){ msgF.textContent = ''; msgF.dataset.err = ''; }
+        break;
+      }
+    }catch(e){}
+  }
+  if (sel.dataset.charge !== 'oui'){
+    sel.dataset.charge = '';
+    if (msgF){
+      msgF.style.color = 'var(--coral)';
+      msgF.dataset.err = 'jeux';
+      msgF.textContent = '\u274c La liste des jeux n\'a pas pu \u00eatre charg\u00e9e \u2014 touchez \u21bb Actualiser.';
+    }
+  }
   const sf = document.getElementById('fab-feuilles');
   if(sf && !sf.options.length){
     for(let n = 25; n <= 250; n += 25){
