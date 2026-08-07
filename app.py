@@ -68,6 +68,7 @@ from generators import italia
 from generators import italia_villes
 from generators import vai
 from generators import wow4
+from generators import maia as maiagen
 from generators import bno
 from generators import ngo
 from generators import diamant
@@ -474,6 +475,7 @@ _enregistrer_paire("italia",        "ITALIA",     "🇮🇹", 10, italia.generer
 _enregistrer_paire("italia_villes", "ITALIA VILLES","🗺️", 6,  italia_villes.generer_pdf)
 _enregistrer_paire("vai",           "VAI 9 boules","🌊", 12, vai.generer_pdf)
 _enregistrer_paire("wow4",          "WOW 4","🎆", 12, wow4.generer_pdf)
+_enregistrer_paire("maia",          "MAIA \u00b7 Ma\u00efa", "🍌", 12, maiagen.generer_pdf)
 _enregistrer_paire("bno",           "BNO 8 boules","🎯", 12, bno.generer_pdf)
 _enregistrer_paire("bno_casino",    "BNO CASINO","🎰", 12, bno.generer_pdf_casino)
 _enregistrer_paire("ngo",           "NGO 8 boules","🎳", 12, ngo.generer_pdf)
@@ -1099,6 +1101,7 @@ _PLAGES_CALLER = {
     "italia_villes": (1, 75),
     "vai": (61, 90),
     "wow4": (30, 60),
+    "maia": (30, 59),
     "bno": (1, 75),
     "bno_casino": (1, 75),
     "ngo": (31, 75),
@@ -1191,6 +1194,8 @@ _JOKER_CODE = 300   # 🃏 LA BOULE JOKER — EN RÉSERVE (décision Maeva 30/07
 #     et rallumer _JOKER_ACTIF dans p6_marathon.py + les entrées des 2 callers.
 
 _BOULES_CALLER = {
+    # 🍌 MAIA : ses numeros vont de 30 a 59 seulement
+    "maia": [n for n in range(30, 60)],
     # 🟢 BNG : ses lettres sautent des quinzaines entieres
     #   B 1-15  ·  N 31-45  ·  G 46-60  = 45 boules, pas 60
     "bng": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(46, 61)],
