@@ -1808,6 +1808,10 @@ def _fabriquer_apercu(jeu_id):
 
 
 def _prechauffer_apercus():
+    try:
+        os.nice(10)      # le prechauffage passe apres les visiteurs
+    except Exception:
+        pass
     """🔥 PRÉCHAUFFAGE : fabrique toutes les vignettes en coulisses au démarrage —
     quand un client ouvre le menu, tout est déjà prêt et instantané."""
     import time as _time
@@ -2327,6 +2331,18 @@ def lancer_fabrication(commande_id, seulement_rapport=False):
     part = PARTENAIRES[pid]
 
     def _fabriquer_et_envoyer():
+        # 🐢 06/08 — LA FABRICATION CÈDE LE PAS AU SITE.
+        # Fabriquer 250 feuilles occupe le processeur une a deux minutes.
+        # Sur un petit serveur, cela etouffait tout : la passerelle de
+        # Railway ne recevait plus de reponse et renvoyait « upstream
+        # error » a Maeva. On abaisse donc la priorite de CE thread :
+        # les visiteurs et l'espace de gestion passent devant, la
+        # fabrication prend ce qui reste. Elle dure un peu plus
+        # longtemps, mais le site ne s'arrete plus jamais.
+        try:
+            os.nice(10)
+        except Exception:
+            pass
         try:
             cpf = CARTES_PAR_FEUILLE.get(cmd["programme"], 10)
             nb_cartes = cmd["nb_feuilles"] * cpf
@@ -3431,6 +3447,27 @@ def admin_ravitaillement():
     programme = str(data.get("programme") or "")
     if programme not in REGISTRE_JEUX or "_p15" in programme:
         return jsonify({"ok": False, "message": "Choisis un jeu (gamme ÉCO) dans la liste."}), 400
+    # 🚦 UN SEUL RAVITAILLEMENT À LA FOIS (06/08) : fabriquer 250 feuilles
+    # occupe la machine une a deux minutes. Deux fabrications lancees
+    # ensemble se genent, et tout le site ralentit. On refuse donc
+    # poliment tant que la precedente n'est pas sortie.
+    try:
+        from datetime import datetime as _dt2, timedelta as _td2
+        recent = _dt2.now() - _td2(minutes=6)
+        for _c in db.lister_commandes("payee"):
+            if _c.get("mode_paiement") != "ravitaillement":
+                continue
+            try:
+                _quand = _dt2.fromisoformat(str(_c.get("cree_le") or ""))
+            except Exception:
+                continue
+            if _quand > recent:
+                return jsonify({"ok": False, "message":
+                                "\u23f3 Un ravitaillement est déjà en fabrication "
+                                f"(commande n\u00b0{_c['id']}). Laisse-lui une a deux "
+                                "minutes : son PDF ira au coffre, puis relance."}), 409
+    except Exception:
+        pass
     perso = _json.dumps({
         "theme": "", "nom_evenement": "2KEA & Associé",
         "titre_jeu": "Ravitaillement boutique", "couleur_perso": "",
