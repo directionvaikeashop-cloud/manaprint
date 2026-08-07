@@ -468,6 +468,54 @@ def marquer_commande_generee(commande_id):
         return True
 
 
+def _index_commandes():
+    """Un index sur la date : la base retrouve les dernieres commandes
+    sans relire toute la table. Pose une fois, sans risque s'il existe."""
+    try:
+        with get_db() as conn:
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_cmd_id ON commandes(id DESC)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_cmd_statut ON commandes(statut)")
+    except Exception as e:
+        print(f"[INDEX] {e}")
+
+
+def commandes_du_partenaire(slug, limite=150):
+    """Les commandes d'UN partenaire, triees par la base elle-meme.
+
+    Renvoie (lignes, totaux) :
+      lignes = les `limite` plus recentes, en entier ;
+      totaux = le compte, les feuilles et le du, calcules sur TOUT
+               (une seule requete, sans rien charger en memoire).
+    Le partenaire est ecrit dans params_perso ; on filtre dessus avec
+    LIKE, ce qui evite de lire 1670 commandes en Python.
+    """
+    motif = '%"partenaire": "' + str(slug) + '"%'
+    motif2 = '%"partenaire":"' + str(slug) + '"%'
+    with get_db() as conn:
+        totaux = conn.execute(
+            "SELECT COUNT(*) AS n, "
+            "       COALESCE(SUM(nb_feuilles), 0) AS feuilles, "
+            "       COALESCE(SUM(CASE WHEN mode_paiement = 'fabrique_partenaire' "
+            "                         THEN 0 ELSE nb_feuilles END), 0) AS feuilles_dues "
+            "FROM commandes WHERE params_perso LIKE ? OR params_perso LIKE ?",
+            (motif, motif2)).fetchone()
+        mois = conn.execute(
+            "SELECT COALESCE(SUM(CASE WHEN mode_paiement = 'fabrique_partenaire' "
+            "                         THEN 0 ELSE nb_feuilles END), 0) AS feuilles_dues "
+            "FROM commandes WHERE (params_perso LIKE ? OR params_perso LIKE ?) "
+            "  AND substr(cree_le, 1, 7) = ?",
+            (motif, motif2, datetime.now().isoformat()[:7])).fetchone()
+        rows = conn.execute(
+            "SELECT * FROM commandes WHERE params_perso LIKE ? OR params_perso LIKE ? "
+            "ORDER BY id DESC LIMIT ?", (motif, motif2, int(limite))).fetchall()
+    return [dict(r) for r in rows], {
+        "nb": int(totaux["n"] or 0),
+        "feuilles": int(totaux["feuilles"] or 0),
+        "du_total": round(int(totaux["feuilles_dues"] or 0) * 1.5),
+        "du_mois": round(int(mois["feuilles_dues"] or 0) * 1.5),
+    }
+
+
 def lister_commandes(statut=None):
     with get_db() as conn:
         if statut:
