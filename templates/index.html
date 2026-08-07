@@ -1196,16 +1196,25 @@ async function adminSupprimerCommande(id){
   }catch(e){ alert('Erreur r\u00e9seau'); }
 }
 async function chargerRavJeux(){
-  const sel=document.getElementById('rav-jeu'); if(!sel || sel.options.length) return;
+  const sel=document.getElementById('rav-jeu'); if(!sel) return;
+  // \u26a0\ufe0f 06/08 : le garde « la liste est deja pleine ? » ne suffisait pas.
+  // Plusieurs appels partaient EN MEME TEMPS et, le fetch etant lent, aucun
+  // ne voyait le travail des autres : la liste des 141 jeux se retrouvait
+  // ecrite QUATRE FOIS. On pose donc un verrou AVANT d'attendre le reseau,
+  // et on vide la liste avant de la remplir.
+  if(sel.dataset.charge === 'oui' || sel.dataset.charge === 'encours') return;
+  sel.dataset.charge = 'encours';
   try{
     const r=await fetch('/api/jeux'); const d=await r.json();
+    sel.innerHTML = '';
     (d.jeux||[]).forEach(function(j){ const o=document.createElement('option'); o.value=j.id; o.textContent=(j.emoji||'')+' '+j.nom; sel.appendChild(o); });
-  }catch(e){}
+    sel.dataset.charge = 'oui';
+  }catch(e){ sel.dataset.charge = ''; }
 }
 async function lancerRavitaillement(){
   const sel=document.getElementById('rav-jeu'), msg=document.getElementById('rav-msg'), btn=document.getElementById('rav-btn');
   if(!sel.value){ msg.style.color="var(--coral)"; msg.textContent="Choisis un jeu dans la liste."; return; }
-  btn.disabled=true; msg.style.color="var(--muted)"; msg.textContent="Fabrication en route\u2026";
+  btn.disabled=true; msg.style.color="var(--muted)"; msg.textContent="Fabrication en route\u2026 250 feuilles demandent une a deux minutes. Tu peux fermer cette page : le PDF ira au coffre tout seul (\u2b07\ufe0f dans la liste des commandes).";
   try{
     const r=await fetch('/api/admin/ravitaillement',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({programme:sel.value})});
     const d=await r.json();
