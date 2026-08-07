@@ -1,5 +1,5 @@
 """
-🏝️ TUREIA ATOLL — LE JUMEAU DE L'ATOLL (02/08, sur le dessin de Maeva)
+🏝️ ATOLL DE TUREIA — LE JUMEAU DE L'ATOLL (02/08, sur le dessin de Maeva)
 Chaque poste de la couronne porte son numéro dans un rond blanc ;
 la carte dessinée sert de fond, pâlie pour l'économie de toner.
 6 grilles par feuille A4.
@@ -40,7 +40,7 @@ def _style_chiffres(style):
 
 
 PAGE_W, PAGE_H = A4
-COLS_PAGE, ROWS_PAGE = 2, 3          # 6 grilles / A4 — l'île en grand, sans blanc perdu
+COLS_PAGE, ROWS_PAGE = 2, 4          # 6 grilles / A4 — l'île en grand, sans blanc perdu
 MARGIN_X, MARGIN_TOP, MARGIN_BOT = 8 * mm, 10 * mm, 10 * mm
 GUTTER_X, GUTTER_Y = 4 * mm, 4 * mm
 CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
@@ -79,14 +79,17 @@ COTE = [
 # ── les 9 communes du tour de l'île (fractions de la zone, écartées pour
 #    qu'un nombre de 30 pts tienne dans chaque rond sans toucher son voisin)
 COMMUNES = [
-    ("Passe de Tureia", 0.2450, 0.7530),
-    ("R\u00e9cif", 0.5000, 0.8700),
-    ("Motu Nord", 0.7550, 0.7530),
-    ("Village", 0.8600, 0.4700),
-    ("Motu Est", 0.6830, 0.2660),
-    ("Passe Sud", 0.5000, 0.1340),
-    ("Motu Sud", 0.2450, 0.1870),
-    ("Motu Ouest", 0.1400, 0.4700),
+    # \U0001f4cd Places CALCULEES sur le contour du 06/08 : chaque poste est
+    # sur le recif, a plus de 19 mm de son voisin (un rond en fait 15,2)
+    # et aucun ne tombe sur le QR du centre.
+    ("Motu Nord", 0.1809, 0.8954),
+    ("Passe de Tureia", 0.408, 0.7851),
+    ("Motu Est", 0.7301, 0.686),
+    ("Village", 0.9496, 0.4949),
+    ("Motu Ouest", 0.0749, 0.4497),
+    ("Récif", 0.7113, 0.1974),
+    ("Passe Sud", 0.4878, 0.141),
+    ("Motu Sud", 0.2377, 0.1232),
 ]
 
 # chaque commune tire dans SA plage : le carton fait le tour de 1 à 75
@@ -115,7 +118,9 @@ _NOMS_IMAGE = ['tureia_atoll.png']
 _IMAGE_ILE = next((_os.path.join(_DOSSIER, n) for n in _NOMS_IMAGE
                    if _os.path.exists(_os.path.join(_DOSSIER, n))),
                   _os.path.join(_DOSSIER, _NOMS_IMAGE[0]))
-_RATIO_ILE = 1000.0 / 623.0   # proportions du dessin de l'atoll
+_RATIO_ILE = 1000.0 / 453.0   # proportions du CONTOUR de Maeva (06/08)
+# \u26a0\ufe0f Ce ratio doit TOUJOURS suivre celui de tureia_atoll.png : c'est lui
+# qui calcule la zone ou l'atoll est dessine, donc ou se posent les postes.
 
 
 def _ile(c, x0, y0, zx, zy, zw, zh, col):
@@ -156,7 +161,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     # en-tête : le nom du jeu s'écrit TOUJOURS, le titre client s'ajoute
     # ✍️ la devise de Maeva, TOUJOURS dans la grille : la taille s'ajuste
     from reportlab.pdfbase.pdfmetrics import stringWidth as _lg
-    devise = "TUREIA \u00b7 Hier, Aujourd'hui, Demain jusqu'au ciel"
+    devise = "ATOLL DE TUREIA \u00b7 Hier, Aujourd'hui, Demain jusqu'au ciel"
     place = CARD_W - 7 * mm
     t = 9.0
     while t > 5.4 and _lg(devise, "Helvetica-Bold", t) > place:
@@ -200,12 +205,19 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
         c.setFillColor(col); c.setFont("Helvetica", 5.6)
         c.drawCentredString(cx, cy - r - 3.0 * mm, nom)
 
-    # QR de contrôle — au cœur de l'île, là où sont les monts
+    # QR de contrôle — EN BAS À GAUCHE, dans l'espace libre (sceau Maeva
+    # 06/08). L'atoll etant tres plat, il occupe la bande du milieu et
+    # laisse le bas du carton vide : mesure faite, cette zone ne porte
+    # que 1,2 % d'encre contre 10 % au centre. Le QR n'y gene plus aucun
+    # poste et ne se pose plus sur le lagon.
     if _sec and evenement_id:
         try:
-            q = 14.0 * mm
-            _sec.carton_qr(c, x0 + zx + zw * 0.50 - q / 2, y0 + zy + zh * 0.47 - q / 2,
-                           q, evenement_id, serie)
+            # \U0001f4d0 06/08 : a 8 cartons par feuille le carton est plus bas,
+            # le QR se range donc dans le coin et se fait plus petit —
+            # mesure : 2,6 mm du poste le plus proche, aucun contact.
+            q = 11.5 * mm
+            _sec.carton_qr(c, x0 + 3.0 * mm, y0 + 2.0 * mm,
+                           q, evenement_id, serie, avec_code=False)
         except Exception:
             pass
 
@@ -246,4 +258,4 @@ if __name__ == "__main__":
     pdf = generer_pdf(nb_cartes=6, couleur=True, titre_jeu="TUREIA", telephone="89 22 23 05")
     with open("test_tureia_atoll.pdf", "wb") as f:
         f.write(pdf.read())
-    print("TUREIA ATOLL généré")
+    print("ATOLL DE TUREIA généré")
