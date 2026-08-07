@@ -60,6 +60,20 @@ def mode_rapide_actif():
 # Le client emporte le fichier : il l'imprimera, et le photocopiera. Le QR
 # de verification n'a plus de sens hors de nos machines ; a sa place, notre
 # adresse. Chaque photocopie devient alors une petite publicite.
+def activer_sans_qr(actif=True):
+    """Supprime le QR des cartons, pour le thread courant.
+
+    Utilise pour les tirages INTERNES (ravitaillement de la boutique,
+    fabrique a l'enseigne d'un partenaire) : le QR n'y sert a rien, et
+    sa place gagnee allege la page.
+    """
+    _mode_local.sans_qr = bool(actif)
+
+
+def sans_qr_actif():
+    return getattr(_mode_local, "sans_qr", False)
+
+
 def activer_signature(actif=True):
     """Remplace le QR par la signature TUKEA, pour le thread courant."""
     _mode_local.signature = bool(actif)
@@ -105,6 +119,8 @@ def carton_qr(c, x, y, taille, evenement_id, serie, **options):
     options : position_code="bas" (défaut) ou "droite".
     En mode SIGNATURE (offre « PDF seul »), la signature TUKEA prend la
     place du QR : le fichier part chez le client, la copie fait la publicite."""
+    if sans_qr_actif():
+        return False          # tirage de la maison : pas de QR du tout
     if signature_active():
         try:
             return _signature_a_la_place(c, x, y, taille)
