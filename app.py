@@ -639,6 +639,10 @@ def _setup():
     if not getattr(app, "_db_ready", False):
         db.init_db()
         db.init_machines(4)
+        try:
+            db._index_commandes()   # ⚡ la base retrouve vite les dernieres commandes
+        except Exception:
+            pass
         app._db_ready = True
 
 
@@ -2878,58 +2882,50 @@ def api_partenaire_logout():
 
 @app.route("/api/partenaire/mes-commandes", methods=["GET"])
 def api_partenaire_mes_commandes():
+    """Le tableau de bord du partenaire.
+
+    ⚡ 06/08 — REFAIT A LA RACINE. Avant, cette route chargeait TOUTES
+    les commandes de la boutique (plus de 1600) et lisait le detail de
+    chacune en Python pour ne garder que celles du partenaire : beaucoup
+    de travail a chaque ouverture, et quand le serveur fabriquait, la
+    passerelle abandonnait (« upstream error »). Desormais la BASE fait
+    le tri elle-meme et ne renvoie que le necessaire.
+    """
     import json as _json
-    from datetime import date as _date
     slug, part = _partenaire_session()
     if not slug:
         return jsonify({"ok": False, "message": "connexion requise"}), 403
-    mois = _date.today().isoformat()[:7]
-    lignes = []
-    nb_f = du_total = du_mois = total_lignes = 0
     try:
-        commandes = db.lister_commandes()
-    except Exception:  # base occupée par la fabrication : on répond poliment
-        return jsonify({"ok": False, "message": "Le serveur fabrique vos cartons — réessayez dans un instant"}), 200
-    # \u26a1 06/08 : le coffre est lu UNE SEULE FOIS. Avant, on demandait au
-    # disque « ce fichier existe-t-il ? » deux fois par commande — plus de
-    # 3000 questions a chaque ouverture, et l'espace partenaire restait
-    # bloque sur « Actualisation... » (le disque de Railway est en reseau).
+        commandes, totaux = db.commandes_du_partenaire(slug, limite=150)
+    except Exception as e:
+        print(f"[PARTENAIRE] lecture impossible : {e}")
+        return jsonify({"ok": False,
+                        "message": "Le serveur est occupé — réessayez dans un instant"}), 200
+    # le coffre est lu UNE seule fois (le disque de Railway est en reseau)
     try:
         au_coffre_tous = set(os.listdir(_dossier_lots()))
     except Exception:
         au_coffre_tous = set()
-    # Et on n'affiche que les 150 dernieres commandes : les TOTAUX, eux,
-    # restent calcules sur la totalite.
-    DETAIL_MAX = 150
+    lignes = []
     for cmd in commandes:
         try:
             perso = _json.loads(cmd.get("params_perso") or "{}")
         except Exception:
             perso = {}
-        if (perso.get("partenaire") or "") != slug:
-            continue
-        du = 0 if cmd.get("mode_paiement") == "fabrique_partenaire" else round(int(cmd.get("nb_feuilles") or 0) * 1.5)
-        nb_f += int(cmd.get("nb_feuilles") or 0)
-        du_total += du
-        if (cmd.get("cree_le") or "")[:7] == mois:
-            du_mois += du
-        total_lignes = total_lignes + 1
-        if len(lignes) >= DETAIL_MAX:
-            continue
-        au_coffre = f"cmd{cmd['id']}_cartons.pdf" in au_coffre_tous
-        fact_ok = f"cmd{cmd['id']}_facture.pdf" in au_coffre_tous
+        du = 0 if cmd.get("mode_paiement") == "fabrique_partenaire" else round(
+            int(cmd.get("nb_feuilles") or 0) * 1.5)
         lignes.append({
             "id": cmd["id"], "date": (cmd.get("cree_le") or "")[:16].replace("T", " "),
             "identifiant": cmd.get("identifiant", ""), "programme": cmd.get("programme", ""),
             "nb_feuilles": cmd.get("nb_feuilles", 0), "statut": cmd.get("statut", ""),
-            "du": du, "cartons": au_coffre, "facture": fact_ok,
+            "du": du,
+            "cartons": f"cmd{cmd['id']}_cartons.pdf" in au_coffre_tous,
+            "facture": f"cmd{cmd['id']}_facture.pdf" in au_coffre_tous,
             "evenement": perso.get("nom_evenement", "") or perso.get("titre_jeu", ""),
         })
     return jsonify({"ok": True, "nom": part["nom"], "zone": part.get("zone", ""),
-                    "commandes": lignes,
-                    "stats": {"nb": total_lignes, "feuilles": nb_f,
-                              "du_mois": du_mois, "du_total": du_total},
-                    "detail_limite": total_lignes > len(lignes)})
+                    "commandes": lignes, "stats": totaux,
+                    "detail_limite": totaux.get("nb", 0) > len(lignes)})
 
 
 @app.route("/api/partenaire/generer", methods=["POST"])
