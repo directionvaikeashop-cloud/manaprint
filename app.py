@@ -2995,6 +2995,8 @@ def api_partenaire_generer():
         "theme": "", "nom_evenement": enseigne, "titre_jeu": enseigne,
         "couleur_perso": "", "date_lieu": part.get("zone", ""), "telephone": telephone,
         "partenaire": slug,
+        # 🖨️ la case « Impression rapide » de l'espace partenaire
+        "impression_rapide": bool(data.get("impression_rapide", True)),
     })
     commande_id, _ = db.creer_commande(
         identifiant=enseigne, origine="polynesien",
@@ -3509,7 +3511,10 @@ def admin_ravitaillement():
         "theme": "", "nom_evenement": "2KEA & Associé",
         "titre_jeu": "Ravitaillement boutique", "couleur_perso": "",
         "date_lieu": "Papeete", "telephone": "89 52 98 83",
-        "partenaire": "2kea_papeete", "impression_rapide": True,
+        "partenaire": "2kea_papeete",
+        # 🖨️ la case « Impression rapide » de l'espace de gestion — cochée par
+        # défaut : c'est le réglage qui sort le plus vite à l'imprimante.
+        "impression_rapide": bool(data.get("impression_rapide", True)),
     })
     commande_id, _ = db.creer_commande(
         identifiant="2KEA_BOUTIQUE", origine="polynesien",
