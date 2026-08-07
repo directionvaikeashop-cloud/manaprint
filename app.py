@@ -2250,6 +2250,10 @@ def generer_commande(commande_id):
         # verification n'a plus de sens -> la signature TUKEA prend sa place,
         # et chaque photocopie devient une petite publicite.
         _secs.activer_signature(bool(couleur) and perso.get("offre") == "pdf")
+        # 🏠 TIRAGE DE LA MAISON (ravitaillement, fabrique a l'enseigne) :
+        # pas de QR — il ne sert qu'aux commandes des clients.
+        _secs.activer_sans_qr(cmd.get("mode_paiement") in
+                              ("ravitaillement", "fabrique_partenaire"))
     except Exception:
         pass
     try:
@@ -2259,6 +2263,7 @@ def generer_commande(commande_id):
         try:
             _secs.activer_mode_rapide(False)
             _secs.activer_signature(False)
+            _secs.activer_sans_qr(False)
         except Exception:
             pass
 
@@ -2373,9 +2378,17 @@ def lancer_fabrication(commande_id, seulement_rapport=False):
             try:
                 from generators import securite as _secm
                 _secm.activer_mode_rapide(bool(perso.get("impression_rapide")))
-                _secm.activer_signature(bool(couleur) and perso.get("offre") == "pdf")
-            except Exception:
-                pass
+                # ⚠️ 07/08 : ici la couleur se lit dans la COMMANDE (cmd), pas
+                # dans une variable `couleur` — celle-ci n'existe pas dans ce
+                # thread. L'erreur etait avalee par le except, et TOUS les
+                # reglages tombaient avec elle (la signature ne s'appliquait
+                # donc jamais sur ce chemin).
+                _secm.activer_signature(bool(cmd["couleur"]) and perso.get("offre") == "pdf")
+                # 🏠 TIRAGE DE LA MAISON : pas de QR (il ne sert qu'aux clients)
+                _secm.activer_sans_qr(cmd.get("mode_paiement") in
+                                      ("ravitaillement", "fabrique_partenaire"))
+            except Exception as _e:
+                print(f"[DRAPEAUX] non poses : {_e}")
             try:
                 # 🎲 chaque commande = son propre point de départ (cartes UNIQUES,
                 # mais refabrication à l'identique pour le 📬 Renvoyer)
@@ -2386,6 +2399,7 @@ def lancer_fabrication(commande_id, seulement_rapport=False):
                 try:
                     _secm.activer_mode_rapide(False)
                     _secm.activer_signature(False)
+                    _secm.activer_sans_qr(False)
                 except Exception:
                     pass
             # 🗄️ AU COFFRE-FORT d'abord : le PDF est sauvé sur le disque —
