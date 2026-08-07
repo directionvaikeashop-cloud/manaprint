@@ -109,11 +109,44 @@ def _gen_carte(rng):
 
 
 import os as _os
-_IMAGE_ILE = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "moorea_ile.png")
 _RATIO_ILE = 1000.0 / 752.0     # proportions du CONTOUR de Maeva (06/08)
 # \u26a0\ufe0f Ce ratio doit TOUJOURS suivre celui de moorea_ile.png : c'est lui
 # qui calcule la zone ou l'ile est dessinee, et donc ou se posent les ronds
 # des communes. Un ratio perime = des numeros a cote de leur cote.
+
+def _choisir_image(motif, ratio_attendu):
+    """🛟 Retrouve la bonne image, quel que soit son nom de fichier.
+
+    Parmi tous les fichiers du dossier dont le nom contient `motif`,
+    on garde celui dont les PROPORTIONS collent au dessin attendu.
+    Ainsi, ni un prefixe de livraison, ni un « (1) », ni une ancienne
+    version restee la ne peuvent tromper le jeu.
+    """
+    dossier = _os.path.dirname(_os.path.abspath(__file__))
+    exact = _os.path.join(dossier, motif + ".png")
+    candidats = []
+    try:
+        for f in _os.listdir(dossier):
+            if motif in f and f.lower().endswith(".png"):
+                candidats.append(_os.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart_min = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                ecart = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if ecart < ecart_min:
+            meilleur, ecart_min = chemin, ecart
+    return meilleur
+
+
+_IMAGE_ILE = _choisir_image("moorea_ile", _RATIO_ILE)
 
 
 def _ile(c, x0, y0, zx, zy, zw, zh, col):
