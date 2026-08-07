@@ -215,14 +215,34 @@ async function actualiser(){
 // (fabrication en cours) » — un message trompeur qui envoyait
 // Tatie chercher un probleme qui n'existait pas.
 var DERNIERE_RAISON = '';
+// \ud83d\udd01 06/08 : l'ecran REESSAIE TOUT SEUL. Si le serveur est occupe
+// (une fabrication tourne) ou si la passerelle abandonne, on retente
+// deux fois, a une puis trois secondes, avant de dire quoi que ce soit.
+// Tatie ne voit plus d'erreur pour une simple seconde d'attente.
+function attendre(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+async function demanderCommandes(){
+  var attentes = [0, 1200, 3000];
+  for (var i = 0; i < attentes.length; i++){
+    if (attentes[i]) await attendre(attentes[i]);
+    try{
+      const r = await fetch('/api/partenaire/mes-commandes', {cache: 'no-store'});
+      if (r.status === 403){ DERNIERE_RAISON = 'session'; return null; }  // inutile d'insister
+      if (r.ok){
+        const d = await r.json();
+        if (d && d.ok) return d;
+        DERNIERE_RAISON = (d && d.message) || 'refus';
+      } else {
+        DERNIERE_RAISON = 'http' + r.status;
+      }
+    }catch(e){ DERNIERE_RAISON = 'reseau'; }
+  }
+  return null;
+}
 async function charger(){
   DERNIERE_RAISON = '';
   try{
-    const r = await fetch('/api/partenaire/mes-commandes');
-    if(r.status === 403){ DERNIERE_RAISON = 'session'; return false; }
-    if(!r.ok){ DERNIERE_RAISON = 'http' + r.status; return false; }
-    const d = await r.json();
-    if(!d.ok){ DERNIERE_RAISON = d.message || 'refus'; return false; }
+    const d = await demanderCommandes();
+    if(!d) return false;
     document.getElementById('zone-login').style.display='none';
     document.getElementById('zone-bord').style.display='';
     document.getElementById('bord-nom').textContent = '🏪 ' + d.nom;
