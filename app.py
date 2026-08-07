@@ -481,7 +481,7 @@ _enregistrer_paire("ngo_casino",    "NGO CASINO","🎰", 12, ngo.generer_pdf_cas
 _enregistrer_paire("diamant",       "DIAMANT","💎", 6,  diamant.generer_pdf)
 _enregistrer_paire("rui",           "RUI","🎴", 12, rui.generer_pdf)
 _enregistrer_paire("tureia",        "TUREIA","🔶", 6,  tureia.generer_pdf)
-_enregistrer_paire("tureia_atoll", "TUREIA ATOLL","🏝️", 6,  tureia_atoll.generer_pdf)
+_enregistrer_paire("tureia_atoll", "ATOLL DE TUREIA","🏝️", 8,  tureia_atoll.generer_pdf)
 _enregistrer_paire("vanille",      "VANILLE DE DONA","🌼", 6,  vanille.generer_pdf)
 _enregistrer_paire("spacex",       "SPACE X",   "🚀", 1,  spacex.generer_pdf)
 _enregistrer_paire("champagne",     "CHAMPAGNE","🥂", 6,  champagne.generer_pdf)
