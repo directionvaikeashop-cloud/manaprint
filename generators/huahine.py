@@ -1,16 +1,22 @@
 # -*- coding: utf-8 -*-
 """
 MANAPRINT — Générateur HUAHINE (format A4)
-8 cartes par feuille A4 (2 colonnes × 4 rangées). Le jeu « pour 6 boules ».
-Chaque carte : 6 numéros disposés en croix (fidèle au modèle) :
-  coin HAUT-GAUCHE  (1-15)     coin HAUT-DROIT  (76-90)
-        PAIRE CENTRALE côte à côte (46-60)
-  coin BAS-GAUCHE   (1-15)     coin BAS-DROIT   (76-90)
-En-tête : « Le jeu HUAHINE · pour 6 boules Tél : … »
-Pied de carte : « N° SERIE | 036001 ».
-Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
+
+⛵ REFAIT LE 07/08 (sceau Maeva, disposition n°3) : la CARTE DE L'ÎLE à
+gauche — avec ses baies, ses passes et ses villages — et les SIX NUMÉROS
+en colonne à droite, chacun sous le nom de son village.
+
+C'est la disposition qui donne les plus gros chiffres : sur la carte,
+Haapu et Parea sont si proches que deux ronds se toucheraient.
+
+RÈGLE INCHANGÉE : 6 numéros, deux par famille — 1-15, 46-60, 76-90.
+Chaque village porte sa famille, du nord au sud :
+    FARE (1-15) · Avea (76-90) · Haapu (1-15)
+    Parea (46-60) · Maeva (76-90) · Faie (46-60)
+Le sac du crieur ne change donc pas d'un chiffre.
 """
 import io
+import os as _os
 import random
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -82,6 +88,46 @@ GUTTER_Y = 4 * mm
 CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
 CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
 
+# 🗺️ LA CARTE DE MAEVA et ses six villages, du nord au sud.
+# Chaque village porte SA famille de numéros — la règle du jeu est
+# inchangée, seul l'habillage a changé.
+_RATIO_ILE = 900.0 / 1041.0        # la carte est plus HAUTE que large
+VILLAGES = ["FARE", "Avea", "Haapu", "Parea", "Maeva", "Faie"]
+
+
+def _choisir_image(motif, ratio_attendu):
+    """🛟 Retrouve la carte, quel que soit son nom de fichier.
+
+    Au téléversement le nom peut garder un préfixe ou recevoir un
+    « (1) », et une ancienne version peut rester dans le dossier : on
+    prend celui dont les PROPORTIONS collent au dessin attendu.
+    """
+    dossier = _os.path.dirname(_os.path.abspath(__file__))
+    exact = _os.path.join(dossier, motif + ".png")
+    candidats = []
+    try:
+        for f in _os.listdir(dossier):
+            if motif in f and f.lower().endswith(".png"):
+                candidats.append(_os.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_ILE = _choisir_image("huahine_ile", _RATIO_ILE)
+
 
 def _gen_carte(rng):
     """6 numéros : 2 à gauche (1-15), 2 au centre (46-60), 2 à droite (76-90)."""
@@ -122,31 +168,73 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     c.setFillColor(col); c.setFont(POLICE, 6)
     c.drawRightString(x0 + CARD_W - 3 * mm, y0 + 1.5 * mm, "%06d" % serie)
 
-    # Zone de jeu (entre l'en-tête et le pied)
-    z_bot = y0 + PIED_H + 2 * mm
-    z_top = hdr_y - 3 * mm
+    # ═══ LA CARTE À GAUCHE, LES SIX VILLAGES À DROITE (07/08) ═══
+    z_bot = y0 + PIED_H + 1.6 * mm
+    z_top = hdr_y - 2.6 * mm
     z_h = z_top - z_bot
-    taille = 36  # bien gros (Maeva, juil. 2026)
-    positions = [
-        (hg, x0 + CARD_W * 0.13, z_bot + z_h * 0.80),   # haut-gauche  (1-15)
-        (hd, x0 + CARD_W * 0.87, z_bot + z_h * 0.80),   # haut-droit   (76-90)
-        (c1, x0 + CARD_W * 0.38, z_bot + z_h * 0.47),   # centre-1     (46-60)
-        (c2, x0 + CARD_W * 0.62, z_bot + z_h * 0.47),   # centre-2     (46-60)
-        (bg, x0 + CARD_W * 0.13, z_bot + z_h * 0.14),   # bas-gauche   (1-15)
-        (bd, x0 + CARD_W * 0.87, z_bot + z_h * 0.14),   # bas-droit    (76-90)
-    ]
-    for val, px, py in positions:
-        if _sec:  # chiffres "billet de banque" remplis de microtexte
-            _sec.chiffre_micro(c, val, px, py - taille * 0.36, taille, gris_ch, police_ch)
-        else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-            c.drawCentredString(px, py - taille * 0.36, str(val))
 
-    # QR de vérification par carte (anti-duplication) — centre bas, entre les coins
+    # ── la carte de l'île, à gauche, aussi grande que la place le permet ──
+    part_carte = 0.42                      # elle prend 42 % de la largeur
+    PLACE_QR = 12.5 * mm               # la bande du bas, reservee au QR
+    ilw = CARD_W * part_carte - 4.0 * mm
+    ilh = ilw / _RATIO_ILE
+    if ilh > z_h - PLACE_QR:
+        ilh = z_h - PLACE_QR
+        ilw = ilh * _RATIO_ILE
+    ilx = x0 + 2.5 * mm
+    ily = z_bot + PLACE_QR + (z_h - PLACE_QR - ilh) / 2
+    if _os.path.exists(_IMAGE_ILE):
+        try:
+            c.drawImage(_IMAGE_ILE, ilx, ily, ilw, ilh, mask="auto",
+                        preserveAspectRatio=True)
+        except Exception:
+            pass
+
+    # ── les six villages, en colonne à droite ────────────────────────────
+    # L'ordre suit la règle : FARE et Haapu (1-15), Parea et Faie (46-60),
+    # Avea et Maeva (76-90) — la même que depuis toujours.
+    # FARE (1-15) · Avea (76-90) · Haapu (1-15) · Parea (46-60)
+    # Maeva (76-90) · Faie (46-60)  — conforme a l'en-tete du fichier
+    valeurs = [hg, hd, bg, c1, bd, c2]
+    # 🔢 LES VILLAGES EN DEUX COLONNES DE TROIS (07/08) : en une seule
+    # colonne de six, la hauteur limitait les chiffres a 22 pt — moins
+    # qu'avant. Sur deux colonnes, chaque case est deux fois plus haute
+    # et les chiffres retrouvent leur calibre de maison.
+    gx = x0 + CARD_W * part_carte + 1.0 * mm
+    gw = CARD_W - (gx - x0) - 2.5 * mm
+    ECART = 1.4 * mm
+    cw = (gw - ECART) / 2.0
+    lh = z_h / 3.0
+    taille = min(34.0, (lh * 0.90 - 4.2 * mm) / 0.72 * 72 / 25.4,
+                 cw * 0.62 / 0.60 * 72 / 25.4)
+    for i, (nom, val) in enumerate(zip(VILLAGES, valeurs)):
+        colonne, rangee = i % 2, i // 2
+        bx = gx + colonne * (cw + ECART)
+        by = z_top - (rangee + 1) * lh
+        c.setFillColor(colors.white)
+        c.setStrokeColor(col)
+        c.setLineWidth(0.55)
+        c.roundRect(bx, by + lh * 0.06, cw, lh * 0.88, 1.4 * mm, stroke=1, fill=1)
+        # le numéro, au centre de sa case
+        nx = bx + cw / 2
+        ny = by + lh * 0.5 - taille * 0.30 + 1.2 * mm
+        if _sec:
+            _sec.chiffre_micro(c, val, nx, ny, taille, gris_ch, police_ch)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(police_ch, taille)
+            c.drawCentredString(nx, ny, str(val))
+        # le nom du village, sous son numéro
+        c.setFillColor(col)
+        c.setFont(POLICE, 5.8)
+        c.drawCentredString(nx, by + lh * 0.14, nom)
+
+    # ── le QR, sous la carte, là où il ne gêne personne ──────────────────
     if _sec and evenement_id:
         try:
-            _q = 13.0 * mm
-            _sec.carton_qr(c, x0 + (CARD_W - _q) / 2, y0 + PIED_H + 1.2 * mm, _q, evenement_id, serie)
+            _q = min(10.5 * mm, ilw * 0.62)
+            _sec.carton_qr(c, ilx + (ilw - _q) / 2, z_bot + (PLACE_QR - _q) / 2,
+                           _q, evenement_id, serie, avec_code=False)
         except Exception:
             pass
 
