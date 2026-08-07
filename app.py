@@ -138,6 +138,12 @@ from generators import ohana75_20boules
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("MANAPRINT_SECRET", "dev-secret-a-changer-en-prod")
+# \U0001f511 06/08 : une connexion partenaire tient 30 JOURS. Avant, le cookie
+# mourait a la fermeture du navigateur — sur un telephone, cela arrive
+# sans arret, et l ecran affichait alors « Serveur occupe » (message
+# trompeur) au lieu de proposer de se reconnecter.
+from datetime import timedelta as _timedelta
+app.permanent_session_lifetime = _timedelta(days=30)
 
 # ── Envoi d'email (impression partenaire FUN AND CO) ──────────────────────────
 import smtplib
@@ -2840,6 +2846,7 @@ def api_partenaire_login():
         return jsonify({"ok": False, "message": "Entrez votre code partenaire."})
     for slug, part in PARTENAIRES.items():
         if code == _normaliser_code(part.get("code", "")):
+            session.permanent = True          # la connexion tient 30 jours
             session["partenaire_slug"] = slug
             return jsonify({"ok": True, "nom": part["nom"], "zone": part.get("zone", "")})
     return jsonify({"ok": False, "message":
