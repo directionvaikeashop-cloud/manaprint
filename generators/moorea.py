@@ -110,7 +110,10 @@ def _gen_carte(rng):
 
 import os as _os
 _IMAGE_ILE = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "moorea_ile.png")
-_RATIO_ILE = 1105.0 / 893.0     # proportions du croquis de Maeva
+_RATIO_ILE = 1000.0 / 752.0     # proportions du CONTOUR de Maeva (06/08)
+# \u26a0\ufe0f Ce ratio doit TOUJOURS suivre celui de moorea_ile.png : c'est lui
+# qui calcule la zone ou l'ile est dessinee, et donc ou se posent les ronds
+# des communes. Un ratio perime = des numeros a cote de leur cote.
 
 
 def _ile(c, x0, y0, zx, zy, zw, zh, col):
