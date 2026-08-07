@@ -112,13 +112,40 @@ def _gen_carte(rng):
 
 import os as _os
 _DOSSIER = _os.path.dirname(_os.path.abspath(__file__))
-# 🖼️ le dessin est cherché sous ses noms possibles (le nom propre d'abord,
-# puis le nom de livraison) : plus besoin de renommer quoi que ce soit.
-_NOMS_IMAGE = ['tureia_atoll.png']
-_IMAGE_ILE = next((_os.path.join(_DOSSIER, n) for n in _NOMS_IMAGE
-                   if _os.path.exists(_os.path.join(_DOSSIER, n))),
-                  _os.path.join(_DOSSIER, _NOMS_IMAGE[0]))
 _RATIO_ILE = 1000.0 / 453.0   # proportions du CONTOUR de Maeva (06/08)
+
+def _choisir_image(motif, ratio_attendu):
+    """🛟 Retrouve la bonne image, quel que soit son nom de fichier.
+
+    Parmi tous les fichiers du dossier dont le nom contient `motif`,
+    on garde celui dont les PROPORTIONS collent au dessin attendu.
+    Ainsi, ni un prefixe de livraison, ni un « (1) », ni une ancienne
+    version restee la ne peuvent tromper le jeu.
+    """
+    dossier = _os.path.dirname(_os.path.abspath(__file__))
+    exact = _os.path.join(dossier, motif + ".png")
+    candidats = []
+    try:
+        for f in _os.listdir(dossier):
+            if motif in f and f.lower().endswith(".png"):
+                candidats.append(_os.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart_min = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                ecart = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if ecart < ecart_min:
+            meilleur, ecart_min = chemin, ecart
+    return meilleur
+
+_IMAGE_ILE = _choisir_image("tureia_atoll", _RATIO_ILE)
 # \u26a0\ufe0f Ce ratio doit TOUJOURS suivre celui de tureia_atoll.png : c'est lui
 # qui calcule la zone ou l'atoll est dessine, donc ou se posent les postes.
 
