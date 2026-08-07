@@ -317,6 +317,10 @@
         <select id="rav-jeu" style="margin-bottom:0;flex:1;min-width:200px"></select>
         <button class="btn" id="rav-btn" style="width:auto;padding:0 1.4rem;white-space:nowrap" onclick="lancerRavitaillement()">📦 Commander 250 feuilles</button>
       </div>
+      <label class="field-label" style="display:flex;align-items:center;gap:.55rem;cursor:pointer;margin:.4rem 0 .6rem">
+        <input id="rav-rapide" type="checkbox" checked style="width:auto;margin:0;accent-color:var(--teal)">
+        <span>\ud83d\udda8\ufe0f Impression rapide \u2014 cartons sans microtexte : ils sortent bien plus vite \u00e0 l\u2019imprimante. Laissez coch\u00e9 pour les tirages boutique.</span>
+      </label>
       <p id="rav-msg" style="font-size:.85rem;margin-bottom:1rem"></p>
       <!-- Clients PI -->
       <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">🧾 Facture partenaire — dû 2KEA & Associé</h2>
@@ -1216,7 +1220,7 @@ async function lancerRavitaillement(){
   if(!sel.value){ msg.style.color="var(--coral)"; msg.textContent="Choisis un jeu dans la liste."; return; }
   btn.disabled=true; msg.style.color="var(--muted)"; msg.textContent="Fabrication en route\u2026 250 feuilles demandent une a deux minutes. Tu peux fermer cette page : le PDF ira au coffre tout seul (\u2b07\ufe0f dans la liste des commandes).";
   try{
-    const r=await fetch('/api/admin/ravitaillement',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({programme:sel.value})});
+    const r=await fetch('/api/admin/ravitaillement',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({programme:sel.value,impression_rapide:!!(document.getElementById('rav-rapide')&&document.getElementById('rav-rapide').checked)})});
     const d=await r.json();
     msg.style.color=d.ok?"var(--teal)":"var(--coral)"; msg.textContent=d.message||'';
   }catch(e){ msg.style.color="var(--coral)"; msg.textContent="Erreur r\u00e9seau."; }
