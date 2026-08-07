@@ -197,17 +197,32 @@ async function actualiser(){
     msg.textContent = '\u2705 \u00e0 jour \u00e0 ' + String(h.getHours()).padStart(2,'0') + ':' + String(h.getMinutes()).padStart(2,'0') + ':' + String(h.getSeconds()).padStart(2,'0');
   }else{
     msg.style.color = 'var(--coral)';
-    msg.textContent = '\u274c Serveur occup\u00e9 (fabrication en cours\u2026) \u2014 r\u00e9essayez dans un instant';
-    expliquerVide();
+    if(DERNIERE_RAISON === 'session'){
+      msg.textContent = '\ud83d\udd11 Votre session a expir\u00e9 \u2014 reconnectez-vous avec votre code.';
+      document.getElementById('zone-bord').style.display='none';
+      document.getElementById('zone-login').style.display='';
+    }else if(DERNIERE_RAISON && DERNIERE_RAISON.indexOf('http') === 0){
+      msg.textContent = '\u274c Le serveur a r\u00e9pondu ' + DERNIERE_RAISON.slice(4) + ' \u2014 r\u00e9essayez, puis pr\u00e9venez-nous si cela persiste.';
+    }else{
+      msg.textContent = '\u274c ' + (DERNIERE_RAISON || 'Le serveur n\'a pas r\u00e9pondu') + ' \u2014 r\u00e9essayez dans un instant.';
+      expliquerVide();
+    }
   }
 }
 
+// \ud83e\udded 06/08 : charger() dit desormais POURQUOI il echoue.
+// Avant, une simple session expiree affichait « Serveur occupe
+// (fabrication en cours) » — un message trompeur qui envoyait
+// Tatie chercher un probleme qui n'existait pas.
+var DERNIERE_RAISON = '';
 async function charger(){
+  DERNIERE_RAISON = '';
   try{
     const r = await fetch('/api/partenaire/mes-commandes');
-    if(r.status === 403){ return false; }   // pas connecté : l'écran de connexion reste
+    if(r.status === 403){ DERNIERE_RAISON = 'session'; return false; }
+    if(!r.ok){ DERNIERE_RAISON = 'http' + r.status; return false; }
     const d = await r.json();
-    if(!d.ok) return false;
+    if(!d.ok){ DERNIERE_RAISON = d.message || 'refus'; return false; }
     document.getElementById('zone-login').style.display='none';
     document.getElementById('zone-bord').style.display='';
     document.getElementById('bord-nom').textContent = '🏪 ' + d.nom;
