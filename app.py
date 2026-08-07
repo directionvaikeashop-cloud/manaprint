@@ -2718,19 +2718,41 @@ DELAI_FABRICATION_FIGEE = 1500  # 25 minutes : au-dela, la fabrication est perdu
 MAX_RELANCES = 3
 
 
+# 🚑 06/08 — GARDE-FOUS D'URGENCE.
+# Le veilleur relancait TOUTES les commandes « payee » restees en rade,
+# meme vieilles de plusieurs semaines : sur la vraie base cela faisait
+# 180 fabrications lancees ENSEMBLE, toutes les 10 minutes. Le serveur
+# ne repondait plus a personne et plus aucun PDF ne sortait.
+# Desormais : UNE SEULE a la fois, et seulement les commandes RECENTES.
+AGE_MAX_RELANCE = 6 * 3600      # au-dela de 6 heures, on ne relance plus
+RELANCES_PAR_TOUR = 1           # une seule fabrication relancee par tour
+
+
 def _fabrications_figees():
-    """Les commandes payees dont la fabrication n'a jamais abouti."""
+    """La (ou les) commande(s) recente(s) dont la fabrication n'a pas abouti.
+
+    On ne remonte pas plus loin que 6 heures : au-dela, la commande est
+    trop vieille pour etre relancee toute seule — Tatie la refabriquera
+    au 📬 si elle en a besoin. Et on n'en rend qu'UNE a la fois, pour ne
+    jamais etouffer le serveur.
+    """
     from datetime import datetime as _dtt, timedelta as _td
-    limite = _dtt.now() - _td(seconds=DELAI_FABRICATION_FIGEE)
+    maintenant = _dtt.now()
+    trop_recent = maintenant - _td(seconds=DELAI_FABRICATION_FIGEE)
+    trop_vieux = maintenant - _td(seconds=AGE_MAX_RELANCE)
     figees = []
     for c in db.lister_commandes("payee"):
         try:
             quand = _dtt.fromisoformat(str(c.get("cree_le") or ""))
         except Exception:
             continue
-        if quand < limite and _FABRIC_RELANCES.get(c["id"], 0) < MAX_RELANCES:
-            figees.append(c)
-    return figees
+        if not (trop_vieux < quand < trop_recent):
+            continue
+        if _FABRIC_RELANCES.get(c["id"], 0) >= MAX_RELANCES:
+            continue
+        figees.append((quand, c))
+    figees.sort(key=lambda x: x[0], reverse=True)      # la plus recente d'abord
+    return [c for _q, c in figees[:RELANCES_PAR_TOUR]]
 
 
 def _veilleur_fabrications():
