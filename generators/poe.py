@@ -49,7 +49,12 @@ def _style_chiffres(style):
 
 
 PAGE_W, PAGE_H = A4
-COLS_PAGE, ROWS_PAGE = 2, 3               # 6 cartes / A4
+COLS_PAGE, ROWS_PAGE = 3, 4               # 12 cartes / A4 (sceau Maeva 08/08)
+# ⚠️ Le calibre de 30 pt est CONSERVE : sur un carton de 61x68 mm, les six
+# medaillons tiennent en 2 colonnes x 3 rangees avec 18,4 x 26,8 mm chacun,
+# alors qu'un nombre de 30 pt n'en demande que 18,2 x 14,5. Mesure faite.
+# (La disposition 2x6 - carton 94x44 - a ete essayee : les medaillons s'y
+#  chevauchent, elle est ecartee.)
 MARGIN_X, MARGIN_TOP, MARGIN_BOT = 9 * mm, 6 * mm, 9 * mm
 GUTTER_X, GUTTER_Y = 4 * mm, 4 * mm
 CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
