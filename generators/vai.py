@@ -1,13 +1,20 @@
 # -*- coding: utf-8 -*-
 """
 MANAPRINT — Générateur VAI 9 BOULES (format A4)
-12 cartes par feuille A4 (3 colonnes × 4 rangées).
-Chaque carte : grille 3×3 PLEINE. 9 numéros (aucune case vide).
-Numéro de série EN HAUT sous l'en-tête ("Carte N° 00001").
-Colonnes : col1 = 1-9, col2 = 10-18, col3 = 19-27.
-Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
+
+💧 REFAIT LE 08/08 (sceau Maeva, sur son dessin de gouttes) : VAI, c'est
+l'eau — alors les NEUF NUMÉROS tombent chacun DANS SA GOUTTE, en pluie
+sur le carton : cinq gouttes en haut, quatre en dessous, en quinconce.
+
+RÈGLE INCHANGÉE : 9 numéros, trois colonnes de dizaines —
+  61-70 · 71-80 · 81-90
+Le sac du crieur ne change donc pas d'un chiffre.
+
+⚡ ÉCONOMIE D'ENCRE : les gouttes sont DESSINÉES AU TRAIT, pas posées en
+image. Aucun aplat, rien à décompresser.
 """
 import io
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lgv
 import random
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -67,7 +74,7 @@ PAGE_W, PAGE_H = A4
 # (min, max) par colonne — VAI 9 boules
 PLAGES = [(61, 70), (71, 80), (81, 90)]
 
-COLS_PAGE = 3
+COLS_PAGE = 2   # 8 cartes / A4 (choix Maeva 08/08 : garder le calibre 30 pt)
 ROWS_PAGE = 4
 MARGIN_X = 8 * mm
 MARGIN_TOP = 8 * mm
@@ -91,6 +98,33 @@ def _gen_carte(rng):
         [col1[2], col2[2], col3[2]],
     ]
     return grille
+
+
+def _goutte(c, cx, cy, larg, col):
+    """💧 UNE goutte au trait : pointe en haut, ventre rond en bas, et le
+    petit reflet en arc — le dessin de Maeva. Tout au trait, aucun aplat."""
+    r = larg / 2.0
+    haut = larg * 1.42
+    bas = cy - haut * 0.44
+    pointe = cy + haut * 0.56
+    ventre = bas + r
+    c.setFillColor(colors.white)
+    c.setStrokeColor(col)
+    c.setLineWidth(0.75)
+    p = c.beginPath()
+    p.moveTo(cx, pointe)
+    p.curveTo(cx + r * 0.52, ventre + r * 1.15, cx + r, ventre + r * 0.62, cx + r, ventre)
+    p.curveTo(cx + r, ventre - r * 0.56, cx + r * 0.56, bas, cx, bas)
+    p.curveTo(cx - r * 0.56, bas, cx - r, ventre - r * 0.56, cx - r, ventre)
+    p.curveTo(cx - r, ventre + r * 0.62, cx - r * 0.52, ventre + r * 1.15, cx, pointe)
+    c.drawPath(p, stroke=1, fill=1)
+    c.setLineWidth(0.45)
+    a = c.beginPath()
+    a.moveTo(cx - r * 0.72, ventre + r * 0.18)
+    a.curveTo(cx - r * 0.84, ventre - r * 0.14,
+              cx - r * 0.72, ventre - r * 0.44, cx - r * 0.48, ventre - r * 0.58)
+    c.drawPath(a, stroke=1, fill=0)
+    return ventre
 
 
 def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
@@ -118,37 +152,47 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
 
     # Zone grille 3×3
     grid_top = hdr_y - 6.5 * mm
-    grid_bot = y0 + 21 * mm  # 📏 bande dédiée en bas : le QR y vit, la grille au-dessus
+    # 📏 08/08 : la bande du bas passe de 21 a 9 mm. Elle etait taillee
+    # pour l'ancien carton ; en la reduisant, les gouttes retrouvent la
+    # hauteur qu'il leur faut et les chiffres gardent leur calibre de 30 pt.
+    grid_bot = y0 + 9 * mm
     cell_w = CARD_W / ncols
     grid_h = grid_top - grid_bot
     row_h = grid_h / 3
 
-    # séparateurs de grille
-    c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.3)
-    for i in range(1, ncols):
-        c.line(x0 + i * cell_w, grid_bot, x0 + i * cell_w, grid_top)
-    for r in range(1, 3):
-        yy = grid_top - r * row_h
-        c.line(x0 + 1.5 * mm, yy, x0 + CARD_W - 1.5 * mm, yy)
-
-    # contenu des cellules (toutes pleines)
-    for r in range(3):
-        for cc in range(3):
-            cx = x0 + (cc + 0.5) * cell_w
-            cyc = grid_top - (r + 0.5) * row_h
-            val = grille[r][cc]
-            if _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, val, cx, cyc - 11, 32, gris_ch, police_ch)
-            else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, 32)
-                c.drawCentredString(cx, cyc - 11, str(val))
+    # ═══ 💧 LA PLUIE DE NEUF GOUTTES ═══
+    # Cinq en haut, quatre en dessous — un vrai rideau de pluie. Les
+    # places ont ete CALCULEES pour que le calibre de 30 pt tienne dans
+    # le ventre de chaque goutte.
+    ZW, ZH = 91.0, 47.0
+    L_G = 16.5
+    GOUTTES = [[9.1, 34.78], [27.3, 34.78], [45.5, 34.78], [63.7, 34.78], [81.9, 34.78], [11.38, 12.22], [34.12, 12.22], [56.88, 12.22], [79.62, 12.22]]
+    ex = (CARD_W - 4 * mm) / (ZW * mm)
+    ey = (grid_top - grid_bot) / (ZH * mm)
+    ech = min(ex, ey)
+    lg = L_G * mm * ech
+    taille = 30.0
+    while taille > 12 and _lgv("88", "Helvetica-Bold", taille) > lg * 0.74:
+        taille -= 0.5
+    plat = [grille[r][cc] for r in range(3) for cc in range(3)]
+    for (gx_mm, gy_mm), val in zip(GOUTTES, plat):
+        gx = x0 + 2 * mm + gx_mm * mm * ex
+        gy = grid_bot + gy_mm * mm * ey
+        ventre = _goutte(c, gx, gy, lg, col)
+        ny = ventre - taille * 0.30 + lg * 0.04
+        if _sec:
+            _sec.chiffre_micro(c, val, gx, ny, taille, gris_ch, police_ch)
+        else:
+            c.setFillColor(gris_ch); c.setFont(police_ch, taille)
+            c.drawCentredString(gx, ny, str(val))
 
     # QR de vérification par grille (anti-duplication) — coin bas-droit
     if _sec and evenement_id:
         try:
             # 🎯 QR dans la bande dédiée (aucun chiffre dérangé)
             _q = 13.0 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 2.0 * mm, y0 + 6.0 * mm, _q, evenement_id, serie)
+            _sec.carton_qr(c, x0 + CARD_W - _q - 2.0 * mm, y0 + 1.4 * mm,
+                           _q, evenement_id, serie, avec_code=False)
         except Exception:
             pass
 
