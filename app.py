@@ -375,7 +375,7 @@ _enregistrer_paire("sun_casino",    "SUN CASINO","🎲", 12, sun.generer_pdf_cas
 _enregistrer_paire("pow",           "POW 8 boules","💥", 12, powgen.generer_pdf)
 _enregistrer_paire("pow_casino",    "POW CASINO","🎲", 12, powgen.generer_pdf_casino)
 _enregistrer_paire("poe_parau",     "POE PARAU 6 boules", "🦪", 12, poeparaugen.generer_pdf)
-_enregistrer_paire("poe",           "POE 6 boules", "⚪", 6, poegen.generer_pdf)
+_enregistrer_paire("poe",           "POE 6 boules", "⚪", 12, poegen.generer_pdf)
 _enregistrer_paire("bng",           "BNG 5 boules", "🟢", 6, bnggen.generer_pdf)
 _enregistrer_paire("hakari",        "HAKARI 6 boules", "🥥", 12, hakarigen.generer_pdf)
 _enregistrer_paire("henua_enana",   "HENUA ENANA 7 boules", "🗺️", 12, henuaenanagen.generer_pdf)
