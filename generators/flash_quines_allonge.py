@@ -1,12 +1,20 @@
 # -*- coding: utf-8 -*-
 """
 MANAPRINT — Générateur FLASH QUINES ALLONGÉ (format A4)
-9 cartes (bandes allongées) par feuille A4, empilées.
-Chaque carte : 9 numéros (un par dizaine 1-9, 10-19, …, 80-90), disposés en ZIGZAG
-(haut/bas alternés) dans des ronds, reliés par des croix X. N° de série à droite.
-Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris 40%.
+
+🚄 REFAIT LE 08/08 (sceau Maeva, sur son dessin de train) : la bande
+devient un TRAIN LANCÉ À TOUTE ALLURE, et les NEUF NUMÉROS s'installent
+dans ses NEUF FENÊTRES.
+
+RÈGLE INCHANGÉE : 9 numéros, un par dizaine — 1-9, 10-19, …, 80-90.
+Le sac du crieur ne change donc pas d'un chiffre.
+
+⚡ ÉCONOMIE D'ENCRE : le train est DESSINÉ AU TRAIT, pas posé en image.
+Aucun aplat, aucun dessin à décompresser — la bande reste aussi légère
+qu'avant pour l'imprimante.
 """
 import io
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lgw
 import random
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -109,22 +117,79 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, libelle_gauche="", titr
     y_haut = cymid + 2.3 * mm
     y_bas = cymid - 2.3 * mm
 
-    gauche = x0 + 9 * mm
-    droite = x0 + CARD_W - 26 * mm  # 26 mm réservés à droite : boîte série + QR
-    pas = (droite - gauche) / 8.0
-    xs = [gauche + i * pas for i in range(9)]
-    ys = [y_haut if i % 2 == 0 else y_bas for i in range(9)]
-    r = 7.4 * mm
+    # ═══ 🚄 LE TRAIN ET SES NEUF FENÊTRES ═══
+    # Tout est dessiné au trait : le nez profilé, le toit, les fenêtres,
+    # les roues et les traits de vitesse. Rien qu'un imprimante puisse
+    # transformer en pâté noir, et pas un octet d'image à charger.
+    gauche = x0 + 5.0 * mm
+    droite = x0 + CARD_W - 26 * mm      # 26 mm réservés : boîte série + QR
+    larg = droite - gauche
+    bas = zone_bot + 1.2 * mm
+    haut = zone_top - 0.4 * mm
+    ht = haut - bas                      # hauteur du wagon
+    NEZ = larg * 0.085                   # la pointe avant, à droite
 
-    # Ronds + gros numéros
+    c.setStrokeColor(col)
+    c.setLineWidth(0.7)      # ⚡ trait fin : le train ne doit rien coûter de plus
+    # la caisse : plate à gauche, effilée à droite
+    p = c.beginPath()
+    p.moveTo(gauche, bas)
+    p.lineTo(gauche, haut - ht * 0.18)
+    p.curveTo(gauche + larg * 0.02, haut, gauche + larg * 0.06, haut,
+              gauche + larg * 0.12, haut)
+    p.lineTo(droite - NEZ, haut)
+    p.curveTo(droite - NEZ * 0.35, haut - ht * 0.06,
+              droite, bas + ht * 0.52, droite, bas + ht * 0.30)
+    p.lineTo(droite, bas)
+    p.close()
+    c.drawPath(p, stroke=1, fill=0)
+
+    # le museau, un arc qui répond au nez
+    c.setLineWidth(0.5)
+    p2 = c.beginPath()
+    p2.moveTo(droite - NEZ, haut)
+    p2.curveTo(droite - NEZ * 0.9, bas + ht * 0.34,
+               droite - NEZ * 0.5, bas + ht * 0.16, droite, bas + ht * 0.30)
+    c.drawPath(p2, stroke=1, fill=0)
+
+    # ── les NEUF fenêtres, une par numéro ────────────────────────────────
+    zone_fen = (droite - NEZ * 1.15) - (gauche + 2.2 * mm)
+    fw = zone_fen / 9.0
+    fen_w = fw * 0.86
+    fen_h = ht * 0.62
+    fen_y = bas + ht * 0.26
+    taille = 30.0
+    while taille > 14 and _lgw("88", "Helvetica-Bold", taille) > fen_w * 0.82:
+        taille -= 0.5
     for i in range(9):
-        c.setStrokeColor(col); c.setLineWidth(0.9)
-        c.circle(xs[i], ys[i], r, stroke=1, fill=0)
-        if _sec:  # chiffres "billet de banque" remplis de microtexte
-            _sec.chiffre_micro(c, nums[i], xs[i], ys[i] - 11, 32, gris_ch, police_ch)
+        fx = gauche + 2.2 * mm + i * fw + (fw - fen_w) / 2
+        c.setStrokeColor(col)
+        c.setLineWidth(0.55)
+        c.setFillColor(colors.white)
+        c.roundRect(fx, fen_y, fen_w, fen_h, fen_h * 0.22, stroke=1, fill=1)
+        nx = fx + fen_w / 2
+        ny = fen_y + fen_h * 0.5 - taille * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, nums[i], nx, ny, taille, gris_ch, police_ch)
         else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, 32)
-            c.drawCentredString(xs[i], ys[i] - 11, str(nums[i]))
+            c.setFillColor(gris_ch)
+            c.setFont(police_ch, taille)
+            c.drawCentredString(nx, ny, str(nums[i]))
+
+    # ── les roues, sous le wagon ─────────────────────────────────────────
+    c.setStrokeColor(col)
+    c.setLineWidth(0.5)
+    rr = ht * 0.15
+    for f in (0.12, 0.24, 0.62, 0.74):
+        rx = gauche + larg * f
+        c.circle(rx, bas, rr, stroke=1, fill=0)
+        c.circle(rx, bas, rr * 0.30, stroke=1, fill=0)
+
+    # ── les traits de vitesse, derrière le train ─────────────────────────
+    c.setLineWidth(0.45)
+    for k, (fy, fl) in enumerate(((0.86, 0.055), (0.70, 0.038), (0.54, 0.026))):
+        ty = bas + ht * fy
+        c.line(gauche - larg * fl - 1.0 * mm, ty, gauche - 1.0 * mm, ty)
 
     # Boîte série (bas droite)
     bw2, bh2 = 14 * mm, 4.6 * mm
