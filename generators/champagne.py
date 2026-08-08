@@ -1,15 +1,17 @@
 """
 MANAPRINT — Générateur CHAMPAGNE (format A4)
-6 cartes par feuille (2 colonnes × 3 rangées).
-Chaque carte : grille 5×5 SANS lettres, 12 numéros en COUPE DE CHAMPAGNE :
-  rang 1 : rangée PLEINE      (col 1 à 5)  — le bord de la coupe
-  rang 2 : trio central       (col 2, 3, 4) — le bol
-  rang 3 : VIDE (croisillons)
-  rang 4 : centre seul        (col 3)       — le pied
-  rang 5 : trio central       (col 2, 3, 4) — le socle
-Plages par colonne : 1-15 / 16-30 / 31-45 / 46-60 / 61-75.
-Cases vides barrées d'une croix. Bordures épaisses jaune/orange en alternance
-(ou couleur_perso). Gammes ÉCO / PREMIUM. Microtexte + QR de sécurité.
+
+🥂 REFAIT LE 08/08 (sceau Maeva) : la FLÛTE de Maeva trône au centre du
+carton, et les DOUZE NUMÉROS s'éparpillent tout autour, chacun dans SA
+BULLE — comme les bulles qui montent dans le verre.
+
+RÈGLE INCHANGÉE : 12 numéros, cinq colonnes de quinzaines —
+  1-15 (un) · 16-30 (trois) · 31-45 (quatre) · 46-60 (trois) · 61-75 (un)
+Le sac du crieur ne change donc pas d'un chiffre.
+
+Les places des bulles ont été CALCULÉES (60 000 essais) pour qu'aucune
+ne tombe sur la flûte ni ne touche sa voisine : 14,5 mm d'écart minimal
+pour des bulles de 13,2 mm.
 """
 import io
 import random
@@ -73,6 +75,60 @@ CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_
 
 RANGES = [(1, 15), (16, 30), (31, 45), (46, 60), (61, 75)]
 FOOT_H = 3 * mm
+
+# 🥂 LA FLÛTE DE MAEVA et les places de ses bulles.
+_RATIO_FLUTE = 800.0 / 1291.0
+import os as _os2
+
+
+def _choisir_image(motif, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_FLUTE = _choisir_image("champagne_flute", _RATIO_FLUTE)
+
+# Les DOUZE bulles, en millimètres depuis le coin bas-gauche de la zone
+# de jeu (90 × 78 mm). Calculées pour ne jamais toucher la flûte ni se
+# chevaucher — 14,5 mm d'écart minimal.
+ZONE_L, ZONE_H = 90.0, 78.0
+FLUTE_L = 44
+R_BULLE = 6.6
+BULLES = [
+    (8.43, 34.73),
+    (8.2, 66.44),
+    (69.02, 66.28),
+    (73.03, 30.59),
+    (8.57, 18.17),
+    (70.0, 15.84),
+    (15.84, 47.22),
+    (81.15, 57.49),
+    (82.09, 7.79),
+    (72.88, 45.24),
+    (20.76, 9.23),
+    (20.95, 26.02),
+]
 BANDEAU_H = 2.8 * mm
 GRID_N = 5  # 5x5
 
@@ -118,43 +174,61 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
     c.setFillColor(GREY); c.setFont("Helvetica", 4)
     c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 2.3 * mm, bandeau[:60])
 
-    # Grille 5×5 pleine hauteur (pas de rangée de lettres)
+    # ═══ LA FLÛTE AU CENTRE, LES NUMÉROS DANS LES BULLES ═══
     grid_top = y0 + CARD_H - BANDEAU_H - 2.0 * mm
-    zone_h = grid_top - (y0 + FOOT_H)
-    cell_h = zone_h / GRID_N
+    z_bot = y0 + FOOT_H
+    z_h = grid_top - z_bot
+    z_w = CARD_W
 
-    # Traits de la grille (fins, gris)
-    c.setStrokeColor(GRIS_GRILLE); c.setLineWidth(0.35)
-    for i in range(GRID_N + 1):
-        yy = y0 + FOOT_H + i * cell_h
-        c.line(x0, yy, x0 + CARD_W, yy)
-    for i in range(1, GRID_N):
-        xx = x0 + i * cell_w
-        c.line(xx, y0 + FOOT_H, xx, grid_top)
+    # l'échelle : la zone du carton par rapport à celle des calculs
+    ex = z_w / (ZONE_L * mm)
+    ey = z_h / (ZONE_H * mm)
 
-    # Cases : numéro (motif DIAMANT) ou croix
-    taille = 32
-    for ri in range(GRID_N):
-        for ci in range(GRID_N):
-            cx = x0 + (ci + 0.5) * cell_w
-            haut = grid_top - ri * cell_h          # bord haut de la case
-            bas = haut - cell_h                    # bord bas de la case
-            if (ri, ci) in POSITIONS:
-                n = carte[(ri, ci)]
-                cy = bas + cell_h * 0.30
-                if _sec:  # chiffres "billet de banque" remplis de microtexte
-                    _sec.chiffre_micro(c, n, cx, cy, taille, gris_ch, police_ch)
-                else:
-                    c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-                    c.drawCentredString(cx, cy, str(n))
-            else:
-                # case vide barrée d'une croix
-                c.setStrokeColor(GRIS_CROIX); c.setLineWidth(0.4)
-                r = 0.36
-                c.line(cx - cell_w * r, bas + cell_h * (0.5 - r),
-                       cx + cell_w * r, bas + cell_h * (0.5 + r))
-                c.line(cx - cell_w * r, bas + cell_h * (0.5 + r),
-                       cx + cell_w * r, bas + cell_h * (0.5 - r))
+    # ── la flûte, au centre ──────────────────────────────────────────────
+    fl_l = FLUTE_L * mm * ex
+    fl_h = fl_l / _RATIO_FLUTE
+    if fl_h > z_h - 2 * mm:
+        fl_h = z_h - 2 * mm
+        fl_l = fl_h * _RATIO_FLUTE
+    flx = x0 + (z_w - fl_l) / 2
+    fly = z_bot + (z_h - fl_h) / 2
+    if _os2.path.exists(_IMAGE_FLUTE):
+        try:
+            c.drawImage(_IMAGE_FLUTE, flx, fly, fl_l, fl_h, mask="auto",
+                        preserveAspectRatio=True)
+        except Exception:
+            pass
+
+    # ── les douze bulles, éparpillées autour ─────────────────────────────
+    # L'ordre suit le motif d'origine (colonnes de quinzaines) : la règle
+    # du jeu n'a pas bougé, seul l'habillage a changé.
+    valeurs = [carte[k] for k in sorted(carte.keys(), key=lambda k: (k[1], k[0]))]
+    r = R_BULLE * mm * min(ex, ey)
+    # ⚠️ le chiffre doit tenir DANS sa bulle : on cale sa taille sur la
+    # largeur réelle d'un nombre à deux chiffres, pas à l'estime.
+    from reportlab.pdfbase.pdfmetrics import stringWidth as _lgb
+    taille = 30.0
+    while taille > 12.0 and _lgb("88", "Helvetica-Bold", taille) > r * 1.52:
+        taille -= 0.5
+    for (bx_mm, by_mm), val in zip(BULLES, valeurs):
+        bx = x0 + bx_mm * mm * ex
+        by = z_bot + by_mm * mm * ey
+        # la bulle : un cercle au trait, avec son petit reflet
+        c.setFillColor(colors.white)
+        c.setStrokeColor(col)
+        c.setLineWidth(0.9)
+        c.circle(bx, by, r, stroke=1, fill=1)
+        c.setLineWidth(0.5)
+        p = c.beginPath()
+        p.arc(bx - r * 0.66, by + r * 0.16, bx - r * 0.16, by + r * 0.66, 200, 70)
+        c.drawPath(p, stroke=1, fill=0)
+        ny = by - taille * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, val, bx, ny, taille, gris_ch, police_ch)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(police_ch, taille)
+            c.drawCentredString(bx, ny, str(val))
 
     # Pied : N° série + responsable sur chaque grille
     c.setStrokeColor(col); c.setLineWidth(0.4)
@@ -167,10 +241,12 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
     # 🎯 QR intégré : dans la RANGÉE CENTRALE vide de la grille (aucun chiffre dérangé)
     if _sec and evenement_id:
         try:
-            _q = 14.0 * mm
-            _xq = x0 + (CARD_W - (_q + 18 * mm)) / 2
-            _yq = grid_top - 3 * cell_h + (cell_h - _q) / 2
-            _sec.carton_qr(c, _xq, _yq, _q, evenement_id, serie, position_code="droite")
+            # ⚠️ l'ancienne grille a disparu : le QR se pose desormais dans
+            # la seule place libre trouvee entre les bulles et la flute
+            # (calculee : 11.0 mm de cote, a 2,4 mm de sa voisine).
+            _q = 11.0 * mm * min(ex, ey)
+            _sec.carton_qr(c, x0 + 78.5 * mm * ex, z_bot + 66.5 * mm * ey,
+                           _q, evenement_id, serie, avec_code=False)
         except Exception:
             pass
 
