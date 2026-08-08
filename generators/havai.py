@@ -1,13 +1,14 @@
 """
 MANAPRINT — Générateur HAVAI (format A4)
-8 cartes par feuille (2 colonnes × 4 rangées) — compact façon BROWN 8.
-Chaque carte : en-tête H·A·V·A·I, grille 3 rangées × 5 colonnes,
-8 numéros TRIÉS en quinconce (décision Maeva) :
-  rangée 1 : H · V · I   (colonnes 1, 3, 5)
-  rangée 2 :   A · A     (colonnes 2 et 4)
-  rangée 3 : H · V · I   (colonnes 1, 3, 5)
-Cases vides propres. QR de sécurité au CŒUR de la grille (case centrale).
-Couleur arc-en-ciel (ou couleur_perso) / N&B. Gammes ÉCO / PREMIUM.
+
+🌺 REFAIT LE 08/08 (sceau Maeva) : la CARTE DE RAIATEA, l'île sacrée,
+prend place à gauche du carton — avec ses six villages — et les HUIT
+NUMÉROS s'alignent à droite, chacun sous la LETTRE de sa quinzaine.
+
+RÈGLE INCHANGÉE : 8 numéros, cinq familles comme les cinq lettres —
+  H : 1-15 (deux numéros) · A : 16-30 (un) · V : 31-45 (deux)
+  A : 46-60 (un)          · I : 61-75 (deux)
+Le sac du crieur ne change donc pas d'un chiffre.
 """
 import io
 import random
@@ -60,6 +61,39 @@ MARGIN_TOP = 11 * mm
 MARGIN_BOT = 8 * mm
 GUTTER_X = 4 * mm
 GUTTER_Y = 3 * mm
+
+# 🗺️ LA CARTE DE RAIATEA (dessin de Maeva) — l'emblème du jeu.
+_RATIO_ILE = 900.0 / 745.0
+import os as _os2
+
+
+def _choisir_image(motif, ratio_attendu):
+    """🛟 Retrouve la carte, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_ILE = _choisir_image("raiatea_ile", _RATIO_ILE)
 
 CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
 CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
@@ -114,47 +148,67 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
     c.setFillColor(GREY); c.setFont("Helvetica", 4)
     c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 2.2 * mm, bandeau[:60])
 
-    # En-tête H A V A I
-    hdr_y = y0 + CARD_H - BANDEAU_H - HDR_H - 1.0 * mm
-    c.setFillColor(col); c.setFont("Helvetica-Bold", 9)
-    for i, lettre in enumerate(LETTRES):
-        cx = x0 + (i + 0.5) * cell_w
-        c.drawCentredString(cx, hdr_y + 1.2 * mm, lettre)
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0, hdr_y, x0 + CARD_W, hdr_y)
+    # ═══ LA CARTE DE RAIATEA À GAUCHE, LES HUIT NUMÉROS À DROITE ═══
+    hdr_y = y0 + CARD_H - BANDEAU_H - 1.0 * mm
+    z_bot = y0 + FOOT_H + 1.4 * mm
+    z_top = hdr_y - 1.0 * mm
+    z_h = z_top - z_bot
 
-    # Grille 3 rangées × 5 colonnes (compact façon BROWN 8)
-    grid_top = hdr_y
-    zone_h = grid_top - (y0 + FOOT_H)
-    cell_h = zone_h / GRID_ROWS
+    # ── la carte de l'île sacrée ─────────────────────────────────────────
+    PLACE_QR = 11.0 * mm
+    part = 0.40
+    ilw = CARD_W * part - 3.5 * mm
+    ilh = ilw / _RATIO_ILE
+    if ilh > z_h - PLACE_QR:
+        ilh = z_h - PLACE_QR
+        ilw = ilh * _RATIO_ILE
+    ilx = x0 + 2.5 * mm
+    ily = z_bot + PLACE_QR + (z_h - PLACE_QR - ilh) / 2
+    if _os2.path.exists(_IMAGE_ILE):
+        try:
+            c.drawImage(_IMAGE_ILE, ilx, ily, ilw, ilh, mask="auto",
+                        preserveAspectRatio=True)
+        except Exception:
+            pass
 
-    c.setStrokeColor(GRIS_GRILLE); c.setLineWidth(0.35)
-    for i in range(1, GRID_ROWS):
-        yy = y0 + FOOT_H + i * cell_h
-        c.line(x0, yy, x0 + CARD_W, yy)
-    for i in range(1, GRID_N):
-        xx = x0 + i * cell_w
-        c.line(xx, y0 + FOOT_H, xx, grid_top)
-
-    # Numéros (les cases vides restent propres, sans croix)
-    taille = 33  # gros chiffres bien visibles
-    for (ri, ci), n in carte.items():
-        cx = x0 + (ci + 0.5) * cell_w
-        bas = grid_top - (ri + 1) * cell_h
-        cy = bas + cell_h * 0.30
+    # ── les huit numéros, en deux colonnes de quatre ─────────────────────
+    # Chaque case porte la LETTRE de sa quinzaine : H A V A I, les cinq
+    # familles du jeu. La règle n'a pas bougé, seul l'habillage a changé.
+    ordre = sorted(carte.items(), key=lambda kv: (kv[0][1], kv[0][0]))
+    gx = x0 + CARD_W * part + 1.0 * mm
+    gw = CARD_W - (gx - x0) - 2.5 * mm
+    ECART = 1.3 * mm
+    cw = (gw - ECART) / 2.0
+    lh = z_h / 4.0
+    taille = min(32.0, (lh * 0.84 - 3.4 * mm) / 0.72 * 72 / 25.4,
+                 cw * 0.58 / 0.60 * 72 / 25.4)
+    for k, ((ri, ci), n) in enumerate(ordre):
+        colonne, rangee = k % 2, k // 2
+        bx = gx + colonne * (cw + ECART)
+        by = z_top - (rangee + 1) * lh
+        c.setFillColor(colors.white)
+        c.setStrokeColor(col)
+        c.setLineWidth(0.55)
+        c.roundRect(bx, by + lh * 0.08, cw, lh * 0.84, 1.3 * mm, stroke=1, fill=1)
+        nx = bx + cw / 2
+        ny = by + lh * 0.5 - taille * 0.28 + 0.9 * mm
         if _sec:
-            _sec.chiffre_micro(c, n, cx, cy, taille, gris_ch, police_ch)
+            _sec.chiffre_micro(c, n, nx, ny, taille, gris_ch, police_ch)
         else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-            c.drawCentredString(cx, cy, str(n))
+            c.setFillColor(gris_ch)
+            c.setFont(police_ch, taille)
+            c.drawCentredString(nx, ny, str(n))
+        # la lettre de sa quinzaine, sous le numéro
+        c.setFillColor(col)
+        c.setFont("Helvetica-Bold", 6.0)
+        c.drawCentredString(nx, by + lh * 0.16, LETTRES[ci])
 
-    # 🎯 QR intégré : au CŒUR de la grille (case centrale, rangée 2)
+    # ── le QR, sous la carte ─────────────────────────────────────────────
     if _sec and evenement_id:
         try:
-            _q = min(cell_h - 2.0 * mm, cell_w - 3 * mm, 13.0 * mm)
-            _xq = x0 + 2 * cell_w + (cell_w - _q) / 2
-            _yq = grid_top - 2 * cell_h + (cell_h - _q) / 2
-            _sec.carton_qr(c, _xq, _yq, _q, evenement_id, serie)
+            _q = min(9.5 * mm, ilw * 0.55)
+            _sec.carton_qr(c, ilx + (ilw - _q) / 2, z_bot + (PLACE_QR - _q) / 2,
+                           _q, evenement_id, serie, avec_code=False)
         except Exception:
             pass
 
