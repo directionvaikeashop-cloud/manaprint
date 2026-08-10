@@ -104,17 +104,26 @@ def _croissant(c, cx, cy, r, teinte):
     p = c.beginPath()
     p.circle(cx, cy, r)
     c.clipPath(p, stroke=0, fill=0)          # on ne peint que dans la lune
-    c.setFillColor(teinte)
-    pas, rp = 2.1, 0.36                      # espacement et rayon des points
+    # ⚡ 10/08 : LE SEMIS EN LIGNES POINTILLÉES, plus en points isolés.
+    # Avant, chaque point était un petit cercle — soit QUATRE courbes de
+    # Bézier chacun, 529 points par lune, 8 752 cercles par feuille et
+    # 2 155 Ko que l'imprimante devait avaler (téléchargement très lent).
+    # Une ligne pointillée donne la MÊME trame à l'œil, mais ne coûte
+    # qu'un trait : 21 lignes par lune au lieu de 529 cercles.
+    pas = 2.1                                # même espacement qu'avant
+    c.setStrokeColor(teinte)
+    c.setLineWidth(0.72)                     # l'épaisseur d'un point d'avant
+    c.setDash(0.72, pas - 0.72)              # un tiret court, puis du vide
     j = 0
-    yy = cy - r - pas
-    while yy <= cy + r + pas:
-        xx = cx - r - pas + (pas / 2 if j % 2 else 0)      # semis en quinconce
-        while xx <= cx + r + pas:
-            c.circle(xx, yy, rp, stroke=0, fill=1)
-            xx += pas
+    yy = cy - r
+    while yy <= cy + r:
+        demi = (r * r - (yy - cy) ** 2) ** 0.5 if abs(yy - cy) < r else 0
+        if demi > 0.4:
+            depart = cx - demi + (pas / 2 if j % 2 else 0)   # quinconce conservé
+            c.line(depart, yy, cx + demi, yy)
         yy += pas
         j += 1
+    c.setDash()                              # on referme le pointillé
     c.setStrokeColor(teinte); c.setLineWidth(0.5)
     c.circle(cx, cy, r, stroke=1, fill=0)    # le bord extérieur
     c.setFillColor(colors.white)             # la morsure : du BLANC, zéro encre
