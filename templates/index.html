@@ -428,6 +428,43 @@
 <script>
 // ── Générateur universel : la liste des jeux vient du registre (/api/jeux) ──
 let PROGRAMMES = [];
+// 🏷️ Le nom LISIBLE d'un programme : « fleche_nb » devient « TAHITI · N&B ».
+// La cle interne ne change jamais (les commandes passees restent lisibles),
+// mais Tatie ne doit voir que le nom du jeu. (sceau Maeva 09/08)
+// 🏪 Le PARTENAIRE d'une commande, et son prix à la feuille : c'est ce
+// qui explique qu'une commande de 500 feuilles puisse coûter 750 F —
+// chez RANIHEI, FUN AND CO et COCOTIE MER, MANAPRINT ne facture que le
+// PDF (1,5 F la feuille), l'impression se règle avec le partenaire.
+const NOMS_PARTENAIRES = {
+  "2kea_papeete":"2KEA & Associé", "ranihei":"RANIHEI",
+  "fun_and_co":"FUN AND CO", "cocotie_mer":"COCOTIE MER"
+};
+function infoCommande(c){
+  var part = "", perso = {};
+  try { perso = JSON.parse(c.params_perso || "{}"); } catch(e) { perso = {}; }
+  var slug = perso.partenaire || "";
+  if(slug) part = NOMS_PARTENAIRES[slug] || slug;
+  var f = Number(c.nb_feuilles || 0), m = Number(c.montant || 0);
+  var pf = (f > 0) ? (m / f) : 0;
+  var txt = "";
+  if(part) txt += " · 🏪 " + part;
+  if(pf > 0) txt += " · " + (Math.round(pf*100)/100) + " F/feuille";
+  if(pf > 0 && pf <= 2) txt += " (PDF seul)";
+  return txt;
+}
+
+function nomProgramme(cle){
+  if(!cle) return '?';
+  var brut = String(cle);
+  var p = (PROGRAMMES||[]).find(function(x){ return x.id === brut; });
+  if(p) return (p.emoji ? p.emoji+' ' : '') + p.nom;
+  // sinon on retire le suffixe de gamme et on retente
+  var base = brut.replace(/_(nb|couleur|p15_nb|p15_couleur)$/,'');
+  var suffixe = brut.slice(base.length).replace('_p15','').replace('_nb',' · N&B').replace('_couleur',' · Couleur');
+  var q = (PROGRAMMES||[]).find(function(x){ return String(x.id).replace(/_(nb|couleur|p15_nb|p15_couleur)$/,'') === base; });
+  if(q) return (q.emoji ? q.emoji+' ' : '') + String(q.nom).replace(/ · ÉCO.*$/,'') + suffixe;
+  return brut;
+}
 const PALETTE = ["#2D6E63","#D4663D","#1A4A42","#8B5A2B","#7C3AED","#0EA5E9","#DB2777","#65A30D"];
 // Tarifs XPF / feuille TOUT COMPRIS (PDF + impression) selon le profil ET la gamme — identiques au moteur
 const NOUVEAUX_JEUX = ["gambier","parata","katiu","ok","feu","vision","taptap","joie","caller","valider","chance","opoa","francs","tesla","salute","pietra","triple_bo90","triple_bg90","triple_bn90","triple_bi90","triple_bg75","triple_bn75","triple_bi75","rubis75"];
@@ -980,7 +1017,7 @@ async function adminHistorique(){
     d.evenements.forEach(function(ev){
       const div=document.createElement('div');
       div.style.cssText='background:#fff;border:1px solid var(--line);border-radius:10px;padding:.55rem .8rem;display:flex;justify-content:space-between;align-items:center;gap:.6rem;font-size:.8rem';
-      div.innerHTML='<div style="min-width:0"><b style="color:var(--teal-d)">'+ev.id+'</b> · '+(ev.programme||'?')+
+      div.innerHTML='<div style="min-width:0"><b style="color:var(--teal-d)">'+ev.id+'</b> · '+nomProgramme(ev.programme)+
         ' · séries '+ev.serie_min+' → '+ev.serie_max+
         (ev.date_tournoi?' · 🔐 '+ev.date_tournoi:' · QR à vie')+
         '<br><span style="color:var(--muted)">'+(ev.nom||'')+' · créé le '+(ev.cree_le||'').slice(0,10)+'</span></div>'+
@@ -1300,7 +1337,7 @@ async function chargerCommandes(){
       const div=document.createElement('div');
       div.style.cssText="display:flex;justify-content:space-between;align-items:center;padding:.7rem 1rem;border:1px solid var(--line);border-radius:6px;background:#fff;gap:.6rem";
       var modeIco=({stripe:'💳',virement:'🏦',boutique:'🏪',manuel:'🏪',ravitaillement:'📦'})[c.mode_paiement]||'';
-      div.innerHTML='<span style="font-size:.85rem">'+modeIco+' #'+c.id+' · '+c.programme+' · '+c.nb_feuilles+' f. · <b>'+c.montant+' XPF</b>'+telHtml+'<span style="color:var(--coral)">'+funco+'</span></span>'
+      div.innerHTML='<span style="font-size:.85rem">'+modeIco+' #'+c.id+' · '+nomProgramme(c.programme)+' · '+c.nb_feuilles+' f. · <b>'+c.montant+' XPF</b>'+infoCommande(c)+telHtml+'<span style="color:var(--coral)">'+funco+'</span></span>'
         +'<span style="display:flex;gap:.4rem;flex-shrink:0"><button class="btn" title="Télécharger le PDF des cartons (coffre-fort)" style="width:auto;padding:.4rem .7rem;white-space:nowrap" onclick="window.open(\'/api/admin/commandes/\'+String('+c.id+')+\'/pdf/cartons\',\'_blank\')">⬇️</button>'
         +'<button class="btn" title="Télécharger le rapport confidentiel des couleurs" style="width:auto;padding:.4rem .7rem;white-space:nowrap" onclick="window.open(\'/api/admin/commandes/\'+String('+c.id+')+\'/pdf/rapport\',\'_blank\')">🗂️</button>'
         +'<button class="btn" title="Éditer la facture du dû 2KEA" style="width:auto;padding:.4rem .7rem;white-space:nowrap" onclick="factureCommande('+c.id+')">🧾</button>'
