@@ -1,17 +1,20 @@
 """
 MANAPRINT — Générateur DIAMANT (format A4)
-6 cartes par feuille (2 colonnes × 3 rangées).
-Chaque carte : grille 5×5 SANS lettres, 12 numéros en motif DIAMANT :
-  rang 1 : coins + centre   (col 1, 3, 5)
-  rang 2 : trio central     (col 2, 3, 4)
-  rang 3 : VIDE (barré)
-  rang 4 : trio central     (col 2, 3, 4)
-  rang 5 : coins + centre   (col 1, 3, 5)
-Plages par colonne : 1-15 / 16-30 / 31-45 / 46-60 / 61-75.
-Cases vides barrées d'une croix. Bordures épaisses jaune/orange en alternance
-(ou couleur_perso). Gammes ÉCO / PREMIUM. Microtexte + QR de sécurité.
+
+💍 REFAIT LE 10/08 (sceau Maeva) : DIX BAGUES, deux par lettre du mot
+BINGO. Chaque bague porte SON NUMÉRO au cœur de sa pierre — « une boule
+dans chaque bague » — et chaque rangée porte sa lettre.
+
+RÈGLE (sceau Maeva 10/08) : 10 numéros, DEUX PAR LETTRE —
+  B : 1-15 · I : 16-30 · N : 31-45 · G : 46-60 · O : 61-75
+Le sac du crieur ne change pas : c'est toujours 1 à 75.
+
+⚡ ÉCONOMIE D'ENCRE : la bague est réduite à SON CONTOUR (les facettes
+fines des petits diamants ont été retirées à la découpe : 22 % d'encre
+en moins), et le dessin est pâli une fois pour toutes.
 """
 import io
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lgd
 import random
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -43,8 +46,11 @@ GRIS_GRILLE = colors.Color(0.55, 0.55, 0.55)
 from reportlab.pdfbase import pdfmetrics as _pm
 from reportlab.pdfbase.ttfonts import TTFont as _TF
 try:
-    _pm.registerFont(_TF("DJLECO", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    _POLICE_ECO = "DJLECO"
+    # 💎 10/08 (sceau Maeva) : la GRASSE CONDENSÉE, celle de QUINES 90.
+    # Elle est plus étroite qu'une grasse ordinaire, donc on peut la
+    # monter plus haut à place égale — et elle se lit de loin.
+    _pm.registerFont(_TF("DJBOLDC", "/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed-Bold.ttf"))
+    _POLICE_ECO = "DJBOLDC"
 except Exception:
     _POLICE_ECO = "Helvetica"
 _GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
@@ -60,7 +66,55 @@ def _style_chiffres(style):
 
 PAGE_W, PAGE_H = A4
 
-COLS_PAGE = 2
+# 💍 LA BAGUE DE MAEVA, et l'intérieur de sa pierre (mesuré au pixel).
+_RATIO_BAGUE = 0.973
+PIERRE = (0.233, 0.767, 0.208, 0.781)   # x0, x1, y0, y1 — l'intérieur du diamant
+# ⚠️ 10/08 : ces fractions ont été RECALCULÉES sur l'image finale (le plus
+# grand rectangle vide au cœur de la pierre). Les premières venaient du
+# cadrage d'avant et disaient la pierre plus large que haute — l'inverse
+# de la vérité — ce qui bridait les chiffres à 18 pt au lieu de 25.
+import os as _os2
+
+
+def _choisir_image(motif, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier.
+
+    Au téléversement, le nom peut garder un préfixe de livraison ou
+    recevoir un « (1) ». On prend donc, parmi les fichiers dont le nom
+    contient `motif`, celui dont les PROPORTIONS collent au dessin
+    attendu — la seule marque qui ne mente pas.
+    """
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_BAGUE = _choisir_image("diamant_bague", _RATIO_BAGUE)
+
+# 💍 12 cartes / A4 (sceau Maeva 10/08) : le carton d'avant laissait
+# un large blanc a droite des bagues. En le serrant sur elles, on en
+# tient QUATRE par rangee au lieu de deux — deux fois plus de cartons
+# par feuille, et les chiffres gardent leurs 18 pt.
+COLS_PAGE = 4
 ROWS_PAGE = 3
 MARGIN_X = 6 * mm
 MARGIN_TOP = 11 * mm
@@ -87,16 +141,16 @@ POSITIONS = {
 _NB_PAR_COL = [2, 2, 4, 2, 2]
 
 
-def _gen_carte():
-    """Tire les numéros du motif DIAMANT : dict {(ligne, col): numéro}."""
-    carte = {}
-    for ci, (lo, hi) in enumerate(RANGES):
-        nums = random.sample(range(lo, hi + 1), _NB_PAR_COL[ci])
-        lignes = sorted(r for (r, c) in POSITIONS if c == ci)
-        for k, ri in enumerate(lignes):
-            carte[(ri, ci)] = nums[k]
-    return carte
+LETTRES_BINGO = "BINGO"
 
+
+def _gen_carte():
+    """🎰 DIX numéros : DEUX par lettre du mot BINGO, triés.
+
+    B : 1-15 · I : 16-30 · N : 31-45 · G : 46-60 · O : 61-75
+    (sceau Maeva 10/08 — avant, la grille en portait 12.)
+    """
+    return [sorted(random.sample(range(lo, hi + 1), 2)) for (lo, hi) in RANGES]
 
 def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
                     telephone="", titre_jeu="", style="eco", evenement_id=""):
@@ -118,59 +172,70 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
     c.setFillColor(GREY); c.setFont("Helvetica", 4)
     c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 2.3 * mm, bandeau[:60])
 
-    # Grille 5×5 pleine hauteur (pas de rangée de lettres)
-    grid_top = y0 + CARD_H - BANDEAU_H - 2.0 * mm
-    zone_h = grid_top - (y0 + FOOT_H)
-    cell_h = zone_h / GRID_N
-
-    # Traits de la grille (fins, gris)
-    c.setStrokeColor(GRIS_GRILLE); c.setLineWidth(0.35)
-    for i in range(GRID_N + 1):
-        yy = y0 + FOOT_H + i * cell_h
-        c.line(x0, yy, x0 + CARD_W, yy)
-    for i in range(1, GRID_N):
-        xx = x0 + i * cell_w
-        c.line(xx, y0 + FOOT_H, xx, grid_top)
-
-    # Cases : numéro (motif DIAMANT) ou croix
-    taille = 32
-    for ri in range(GRID_N):
-        for ci in range(GRID_N):
-            cx = x0 + (ci + 0.5) * cell_w
-            haut = grid_top - ri * cell_h          # bord haut de la case
-            bas = haut - cell_h                    # bord bas de la case
-            if (ri, ci) in POSITIONS:
-                n = carte[(ri, ci)]
-                cy = bas + cell_h * 0.30
-                if _sec:  # chiffres "billet de banque" remplis de microtexte
-                    _sec.chiffre_micro(c, n, cx, cy, taille, gris_ch, police_ch)
-                else:
-                    c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-                    c.drawCentredString(cx, cy, str(n))
+    # ═══ 💍 LES DIX BAGUES — DEUX PAR LETTRE DU MOT BINGO ═══
+    # Cinq rangées, chacune avec sa lettre à gauche et ses deux bagues.
+    grid_top = y0 + CARD_H - BANDEAU_H - 0.8 * mm
+    # ⚠️ le bas du carton est RÉSERVÉ au pied et au QR.
+    grid_bot = y0 + FOOT_H + 10.0 * mm
+    zone_h = grid_top - grid_bot
+    NR = 5
+    case_h = zone_h / NR
+    LET_W = CARD_W * 0.11               # la colonne des lettres
+    case_w = (CARD_W - LET_W - 3.0 * mm) / 2
+    bw = min(case_w * 0.96, case_h * 0.99 * _RATIO_BAGUE)
+    bh = bw / _RATIO_BAGUE
+    pl = (PIERRE[1] - PIERRE[0]) * bw
+    ph = (PIERRE[3] - PIERRE[2]) * bh
+    taille = 30.0
+    # ⚠️ la pierre est un OVALE : à mi-hauteur, là où se pose le chiffre,
+    # elle est plus large que le rectangle qu'on peut y inscrire. On
+    # mesure donc avec la VRAIE police et on s'autorise un quart de plus
+    # en largeur — sinon les chiffres restaient à 16 pt dans une pierre
+    # qui pouvait en porter 25.
+    while taille > 10 and (_lgd("88", police_ch, taille) > pl * 1.06
+                           or taille * 0.72 > ph * 0.92):
+        taille -= 0.5
+    for ri in range(NR):
+        cyc = grid_top - (ri + 0.5) * case_h
+        # la lettre B·I·N·G·O
+        c.setFillColor(col)
+        c.setFont("Helvetica-Bold", max(9.0, taille * 0.62))
+        c.drawCentredString(x0 + 1.5 * mm + LET_W / 2,
+                            cyc - taille * 0.62 * 0.34, LETTRES_BINGO[ri])
+        for ci in range(2):
+            n = carte[ri][ci]
+            bx = x0 + 1.5 * mm + LET_W + ci * case_w + (case_w - bw) / 2
+            by = cyc - bh / 2
+            if _os2.path.exists(_IMAGE_BAGUE):
+                try:
+                    c.drawImage(_IMAGE_BAGUE, bx, by, bw, bh, mask="auto",
+                                preserveAspectRatio=True)
+                except Exception:
+                    pass
+            nx = bx + (PIERRE[0] + PIERRE[1]) / 2 * bw
+            ny = by + (PIERRE[2] + PIERRE[3]) / 2 * bh - taille * 0.34
+            if _sec:
+                _sec.chiffre_micro(c, n, nx, ny, taille, gris_ch, police_ch)
             else:
-                # case vide barrée d'une croix
-                c.setStrokeColor(GRIS_CROIX); c.setLineWidth(0.4)
-                r = 0.36
-                c.line(cx - cell_w * r, bas + cell_h * (0.5 - r),
-                       cx + cell_w * r, bas + cell_h * (0.5 + r))
-                c.line(cx - cell_w * r, bas + cell_h * (0.5 + r),
-                       cx + cell_w * r, bas + cell_h * (0.5 - r))
+                c.setFillColor(gris_ch)
+                c.setFont(police_ch, taille)
+                c.drawCentredString(nx, ny, str(n))
 
-    # Pied : N° série + responsable sur chaque grille
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0, y0 + FOOT_H, x0 + CARD_W, y0 + FOOT_H)
-    c.setFillColor(GREY); c.setFont("Helvetica", 4.5)
-    c.drawString(x0 + 1.5 * mm, y0 + 1.3 * mm, f"N\u00b0 {serie:06d}")
+    # ── LE PIED : n° de série, téléphone, et le QR ───────────────────────
+    # ⚠️ Ce bloc vivait sous l'ancienne grille 5×5 ; en la remplaçant par
+    # les bagues, j'avais emporté le pied ET le QR avec elle (attrapé le
+    # 10/08 : le carton sortait sans numéro de série ni QR).
+    c.setFillColor(GREY)
+    c.setFont("Helvetica", 4.4)
+    c.drawString(x0 + 1.5 * mm, y0 + 1.3 * mm, "Carte N\u00b0 %05d" % serie)
     if telephone:
-        c.drawRightString(x0 + CARD_W - 1.5 * mm, y0 + 1.3 * mm, f"Resp. {telephone}")
-
-    # 🎯 QR intégré : dans la RANGÉE CENTRALE vide de la grille (aucun chiffre dérangé)
+        c.drawRightString(x0 + CARD_W - 14.5 * mm, y0 + 1.3 * mm,
+                          "Resp. %s" % telephone)
     if _sec and evenement_id:
         try:
-            _q = 14.0 * mm
-            _xq = x0 + (CARD_W - (_q + 18 * mm)) / 2
-            _yq = grid_top - 3 * cell_h + (cell_h - _q) / 2
-            _sec.carton_qr(c, _xq, _yq, _q, evenement_id, serie, position_code="droite")
+            _q = 8.0 * mm
+            _sec.carton_qr(c, x0 + CARD_W - _q - 2.0 * mm, y0 + 0.9 * mm,
+                           _q, evenement_id, serie, avec_code=False)
         except Exception:
             pass
 
