@@ -544,7 +544,7 @@ _enregistrer_paire("ohana90_24b",   "OHANA 90 · 24 boules", "💮", 6, ohana90_
 _enregistrer_paire("lettre_u",      "LETTRE U",   "😃", 6,  lettre_u.generer_pdf)
 _enregistrer_paire("lettre_l",      "LETTRE L",   "😄", 6,  lettre_l.generer_pdf)
 _enregistrer_paire("topday",        "TOPDAY",     "🔝", 12, topday.generer_pdf)
-_enregistrer_paire("fleche",        "FLÈCHE",     "🏹", 6,  fleche.generer_pdf)
+_enregistrer_paire("fleche",        "TAHITI",     "🌺", 6,  fleche.generer_pdf)
 _enregistrer_paire("yes",           "YES",        "👍", 15, yes.generer_pdf)
 _enregistrer_paire("bio",           "BIO 8 boules", "🌱", 12, bio.generer_pdf)
 _enregistrer_paire("bio5",          "BIO 5 boules", "🌿", 12, bio5.generer_pdf)
