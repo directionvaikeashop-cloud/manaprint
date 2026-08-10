@@ -1,17 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-MANAPRINT — Générateur FLÈCHE (format A4)
-6 cartes par feuille A4 (2 colonnes × 3 rangées).
-Chaque carte : grille 5×5 dont 14 cases portent des numéros — la FLÈCHE ↘ :
-la diagonale du haut, la pointe en bas à droite, le bord droit et le
-plancher complets. Les cases vides sont BARRÉES d'une croix (fidèle au modèle).
-Colonnes classiques : 1-15 · 16-30 · 31-45 · 46-60 · 61-75, et tout est
-trié en DESCENDANT vers le bas (75, 74, 73… — l'élégance du modèle).
-En-tête : « Le jeu FLÈCHE … » + N° de série. Le QR de vérification
-occupe une case barrée du haut. Couleur arc-en-ciel (par carte) ou gris (N&B).
-Chiffres en gris (2 gammes ÉCO/PREMIUM).
+MANAPRINT — Générateur TAHITI (ex-FLÈCHE, format A4)
+
+🌺 REFAIT LE 09/08 (sceau Maeva) : la BOUTEILLE de Maeva occupe tout le
+carton, et les DIX NUMÉROS montent DANS LE VERRE — deux par lettre du
+mot BINGO. Au pied, sa fleur d'hibiscus, et DANS LE CŒUR DE LA FLEUR,
+NOS DÉS (ceux de motifs.py, la marque de la maison).
+
+RÈGLE (sceau Maeva 09/08) : 10 numéros, DEUX PAR LETTRE —
+  B : 1-15 · I : 16-30 · N : 31-45 · G : 46-60 · O : 61-75
+Le sac du crieur ne change pas : c'est toujours 1 à 75.
+
+⚡ ÉCONOMIE D'ENCRE : le dessin est pâli une fois pour toutes à la
+découpe, et les dés sont tracés au trait.
 """
 import io
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lgt
 import random
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -74,12 +78,100 @@ PLAGES = [(1, 15), (16, 30), (31, 45), (46, 60), (61, 75)]
 RANGEES = [(0, 4), (1, 4), (3, 4), (2, 3, 4), (0, 1, 2, 3, 4)]
 CASE_QR = (0, 2)   # (rangée, colonne) de la case barrée qui accueille le QR
 
-COLS_PAGE = 2
-ROWS_PAGE = 3
+# 🍾 LA BOUTEILLE DE MAEVA, et le cœur de sa fleur (mesuré au pixel).
+_RATIO_TAHITI = 380.0 / 730.0
+FLEUR = (0.005, 0.697, 0.000, 0.418)     # x0, x1, y0, y1 du bloc fleur
+# 🍾 LE CORPS DE LA BOUTEILLE, mesuré ligne par ligne : c'est là que
+# vivent les numéros (repère PDF, depuis le bas).
+CORPS = (0.410, 0.865, 0.150, 0.585)     # x0, x1, y0, y1 du verre
+# ⚠️ Le bas du verre est laisse a la FLEUR : les numeros s'arretent au-dessus.
+LETTRES_BINGO = "BINGO"
+# 💰 LE BONUS DE LA FLEUR : le montant est TIRE avec la carte.
+MONTANTS = [5, 10, 20, 50, 100]
+# ⚠️ le bas du corps est laisse a la FLEUR : les numeros s arretent au-dessus.
+import os as _os2
+
+
+def _choisir_image(motif, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_TAHITI = _choisir_image("tahiti_bouteille", _RATIO_TAHITI)
+
+
+def _un_de(c, cx, cy, t, valeur, col, gris_ch):
+    """🎲 LE DÉ DU CASINO — exactement le tracé de nos jeux SUN/POW/WIN
+    CASINO : carré arrondi blanc bordé couleur, points bien francs
+    disposés comme sur les dés du commerce.
+
+    C'est le « principe casino » voulu par Maeva (09/08) : les mêmes
+    proportions partout, pour que le joueur reconnaisse nos dés d'un
+    seul coup d'œil.
+    """
+    r = t / 2.0
+    c.setStrokeColor(col)
+    c.setLineWidth(1.1)
+    c.setFillColor(colors.white)
+    c.roundRect(cx - r, cy - r, t, t, t * 0.18, stroke=1, fill=1)
+    q = t * 0.26
+    pos = {1: [(0, 0)], 2: [(-q, q), (q, -q)], 3: [(-q, q), (0, 0), (q, -q)],
+           4: [(-q, q), (q, q), (-q, -q), (q, -q)],
+           5: [(-q, q), (q, q), (0, 0), (-q, -q), (q, -q)],
+           6: [(-q, q), (q, q), (-q, 0), (q, 0), (-q, -q), (q, -q)]}[valeur]
+    c.setFillColor(gris_ch)
+    for dx, dy in pos:
+        c.circle(cx + dx, cy + dy, t * 0.085, stroke=0, fill=1)
+
+
+# 🎲 la décomposition du casino : au-delà de 6, DEUX dés dont la somme
+# donne le nombre — la règle de SUN CASINO, reprise telle quelle.
+DECOMP_DES = {7: (4, 3), 8: (4, 4), 9: (5, 4), 10: (5, 5), 11: (6, 5), 12: (6, 6)}
+
+
+def _des_casino(c, valeur, cx, cy, ech, col, gris_ch):
+    """Pose la valeur EN DÉS, à la manière du casino : un seul dé
+    jusqu'à 6, deux dés au-delà."""
+    if valeur <= 6:
+        _un_de(c, cx, cy, 11.5 * mm * ech, valeur, col, gris_ch)
+    else:
+        a, b = DECOMP_DES.get(valeur, (5, 4))
+        _un_de(c, cx - 4.4 * mm * ech, cy, 7.8 * mm * ech, a, col, gris_ch)
+        _un_de(c, cx + 4.4 * mm * ech, cy, 7.8 * mm * ech, b, col, gris_ch)
+
+
+
+# 🍾 6 cartes / A4 (sceau Maeva 09/08) : le carton d'avant laissait
+# 28 mm de blanc de chaque cote de la bouteille. En le serrant sur
+# elle, on en tient TROIS par rangee au lieu de deux — +50 % de
+# cartons par feuille, et les chiffres ne perdent que 2 pt.
+COLS_PAGE = 3
+ROWS_PAGE = 2   # 4 cartes / A4 : les numéros vivent DANS la bouteille
 MARGIN_X = 8 * mm
 MARGIN_TOP = 10 * mm
-MARGIN_BOT = 8 * mm
-GUTTER_X = 5 * mm
+MARGIN_BOT = 7 * mm
+GUTTER_X = 3.5 * mm
 GUTTER_Y = 4 * mm
 
 CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
@@ -88,13 +180,16 @@ HDR_H = 6 * mm
 
 
 def _gen_carte(rng):
-    """14 numéros : par colonne, autant que de rangées occupées,
-    triés en DESCENDANT vers le bas (fidèle au modèle)."""
-    return [sorted(rng.sample(range(pmin, pmax + 1), len(rangs)), reverse=True)
-            for (pmin, pmax), rangs in zip(PLAGES, RANGEES)]
+    """🎰 DIX numéros : DEUX par lettre du mot BINGO, triés.
+
+    B : 1-15 · I : 16-30 · N : 31-45 · G : 46-60 · O : 61-75
+    (sceau Maeva 09/08 — avant, la flèche en portait 14.)
+    """
+    return ([sorted(rng.sample(range(lo, hi + 1), 2)) for (lo, hi) in PLAGES],
+            rng.choice(MONTANTS))
 
 
-def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
+def _dessiner_carte(c, x0, y0, cols_nums, bonus_des, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
     cell_w = CARD_W / 5
@@ -109,9 +204,9 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     hdr_bas = y0 + CARD_H - HDR_H
     c.setStrokeColor(col); c.setLineWidth(0.4)
     c.line(x0, hdr_bas, x0 + CARD_W, hdr_bas)
-    l1 = "Le jeu \u00ab FL\u00c8CHE \u00bb"
-    if titre_jeu and "FLECHE" not in titre_jeu.strip().upper().replace("\u00c8", "E"):
-        l1 = "FL\u00c8CHE \u00b7 " + titre_jeu.strip() + ""
+    l1 = "TAHITI"
+    if titre_jeu and "TAHITI" not in titre_jeu.strip().upper():
+        l1 = "TAHITI \u00b7 " + titre_jeu.strip() + ""
     if telephone:
         l1 += " " + telephone
     c.setFillColor(col); c.setFont(POLICE, 5)
@@ -119,52 +214,85 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     c.setFont(POLICE, 6.5)
     c.drawRightString(x0 + CARD_W - 2.5 * mm, hdr_bas + 1.7 * mm, "%06d" % serie)
 
-    # La grille 5×5 (traits complets)
-    z_top = hdr_bas
+    # ═══ 🍾 LES QUATORZE NUMÉROS DANS LA BOUTEILLE ═══
+    z_top = hdr_bas - 1.0 * mm
     z_bot = y0 + 1.5 * mm
-    row_h = (z_top - z_bot) / 5
-    c.setStrokeColor(col); c.setLineWidth(0.35)
-    for i in range(1, 5):
-        c.line(x0 + i * cell_w, z_bot, x0 + i * cell_w, z_top)
-        c.line(x0 + 1.5 * mm, z_top - i * row_h, x0 + CARD_W - 1.5 * mm, z_top - i * row_h)
-    c.line(x0 + 1.5 * mm, z_bot, x0 + CARD_W - 1.5 * mm, z_bot)
+    z_h = z_top - z_bot
 
-    # Les cases occupées (la flèche) et les cases barrées (les croix)
-    occupees = {(ri, ci) for ci, rangs in enumerate(RANGEES) for ri in rangs}
-    taille = 34
-    for ri in range(5):
-        for ci in range(5):
-            cx = x0 + (ci + 0.5) * cell_w
-            haut = z_top - ri * row_h
-            cyc = haut - row_h / 2
-            if (ri, ci) in occupees:
-                continue  # le numéro sera posé plus bas
-            if (ri, ci) == CASE_QR and _sec and evenement_id:
-                continue  # cette case barrée accueille le QR
-            # la croix de la case vide (fidèle au modèle)
-            c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.4)
-            m = 1.6 * mm
-            c.line(cx - cell_w / 2 + m, haut - m, cx + cell_w / 2 - m, haut - row_h + m)
-            c.line(cx - cell_w / 2 + m, haut - row_h + m, cx + cell_w / 2 - m, haut - m)
+    ilw = CARD_W - 3.5 * mm      # le carton est taille sur la bouteille
+    ilh = ilw / _RATIO_TAHITI
+    if ilh > z_h:
+        ilh = z_h
+        ilw = ilh * _RATIO_TAHITI
+    ilx = x0 + (CARD_W - ilw) / 2
+    ily = z_bot + (z_h - ilh) / 2
+    if _os2.path.exists(_IMAGE_TAHITI):
+        try:
+            c.drawImage(_IMAGE_TAHITI, ilx, ily, ilw, ilh, mask="auto",
+                        preserveAspectRatio=True)
+        except Exception:
+            pass
 
-    # Les 14 numéros de la flèche, descendants vers le bas
-    for ci, (nums, rangs) in enumerate(zip(cols_nums, RANGEES)):
-        cx = x0 + (ci + 0.5) * cell_w
-        for val, ri in zip(nums, rangs):
-            cyc = z_top - (ri + 0.5) * row_h
-            if _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, val, cx, cyc - taille * 0.36, taille, gris_ch, police_ch)
+    # ── 🎲 NOS DÉS, AU CŒUR DE LA FLEUR ─────────────────────────────────
+    # 💰 LE BONUS, AU CŒUR DE LA FLEUR (sceau Maeva 09/08) : un montant
+    # en francs, tiré avec la carte — 5, 10, 20, 50 ou 100.
+    fcx = ilx + 0.268 * ilw
+    fcy = ily + 0.143 * ilh
+    tm = min(ilw * 0.125, ilh * 0.065) * 72 / 25.4 * 0.72
+    tm = min(tm, 24.0)
+    # ⚠️ le bloc « montant + FRANCS » est CENTRÉ sur le cœur : le chiffre
+    # remonte d'un quart pour que l'ensemble tombe juste dans le calice.
+    y_chiffre = fcy - tm * 0.34 + tm * 0.22
+    if _sec:
+        _sec.chiffre_micro(c, bonus_des, fcx, y_chiffre, tm, gris_ch, police_ch)
+    else:
+        c.setFillColor(gris_ch)
+        c.setFont(police_ch, tm)
+        c.drawCentredString(fcx, y_chiffre, str(bonus_des))
+    c.setFillColor(col)
+    c.setFont("Helvetica-Bold", tm * 0.32)
+    c.drawCentredString(fcx, y_chiffre - tm * 0.40, "FRANCS")
+
+    # ── les DIX numéros, DANS le verre : une rangée par lettre ──────────
+    # Chaque rangée porte sa lettre du mot BINGO et ses DEUX numéros.
+    gx = ilx + CORPS[0] * ilw
+    gw = (CORPS[1] - CORPS[0]) * ilw
+    gy = ily + CORPS[2] * ilh
+    gh = (CORPS[3] - CORPS[2]) * ilh
+    NR = 5
+    chh = gh / NR
+    LET_W = gw * 0.15                      # la colonne des lettres, à gauche
+    cw2 = (gw - LET_W) / 2.0
+    taille = 34.0
+    # ⚠️ 0,74 et non 0,80 : deux nombres par rangée, il leur faut de l'air
+    while taille > 12 and (_lgt("88", "Helvetica-Bold", taille) > cw2 * 0.74
+                           or taille * 0.72 > chh * 0.74):
+        taille -= 0.5
+    for ri in range(NR):
+        cyc = gy + gh - (ri + 0.5) * chh
+        # la lettre B·I·N·G·O
+        c.setFillColor(col)
+        c.setFont("Helvetica-Bold", taille * 0.46)
+        c.drawCentredString(gx + LET_W / 2, cyc - taille * 0.46 * 0.34,
+                            LETTRES_BINGO[ri])
+        # ses deux numéros
+        for ci in range(2):
+            val = cols_nums[ri][ci]
+            nx = gx + LET_W + (ci + 0.5) * cw2
+            ny = cyc - taille * 0.34
+            if _sec:
+                _sec.chiffre_micro(c, val, nx, ny, taille, gris_ch, police_ch)
             else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-                c.drawCentredString(cx, cyc - taille * 0.36, str(val))
+                c.setFillColor(gris_ch)
+                c.setFont(police_ch, taille)
+                c.drawCentredString(nx, ny, str(val))
 
     # QR de vérification — dans sa case barrée du haut
     if _sec and evenement_id:
         try:
-            _q = min(row_h - 2.0 * mm, cell_w - 3 * mm, 12.5 * mm)
-            qri, qci = CASE_QR
-            _sec.carton_qr(c, x0 + (qci + 0.5) * cell_w - _q / 2,
-                           z_top - (qri + 0.5) * row_h - _q / 2, _q, evenement_id, serie)
+            _q = 11.0 * mm
+            _sec.carton_qr(c, x0 + CARD_W - _q - 3.0 * mm, y0 + 2.5 * mm,
+                           _q, evenement_id, serie, avec_code=False)
         except Exception:
             pass
 
@@ -198,10 +326,10 @@ def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
                     break
                 x0 = MARGIN_X + col_i * (CARD_W + GUTTER_X)
                 y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
-                cols_nums = _gen_carte(rng)
+                cols_nums, bonus_des = _gen_carte(rng)
                 coul = (couleur_perso if (couleur and couleur_perso)
                         else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
-                _dessiner_carte(c, x0, y0, cols_nums, coul, serie, titre_jeu, telephone,
+                _dessiner_carte(c, x0, y0, cols_nums, bonus_des, coul, serie, titre_jeu, telephone,
                                 style=style, evenement_id=evenement_id)
                 serie += 1
                 faites += 1
