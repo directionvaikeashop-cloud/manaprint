@@ -1,11 +1,18 @@
 """
 MANAPRINT — Générateur FLASH QUINES DEBOUT (format A4)
-8 cartes HAUTES par feuille (4 colonnes × 2 rangées).
-Chaque carte : 9 numéros en ZIGZAG (gauche/droite alternés), un par dizaine
-du 90 : 1-9 / 10-19 / 20-29 / 30-39 / 40-49 / 50-59 / 60-69 / 70-79 / 80-90.
-Les lettres F·L·A·S·H descendent à côté des numéros de gauche.
-Cases vides barrées. QR de sécurité dans la bande basse.
-Couleur arc-en-ciel (ou couleur_perso) / N&B. Gammes ÉCO / PREMIUM.
+
+🪜 REFAIT LE 09/08 (sceau Maeva, sur son dessin d'échelle) : le carton
+est haut et étroit — l'échelle aussi. Ses deux montants le traversent
+de bas en haut, et les NEUF NUMÉROS s'installent sur les NEUF ÉCHELONS,
+en zigzag comme avant.
+
+RÈGLE INCHANGÉE : 9 numéros, un par dizaine du 90 —
+  1-9 · 10-19 · 20-29 · 30-39 · 40-49 · 50-59 · 60-69 · 70-79 · 80-90
+Les lettres F·L·A·S·H descendent toujours à côté des numéros de gauche.
+Le sac du crieur ne change donc pas d'un chiffre.
+
+⚡ ÉCONOMIE D'ENCRE : l'échelle est DESSINÉE AU TRAIT, pas posée en
+image. Aucun aplat, rien à décompresser.
 """
 import io
 import random
@@ -104,13 +111,42 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, encre,
     grid_bot = y0 + BANDE_QR
     row_h = (grid_top - grid_bot) / N_ROWS
 
-    c.setStrokeColor(GRIS_GRILLE); c.setLineWidth(0.3)
-    for i in range(1, N_ROWS):
-        yy = grid_bot + i * row_h
-        c.line(x0, yy, x0 + CARD_W, yy)
-    c.line(x0 + cell_w, grid_bot, x0 + cell_w, grid_top)
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0, grid_bot, x0 + CARD_W, grid_bot)
+    # ═══ 🪜 L'ÉCHELLE ═══
+    # Deux montants qui traversent le carton, et neuf échelons — un par
+    # numéro. Le dessin de Maeva : des barreaux plats, des embouts en
+    # haut et des patins en bas.
+    MONT = 2.0 * mm                      # largeur d'un montant
+    marge = 2.6 * mm
+    mg = x0 + marge                      # montant gauche
+    md = x0 + CARD_W - marge - MONT      # montant droit
+    c.setStrokeColor(col)
+    c.setLineWidth(0.5)      # ⚡ trait fin : l'échelle ne doit rien coûter de plus
+    c.setFillColor(colors.white)
+    # les deux montants, du bas de la grille au haut
+    c.rect(mg, grid_bot + 3.0 * mm, MONT, (grid_top - grid_bot) - 3.0 * mm,
+           stroke=1, fill=1)
+    c.rect(md, grid_bot + 3.0 * mm, MONT, (grid_top - grid_bot) - 3.0 * mm,
+           stroke=1, fill=1)
+    # les embouts du haut et les patins du bas
+    c.setLineWidth(0.4)
+    for mx in (mg, md):
+        c.rect(mx - 0.4 * mm, grid_top - 1.8 * mm, MONT + 0.8 * mm, 1.8 * mm,
+               stroke=1, fill=1)
+        c.rect(mx - 0.7 * mm, grid_bot + 0.6 * mm, MONT + 1.4 * mm, 2.2 * mm,
+               stroke=1, fill=1)
+    # les neuf échelons : un barreau sous chaque rangée
+    ech_x = mg + MONT
+    ech_w = md - ech_x
+    # ⚡ les barreaux se dessinent en DEUX TRAITS, pas en rectangle : leurs
+    # petits côtés sont de toute façon cachés par les montants, et on
+    # économise ainsi la moitié de l'encre des échelons.
+    c.setLineWidth(0.42)
+    for i in range(N_ROWS):
+        yy = grid_top - (i + 1) * row_h      # le barreau ferme sa rangée
+        c.setFillColor(colors.white)
+        c.rect(ech_x, yy, ech_w, 1.5 * mm, stroke=0, fill=1)
+        c.line(ech_x, yy, ech_x + ech_w, yy)
+        c.line(ech_x, yy + 1.5 * mm, ech_x + ech_w, yy + 1.5 * mm)
 
     taille = 32  # calibre maison 32 pts (décision Maeva, 24/07)
     i_flash = 0
@@ -120,9 +156,11 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, encre,
         haut = grid_top - ri * row_h
         bas = haut - row_h
         for ci in range(2):
-            cx = x0 + (ci + 0.5) * cell_w
+            # ⚠️ les colonnes se calent ENTRE les montants de l'échelle,
+            # sinon les chiffres mordent le bois.
+            cx = ech_x + (ci + 0.5) * (ech_w / 2.0)
             if ci == ci_num:
-                cy = bas + row_h * 0.07   # ligne de base abaissée : le 32 pts tient dans sa rangée
+                cy = bas + row_h * 0.30   # au-dessus de son barreau, bien au centre
                 if _sec:
                     _sec.chiffre_micro(c, nums[ri], cx, cy, taille, gris_ch, police_ch)
                 else:
@@ -130,16 +168,9 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, encre,
                     c.drawCentredString(cx, cy, str(nums[ri]))
                 if gauche and i_flash < len(FLASH):
                     c.setFillColor(col); c.setFont("Helvetica", 4.5)
-                    c.drawString(cx + 8.2 * mm, cy - 0.2 * mm, FLASH[i_flash])
+                    c.drawString(cx + ech_w / 4.0 - 1.4 * mm, cy - 0.2 * mm, FLASH[i_flash])
                     i_flash += 1
-            else:
-                # case vide barrée
-                c.setStrokeColor(GRIS_CROIX); c.setLineWidth(0.35)
-                r = 0.34
-                c.line(cx - cell_w * r, bas + row_h * (0.5 - r),
-                       cx + cell_w * r, bas + row_h * (0.5 + r))
-                c.line(cx - cell_w * r, bas + row_h * (0.5 + r),
-                       cx + cell_w * r, bas + row_h * (0.5 - r))
+            # (plus de croix dans le vide : l'échelon suffit à guider l'œil)
 
     # Bande basse : Resp. à gauche, QR à droite
     c.setFillColor(GREY); c.setFont("Helvetica", 4.5)
