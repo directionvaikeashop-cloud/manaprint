@@ -64,8 +64,43 @@ CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_
 # retiré lettre par lettre. Pâli une seule fois à la découpe : le chargeur
 # ne le repâlit PAS (piège du double pâlissement, 22/07).
 _DOSSIER = os.path.dirname(os.path.abspath(__file__))
-_CADRE = os.path.join(_DOSSIER, "vanille_cadre.png")
 _RATIO_CADRE = 900.0 / 884.0        # cadre ALLONGÉ vers le haut (05/08)
+
+
+def _choisir_image(motif, ratio_attendu):
+    """🛟 Retrouve le cadre, quel que soit son nom de fichier.
+
+    Au téléversement, GitHub garde parfois le nom de livraison
+    (« 2_TELEVERSER_vanille_cadre.png ») ou ajoute un « (1) ». Le nom ne
+    suffit donc pas à départager. Les PROPORTIONS, elles, ne mentent
+    pas : parmi tous les fichiers dont le nom contient `motif`, on garde
+    celui dont le ratio colle au dessin attendu. (10/08 — le jeu sortait
+    SANS SON IMAGE parce que le fichier portait un préfixe.)
+    """
+    exact = os.path.join(_DOSSIER, motif + ".png")
+    candidats = []
+    try:
+        for f in os.listdir(_DOSSIER):
+            if motif in f and f.lower().endswith(".png"):
+                candidats.append(os.path.join(_DOSSIER, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_CADRE = _choisir_image("vanille_cadre", _RATIO_CADRE)
 
 GRAINE = 986000
 PLAGE = (30, 75)
