@@ -52,7 +52,7 @@ def _style_chiffres(style):
 
 
 PAGE_W, PAGE_H = A4
-COLS_PAGE, ROWS_PAGE = 2, 3               # 6 cartes / A4 (les bulles respirent)
+COLS_PAGE, ROWS_PAGE = 3, 4   # 12 cartes / A4 (sceau Maeva 10/08)               # 6 cartes / A4 (les bulles respirent)
 MARGIN_X, MARGIN_TOP, MARGIN_BOT = 10 * mm, 7 * mm, 10 * mm
 GUTTER_X, GUTTER_Y = 5 * mm, 5 * mm
 CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
@@ -81,13 +81,18 @@ def _bulle(c, cx, cy, r, n, col, gris_ch, police_ch):
     c.setStrokeColor(col)
     c.setLineWidth(1.3)
     c.circle(cx, cy, r, stroke=1, fill=1)
+    # ⚠️ 10/08 : le chiffre se cale sur SA BULLE, il n'a plus de taille
+    # fixe. À 12 grilles la bulle a rétréci ; sans cela les chiffres
+    # débordaient du cercle.
+    _t = TAILLE_CHIFFRE
+    while _t > 12 and _lg("88", "Helvetica-Bold", _t) > r * 2 * 0.76:
+        _t -= 0.5
     if _sec:
-        _sec.chiffre_micro(c, n, cx, cy - TAILLE_CHIFFRE * 0.36,
-                           TAILLE_CHIFFRE, gris_ch, police_ch)
+        _sec.chiffre_micro(c, n, cx, cy - _t * 0.36, _t, gris_ch, police_ch)
     else:
         c.setFillColor(gris_ch)
-        c.setFont(police_ch, TAILLE_CHIFFRE)
-        c.drawCentredString(cx, cy - TAILLE_CHIFFRE * 0.36, str(n))
+        c.setFont(police_ch, _t)
+        c.drawCentredString(cx, cy - _t * 0.36, str(n))
     c.setStrokeColor(colors.Color(0.82, 0.82, 0.82))
     c.setLineWidth(0.5)
     rl = r * 0.30
@@ -123,19 +128,35 @@ def _dessiner_carte(c, x0, y0, groupes, couleur_hex, serie,
     haut = y0 + CARD_H - 10.0 * mm
     bas = y0 + 13.0 * mm                  # le QR loge dessous
     zone_h = haut - bas
-    r_bulle = 9.5 * mm
+    # ⚡ 10/08 : la bulle se règle SUR LE CARTON, elle n'a plus de taille
+    # fixe. À 12 grilles le carton a rétréci ; sans cela les bulles
+    # débordaient et se chevauchaient.
+    r_bulle = min(9.5 * mm, zone_h / 7.2, (CARD_W - 8 * mm) / 6.2)
     for i, ((lettre, _plage, _n), nums) in enumerate(zip(LETTRES, groupes)):
         cy = haut - zone_h * (i + 0.5) / len(LETTRES)
-        larg_l = _lg(lettre, "Helvetica-Bold", TAILLE_LETTRE)
+        # la lettre a la hauteur de sa bulle : elle reste bien lisible,
+        # quelle que soit la taille du carton.
+        t_lettre = min(TAILLE_LETTRE, (r_bulle * 2 * 0.80) / mm * 72 / 25.4)
+        larg_l = _lg(lettre, "Helvetica-Bold", t_lettre)
         # les bulles : la première MORD la lettre (elle la chevauche d'un
         # cheveu, sans jamais la couvrir), les suivantes s'alignent.
         ecart = 2.6 * mm
         mordu = r_bulle * 0.18
         largeur = (larg_l - mordu) + len(nums) * r_bulle * 2 + (len(nums) - 1) * ecart
         lx = x0 + (CARD_W - largeur) / 2          # le groupe est centré
-        c.setFillColor(col)
-        c.setFont("Helvetica-Bold", TAILLE_LETTRE)
-        c.drawString(lx, cy - TAILLE_LETTRE * 0.35, lettre)
+        # ⚡ 10/08 (sceau Maeva) : la lettre est CREUSE — un contour, et du
+        # blanc dedans. Avant, chaque B, N et G était un aplat plein : à
+        # trois lettres par carton et douze cartons par feuille, cela
+        # faisait beaucoup d'encre pour rien. Le trait suffit à la lire.
+        c.setFont("Helvetica-Bold", t_lettre)
+        c.setStrokeColor(col)
+        c.setFillColor(colors.white)
+        c.setLineWidth(max(0.5, t_lettre * 0.022))
+        _t = c.beginText(lx, cy - t_lettre * 0.35)
+        _t.setTextRenderMode(2)          # 2 = remplir PUIS tracer le contour
+        _t.setFont("Helvetica-Bold", t_lettre)
+        _t.textOut(lettre)
+        c.drawText(_t)
         depart = lx + larg_l - mordu
         for k, n in enumerate(nums):
             bx = depart + r_bulle + k * (r_bulle * 2 + ecart)
