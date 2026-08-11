@@ -11,6 +11,7 @@ Pied de carte : « N° SERIE | 054001 ».
 Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
 """
 import io
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lgn
 import random
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -154,6 +155,49 @@ def _jeton_valeur(c, cx, cy, r, francs, col, gris_ch, police_ch):
     c.drawCentredString(cx, cy - r * 0.52, "FRANCS")
 
 
+# 🫧 LA BULLE ET LA LETTRE CREUSE — la recette de BNG (11/08, sceau Maeva).
+# La bulle est blanche au trait avec son reflet ; la lettre n'est plus un
+# aplat plein mais un CONTOUR, le ventre en blanc. Aucun aplat que
+# l'imprimante puisse transformer en pâté, et beaucoup moins d'encre.
+
+
+def _bulle_ing(c, cx, cy, r, n, col, gris_ch, police_ch):
+    """La bulle qui porte le chiffre : blanche, au trait, avec son reflet."""
+    c.setFillColor(colors.white)
+    c.setStrokeColor(col)
+    c.setLineWidth(1.1)
+    c.circle(cx, cy, r, stroke=1, fill=1)
+    # ⚠️ le chiffre se cale sur SA bulle : sans cela il déborde du cercle.
+    t = 38.0
+    while t > 10 and _lgn("88", "Helvetica-Bold", t) > r * 2 * 0.76:
+        t -= 0.5
+    if _sec:
+        _sec.chiffre_micro(c, n, cx, cy - t * 0.36, t, gris_ch, police_ch)
+    else:
+        c.setFillColor(gris_ch)
+        c.setFont(police_ch, t)
+        c.drawCentredString(cx, cy - t * 0.36, str(n))
+    c.setStrokeColor(colors.Color(0.82, 0.82, 0.82))
+    c.setLineWidth(0.45)
+    rl = r * 0.30
+    gx, gy = cx - r * 0.44, cy + r * 0.44
+    c.arc(gx - rl, gy - rl, gx + rl, gy + rl, 20, 150)
+
+
+def _lettre_creuse_ing(c, lettre, lx, ly, taille, col):
+    """La lettre en CONTOUR, le ventre en blanc (recette de BNG)."""
+    c.setFont("Helvetica-Bold", taille)
+    c.setStrokeColor(col)
+    c.setFillColor(colors.white)
+    c.setLineWidth(max(0.5, taille * 0.022))
+    t = c.beginText(lx, ly)
+    t.setTextRenderMode(2)          # 2 = remplir PUIS tracer le contour
+    t.setFont("Helvetica-Bold", taille)
+    t.textOut(lettre)
+    t.setTextRenderMode(0)          # ⚠️ on REFERME, sinon le chiffre suivant
+    c.drawText(t)                   #    sort en couleur du trait
+
+
 def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id="", jetons=False):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
@@ -193,9 +237,13 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     if not jetons: c.line(x0, hdr_bas, x0 + CARD_W, hdr_bas)
     for i in (1, 2):
         if not jetons: c.line(x0 + i * cell_w, hdr_bas, x0 + i * cell_w, y0 + CARD_H)
-    c.setFillColor(col); c.setFont(POLICE, 7.5)
+    # ⚡ les lettres I · N · G en CONTOUR CREUX (recette de BNG)
+    _tl = 11.0
     for i, lettre in enumerate(LETTRES):
-        c.drawCentredString(x0 + (i + 0.5) * cell_w, hdr_bas + 1.8 * mm, lettre)
+        _lg2 = _lgn(lettre, "Helvetica-Bold", _tl)
+        _lettre_creuse_ing(c, lettre,
+                           x0 + (i + 0.5) * cell_w - _lg2 / 2,
+                           hdr_bas + 1.4 * mm, _tl, col)
 
     # Le nom du jeu apparaît TOUJOURS : signature fine sous l'en-tête
     signature = "ING"
@@ -220,11 +268,8 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     z_bot = y0 + PIED_H
     row_h = (z_top - z_bot) / 3
     # traits de la grille (fidèle au modèle : cases complètes)
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    for i in (1, 2):
-        if not jetons: c.line(x0 + i * cell_w, z_bot, x0 + i * cell_w, hdr_bas)
-    for i in range(4):
-        if not jetons: c.line(x0 + 1.5 * mm, z_top - i * row_h, x0 + CARD_W - 1.5 * mm, z_top - i * row_h)
+    # ⚡ 11/08 : PLUS DE TRAITS DE GRILLE — les bulles guident l'œil, et
+    # chaque trait coûtait de l'encre sur les douze cartons de la feuille.
     taille = 38  # AU MAX physique (Maeva)
     for ci, ((pmin, pmax, n), nums) in enumerate(zip(COLONNES, cols_nums)):
         cx = x0 + (ci + 0.5) * cell_w
@@ -239,11 +284,20 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
                 else:
                     _jeton(c, cx, cyc, _r_jeton, val, col, gris_ch, police_ch)
                 continue
-            if _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, val, cx, cyc - taille * 0.36, taille, gris_ch, police_ch)
+            # ⚡ 11/08 (sceau Maeva) : PAS DE BULLES — le chiffre nu. Les
+            # lettres creuses de l'en-tête suffisent à donner le style, et
+            # sans les cercles le carton coûte moins d'encre encore.
+            # ⚠️ la taille se cale sur la case, jamais en dur.
+            _t = 38.0
+            while _t > 10 and (_lgn("88", "Helvetica-Bold", _t) > cell_w * 0.70
+                               or _t * 0.72 > row_h * 0.74):
+                _t -= 0.5
+            if _sec:
+                _sec.chiffre_micro(c, val, cx, cyc - _t * 0.36, _t, gris_ch, police_ch)
             else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-                c.drawCentredString(cx, cyc - taille * 0.36, str(val))
+                c.setFillColor(gris_ch)
+                c.setFont(police_ch, _t)
+                c.drawCentredString(cx, cyc - _t * 0.36, str(val))
 
     # QR de vérification — logé dans la case vide du CENTRE (la signature INO)
     if _sec and evenement_id:
