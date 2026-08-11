@@ -26,6 +26,7 @@ from generators import quatre_coin
 from generators import pol
 from generators import sun
 from generators import pow as powgen
+from generators import pow9 as pow9gen
 from generators import poe_parau as poeparaugen
 from generators import poe as poegen
 from generators import bng as bnggen
@@ -373,6 +374,7 @@ _enregistrer_paire("pol",           "POL 6 boules","🎲", 12, pol.generer_pdf)
 _enregistrer_paire("sun",           "SUN 8 boules","☀️", 12, sun.generer_pdf)
 _enregistrer_paire("sun_casino",    "SUN CASINO","🎲", 12, sun.generer_pdf_casino)
 _enregistrer_paire("pow",           "POW 8 boules","💥", 12, powgen.generer_pdf)
+_enregistrer_paire("pow9",          "POW 9 boules", "\U0001f9fa", 12, pow9gen.generer_pdf)
 _enregistrer_paire("pow_casino",    "POW CASINO","🎲", 12, powgen.generer_pdf_casino)
 _enregistrer_paire("poe_parau",     "POE PARAU 6 boules", "🦪", 12, poeparaugen.generer_pdf)
 _enregistrer_paire("poe",           "POE 6 boules", "⚪", 12, poegen.generer_pdf)
@@ -1068,6 +1070,7 @@ _PLAGES_CALLER = {
     "sun_casino": (1, 24),
     "p6_casino": (1, 75),
     "pow": (1, 27),
+    "pow9": (1, 27),
     "pow_casino": (1, 27),
     "poe_parau": (1, 75),
     "poe": (45, 90),
