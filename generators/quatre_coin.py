@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
 """
 MANAPRINT — Générateur 4 COIN (jeu des 4 coins, format A4 portrait)
-6 cartes par feuille (2 colonnes × 3 rangées).
-Chaque carte : grille 5×5, en-tête "4 C O I N".
-Les chiffres sont placés dans les 4 COINS (blocs 2×2) ; la croix centrale
-(colonne du milieu + rangée du milieu) est vide ; une boule-logo au centre.
-Colonnes (BINGO 75) : col0=1-15, col1=16-30, col2=31-45 (VIDE), col3=46-60, col4=61-75.
-16 chiffres par carte (4 par colonne active), tirés sans doublon, ordre aléatoire.
+
+🖨️ REFAIT LE 12/08 (sceau Maeva) : la grille 5×5 laisse place à QUATRE
+IMPRIMANTES — une par coin. Chaque imprimante porte SES QUATRE NUMÉROS
+dans son bac à papier : « il y a 4 grilles donc 4 imprimantes ».
+
+RÈGLE INCHANGÉE : 16 numéros, quatre par bloc, tirés dans les colonnes
+du BINGO 75 — col0 1-15 · col1 16-30 · col3 46-60 · col4 61-75
+(la colonne centrale 31-45 reste vide, c'est la croix du jeu).
+6 cartes par feuille A4.
 """
 import io
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg4
 import random
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -55,8 +59,12 @@ GRIS_CLAIR = colors.Color(0.80, 0.80, 0.80)
 from reportlab.pdfbase import pdfmetrics as _pm
 from reportlab.pdfbase.ttfonts import TTFont as _TF
 try:
-    _pm.registerFont(_TF("DJLECO", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    _POLICE_ECO = "DJLECO"
+    # 🖨️ 12/08 (sceau Maeva) : la GRASSE CONDENSÉE, celle de QUINES 90.
+    # Plus étroite qu'une grasse ordinaire, donc on peut la monter plus
+    # haut à place égale — et elle se lit de loin. La feuille de sortie
+    # de l'imprimante n'offre que 5,3 mm de haut : le gras y compense.
+    _pm.registerFont(_TF("DJBOLDC", "/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed-Bold.ttf"))
+    _POLICE_ECO = "DJBOLDC"
 except Exception:
     _POLICE_ECO = "Helvetica"
 _GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
@@ -79,6 +87,41 @@ PLAGES = [(1, 15), (16, 30), (31, 45), (46, 60), (61, 75)]
 COLS_ACTIVES = [0, 1, 3, 4]
 # rangées remplies (toutes sauf celle du milieu)
 ROWS_ACTIVES = [0, 1, 3, 4]
+
+# 🖨️ L'IMPRIMANTE DE MAEVA — les numéros se rangent dans son bac.
+_RATIO_IMP = 1.3333
+BAC = (0.2902, 0.7098, 0.677, 0.97)   # x0, x1, y0, y1
+SORTIE = (0.3023, 0.6977, 0.037, 0.2)   # la feuille qui sort
+import os as _os2
+
+
+def _choisir_image(motif, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_IMP = _choisir_image("quatre_imprimante", _RATIO_IMP)
 
 COLS_PAGE = 2
 ROWS_PAGE = 3
@@ -144,34 +187,62 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, telephone="", style="e
         c.setFillColor(col); c.setFont(POLICE, 19)
         c.drawCentredString(cx, grid_top + 2.2 * mm, L)
 
-    # grille 5×5
-    c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.5)
-    for i in range(6):
-        c.line(gx0 + i * cell_w, grid_bot, gx0 + i * cell_w, grid_top)
-    for j in range(6):
-        yy = grid_bot + j * cell_h
-        c.line(gx0, yy, gx0 + 5 * cell_w, yy)
+    # ═══ 🖨️ LES QUATRE IMPRIMANTES ═══
+    # Une par coin, chacune portant SES QUATRE NUMÉROS dans son bac à
+    # papier — deux par rangée. Plus de grille : les imprimantes
+    # dessinent elles-mêmes les quatre blocs du jeu.
+    ECART = 2.0 * mm
+    iw = (grid_w - ECART) / 2.0
+    ih = iw / _RATIO_IMP
+    if ih * 2 + ECART > grid_h:
+        ih = (grid_h - ECART) / 2.0
+        iw = ih * _RATIO_IMP
+    ox = gx0 + (grid_w - (2 * iw + ECART)) / 2
+    oy = grid_bot + (grid_h - (2 * ih + ECART)) / 2
 
-    # numéros (écriture fine DJL, comme BROWN 8, gris 40%)
-    c.setFont(POLICE, 32)
-    for r in range(5):
-        for cc in range(5):
+    # la place d'un numéro dans le bac : deux colonnes, deux rangées
+    # 🖨️ DEUX numéros dans le BAC, DEUX sur la FEUILLE QUI SORT : la
+    # machine range vraiment ses chiffres, et chacun a deux fois plus de
+    # hauteur qu'entassé à quatre dans le seul bac (18 × 10 mm).
+    bw = (BAC[1] - BAC[0]) * iw / 2.0
+    bh = (BAC[3] - BAC[2]) * ih
+    sw = (SORTIE[1] - SORTIE[0]) * iw / 2.0
+    sh = (SORTIE[3] - SORTIE[2]) * ih
+    taille = 34.0
+    # ⚠️ on mesure avec la VRAIE police : la condensée est plus étroite,
+    # elle permet donc une taille plus haute à place égale.
+    while taille > 8 and (_lg4("88", police_ch, taille) > min(bw, sw) * 0.88
+                          or taille * 0.72 > min(bh, sh) * 0.82):
+        taille -= 0.5
+
+    # les quatre blocs du jeu : haut-gauche, haut-droit, bas-gauche, bas-droit
+    BLOCS = (((0, 0), (0, 1), (1, 0), (1, 1)),      # coin haut-gauche
+             ((0, 3), (0, 4), (1, 3), (1, 4)),      # coin haut-droit
+             ((3, 0), (3, 1), (4, 0), (4, 1)),      # coin bas-gauche
+             ((3, 3), (3, 4), (4, 3), (4, 4)))      # coin bas-droit
+    for k, cases in enumerate(BLOCS):
+        px = ox + (k % 2) * (iw + ECART)
+        py = oy + (1 - k // 2) * (ih + ECART)
+        if _os2.path.exists(_IMAGE_IMP):
+            try:
+                c.drawImage(_IMAGE_IMP, px, py, iw, ih, mask="auto",
+                            preserveAspectRatio=True)
+            except Exception:
+                pass
+        for n, (r, cc) in enumerate(cases):
             v = carte[r][cc]
-            if v is not None:
-                cx = gx0 + (cc + 0.5) * cell_w
-                cyc = grid_top - (r + 0.5) * cell_h
-                if _sec:  # chiffres "billet de banque" remplis de microtexte
-                    _sec.chiffre_micro(c, v, cx, cyc - 11, 32, gris_ch, police_ch)
-                else:
-                    c.setFillColor(gris_ch)
-                    c.setFont(police_ch, 32)
-                    c.drawCentredString(cx, cyc - 11, str(v))
-
-    # boule-logo au centre
-    cx_c = gx0 + 2.5 * cell_w
-    cy_c = grid_top - 2.5 * cell_h
-    rayon = min(cell_w, cell_h) * 0.46
-    _boule(c, cx_c, cy_c, rayon, telephone)
+            if v is None:
+                continue
+            # les deux premiers dans le BAC, les deux autres sur la FEUILLE
+            Z = BAC if n < 2 else SORTIE
+            nx = px + (Z[0] + (n % 2 + 0.5) * (Z[1] - Z[0]) / 2) * iw
+            ny = py + (Z[2] + (Z[3] - Z[2]) / 2) * ih
+            if _sec:
+                _sec.chiffre_micro(c, v, nx, ny - taille * 0.36, taille, gris_ch, police_ch)
+            else:
+                c.setFillColor(gris_ch)
+                c.setFont(police_ch, taille)
+                c.drawCentredString(nx, ny - taille * 0.36, str(v))
 
     # série en bas
     c.setFillColor(col); c.setFont(POLICE, 5)
@@ -180,11 +251,15 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, telephone="", style="e
     # QR de vérification par grille (anti-duplication) — coin bas-droit
     if _sec and evenement_id:
         try:
-            # 🎯 QR intégré : au CENTRE de la croix vide (aucun chiffre dérangé)
-            _q = 13.0 * mm
-            _xq = gx0 + 2 * cell_w + (cell_w - _q) / 2
-            _yq = grid_bot + 2 * cell_h + (cell_h - _q) / 2
-            _sec.carton_qr(c, _xq, _yq, _q, evenement_id, serie, position_code="droite")
+            # 🎯 LE QR au centre, dans la croix entre les quatre imprimantes.
+            # ⚠️ 12/08 : il faisait 13 mm avec son code écrit à droite et
+            # débordait sur les bacs voisins, mangeant deux numéros. Réduit
+            # et posé nu, il tient dans l'écart des machines.
+            _q = min(9.0 * mm, ECART + iw * 0.20)
+            _xq = ox + iw + (ECART - _q) / 2 + iw * 0.0
+            _sec.carton_qr(c, ox + iw + ECART / 2 - _q / 2,
+                           oy + ih + ECART / 2 - _q / 2,
+                           _q, evenement_id, serie, avec_code=False)
         except Exception:
             pass
 
