@@ -3472,12 +3472,17 @@ def admin_paiements_stripe():
     if paniers_payes is not None:
         reels = [c for c in lignes if c.get("panier_id") in paniers_payes]
         essais = [c for c in lignes if c.get("panier_id") not in paniers_payes]
+        # ⚠️ 11/08 : les commandes NON recoupées sont renvoyées elles aussi.
+        # Depuis la bascule de caisse, Stripe ne voit plus les paiements
+        # encaissés sur l'ancien compte : ils sont bien réels, mais
+        # invisibles ici. Tatie doit pouvoir les retrouver quand même.
         return jsonify({"ok": True, "verite_stripe": True,
                         "nombre": len(reels),
                         "total": sum(int(c.get("montant") or 0) for c in reels),
                         "dernieres": reels[:15],
                         "nombre_essais": len(essais),
-                        "total_essais": sum(int(c.get("montant") or 0) for c in essais)})
+                        "total_essais": sum(int(c.get("montant") or 0) for c in essais),
+                        "essais": essais[:30]})
     total = sum(int(c.get("montant") or 0) for c in lignes)
     return jsonify({"ok": True, "verite_stripe": False, "nombre": len(lignes),
                     "total": total, "dernieres": lignes[:15]})
