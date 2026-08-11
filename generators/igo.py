@@ -11,6 +11,7 @@ En-tête à 2 lignes : « Le jeu IGO pour 5 boules … » + « Carte N° 030001 
 Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
 """
 import io
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lgi
 import random
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -94,6 +95,50 @@ def _gen_carte(rng):
     return (i, g1, o, g2, g3)
 
 
+# 🫧 LA BULLE ET LA LETTRE CREUSE — la recette de BNG (10/08).
+# La bulle est blanche au trait, avec son reflet ; la lettre n'est plus
+# un aplat plein mais un CONTOUR, le ventre en blanc. Aucun aplat que
+# l'imprimante puisse transformer en pâté, et beaucoup moins d'encre.
+
+
+def _bulle(c, cx, cy, r, n, col, gris_ch, police_ch):
+    """La bulle qui porte le chiffre : blanche, au trait, avec son reflet."""
+    c.setFillColor(colors.white)
+    c.setStrokeColor(col)
+    c.setLineWidth(1.1)
+    c.circle(cx, cy, r, stroke=1, fill=1)
+    # ⚠️ le chiffre se cale sur SA bulle, il n'a pas de taille fixe :
+    # sans cela il déborderait du cercle sur un petit carton.
+    t = 32.0
+    while t > 10 and _lgi("88", "Helvetica-Bold", t) > r * 2 * 0.76:
+        t -= 0.5
+    if _sec:
+        _sec.chiffre_micro(c, n, cx, cy - t * 0.36, t, gris_ch, police_ch)
+    else:
+        c.setFillColor(gris_ch)
+        c.setFont(police_ch, t)
+        c.drawCentredString(cx, cy - t * 0.36, str(n))
+    c.setStrokeColor(colors.Color(0.82, 0.82, 0.82))
+    c.setLineWidth(0.45)
+    rl = r * 0.30
+    gx, gy = cx - r * 0.44, cy + r * 0.44
+    c.arc(gx - rl, gy - rl, gx + rl, gy + rl, 20, 150)
+
+
+def _lettre_creuse(c, lettre, lx, ly, taille, col):
+    """La lettre en CONTOUR, le ventre en blanc (recette de BNG)."""
+    c.setFont("Helvetica-Bold", taille)
+    c.setStrokeColor(col)
+    c.setFillColor(colors.white)
+    c.setLineWidth(max(0.5, taille * 0.022))
+    t = c.beginText(lx, ly)
+    t.setTextRenderMode(2)          # 2 = remplir PUIS tracer le contour
+    t.setFont("Helvetica-Bold", taille)
+    t.textOut(lettre)
+    t.setTextRenderMode(0)          # ⚠️ on REFERME le mode contour, sinon le
+    c.drawText(t)                   #    chiffre suivant sort en couleur du trait
+
+
 def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
@@ -121,28 +166,33 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     z_top = hdr_bas
     z_bot = y0 + ZONE_QR_H
     row_h = (z_top - z_bot) / 3
-    # traits horizontaux entre les étages (fidèle au modèle)
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0, z_top - row_h, x0 + CARD_W, z_top - row_h)
-    c.line(x0, z_top - 2 * row_h, x0 + CARD_W, z_top - 2 * row_h)
-    c.line(x0, z_bot, x0 + CARD_W, z_bot)
+    # ⚡ 10/08 (sceau Maeva) : PLUS DE TRAITS SÉPARATEURS entre les étages.
+    # Les bulles suffisent à guider l'œil, et chaque trait coûtait de
+    # l'encre sur les douze cartons de la feuille.
 
-    taille = 32
-    def chiffre(val, cx, cyc):
-        if _sec:  # chiffres "billet de banque" remplis de microtexte
-            _sec.chiffre_micro(c, val, cx, cyc - taille * 0.36, taille, gris_ch, police_ch)
-        else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-            c.drawCentredString(cx, cyc - taille * 0.36, str(val))
+    # ⚡ 10/08 : LES BULLES, comme sur BNG. Le rayon se règle SUR LE
+    # CARTON — jamais de taille fixe, sinon les bulles débordent dès que
+    # le carton rétrécit.
+    r_bulle = min(9.0 * mm, row_h * 0.40, CARD_W / 7.4)
+    t_lettre = (r_bulle * 2 * 0.72) / mm * 72 / 25.4
 
-    # étage 1 : I G O côte à côte
+    # ── étage 1 : I · G · O côte à côte, chacun avec sa lettre creuse ──
     y1 = z_top - row_h / 2
-    chiffre(i_num, x0 + CARD_W * 0.20, y1)
-    chiffre(g1,    x0 + CARD_W * 0.50, y1)
-    chiffre(o_num, x0 + CARD_W * 0.80, y1)
-    # étages 2 et 3 : les solitaires G, centrés
-    chiffre(g2, x0 + CARD_W / 2, z_top - 1.5 * row_h)
-    chiffre(g3, x0 + CARD_W / 2, z_top - 2.5 * row_h)
+    for lettre, val, fx in (("I", i_num, 0.20), ("G", g1, 0.50), ("O", o_num, 0.80)):
+        bx = x0 + CARD_W * fx
+        larg_l = _lgi(lettre, "Helvetica-Bold", t_lettre)
+        # la lettre mord la bulle d'un cheveu, comme sur BNG
+        _lettre_creuse(c, lettre, bx - r_bulle - larg_l * 0.92,
+                       y1 - t_lettre * 0.35, t_lettre, col)
+        _bulle(c, bx, y1, r_bulle, val, col, gris_ch, police_ch)
+
+    # ── étages 2 et 3 : les solitaires G, centrés ─────────────────────
+    for val, k in ((g2, 1.5), (g3, 2.5)):
+        cyc = z_top - k * row_h
+        larg_l = _lgi("G", "Helvetica-Bold", t_lettre)
+        _lettre_creuse(c, "G", x0 + CARD_W / 2 - r_bulle - larg_l * 0.92,
+                       cyc - t_lettre * 0.35, t_lettre, col)
+        _bulle(c, x0 + CARD_W / 2, cyc, r_bulle, val, col, gris_ch, police_ch)
 
     # QR de vérification par carte (anti-duplication) — bande basse, centré
     if _sec and evenement_id:
