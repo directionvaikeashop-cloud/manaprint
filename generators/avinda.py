@@ -372,7 +372,7 @@ def _dessiner_carte(c, x0, y0, carte, verres, couleur_hex, serie, encre,
 
 def generer_pdf(nb_cartes=2, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id="", mystere=False, fortune=False):
+                style="eco", evenement_id="", mystere=False, fortune=False, page_start=1):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
@@ -382,7 +382,8 @@ def generer_pdf(nb_cartes=2, serie_start=1, theme="", couleur=True,
 
     rng = random.Random(978000 + int(serie_start))
     serie = int(serie_start)
-    no_page = 1
+    # 📄 la page continue d'une rame à l'autre (sceau Maeva 12/08)
+    no_page = max(1, int(page_start))
     encre = NOIR if couleur else GRIS
     faites = 0
 

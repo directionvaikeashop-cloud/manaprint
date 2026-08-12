@@ -239,7 +239,7 @@ def _trefle_maison(c, ccx, cy, gris_trait):
 
 def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id="", motif=""):
+                style="eco", evenement_id="", motif="", page_start=1):
     telephone = (telephone or "").strip() or "89 22 23 05"
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
@@ -248,7 +248,8 @@ def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
     nb_pages = (nb_cartes + par_page - 1) // par_page
     rng = random.Random(961000 + int(serie_start))
     serie = int(serie_start)
-    no_page = 1
+    # 📄 la page continue d'une rame à l'autre (sceau Maeva 12/08)
+    no_page = max(1, int(page_start))
     faites = 0
     for _ in range(nb_pages):
         if nom_evenement:
