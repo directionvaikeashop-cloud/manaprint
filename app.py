@@ -587,6 +587,110 @@ def _jeu_decorable(programme):
     return base in JEUX_MOTIF
 
 
+def serie_depart(commande_id, programme=None):
+    """🔢 LE PREMIER NUMÉRO DE SÉRIE d'une commande.
+
+    ⚠️⚠️ CORRIGÉ LE 12/08 : la formule d'avant était `commande_id * 100 + 1`,
+    ce qui ne laissait que CENT numéros par commande. Or 500 feuilles font
+    3 000 à 6 000 cartons : la commande n°37 (séries 3701 → 6700) écrasait
+    la n°38 (à partir de 3801) sur près de 2 900 numéros. Deux clientes
+    pouvaient recevoir un carton portant le MÊME numéro de série — de quoi
+    fausser une vérification par QR le jour du loto.
+
+    Chaque commande reçoit désormais une TRANCHE de 10 000, largement de
+    quoi loger la plus grosse commande courante (500 feuilles × 12 = 6 000).
+    Les numéros SE SUIVENT donc d'une rame à l'autre à l'intérieur d'une
+    même commande — ce que demandent les clientes qui achètent trois rames
+    de 500 feuilles : leurs cartons se suivent sans trou ni doublon.
+
+    ⚠️ POURQUOI 20 000 SUR 50 TRANCHES : les cartons affichent la série sur
+    SIX chiffres (« N° %06d »). Au-delà d'un million le numéro serait
+    tronqué à l'impression, et deux cartons pourraient sembler identiques.
+    La tranche de 20 000 loge la plus grosse commande vue (1 500 feuilles
+    × 12 = 18 000 cartons) ; 50 tranches × 20 000 = 1 000 000, soit
+    exactement six chiffres. Deux commandes ne peuvent porter le même
+    numéro que si elles sont séparées de cinquante — des semaines d'écart.
+    """
+    return (max(1, int(commande_id)) % 50) * 20000 + 1
+
+
+def page_depart(commande_id):
+    """📄 LE PREMIER NUMÉRO DE PAGE d'une commande.
+
+    Quand une cliente achète plusieurs rames en une fois, elles voyagent
+    dans le même panier. Chaque rame repartait de « page 001 » : trois
+    rames de 250 feuilles portaient TROIS FOIS les pages 001 à 250,
+    impossibles à ranger dans l'ordre (signalé par Maeva le 12/08).
+    On additionne donc les feuilles des commandes précédentes du panier.
+
+    ⚠️ Une commande seule, hors panier, démarre à 1 comme avant.
+    """
+    try:
+        cmd = db.get_commande(commande_id)
+        pan = (cmd or {}).get("panier_id")
+        if not pan:
+            return 1
+        avant = 0
+        for c in db.commandes_du_panier(pan):
+            if int(c.get("id") or 0) >= int(commande_id):
+                break
+            avant += int(c.get("nb_feuilles") or 0)
+        return avant + 1
+    except Exception:
+        return 1
+
+
+def renumeroter_pages(pdf_buf, depart):
+    """📄 Réécrit le numéro de page en haut de chaque feuille.
+
+    ⚠️⚠️ POURQUOI ICI ET PAS DANS LES GÉNÉRATEURS : ils sont 121 à écrire
+    « no_page = 1 ». Les modifier tous demanderait 121 déploiements à la
+    main — intenable. On repasse donc SUR le PDF fini : un carré blanc
+    couvre l'ancien numéro, le nouveau se pose par-dessus. Un seul
+    fichier à déployer, et les 144 jeux en profitent d'un coup.
+    """
+    depart = max(1, int(depart))
+    if depart <= 1:
+        pdf_buf.seek(0)
+        return pdf_buf
+    import io as _io3
+    try:
+        from pypdf import PdfWriter as _W, PdfReader as _R
+    except ImportError:
+        from PyPDF2 import PdfWriter as _W, PdfReader as _R
+    from reportlab.pdfgen import canvas as _cv
+    from reportlab.lib.pagesizes import A4 as _A4
+    from reportlab.lib import colors as _co
+    from reportlab.lib.units import mm as _mm
+    pdf_buf.seek(0)
+    lu = _R(pdf_buf)
+    W, H = _A4
+    tampon = _io3.BytesIO()
+    c = _cv.Canvas(tampon, pagesize=_A4)
+    for i in range(len(lu.pages)):
+        # on efface l'ancien numéro, puis on écrit le nouveau
+        c.setFillColor(_co.white)
+        c.rect(W / 2 - 12 * _mm, H - 9.5 * _mm, 24 * _mm, 5.0 * _mm, stroke=0, fill=1)
+        c.setFillColor(_co.Color(0.72, 0.72, 0.72))
+        c.setFont("Helvetica", 5.4)
+        c.drawCentredString(W / 2, H - 7.2 * _mm, "%03d" % (depart + i))
+        c.showPage()
+    c.save()
+    tampon.seek(0)
+    couche = _R(tampon)
+    sortie = _W()
+    for i, page in enumerate(lu.pages):
+        try:
+            page.merge_page(couche.pages[i])
+        except Exception:
+            pass
+        sortie.add_page(page)
+    buf = _io3.BytesIO()
+    sortie.write(buf)
+    buf.seek(0)
+    return buf
+
+
 def generer_jeu(programme, nb_cartes, couleur, perso, evenement_id="", serie_start=1):
     """Génère le PDF A4 de N'IMPORTE QUEL jeu du registre. perso = champs de personnalisation.
     evenement_id (optionnel) : active le QR de vérification par carton.
@@ -606,7 +710,44 @@ def generer_jeu(programme, nb_cartes, couleur, perso, evenement_id="", serie_sta
     _motif_choisi = str((perso or {}).get("motif") or "").strip().lower()
     if _motif_choisi and _jeu_decorable(programme):
         kwargs["motif"] = _motif_choisi
-    return jeu["generer"](**kwargs)
+
+    # ⚠️⚠️ LES GROSSES COMMANDES SE FABRIQUENT EN PLUSIEURS FOURNÉES.
+    # Chaque générateur plafonne à 10 000 cartons. À 12 cartons la feuille
+    # cela ne fait que 833 feuilles — or des clientes commandent 3 rames de
+    # 500, soit 1 500 feuilles. Elles auraient reçu un paquet incomplet
+    # SANS LE SAVOIR (découvert le 12/08).
+    # On découpe donc en fournées de 9 000 cartons, et on recolle les PDF.
+    # Les séries continuent d'une fournée à l'autre : les numéros SE
+    # SUIVENT, comme les clientes le demandent.
+    PLAFOND = 9000
+    demande = max(1, int(nb_cartes))
+    if demande <= PLAFOND:
+        return jeu["generer"](**kwargs)
+
+    morceaux = []
+    debut = max(1, int(serie_start))
+    reste = demande
+    while reste > 0:
+        lot = min(PLAFOND, reste)
+        k = dict(kwargs)
+        k[jeu["kwarg_nb"]] = lot
+        k["serie_start"] = debut
+        morceaux.append(jeu["generer"](**k).read())
+        debut += lot
+        reste -= lot
+    import io as _io2
+    try:
+        from pypdf import PdfWriter as _W, PdfReader as _R
+    except ImportError:
+        from PyPDF2 import PdfWriter as _W, PdfReader as _R
+    sortie = _W()
+    for m in morceaux:
+        for page in _R(_io2.BytesIO(m)).pages:
+            sortie.add_page(page)
+    buf = _io2.BytesIO()
+    sortie.write(buf)
+    buf.seek(0)
+    return buf
 
 
 def _nom_evenement_complet(perso):
@@ -2282,7 +2423,12 @@ def generer_commande(commande_id):
         pass
     try:
         pdf = generer_jeu(programme, nb_cartes, couleur, perso, evenement_id=evenement_id,
-                          serie_start=commande_id * 100 + 1)
+                          serie_start=serie_depart(commande_id, programme))
+        # 📄 les pages continuent d'une rame à l'autre dans le même panier
+        try:
+            pdf = renumeroter_pages(pdf, page_depart(commande_id))
+        except Exception:
+            pass
     finally:
         try:
             _secs.activer_mode_rapide(False)
@@ -2418,7 +2564,12 @@ def lancer_fabrication(commande_id, seulement_rapport=False):
                 # mais refabrication à l'identique pour le 📬 Renvoyer)
                 pdf = generer_jeu(cmd["programme"], nb_cartes, bool(cmd["couleur"]), perso,
                                   evenement_id=evenement_id,
-                                  serie_start=commande_id * 100 + 1)
+                                  serie_start=serie_depart(commande_id, programme))
+                # 📄 les pages continuent d'une rame à l'autre dans le même panier
+                try:
+                    pdf = renumeroter_pages(pdf, page_depart(commande_id))
+                except Exception:
+                    pass
             finally:
                 try:
                     _secm.activer_mode_rapide(False)
