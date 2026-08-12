@@ -55,8 +55,12 @@ GRIS_CLAIR = colors.Color(0.80, 0.80, 0.80)
 from reportlab.pdfbase import pdfmetrics as _pm
 from reportlab.pdfbase.ttfonts import TTFont as _TF
 try:
-    _pm.registerFont(_TF("DJLECO", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    _POLICE_ECO = "DJLECO"
+    # 🌺 12/08 (sceau Maeva) : la GRASSE CONDENSÉE, celle de QUINES 90.
+    # Plus étroite qu'une grasse ordinaire, donc plus haute à place égale —
+    # et elle se lit de loin. Le corps du verre offre 11,4 mm par nombre :
+    # de quoi porter 27 pt, au-delà des 25 demandés.
+    _pm.registerFont(_TF("DJBOLDC", "/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed-Bold.ttf"))
+    _POLICE_ECO = "DJBOLDC"
 except Exception:
     _POLICE_ECO = "Helvetica"
 _GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
@@ -83,7 +87,10 @@ _RATIO_TAHITI = 380.0 / 730.0
 FLEUR = (0.005, 0.697, 0.000, 0.418)     # x0, x1, y0, y1 du bloc fleur
 # 🍾 LE CORPS DE LA BOUTEILLE, mesuré ligne par ligne : c'est là que
 # vivent les numéros (repère PDF, depuis le bas).
-CORPS = (0.410, 0.865, 0.150, 0.585)     # x0, x1, y0, y1 du verre
+# ⚠️ 12/08 : le corps s'élargit de 4 % de chaque côté (0,395 → 0,880).
+# Mesuré sur le dessin : le verre a encore du ventre à cet endroit, les
+# nombres ne débordent pas. C'est ce qui permet les 25 pt demandés.
+CORPS = (0.385, 0.890, 0.150, 0.585)     # x0, x1, y0, y1 du verre
 # ⚠️ Le bas du verre est laisse a la FLEUR : les numeros s'arretent au-dessus.
 LETTRES_BINGO = "BINGO"
 # 💰 LE BONUS DE LA FLEUR : le montant est TIRE avec la carte.
@@ -261,12 +268,18 @@ def _dessiner_carte(c, x0, y0, cols_nums, bonus_des, couleur_hex, serie, titre_j
     gh = (CORPS[3] - CORPS[2]) * ilh
     NR = 5
     chh = gh / NR
-    LET_W = gw * 0.15                      # la colonne des lettres, à gauche
+    # ⚠️ 12/08 : la colonne des lettres passe de 15 % à 11 % — en gras,
+    # une lettre reste lisible dans moins de place, et les DEUX nombres
+    # de la rangée gagnent chacun la moitié de ce qu'elle rend.
+    LET_W = gw * 0.11                      # la colonne des lettres, à gauche
     cw2 = (gw - LET_W) / 2.0
     taille = 34.0
     # ⚠️ 0,74 et non 0,80 : deux nombres par rangée, il leur faut de l'air
-    while taille > 12 and (_lgt("88", "Helvetica-Bold", taille) > cw2 * 0.74
-                           or taille * 0.72 > chh * 0.74):
+    # ⚠️ 12/08 : on mesure avec LA VRAIE POLICE (police_ch), pas Helvetica.
+    # La grasse condensée est plus étroite : à place égale elle monte plus
+    # haut. Marges élargies en conséquence pour tenir les 25 pt demandés.
+    while taille > 12 and (_lgt("88", police_ch, taille) > cw2 * 0.88
+                           or taille * 0.72 > chh * 0.82):
         taille -= 0.5
     for ri in range(NR):
         cyc = gy + gh - (ri + 0.5) * chh
