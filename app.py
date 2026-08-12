@@ -691,6 +691,32 @@ def renumeroter_pages(pdf_buf, depart):
     return buf
 
 
+def page_depart(commande_id):
+    """📄 LE PREMIER NUMÉRO DE PAGE d'une commande.
+
+    Quand une cliente achète plusieurs rames en une fois, elles voyagent
+    dans le même panier. Chaque rame repartait de « page 001 » : trois
+    rames de 250 feuilles portaient TROIS FOIS les pages 001 à 250,
+    impossibles à ranger dans l'ordre (signalé par Maeva le 12/08).
+    On additionne donc les feuilles des commandes précédentes du panier.
+
+    ⚠️ Une commande seule, hors panier, démarre à 1 comme avant.
+    """
+    try:
+        cmd = db.get_commande(commande_id)
+        pan = (cmd or {}).get("panier_id")
+        if not pan:
+            return 1
+        avant = 0
+        for c in db.commandes_du_panier(pan):
+            if int(c.get("id") or 0) >= int(commande_id):
+                break
+            avant += int(c.get("nb_feuilles") or 0)
+        return avant + 1
+    except Exception:
+        return 1
+
+
 def generer_jeu(programme, nb_cartes, couleur, perso, evenement_id="", serie_start=1):
     """Génère le PDF A4 de N'IMPORTE QUEL jeu du registre. perso = champs de personnalisation.
     evenement_id (optionnel) : active le QR de vérification par carton.
@@ -706,6 +732,15 @@ def generer_jeu(programme, nb_cartes, couleur, perso, evenement_id="", serie_sta
     }
     if evenement_id:
         kwargs["evenement_id"] = evenement_id
+    # 📄 LE NUMÉRO DE PAGE DE DÉPART. Les générateurs qui ne connaissent
+    # pas encore « page_start » l'ignorent sans broncher (voir _fabriquer).
+    _pdep = 1
+    try:
+        _pdep = max(1, int((perso or {}).get("page_start") or 1))
+    except Exception:
+        _pdep = 1
+    if _pdep > 1:
+        kwargs["page_start"] = _pdep
     # 🖼️ motif en filigrane : seuls les jeux de la liste officielle décorent
     _motif_choisi = str((perso or {}).get("motif") or "").strip().lower()
     if _motif_choisi and _jeu_decorable(programme):
@@ -719,10 +754,18 @@ def generer_jeu(programme, nb_cartes, couleur, perso, evenement_id="", serie_sta
     # On découpe donc en fournées de 9 000 cartons, et on recolle les PDF.
     # Les séries continuent d'une fournée à l'autre : les numéros SE
     # SUIVENT, comme les clientes le demandent.
+    # 🛟 tous les générateurs ne connaissent pas encore « page_start » :
+    # on retente sans, plutôt que de laisser tomber la commande.
+    def _fabriquer(k):
+        try:
+            return jeu["generer"](**k)
+        except TypeError:
+            return jeu["generer"](**{x: y for x, y in k.items() if x != "page_start"})
+
     PLAFOND = 9000
     demande = max(1, int(nb_cartes))
     if demande <= PLAFOND:
-        return jeu["generer"](**kwargs)
+        return _fabriquer(kwargs)
 
     morceaux = []
     debut = max(1, int(serie_start))
@@ -732,7 +775,10 @@ def generer_jeu(programme, nb_cartes, couleur, perso, evenement_id="", serie_sta
         k = dict(kwargs)
         k[jeu["kwarg_nb"]] = lot
         k["serie_start"] = debut
-        morceaux.append(jeu["generer"](**k).read())
+        # les pages continuent aussi d'une fournée à l'autre
+        _par_f = max(1, int(CARTES_PAR_FEUILLE.get(programme, 1)))
+        k["page_start"] = _pdep + (demande - reste) // _par_f
+        morceaux.append(_fabriquer(k).read())
         debut += lot
         reste -= lot
     import io as _io2
@@ -2422,6 +2468,12 @@ def generer_commande(commande_id):
     except Exception:
         pass
     try:
+        # 📄 les pages continuent d'une rame à l'autre dans le même panier
+        try:
+            perso = dict(perso or {})
+            perso["page_start"] = page_depart(commande_id)
+        except Exception:
+            pass
         pdf = generer_jeu(programme, nb_cartes, couleur, perso, evenement_id=evenement_id,
                           serie_start=serie_depart(commande_id, programme))
         # 📄 les pages continuent d'une rame à l'autre dans le même panier
@@ -2562,6 +2614,12 @@ def lancer_fabrication(commande_id, seulement_rapport=False):
             try:
                 # 🎲 chaque commande = son propre point de départ (cartes UNIQUES,
                 # mais refabrication à l'identique pour le 📬 Renvoyer)
+                # 📄 les pages continuent d'une rame à l'autre dans le même panier
+                try:
+                    perso = dict(perso or {})
+                    perso["page_start"] = page_depart(commande_id)
+                except Exception:
+                    pass
                 pdf = generer_jeu(cmd["programme"], nb_cartes, bool(cmd["couleur"]), perso,
                                   evenement_id=evenement_id,
                                   serie_start=serie_depart(commande_id, programme))
