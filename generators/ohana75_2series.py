@@ -11,6 +11,7 @@ microtexte + chiffres remplis de microtexte (technique billet de banque).
 Vérification à la loupe x10 : lettres nettes = original, trait flou = photocopie.
 """
 import io
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lgo
 import random
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -91,7 +92,8 @@ def _gen_carte(rng):
 
 
 def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
-                    telephone="", titre_jeu="", no_page=1, style="eco", evenement_id=""):
+                    telephone="", titre_jeu="", no_page=1, style="eco", evenement_id="",
+                    nom_evenement=""):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
     ncols = 5
@@ -147,9 +149,21 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
 
             # Case centrale = FREE + série
             if i == 2 and j == 2:
-                # 🎯 Case centrale FREE : elle accueille le QR de sécurité
-                c.setFillColor(col); c.setFont(POLICE, 6.5)
-                c.drawCentredString(cell_x + cell_w / 2, cy + row_h / 2 - 3.4 * mm, "FREE SPACE")
+                # 🎯 Case centrale : elle porte LE NOM DE LA SALLE quand il
+                # y en a un, « FREE SPACE » sinon (sceau Maeva 12/08 : « Bingo
+                # chez MARRAINE à mettre au milieu là où il y a FREE SPACE »).
+                # ⚠️ le texte se rétrécit tout seul s'il est long : une salle
+                # peut avoir un nom de trente lettres, il ne doit pas déborder
+                # sur les cases voisines.
+                _libre = (nom_evenement or "").strip() or "FREE SPACE"
+                _tl = 6.5
+                while _tl > 3.2 and _lgo(_libre, POLICE, _tl) > cell_w - 2.4 * mm:
+                    _tl -= 0.2
+                # ⚠️ 12/08 : VRAIMENT au centre de la case. L'ancien calcul
+                # (cy + row_h/2 - 3,4 mm) datait du temps où le QR occupait
+                # le bas de la case : le texte était collé en haut.
+                c.setFillColor(col); c.setFont(POLICE, _tl)
+                c.drawCentredString(cell_x + cell_w / 2, cy - _tl * 0.36, _libre)
                 if _sec and evenement_id:
                     try:
                         _q = 13.0 * mm
@@ -238,7 +252,7 @@ def generer_pdf(nb_cartes=2, serie_start=1, theme="", couleur=True,
             coul = (couleur_perso if (couleur and couleur_perso)
                     else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
             _dessiner_carte(c, x0, y0, carte, coul, serie, encre, telephone, titre_jeu, no_page,
-                            style=style, evenement_id=evenement_id)
+                            style=style, evenement_id=evenement_id, nom_evenement=nom_evenement)
             serie += 1
             faites += 1
 
