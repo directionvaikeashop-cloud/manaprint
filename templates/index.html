@@ -377,6 +377,14 @@
       <button class="btn" style="width:auto;padding:.6rem 1.6rem" onclick="adminRessusciterLot()">🚑 Tout ressusciter</button>
       <div id="resc-lot-msg" style="font-size:.82rem;margin-top:.8rem;line-height:1.8"></div>
 
+      <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">\U0001f527 D\u00e9bloquer une fabrication</h2>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:.6rem;line-height:1.7">Une commande reste bloqu\u00e9e sur <b>\u23f3 fabrication\u2026</b> ? Entre son num\u00e9ro et la plateforme la relance, <b>quel que soit son \u00e2ge</b>. Le veilleur automatique, lui, abandonne apr\u00e8s six heures. Tu peux en donner plusieurs s\u00e9par\u00e9s par des virgules \u2014 elles se feront <b>l'une apr\u00e8s l'autre</b>, car plusieurs en m\u00eame temps \u00e9touffent le serveur.</p>
+      <div style="display:flex;gap:.6rem;margin-bottom:.8rem;flex-wrap:wrap">
+        <input id="forc-ids" type="text" placeholder="N\u00b0 de commande (ex. 2023 ou 2023,2024)" style="margin-bottom:0;flex:1;min-width:230px">
+        <button class="btn" style="width:auto;padding:0 1.4rem;white-space:nowrap" onclick="adminForcerFabrication()">\U0001f527 D\u00e9bloquer</button>
+      </div>
+      <p id="forc-msg" style="font-size:.82rem;line-height:1.7"></p>
+
       <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">📬 Renvoyer les emails d'une commande</h2>
       <p style="color:var(--muted);font-size:.85rem;margin-bottom:.6rem;line-height:1.7">Un client n'a pas reçu son <b>rapport confidentiel</b> ? Entre le numéro de sa commande : la plateforme la refabrique et renvoie les deux emails — le PDF chez le partenaire, le rapport chez l'organisateur, parfaitement assortis.</p>
       <div style="display:flex;gap:.6rem;margin-bottom:.8rem;flex-wrap:wrap">
@@ -1112,6 +1120,27 @@ async function adminRessusciterLot(){
     adminHistorique();
   }catch(e){ msg.style.color='var(--coral)'; msg.textContent='Erreur réseau'; }
 }
+// ── 🔧 Débloquer une fabrication restée en rade ──
+// Les commandes de plus de six heures échappent au veilleur automatique
+// (AGE_MAX_RELANCE). Ce bouton les relance quand même, une par une.
+async function adminForcerFabrication(){
+  const z = document.getElementById('forc-msg');
+  const v = (document.getElementById('forc-ids').value || '').trim();
+  if(!v){ z.innerHTML = '<span style="color:var(--coral)">Donne au moins un num\u00e9ro de commande.</span>'; return; }
+  z.innerHTML = '\u23f3 Relance en cours\u2026';
+  try{
+    const r = await fetch('/api/admin/forcer-fabrication', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ids: v})
+    });
+    const d = await r.json();
+    z.innerHTML = '<span style="color:'+(d.ok?'var(--teal-d)':'var(--coral)')+'">'+(d.message||'')+'</span>';
+    if(d.ok){ setTimeout(chargerCommandes, 4000); }
+  }catch(e){
+    z.innerHTML = '<span style="color:var(--coral)">Serveur occup\u00e9 \u2014 r\u00e9essaie dans un instant.</span>';
+  }
+}
+
 // ── 📬 Renvoyer les emails d'une commande (rattrapage SMTP) ──
 async function adminRenvoyerEmails(){
   const msg=document.getElementById('renv-msg');
