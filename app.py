@@ -2620,9 +2620,15 @@ def lancer_fabrication(commande_id, seulement_rapport=False):
                     perso["page_start"] = page_depart(commande_id)
                 except Exception:
                     pass
+                # ⚠️⚠️ 12/08 : ici c'est `cmd["programme"]`, PAS `programme` —
+                # cette variable n'existe pas dans ce thread. Le NameError
+                # était avalé par le `except` juste en dessous : plus AUCUN
+                # PDF ne sortait de l'espace partenaire, en silence.
+                # (Même piège qu'en juillet avec `couleur`. Toujours vérifier
+                #  qu'une variable existe VRAIMENT dans le thread.)
                 pdf = generer_jeu(cmd["programme"], nb_cartes, bool(cmd["couleur"]), perso,
                                   evenement_id=evenement_id,
-                                  serie_start=serie_depart(commande_id, programme))
+                                  serie_start=serie_depart(commande_id, cmd["programme"]))
                 # 📄 les pages continuent d'une rame à l'autre dans le même panier
                 try:
                     pdf = renumeroter_pages(pdf, page_depart(commande_id))
