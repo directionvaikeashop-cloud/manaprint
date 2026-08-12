@@ -89,9 +89,29 @@ COLS_ACTIVES = [0, 1, 3, 4]
 ROWS_ACTIVES = [0, 1, 3, 4]
 
 # 🖨️ L'IMPRIMANTE DE MAEVA — les numéros se rangent dans son bac.
-_RATIO_IMP = 1.3333
-BAC = (0.2902, 0.7098, 0.677, 0.97)   # x0, x1, y0, y1
-SORTIE = (0.3023, 0.6977, 0.037, 0.2)   # la feuille qui sort
+_RATIO_IMP = 1.3731
+BAC = (0.2239, 0.7761, 0.7522, 0.9821)   # x0, x1, y0, y1
+SORTIE = (0.2326, 0.7674, 0.0299, 0.3612)   # la feuille qui sort
+# ⚠️⚠️ 12/08 — L'IMPRIMANTE A ÉTÉ RETAILLÉE (idée de Maeva : « rallonge le
+# compartiment des feuilles et rétrécis les côtés »). Deux opérations sur
+# le dessin, sans jamais toucher au nombre de cartons :
+#   • la FEUILLE DE SORTIE rallongée de 26 % (une ligne bien vide répétée)
+#     → sa hauteur passe de 0,163 à 0,331
+#   • les DEUX ZONES élargies de 30 % (une colonne centrale répétée)
+#     → le bac passe de 0,420 à 0,552 de large
+# C'est ce qui donne les 25 pt demandés. Barème mesuré : rallonger seul
+# donnait 22 pt (la hauteur bridait), élargir seul 22 pt aussi (la largeur
+# reprenait la main) — il fallait LES DEUX.
+# ⚠️⚠️ 12/08 (idée de Maeva : « rallonge le compartiment des feuilles et
+# rétrécis les côtés ») : l'imprimante a été RETAILLÉE dans le dessin —
+# les flancs au-delà de la feuille sont coupés, et la feuille de sortie
+# est rallongée de 16 %. Elle passe de 0,163 à 0,310 de haut, et la
+# machine devient verticale (ratio 1,333 → 0,79). C'est ce qui libère la
+# place pour les 25 pt demandés, SANS toucher au nombre de cartons.
+# ⚠️ 12/08 : REMESURÉE au pixel. J'utilisais une bande de 0,163 de haut
+# alors que la feuille en fait **0,222** — j'en perdais un tiers, et les
+# chiffres restaient bridés à 17 pt par cette zone (la plus petite des
+# deux commande la taille de tous).
 import os as _os2
 
 
@@ -211,8 +231,8 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, telephone="", style="e
     taille = 34.0
     # ⚠️ on mesure avec la VRAIE police : la condensée est plus étroite,
     # elle permet donc une taille plus haute à place égale.
-    while taille > 8 and (_lg4("88", police_ch, taille) > min(bw, sw) * 0.88
-                          or taille * 0.72 > min(bh, sh) * 0.82):
+    while taille > 8 and (_lg4("88", police_ch, taille) > min(bw, sw) * 0.84
+                          or taille * 0.72 > min(bh, sh) * 0.94):
         taille -= 0.5
 
     # les quatre blocs du jeu : haut-gauche, haut-droit, bas-gauche, bas-droit
