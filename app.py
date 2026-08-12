@@ -2468,19 +2468,23 @@ def generer_commande(commande_id):
     except Exception:
         pass
     try:
-        # 📄 les pages continuent d'une rame à l'autre dans le même panier
+        # 📄 les pages continuent d'une rame à l'autre dans le même panier.
+        # ⚠️ On écrit dans un NOUVEAU nom, jamais dans `perso` — voir la note
+        # du 12/08 plus bas : réaffecter un nom déjà utilisé plus haut dans la
+        # même fonction le rend « local » aux yeux de Python et fait échouer
+        # tout ce qui le lisait AVANT.
+        perso_pages = perso
         try:
-            perso = dict(perso or {})
-            perso["page_start"] = page_depart(commande_id)
+            perso_pages = dict(perso or {})
+            perso_pages["page_start"] = page_depart(commande_id)
         except Exception:
-            pass
-        pdf = generer_jeu(programme, nb_cartes, couleur, perso, evenement_id=evenement_id,
+            perso_pages = perso
+        pdf = generer_jeu(programme, nb_cartes, couleur, perso_pages, evenement_id=evenement_id,
                           serie_start=serie_depart(commande_id, programme))
-        # 📄 les pages continuent d'une rame à l'autre dans le même panier
-        try:
-            pdf = renumeroter_pages(pdf, page_depart(commande_id))
-        except Exception:
-            pass
+        # ⚠️ 12/08 : PLUS DE RETOUCHE DU PDF ICI. Le numéro de page est
+        # désormais passé au générateur (page_start) : le relire pour le
+        # réécrire doublait la mémoire et le temps, et tuait les grosses
+        # commandes sur Railway.
     finally:
         try:
             _secs.activer_mode_rapide(False)
@@ -2614,26 +2618,31 @@ def lancer_fabrication(commande_id, seulement_rapport=False):
             try:
                 # 🎲 chaque commande = son propre point de départ (cartes UNIQUES,
                 # mais refabrication à l'identique pour le 📬 Renvoyer)
-                # 📄 les pages continuent d'une rame à l'autre dans le même panier
+                # 📄 les pages continuent d'une rame à l'autre dans le même panier.
+                # ⚠️⚠️ 12/08 : on écrit dans un NOUVEAU nom (`perso_pages`) et
+                # jamais dans `perso`. Réaffecter `perso` ici en faisait une
+                # variable LOCALE au thread : Python la déclarait alors
+                # inexistante PARTOUT AVANT cette ligne — y compris dans le
+                # bloc des drapeaux plus haut — et la fabrication mourait sur
+                # « cannot access local variable 'perso' ». Plus aucun PDF ne
+                # sortait de l'espace partenaire.
+                perso_pages = perso
                 try:
-                    perso = dict(perso or {})
-                    perso["page_start"] = page_depart(commande_id)
+                    perso_pages = dict(perso or {})
+                    perso_pages["page_start"] = page_depart(commande_id)
                 except Exception:
-                    pass
+                    perso_pages = perso
                 # ⚠️⚠️ 12/08 : ici c'est `cmd["programme"]`, PAS `programme` —
                 # cette variable n'existe pas dans ce thread. Le NameError
                 # était avalé par le `except` juste en dessous : plus AUCUN
                 # PDF ne sortait de l'espace partenaire, en silence.
                 # (Même piège qu'en juillet avec `couleur`. Toujours vérifier
                 #  qu'une variable existe VRAIMENT dans le thread.)
-                pdf = generer_jeu(cmd["programme"], nb_cartes, bool(cmd["couleur"]), perso,
+                pdf = generer_jeu(cmd["programme"], nb_cartes, bool(cmd["couleur"]), perso_pages,
                                   evenement_id=evenement_id,
                                   serie_start=serie_depart(commande_id, cmd["programme"]))
-                # 📄 les pages continuent d'une rame à l'autre dans le même panier
-                try:
-                    pdf = renumeroter_pages(pdf, page_depart(commande_id))
-                except Exception:
-                    pass
+                # ⚠️ 12/08 : plus de retouche du PDF ici non plus — le
+                # numéro de page vient du générateur (page_start).
             finally:
                 try:
                     _secm.activer_mode_rapide(False)
