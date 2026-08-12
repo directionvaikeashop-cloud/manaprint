@@ -147,7 +147,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
 
 def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id="", motif="", smorfia=False):
+                style="eco", evenement_id="", motif="", smorfia=False, page_start=1):
     """SICILIO — le jeu d'origine : SIX numéros en chiffres derrière leurs diamants.
     smorfia=True réveille le jumeau imagé (voir generer_pdf_smorfia)."""
     telephone = (telephone or "").strip() or "89 22 23 05"
@@ -158,7 +158,8 @@ def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
     nb_pages = (nb_cartes + par_page - 1) // par_page
     rng = random.Random(977000 + int(serie_start))
     serie = int(serie_start)
-    no_page = 1
+    # 📄 la page continue d'une rame à l'autre (sceau Maeva 12/08)
+    no_page = max(1, int(page_start))
     faites = 0
     for _ in range(nb_pages):
         if nom_evenement:
