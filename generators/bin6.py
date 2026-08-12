@@ -70,6 +70,45 @@ PAGE_W, PAGE_H = A4
 LETTRES = ["B", "I", "N"]
 PLAGES = [(1, 12), (13, 24), (25, 36)]
 
+# 🥥 LE COCO DE MAEVA — chaque numéro se loge dans sa noix (12/08).
+_RATIO_COCO = 1.125
+VENTRE = (0.1388, 0.8603, 0.2043, 0.6567)   # x0, x1, y0, y1
+# ⚠️ 12/08 : ventre ÉLARGI ×1,6 et blanchi dans le dessin (sceau Maeva :
+# « 30 pt et blanchir leurs zones »). Le ventre d'origine ne portait que
+# 20 pt ; ×1,3 donnait 25 pt ; ×1,6 donne 31 pt sans mordre la coque —
+# vérifié à l'œil : les fibres et le relief du coco restent visibles.
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lgc
+
+
+def _choisir_image(motif, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_COCO = _choisir_image("bin6_coco", _RATIO_COCO)
+
 COLS_PAGE = 3
 ROWS_PAGE = 4
 MARGIN_X = 8 * mm
@@ -118,23 +157,47 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     grid_bot = y0 + 20 * mm      # 📏 la bande du bas : le QR y vit, la grille au-dessus
     row_h = (grid_top - grid_bot) / 2
 
-    c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.3)
-    for i in range(1, ncols):
-        c.line(x0 + i * cell_w, grid_bot, x0 + i * cell_w, y0 + CARD_H)
-    c.line(x0, grid_top - row_h, x0 + CARD_W, grid_top - row_h)
-    c.line(x0, grid_bot, x0 + CARD_W, grid_bot)
+    # ═══ 🥥 LES SIX COCOS ═══
+    # Chaque numéro se loge dans le ventre de SA noix. Plus de grille :
+    # les cocos séparent les numéros bien mieux qu'un trait.
+    # ⚠️ 12/08 : la bande du bas était taillée pour l'ancienne grille et
+    # volait 10 mm aux cocos. On la ramène à la place du QR, et les noix
+    # grandissent d'autant — avec elles, les chiffres.
+    grid_bot = y0 + 11.0 * mm
+    ECART = 0.6 * mm
+    cw2 = (CARD_W - 1.5 * mm - 2 * ECART) / 3.0
+    ch2 = (grid_top - grid_bot - ECART) / 2.0
+    kw = min(cw2, ch2 * _RATIO_COCO)
+    kh = kw / _RATIO_COCO
+    ox = x0 + (CARD_W - (3 * kw + 2 * ECART)) / 2
+    oy = grid_bot + (grid_top - grid_bot - (2 * kh + ECART)) / 2
 
-    # Les 6 numéros — gros chiffres bien visibles, ordre libre (fidèle au modèle)
-    taille = 36
+    # ⚠️ le chiffre se cale sur LE VENTRE de la noix, jamais en dur.
+    vw = (VENTRE[1] - VENTRE[0]) * kw
+    vh = (VENTRE[3] - VENTRE[2]) * kh
+    taille = 40.0
+    while taille > 10 and (_lgc("88", police_ch, taille) > vw * 0.99
+                           or taille * 0.72 > vh * 0.99):
+        taille -= 0.5
+
     for ci, nums in enumerate(cols_nums):
-        cx = x0 + (ci + 0.5) * cell_w
         for ri, val in enumerate(nums):
-            cyc = grid_top - (ri + 0.5) * row_h
-            if _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, val, cx, cyc - taille * 0.36, taille, gris_ch, police_ch)
+            px = ox + ci * (kw + ECART)
+            py = oy + (1 - ri) * (kh + ECART)
+            if _os2.path.exists(_IMAGE_COCO):
+                try:
+                    c.drawImage(_IMAGE_COCO, px, py, kw, kh, mask="auto",
+                                preserveAspectRatio=True)
+                except Exception:
+                    pass
+            nx = px + (VENTRE[0] + VENTRE[1]) / 2 * kw
+            ny = py + (VENTRE[2] + VENTRE[3]) / 2 * kh - taille * 0.34
+            if _sec:
+                _sec.chiffre_micro(c, val, nx, ny, taille, gris_ch, police_ch)
             else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-                c.drawCentredString(cx, cyc - taille * 0.36, str(val))
+                c.setFillColor(gris_ch)
+                c.setFont(police_ch, taille)
+                c.drawCentredString(nx, ny, str(val))
 
     # Bande du bas : signature à gauche + QR de vérification à droite
     signature = "BIN 6 boules"
