@@ -3491,6 +3491,59 @@ def admin_rafraichir_vignettes():
 # ══════════════════════════════════════════════════════════════════════
 
 
+@app.route("/api/admin/forcer-fabrication", methods=["POST"])
+@admin_requis
+def admin_forcer_fabrication():
+    """🔧 RELANCE FORCÉE d'une ou plusieurs commandes bloquées.
+
+    ⚠️ POURQUOI CE BOUTON (12/08) : quatre commandes de 500 feuilles sont
+    restées « en fabrication » toute la nuit — le serveur avait tué leurs
+    threads faute de mémoire. Or le veilleur automatique ne relance que
+    les commandes de MOINS DE SIX HEURES (AGE_MAX_RELANCE, posé le 07/08
+    pour éviter les boucles), et le rattrapage Stripe ne cherche que les
+    paiements oubliés, pas les fabrications. Ces quatre-là étaient donc
+    invisibles pour les deux veilleurs : bloquées pour toujours.
+
+    Ce bouton ignore l'âge et relance ce qu'on lui donne — UNE À LA FOIS,
+    car c'est justement quatre fabrications simultanées qui ont étouffé
+    le serveur.
+    """
+    d = request.get_json(silent=True) or {}
+    brut = str(d.get("ids") or "").replace(";", ",").replace(" ", ",")
+    ids = []
+    for x in brut.split(","):
+        x = x.strip()
+        if x.isdigit():
+            ids.append(int(x))
+    if not ids:
+        return jsonify({"ok": False, "message": "Donne au moins un numéro de commande."})
+    faits, absents = [], []
+    for cid in ids[:10]:
+        cmd = db.get_commande(cid)
+        if not cmd:
+            absents.append(cid)
+            continue
+        # on efface le compteur de relances : cette commande a droit à sa chance
+        try:
+            _FABRIC_RELANCES.pop(cid, None)
+        except Exception:
+            pass
+        try:
+            lancer_fabrication(cid)
+            faits.append(cid)
+        except Exception as e:
+            absents.append(f"{cid} ({type(e).__name__})")
+    msg = ""
+    if faits:
+        msg += ("\U0001f527 Relance lancée pour la commande "
+                if len(faits) == 1 else "\U0001f527 Relance lancée pour les commandes ")
+        msg += ", ".join(str(x) for x in faits)
+        msg += ". Compte 2 à 4 minutes par commande, puis rafraîchis la liste."
+    if absents:
+        msg += "  \u26a0\ufe0f Introuvable(s) : " + ", ".join(str(x) for x in absents)
+    return jsonify({"ok": bool(faits), "message": msg, "relancees": faits})
+
+
 @app.route("/api/admin/renvoyer-emails", methods=["POST"])
 @admin_requis
 def admin_renvoyer_emails():
