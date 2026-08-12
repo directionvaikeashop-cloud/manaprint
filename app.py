@@ -125,6 +125,7 @@ from generators import bio
 from generators import bio5
 from generators import zin
 from generators import rai
+from generators import bin6
 from generators import bin8
 from generators import pow6
 from generators import bg90
@@ -554,6 +555,7 @@ _enregistrer_paire("bio",           "BIO 8 boules", "🌱", 12, bio.generer_pdf)
 _enregistrer_paire("bio5",          "BIO 5 boules", "🌿", 12, bio5.generer_pdf)
 _enregistrer_paire("zin",           "ZIN",        "⚡", 12, zin.generer_pdf)
 _enregistrer_paire("rai",           "RAI",        "🌈", 12, rai.generer_pdf)
+_enregistrer_paire("bin6",          "BIN 6 boules", "\U0001f3af", 12, bin6.generer_pdf)
 _enregistrer_paire("bin8",          "BIN 8 boules", "🎯", 12, bin8.generer_pdf)
 _enregistrer_paire("pow6",          "POW 5 boules", "💫", 12, pow6.generer_pdf)
 _enregistrer_paire("bg90",          "BG 90",      "🎱", 12, bg90.generer_pdf)
@@ -1367,6 +1369,7 @@ _PLAGES_CALLER = {
     "bio5": (1, 75),
     "zin": (1, 36),
     "rai": (30, 59),
+    "bin6": (1, 36),
     "bin8": (1, 36),
     "pow6": (1, 27),
     "bg90": (1, 90),
