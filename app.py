@@ -91,6 +91,7 @@ from generators import cerf_volant
 from generators import moorea
 from generators import triple_action_90
 from generators import trio75
+from generators import trio90
 from generators import funday
 from generators import huahine
 from generators import boules40
@@ -521,6 +522,7 @@ _enregistrer_paire("cerf_volant",   "CERF VOLANT","🪁", 6,  cerf_volant.genere
 _enregistrer_paire("moorea",        "MOOREA",     "🌴", 6,  moorea.generer_pdf)
 _enregistrer_paire("triple_action_90", "TRIPLE ACTION 90", "🎪", 8, triple_action_90.generer_pdf)
 _enregistrer_paire("trio75",        "TRIO 75",     "\U0001f3ab", 2,  trio75.generer_pdf)
+_enregistrer_paire("trio90",        "TRIO 90",     "\U0001f4cf", 2,  trio90.generer_pdf)
 _enregistrer_paire("funday",        "FUNDAY",     "🎈", 10, funday.generer_pdf)
 _enregistrer_paire("huahine",       "HUAHINE",    "⛵", 8,  huahine.generer_pdf)
 _enregistrer_paire("boules40",      "40 BOULES",  "🎳", 12, boules40.generer_pdf)
@@ -1313,6 +1315,7 @@ _PLAGES_CALLER = {
     "losange": (1, 75),
     "italia": (1, 75),
     "trio75": (1, 75),
+    "trio90": (1, 90),
     "italia_esc": (1, 75),
     "italia_villes": (1, 75),
     "vai": (61, 90),
