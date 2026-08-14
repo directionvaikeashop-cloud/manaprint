@@ -3034,6 +3034,104 @@ def _fabrications_figees():
     return [c for _q, c in figees[:RELANCES_PAR_TOUR]]
 
 
+# ═══ 📧 LA RELANCE AUTOMATIQUE DES CLIENTS (sceau Maeva 13/08) ═══
+# Une commande attend son règlement depuis plusieurs jours ? La plateforme
+# écrit au client toute seule pour savoir s'il la maintient.
+DELAI_RELANCE = 3 * 24 * 3600     # on attend TROIS JOURS avant d'écrire
+DELAI_2E_RELANCE = 7 * 24 * 3600  # une seconde relance au bout d'une semaine
+MAX_RELANCES_CLIENT = 2           # ⚠️ jamais plus de DEUX : au-delà on harcèle
+_RELANCES_CLIENT = {}             # commande -> nombre de relances envoyées
+
+
+def _commandes_a_relancer():
+    """📧 Les commandes qui attendent leur règlement depuis assez longtemps.
+
+    ⚠️ On ne relance QUE les commandes non payées et pas encore fabriquées.
+    Une commande déjà réglée ou déjà partie ne doit jamais recevoir ce
+    message — le client s'inquiéterait pour rien.
+    """
+    from datetime import datetime as _dt, timezone as _tz
+    maintenant = _dt.now(_tz.utc)
+    sortie = []
+    try:
+        with db.get_db() as conn:
+            lignes = conn.execute(
+                "SELECT * FROM commandes WHERE statut IN ('en_attente','nouvelle') "
+                "ORDER BY id DESC LIMIT 200").fetchall()
+    except Exception:
+        return sortie
+    for r in lignes:
+        c = dict(r)
+        cid = int(c.get("id") or 0)
+        deja = _RELANCES_CLIENT.get(cid, 0)
+        if deja >= MAX_RELANCES_CLIENT:
+            continue
+        # pas d'email, pas de relance : Tatie appellera au téléphone
+        if "@" not in (c.get("identifiant") or ""):
+            continue
+        try:
+            nee = _dt.fromisoformat(str(c.get("cree_le")).replace("Z", "+00:00"))
+            if nee.tzinfo is None:
+                nee = nee.replace(tzinfo=_tz.utc)
+        except Exception:
+            continue
+        age = (maintenant - nee).total_seconds()
+        seuil = DELAI_RELANCE if deja == 0 else DELAI_2E_RELANCE
+        if age >= seuil:
+            sortie.append(c)
+    return sortie
+
+
+def _relancer_client(cid):
+    """📧 Écrit au client : veut-il toujours sa commande ? Renvoie True si parti."""
+    cmd = db.get_commande(cid)
+    if not cmd:
+        return False
+    dest = (cmd.get("identifiant") or "").strip()
+    if "@" not in dest:
+        return False
+    jeu = REGISTRE_JEUX.get(cmd.get("programme"), {}).get("nom") or cmd.get("programme") or "votre jeu"
+    corps = (
+        "Ia ora na,\n\n"
+        f"Votre commande n\u00b0{cid} ({jeu} \u00b7 {cmd.get('nb_feuilles')} feuilles \u00b7 "
+        f"{cmd.get('montant')} XPF) est toujours en attente de r\u00e8glement chez nous.\n\n"
+        "Souhaitez-vous toujours la recevoir ?\n\n"
+        "\u2022 Si OUI : r\u00e9pondez simplement \u00e0 ce message, nous la pr\u00e9parons aussit\u00f4t.\n"
+        "\u2022 Si NON : dites-le-nous d'un mot, nous l'annulerons sans frais.\n\n"
+        "Sans nouvelles de votre part, nous la garderons en attente encore quelques jours.\n\n"
+        "M\u0101uruuru,\nMANAPRINT")
+    envoyer_email_simple(dest, f"Votre commande n\u00b0{cid} \u2014 la souhaitez-vous toujours ?", corps)
+    return True
+
+
+def _veilleur_relances():
+    """👁️📧 Deux fois par jour : relance les clients qui n'ont pas réglé.
+
+    ⚠️ POURQUOI SI ESPACÉ : une relance est un message COMMERCIAL, pas une
+    réparation. Écrire deux fois par jour au même client le ferait fuir.
+    On attend TROIS JOURS avant la première, UNE SEMAINE avant la seconde,
+    et on s'arrête là.
+    """
+    import time as _t
+    _t.sleep(300)     # on laisse le serveur démarrer tranquillement
+    while True:
+        try:
+            for c in _commandes_a_relancer():
+                cid = int(c["id"])
+                try:
+                    if _relancer_client(cid):
+                        _RELANCES_CLIENT[cid] = _RELANCES_CLIENT.get(cid, 0) + 1
+                        print(f"[VEILLEUR RELANCE] commande {cid} \u2014 relance "
+                              f"{_RELANCES_CLIENT[cid]}/{MAX_RELANCES_CLIENT} "
+                              f"envoy\u00e9e \u00e0 {c.get('identifiant')}")
+                except Exception as e:
+                    print(f"[VEILLEUR RELANCE] commande {cid} : {e}")
+                _t.sleep(20)      # on espace les envois, le serveur respire
+        except Exception as e:
+            print(f"[VEILLEUR RELANCE] {e}")
+        _t.sleep(12 * 3600)       # deux fois par jour, pas plus
+
+
 def _veilleur_fabrications():
     """👁️🏭 Toutes les 10 minutes : relance les fabrications restees en rade."""
     import time as _t
@@ -3053,6 +3151,7 @@ def _veilleur_fabrications():
 
 
 _threading.Thread(target=_veilleur_fabrications, daemon=True).start()
+_threading.Thread(target=_veilleur_relances, daemon=True).start()
 
 
 @app.route("/api/admin/historique-client", methods=["POST"])
@@ -3596,18 +3695,10 @@ def admin_relancer_client():
         return jsonify({"ok": False,
                         "message": f"La commande {cid} n'a pas d'adresse email \u2014 "
                                    "appelle le client au t\u00e9l\u00e9phone affich\u00e9 sur la ligne."})
-    jeu = REGISTRE_JEUX.get(cmd.get("programme"), {}).get("nom") or cmd.get("programme") or "votre jeu"
-    corps = (
-        "Ia ora na,\n\n"
-        f"Votre commande n\u00b0{cid} ({jeu} \u00b7 {cmd.get('nb_feuilles')} feuilles \u00b7 "
-        f"{cmd.get('montant')} XPF) est toujours en attente de r\u00e8glement chez nous.\n\n"
-        "Souhaitez-vous toujours la recevoir ?\n\n"
-        "\u2022 Si OUI : r\u00e9pondez simplement \u00e0 ce message, nous la pr\u00e9parons aussit\u00f4t.\n"
-        "\u2022 Si NON : dites-le-nous d'un mot, nous l'annulerons sans frais.\n\n"
-        "Sans nouvelles de votre part, nous la garderons en attente encore quelques jours.\n\n"
-        "M\u0101uruuru,\nMANAPRINT")
+    # ⚠️ la MÊME plume que le veilleur automatique — un seul texte à tenir
     try:
-        envoyer_email_simple(dest, f"Votre commande n\u00b0{cid} \u2014 la souhaitez-vous toujours ?", corps)
+        _relancer_client(cid)
+        _RELANCES_CLIENT[cid] = _RELANCES_CLIENT.get(cid, 0) + 1
     except Exception as e:
         return jsonify({"ok": False, "message": f"L'email n'est pas parti ({type(e).__name__}). R\u00e9essaie dans un instant."})
     return jsonify({"ok": True,
