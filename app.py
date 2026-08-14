@@ -3280,6 +3280,61 @@ def api_partenaire_logout():
     return jsonify({"ok": True})
 
 
+@app.route("/api/partenaire/supprimer-commande", methods=["POST"])
+def api_partenaire_supprimer():
+    """🗑️ Le partenaire retire UNE DE SES FABRIQUES GRATUITES.
+
+    ⚠️⚠️ TROIS VERROUS, et ils comptent (sceau Maeva 13/08) :
+      1. la commande doit appartenir À CE partenaire — pas à un autre ;
+      2. elle doit être une FABRIQUE (`fabrique_partenaire`) — jamais la
+         commande d'un client ;
+      3. son DÛ doit être NUL. Les fabriques sont offertes, donc à 0 F ;
+         une commande cliente porte le dû 2KEA (1,5 F la feuille), et
+         l'effacer effacerait la dette de Maeva. Le partenaire ne doit
+         JAMAIS pouvoir supprimer ce qu'il doit.
+    Une commande cliente se supprime depuis l'espace de gestion de Tatie.
+    """
+    slug = session.get("partenaire")
+    if not slug or slug not in PARTENAIRES:
+        return jsonify({"ok": False, "message": "Session expirée — reconnectez-vous."}), 403
+    d = request.get_json(silent=True) or {}
+    try:
+        cid = int(d.get("id") or 0)
+    except Exception:
+        cid = 0
+    if not cid:
+        return jsonify({"ok": False, "message": "Commande introuvable."})
+    cmd = db.get_commande(cid)
+    if not cmd:
+        return jsonify({"ok": False, "message": f"La commande {cid} n'existe pas."})
+    import json as _json
+    try:
+        perso = _json.loads(cmd.get("params_perso") or "{}")
+    except Exception:
+        perso = {}
+    # verrou 1 : c'est bien SA commande
+    if (perso.get("partenaire") or "") != slug:
+        return jsonify({"ok": False, "message": "Cette commande n'est pas la vôtre."}), 403
+    # verrou 2 : c'est bien une fabrique, pas une commande cliente
+    if cmd.get("mode_paiement") != "fabrique_partenaire":
+        return jsonify({"ok": False,
+                        "message": "Seules vos fabriques offertes peuvent être retirées ici. "
+                                   "Pour une commande cliente, contactez 2KEA."})
+    # verrou 3 : rien à devoir
+    du = round(int(cmd.get("nb_feuilles") or 0) * 1.5) if cmd.get("mode_paiement") != "fabrique_partenaire" else 0
+    if du:
+        return jsonify({"ok": False,
+                        "message": "Cette commande porte un dû — elle ne peut pas être retirée ici."})
+    try:
+        # la même façon de faire que l'espace de gestion
+        with db.get_db() as conn:
+            conn.execute("DELETE FROM commandes WHERE id = ?", (cid,))
+    except Exception as e:
+        return jsonify({"ok": False, "message": f"Le retrait a échoué ({type(e).__name__}). Réessayez."})
+    print(f"[PARTENAIRE] {slug} a retiré sa fabrique {cid}")
+    return jsonify({"ok": True, "message": f"🗑️ Fabrique n°{cid} retirée."})
+
+
 @app.route("/api/partenaire/mes-commandes", methods=["GET"])
 def api_partenaire_mes_commandes():
     """Le tableau de bord du partenaire.
