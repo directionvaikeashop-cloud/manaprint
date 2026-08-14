@@ -3571,6 +3571,49 @@ def admin_forcer_fabrication():
     return jsonify({"ok": bool(faits), "message": msg, "relancees": faits})
 
 
+@app.route("/api/admin/relancer-client", methods=["POST"])
+@admin_requis
+def admin_relancer_client():
+    """📧 RELANCE COMMERCIALE : le client veut-il toujours sa commande ?
+
+    ⚠️ À ne pas confondre avec « Débloquer une fabrication » (🔧), qui
+    relance la MACHINE. Ici on écrit AU CLIENT : sa commande attend d'être
+    payée depuis un moment, et Tatie veut savoir s'il la maintient avant
+    de la garder en attente ou de la supprimer (sceau Maeva 13/08).
+    """
+    d = request.get_json(silent=True) or {}
+    try:
+        cid = int(d.get("id") or 0)
+    except Exception:
+        cid = 0
+    if not cid:
+        return jsonify({"ok": False, "message": "Commande introuvable."})
+    cmd = db.get_commande(cid)
+    if not cmd:
+        return jsonify({"ok": False, "message": f"La commande {cid} n'existe pas."})
+    dest = (cmd.get("identifiant") or "").strip()
+    if "@" not in dest:
+        return jsonify({"ok": False,
+                        "message": f"La commande {cid} n'a pas d'adresse email \u2014 "
+                                   "appelle le client au t\u00e9l\u00e9phone affich\u00e9 sur la ligne."})
+    jeu = REGISTRE_JEUX.get(cmd.get("programme"), {}).get("nom") or cmd.get("programme") or "votre jeu"
+    corps = (
+        "Ia ora na,\n\n"
+        f"Votre commande n\u00b0{cid} ({jeu} \u00b7 {cmd.get('nb_feuilles')} feuilles \u00b7 "
+        f"{cmd.get('montant')} XPF) est toujours en attente de r\u00e8glement chez nous.\n\n"
+        "Souhaitez-vous toujours la recevoir ?\n\n"
+        "\u2022 Si OUI : r\u00e9pondez simplement \u00e0 ce message, nous la pr\u00e9parons aussit\u00f4t.\n"
+        "\u2022 Si NON : dites-le-nous d'un mot, nous l'annulerons sans frais.\n\n"
+        "Sans nouvelles de votre part, nous la garderons en attente encore quelques jours.\n\n"
+        "M\u0101uruuru,\nMANAPRINT")
+    try:
+        envoyer_email_simple(dest, f"Votre commande n\u00b0{cid} \u2014 la souhaitez-vous toujours ?", corps)
+    except Exception as e:
+        return jsonify({"ok": False, "message": f"L'email n'est pas parti ({type(e).__name__}). R\u00e9essaie dans un instant."})
+    return jsonify({"ok": True,
+                    "message": f"\U0001f4e7 Relance envoy\u00e9e \u00e0 {dest} pour la commande {cid}."})
+
+
 @app.route("/api/admin/renvoyer-emails", methods=["POST"])
 @admin_requis
 def admin_renvoyer_emails():
