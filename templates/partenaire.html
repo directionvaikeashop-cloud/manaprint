@@ -196,6 +196,25 @@ async function deconnexion(){
 
 function fmtF(n){ return (n||0).toLocaleString('fr-FR') + ' F'; }
 
+// 🗑️ Retirer une fabrique offerte (dû 0 F).
+// ⚠️ Le serveur revérifie TOUT : que la commande est bien la vôtre, que
+// c'est une fabrique, et qu'elle ne porte aucun dû. Le bouton n'est
+// qu'une commodité — la sécurité est côté serveur.
+async function retirerFabrique(id){
+  if(!confirm('Retirer d\u00e9finitivement la fabrique n\u00b0' + id + ' ?\n\nElle dispara\u00eetra de votre liste. Cette action est irr\u00e9versible.')) return;
+  try{
+    const r = await fetch('/api/partenaire/supprimer-commande', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({id: id})
+    });
+    const d = await r.json();
+    alert(d.message || (d.ok ? 'Fabrique retir\u00e9e.' : 'Retrait impossible.'));
+    if(d.ok) actualiser();
+  }catch(e){
+    alert('Serveur occup\u00e9 \u2014 r\u00e9essayez dans un instant.');
+  }
+}
+
 async function actualiser(){
   const btn = document.getElementById('btn-actu');
   const msg = document.getElementById('actu-msg');
@@ -289,6 +308,10 @@ async function charger(){
         + '<span class="boutons">'
         + (c.cartons ? '<button class="btn mini" title="PDF des cartons \u00e0 imprimer" onclick="ouvrir(' + c.id + ',\'cartons\')">\u2b07\ufe0f Cartons</button>' : '<span class="muet">\u23f3 fabrication\u2026</span>')
         + (c.facture ? '<button class="btn mini gris" title="Facture du d\u00fb 2KEA" onclick="ouvrir(' + c.id + ',\'facture\')">\ud83e\uddfe Facture</button>' : '')
+        // \ud83d\uddd1\ufe0f 13/08 : le retrait n'appara\u00eet QUE sur les fabriques
+        // offertes (d\u00fb 0 F). Une commande cliente porte le d\u00fb 2KEA :
+        // l'effacer effacerait la dette \u2014 elle se retire c\u00f4t\u00e9 gestion.
+        + ((!c.du && c.programme) ? '<button class="btn mini" title="Retirer cette fabrique offerte" style="background:var(--coral)" onclick="retirerFabrique(' + c.id + ')">\ud83d\uddd1\ufe0f</button>' : '')
         + '</span></div>';
     }).join('');
     return true;
