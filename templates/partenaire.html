@@ -118,6 +118,14 @@
     <div class="carte">
       <h2 style="font-size:1.05rem;margin-bottom:.4rem">🖨️ Ma fabrique — mes PDF à mon enseigne</h2>
       <p class="sous" style="margin-top:0">Choisissez un jeu : la plateforme fabrique le PDF à votre nom — OFFERT pour votre boutique. Vous imprimez et vendez chez vous.</p>
+      <!-- \ud83d\udd0d 13/08 (sceau Maeva) : la liste compte pr\u00e8s de 150 jeux \u2014
+           sans recherche, le partenaire devait tout faire d\u00e9filer. -->
+      <div style="margin-bottom:.5rem">
+        <label class="sous">Chercher un jeu</label>
+        <input id="fab-cherche" type="text" maxlength="30" placeholder="tapez un nom : moon, tahiti, bingo\u2026"
+               oninput="filtrerJeux()" style="width:100%;text-transform:none;letter-spacing:0;margin-bottom:.25rem">
+        <span id="fab-cherche-msg" class="msg muet" style="color:var(--muted)"></span>
+      </div>
       <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:.5rem">
         <div style="flex:2 1 220px"><label class="sous">Le jeu</label>
           <select id="fab-jeu" style="width:100%;text-transform:none;letter-spacing:0;margin-bottom:0"></select></div>
@@ -295,6 +303,46 @@ function expliquerVide(){
   }
 }
 
+
+// 🔍 LE FILTRE DE LA FABRIQUE (sceau Maeva 13/08).
+// La liste compte près de 150 jeux : sans recherche, le partenaire devait
+// tout faire défiler pour trouver le sien. On tape quelques lettres, la
+// liste se réduit. Le champ vide rend la liste entière.
+// ⚠️ La recherche ignore les accents ET les emojis : « ecole » trouve
+// « ÉCOLE », et le 🌺 de TAHITI ne gêne personne.
+var TOUS_LES_JEUX = [];
+
+function _sansAccent(t){
+  try{ return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+  catch(e){ return String(t); }
+}
+
+function filtrerJeux(){
+  const sel = document.getElementById('fab-jeu');
+  const champ = document.getElementById('fab-cherche');
+  const msg = document.getElementById('fab-cherche-msg');
+  if(!sel || !TOUS_LES_JEUX.length) return;
+  const q = _sansAccent((champ ? champ.value : '')).toLowerCase().trim();
+  const garde = sel.value;
+  const vus = TOUS_LES_JEUX.filter(function(j){
+    if(!q) return true;
+    return _sansAccent(j.nom || '').toLowerCase().indexOf(q) !== -1;
+  });
+  sel.innerHTML = '';
+  vus.forEach(function(j){
+    const o = document.createElement('option');
+    o.value = j.id; o.textContent = (j.emoji ? j.emoji + ' ' : '') + j.nom;
+    sel.appendChild(o);
+  });
+  // on garde le jeu choisi s'il est toujours dans la liste
+  if(garde && vus.some(function(j){ return j.id === garde; })) sel.value = garde;
+  if(msg){
+    if(!q){ msg.textContent = vus.length + ' jeux disponibles'; msg.style.color = 'var(--muted)'; }
+    else if(vus.length){ msg.textContent = vus.length + (vus.length > 1 ? ' jeux trouvés' : ' jeu trouvé'); msg.style.color = 'var(--muted)'; }
+    else { msg.textContent = 'Aucun jeu ne porte ce nom — effacez pour tout revoir.'; msg.style.color = 'var(--coral)'; }
+  }
+}
+
 async function chargerJeuxFabrique(){
   const sel = document.getElementById('fab-jeu');
   if(!sel) return;
@@ -314,6 +362,9 @@ async function chargerJeuxFabrique(){
       const d = await (await fetch('/api/jeux', {cache:'no-store'})).json();
       const jeux = (d && d.jeux) || [];
       if (jeux.length){
+        // \ud83d\udd0d on garde la liste COMPL\u00c8TE de c\u00f4t\u00e9 : le filtre vide et
+        // remplit la liste d\u00e9roulante \u00e0 chaque frappe, il lui faut la source.
+        TOUS_LES_JEUX = jeux;
         sel.innerHTML = '';
         jeux.forEach(function(j){
           const o = document.createElement('option');
@@ -321,6 +372,7 @@ async function chargerJeuxFabrique(){
           sel.appendChild(o);
         });
         sel.dataset.charge = 'oui';
+        filtrerJeux();
         if (msgF && msgF.dataset.err === 'jeux'){ msgF.textContent = ''; msgF.dataset.err = ''; }
         break;
       }
