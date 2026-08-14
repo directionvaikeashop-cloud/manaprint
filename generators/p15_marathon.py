@@ -7,7 +7,7 @@ P15 des boutiques, fidèle au modèle historique de Maeva :
   B 1-15 · I 16-30 · N 31-45 · G 46-60 · O 61-75 (ordre LIBRE),
   la case CENTRALE est libre — élargie en SANCTUAIRE (croix centrale
   15 mm) pour loger ENTIÈREMENT le QR de vérification sans toucher
-  aux chiffres (le coco 🥥 traditionnel s'affiche sans événement).
+  aux chiffres (la case reste LIBRE quand il n'y a pas d'événement).
 Pied fin : signature + N° de série. Tirage 1-75 complet.
 Couleur turquoise du modèle (ou couleur_perso) / gris (N&B). 2 gammes ÉCO/PREMIUM.
 """
@@ -185,8 +185,10 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
                                    avec_code=False)
         except Exception:
             qr_ok = False
-    if not qr_ok:
-        _dessiner_coco(c, cx_c, cy_c, SANCTUAIRE * 0.30)
+    # ⚠️ 13/08 (sceau Maeva : « retire le coco sur les grilles ») : quand il
+    # n'y a pas d'événement, la case centrale reste LIBRE. Le coco y était
+    # dessiné par défaut ; `_dessiner_coco` reste dans le fichier, prête si
+    # elle revient un jour, mais plus personne ne l'appelle.
 
 
 def generer_pdf(nb_cartes=15, serie_start=1, theme="", couleur=True,
