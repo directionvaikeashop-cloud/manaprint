@@ -302,6 +302,16 @@
         <div id="mana-jauge" style="height:100%;width:0;background:var(--teal);border-radius:999px;transition:width .4s"></div>
       </div>
       <p id="mana-texte" style="font-size:.82rem;color:var(--muted);line-height:1.6;margin:0"></p>
+      <!-- \ud83d\udcb0 13/08 : 1 CR\u00c9DIT MANA = 50 F de r\u00e9duction. Le choix
+           n'appara\u00eet QUE si le client a des cr\u00e9dits \u00e0 d\u00e9penser. -->
+      <div id="mana-remise" style="display:none;margin-top:.6rem;padding-top:.6rem;border-top:1px dashed var(--line)">
+        <label class="field-label" style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-size:.84rem">
+          <span>\ud83d\udcb0 J'utilise</span>
+          <select id="mana-nb" onchange="majRemiseMana()" style="width:auto;margin:0;padding:.3rem .5rem;font-size:.84rem"></select>
+          <span>cr\u00e9dit(s)</span>
+          <b id="mana-remise-txt" style="color:var(--coral)"></b>
+        </label>
+      </div>
       <p style="font-size:.78rem;color:var(--muted);line-height:1.6;margin:.45rem 0 0">
         <b>5 JEUX achet\u00e9s = 1 CR\u00c9DIT MANA offert \ud83c\udf3a</b><br>
         <i>Offre exclusivement r\u00e9serv\u00e9e aux commandes de jeux effectu\u00e9es sur MANAPRINT
@@ -904,6 +914,21 @@ function ajouterPanier(){
 // 🌺 Le compteur CRÉDIT MANA du client.
 // ⚠️ Il ne fait QUE LIRE : la progression monte côté serveur, au webhook
 // Stripe, une fois le paiement confirmé. Rien ici ne peut la faire bouger.
+// 💰 1 CRÉDIT MANA = 50 F de réduction.
+var MANA_VALEUR = 50;
+
+function manaChoisis(){
+  const s = document.getElementById('mana-nb');
+  return s ? (parseInt(s.value, 10) || 0) : 0;
+}
+
+function majRemiseMana(){
+  const t = document.getElementById('mana-remise-txt');
+  if(!t) return;
+  const n = manaChoisis();
+  t.textContent = n ? ('\u2192 \u2212' + (n * MANA_VALEUR) + ' F sur ce panier') : '';
+}
+
 async function chargerMana(){
   const bloc = document.getElementById('mana-bloc');
   if(!bloc) return;
@@ -921,6 +946,23 @@ async function chargerMana(){
       cred > 0 ? (cred + (cred > 1 ? ' cr\u00e9dits' : ' cr\u00e9dit') + ' \ud83c\udf81') : 'aucun cr\u00e9dit pour l\'instant';
     document.getElementById('mana-jauge').style.width = Math.round(prog * 100 / par) + '%';
     const reste = par - prog;
+    // 💰 le choix de la remise — seulement s'il a des crédits
+    const zr = document.getElementById('mana-remise');
+    const sel = document.getElementById('mana-nb');
+    if(zr && sel){
+      if(cred > 0){
+        const av = sel.value;
+        sel.innerHTML = '';
+        for(let k = 0; k <= cred; k++){
+          const o = document.createElement('option');
+          o.value = k; o.textContent = k;
+          sel.appendChild(o);
+        }
+        sel.value = (av && av <= cred) ? av : 0;
+        zr.style.display = '';
+        majRemiseMana();
+      } else { zr.style.display = 'none'; }
+    }
     document.getElementById('mana-texte').textContent =
       'Progression : ' + prog + '/' + par + (par > 1 ? ' jeux' : ' jeu')
       + (reste === par ? '' : ' \u00b7 encore ' + reste + (reste > 1 ? ' jeux' : ' jeu') + ' et votre prochain cr\u00e9dit est offert !');
@@ -967,7 +1009,8 @@ async function payerPanier(mode){
   try{
     const items=p.map(function(a){ const c=Object.assign({},a); delete c.nomJeu; delete c.couleur; delete c.origine; delete c.partenaireNom; return c; });
     const r=await fetch('/api/panier/checkout',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({items:items,mode_paiement:mode})});
+      // \ud83d\udcb0 les CR\u00c9DITS MANA que le client a choisi de d\u00e9penser
+      body:JSON.stringify({items:items,mode_paiement:mode,mana:(mode==='stripe'?manaChoisis():0)})});
     const d=await r.json();
     if(d.ok && d.mode==='stripe' && d.url){ msg.textContent=t("panier_redirection"); location.href=d.url; return; }
     if(d.ok && d.mode==='virement'){ ecrirePanier([]); rendrePanier(); msg.style.color="var(--teal)";
