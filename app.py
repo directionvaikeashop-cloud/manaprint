@@ -2238,7 +2238,16 @@ def _base_url():
     return os.environ.get("MANAPRINT_BASE_URL", request.host_url.rstrip("/"))
 
 
-def _session_stripe_panier(panier_id):
+def _mana_demandes():
+    """🌺 Combien de CRÉDITS MANA le client veut-il dépenser ?"""
+    try:
+        d = request.get_json(silent=True) or {}
+        return max(0, int(d.get("mana") or 0))
+    except Exception:
+        return 0
+
+
+def _session_stripe_panier(panier_id, mana_utilises=0):
     """Crée la session de paiement Stripe pour un panier (XPF = devise sans
     décimales : les montants s'envoient tels quels). Retourne l'URL de paiement."""
     import stripe
@@ -2255,15 +2264,59 @@ def _session_stripe_panier(panier_id):
                            "product_data": {"name": nom}},
             "quantity": 1,
         })
-    s = stripe.checkout.Session.create(
+    # ═══ 🌺 LA RÉDUCTION CRÉDIT MANA ═══
+    # 1 CRÉDIT MANA = 50 F de réduction (sceau Maeva 13/08).
+    # ⚠️ On passe par un COUPON Stripe plutôt que de rogner les montants
+    # des lignes : la facture montre alors clairement la remise, et le
+    # client voit ce que sa fidélité lui a fait gagner.
+    # ⚠️⚠️ Les crédits ne sont RETIRÉS DU COMPTE qu'ici, à la création de
+    # la session — et le nombre est plafonné par ce qu'il possède ET par
+    # le total du panier : on ne descend jamais en dessous de zéro franc.
+    remise = 0
+    ident_mana = ""
+    for cmd in cmds:
+        if "@" in (cmd.get("identifiant") or ""):
+            ident_mana = cmd["identifiant"].strip()
+            break
+    n_mana = 0
+    if mana_utilises and ident_mana:
+        compte = db.mana_du_client(ident_mana)
+        n_mana = min(int(mana_utilises), int(compte.get("credits") or 0))
+        # on ne peut pas rendre le panier gratuit : on garde 1 F minimum
+        n_mana = min(n_mana, max(0, (total - 1)) // db.VALEUR_CREDIT_XPF)
+        if n_mana > 0:
+            remise = n_mana * db.VALEUR_CREDIT_XPF
+
+    kwargs = dict(
         mode="payment",
         line_items=line_items,
         success_url=_base_url() + "/?paiement=succes",
         cancel_url=_base_url() + "/?paiement=annule",
         metadata={"panier_id": str(panier_id)},
     )
-    db.maj_panier(panier_id, total=total, stripe_session=s.id)
-    return s.url, total
+    if remise:
+        try:
+            coupon = stripe.Coupon.create(
+                amount_off=remise, currency="xpf", duration="once",
+                name=f"{n_mana} CR\u00c9DIT MANA")
+            kwargs["discounts"] = [{"coupon": coupon.id}]
+            kwargs["metadata"]["mana_utilises"] = str(n_mana)
+            kwargs["metadata"]["mana_client"] = ident_mana
+        except Exception as e:
+            print(f"[MANA] la remise n'a pas pu \u00eatre pos\u00e9e : {e}")
+            remise = 0
+            n_mana = 0
+
+    s = stripe.checkout.Session.create(**kwargs)
+    if n_mana:
+        # ⚠️ on retire les crédits MAINTENANT : le client les a engagés.
+        # S'il abandonne le paiement, ils sont perdus pour cette session —
+        # c'est le prix de la simplicité, et cela évite qu'il dépense deux
+        # fois les mêmes crédits en ouvrant deux paiements.
+        db.mana_utiliser(ident_mana, n_mana)
+        print(f"[MANA] {ident_mana} utilise {n_mana} cr\u00e9dit(s) \u2192 {remise} F de remise")
+    db.maj_panier(panier_id, total=max(0, total - remise), stripe_session=s.id)
+    return s.url, max(0, total - remise)
 
 
 @app.route("/api/demande-impression", methods=["POST"])
@@ -2318,7 +2371,7 @@ def commander():
         panier_id = db.creer_panier(session.get("identifiant"))
         with db.get_db() as conn:
             conn.execute("UPDATE commandes SET panier_id = ? WHERE id = ?", (panier_id, commande_id))
-        url, total = _session_stripe_panier(panier_id)
+        url, total = _session_stripe_panier(panier_id, mana_utilises=_mana_demandes())
         return jsonify({"ok": True, "mode": "stripe", "url": url, "montant": total})
     except Exception as e:
         print(f"[STRIPE ERREUR] commander : {e}")
@@ -2373,7 +2426,7 @@ def panier_checkout():
         return jsonify({"ok": False,
                         "message": "Le paiement par carte n'est pas encore activé. Choisis le paiement en boutique."}), 400
     try:
-        url, total = _session_stripe_panier(panier_id)
+        url, total = _session_stripe_panier(panier_id, mana_utilises=_mana_demandes())
         return jsonify({"ok": True, "mode": "stripe", "url": url, "montant": total, "panier_id": panier_id})
     except Exception as e:
         print(f"[STRIPE ERREUR] checkout : {e}")
