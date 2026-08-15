@@ -116,6 +116,13 @@
     <p data-i18n="poly_form_d" style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;line-height:1.6">Vos informations pour accéder au générateur (tarif local).</p>
     <input id="poly-nom" data-i18n-ph="ph_nom" placeholder="Votre nom">
     <input id="poly-email" type="email" placeholder="vous@email.com">
+        <!-- \ud83c\udf3a 13/08 (sceau Maeva) : le rappel qui \u00e9vite les cr\u00e9dits perdus.
+         Les clients ne cr\u00e9ent pas de compte : leur EMAIL est la cl\u00e9 de leur
+         progression MANA. S'ils en donnent un autre, ils repartent de z\u00e9ro. -->
+    <p style="font-size:.8rem;color:var(--muted);line-height:1.6;margin:-.5rem 0 1rem;padding:.55rem .75rem;background:#FFF9FB;border-radius:8px;border:1px solid var(--line)">
+      \ud83c\udf3a <b>Utilisez toujours la m\u00eame adresse</b> pour cumuler vos CR\u00c9DITS MANA \u2014
+      5 jeux achet\u00e9s et r\u00e9gl\u00e9s par carte = 1 cr\u00e9dit offert.
+    </p>
     <button class="btn" id="poly-btn" data-i18n="btn_acceder" onclick="accederPoly()">Accéder au générateur</button>
     <p id="poly-msg" style="margin-top:1rem;font-size:.88rem"></p>
   </div>
@@ -128,6 +135,13 @@
     <input id="intl-nom" data-i18n-ph="ph_nom" placeholder="Votre nom">
     <input id="intl-email" type="email" placeholder="vous@email.com">
     <input id="intl-pays" data-i18n-ph="ph_pays" placeholder="Pays (optionnel)">
+        <!-- \ud83c\udf3a 13/08 (sceau Maeva) : le rappel qui \u00e9vite les cr\u00e9dits perdus.
+         Les clients ne cr\u00e9ent pas de compte : leur EMAIL est la cl\u00e9 de leur
+         progression MANA. S'ils en donnent un autre, ils repartent de z\u00e9ro. -->
+    <p style="font-size:.8rem;color:var(--muted);line-height:1.6;margin:-.5rem 0 1rem;padding:.55rem .75rem;background:#FFF9FB;border-radius:8px;border:1px solid var(--line)">
+      \ud83c\udf3a <b>Utilisez toujours la m\u00eame adresse</b> pour cumuler vos CR\u00c9DITS MANA \u2014
+      5 jeux achet\u00e9s et r\u00e9gl\u00e9s par carte = 1 cr\u00e9dit offert.
+    </p>
     <button class="btn" id="intl-btn" data-i18n="btn_acceder" onclick="accederIntl()">Accéder au générateur</button>
     <p id="intl-msg" style="margin-top:1rem;font-size:.88rem"></p>
   </div>
@@ -275,6 +289,26 @@
   <div id="ecran-panier" class="hidden" style="max-width:620px;margin:0 auto">
     <button onclick="montrer(panierRetour||'ecran-choix')" data-i18n="retour" class="mono" style="background:none;border:none;color:var(--muted);font-size:.85rem;margin-bottom:1.5rem">← Retour</button>
     <h2 class="display" data-i18n="panier_titre" style="font-size:1.6rem;margin-bottom:.4rem">🛒 Mon panier</h2>
+    <!-- \ud83c\udf3a CR\u00c9DIT MANA (sceau Maeva 13/08) : la progression du client,
+         affich\u00e9e l\u00e0 o\u00f9 il d\u00e9cide. Le compteur ne bouge QU'APR\u00c8S paiement
+         confirm\u00e9 par carte \u2014 jamais au clic sur « Commander ». -->
+    <div id="mana-bloc" style="display:none;border:1px solid var(--line);border-radius:10px;padding:.8rem 1rem;margin-bottom:1rem;background:#FFF9FB">
+      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+        <span style="font-size:1.05rem">\ud83c\udf3a</span>
+        <b style="font-size:.95rem">Mes CR\u00c9DITS MANA</b>
+        <span id="mana-credits" style="margin-left:auto;font-weight:700;color:var(--teal-d)"></span>
+      </div>
+      <div style="height:9px;background:#F0E4EA;border-radius:999px;margin:.55rem 0 .35rem;overflow:hidden">
+        <div id="mana-jauge" style="height:100%;width:0;background:var(--teal);border-radius:999px;transition:width .4s"></div>
+      </div>
+      <p id="mana-texte" style="font-size:.82rem;color:var(--muted);line-height:1.6;margin:0"></p>
+      <p style="font-size:.78rem;color:var(--muted);line-height:1.6;margin:.45rem 0 0">
+        <b>5 JEUX achet\u00e9s = 1 CR\u00c9DIT MANA offert \ud83c\udf3a</b><br>
+        <i>Offre exclusivement r\u00e9serv\u00e9e aux commandes de jeux effectu\u00e9es sur MANAPRINT
+        et r\u00e9gl\u00e9es en ligne par carte bancaire.</i><br>
+        Plus vous utilisez MANAPRINT, plus vos CR\u00c9DITS MANA se cumulent !
+      </p>
+    </div>
     <p data-i18n="panier_sous" style="color:var(--muted);font-size:.88rem;margin-bottom:1.4rem;line-height:1.6">Plusieurs jeux, un seul paiement — chaque article garde sa personnalisation, sa date et son imprimeur partenaire.</p>
     <div id="panier-liste" style="display:flex;flex-direction:column;gap:.6rem;margin-bottom:1rem"></div>
     <p id="panier-vide" data-i18n="panier_vide" style="color:var(--muted);font-size:.9rem">Ton panier est vide — choisis un jeu et clique « 🛒 Ajouter au panier ».</p>
@@ -867,7 +901,34 @@ function ajouterPanier(){
   ecrirePanier(p);
   msg.style.color="var(--teal)"; msg.textContent=t("panier_ajoute")+" ("+p.length+")";
 }
+// 🌺 Le compteur CRÉDIT MANA du client.
+// ⚠️ Il ne fait QUE LIRE : la progression monte côté serveur, au webhook
+// Stripe, une fois le paiement confirmé. Rien ici ne peut la faire bouger.
+async function chargerMana(){
+  const bloc = document.getElementById('mana-bloc');
+  if(!bloc) return;
+  try{
+    const r = await fetch('/api/mana/mon-compte', {cache:'no-store'});
+    if(!r.ok){ bloc.style.display='none'; return; }
+    const d = await r.json();
+    if(!d || !d.ok || !d.mana){ bloc.style.display='none'; return; }
+    const m = d.mana;
+    const par = m.par_credit || 5;
+    const prog = m.progression || 0;
+    const cred = m.credits || 0;
+    bloc.style.display = '';
+    document.getElementById('mana-credits').textContent =
+      cred > 0 ? (cred + (cred > 1 ? ' cr\u00e9dits' : ' cr\u00e9dit') + ' \ud83c\udf81') : 'aucun cr\u00e9dit pour l\'instant';
+    document.getElementById('mana-jauge').style.width = Math.round(prog * 100 / par) + '%';
+    const reste = par - prog;
+    document.getElementById('mana-texte').textContent =
+      'Progression : ' + prog + '/' + par + (par > 1 ? ' jeux' : ' jeu')
+      + (reste === par ? '' : ' \u00b7 encore ' + reste + (reste > 1 ? ' jeux' : ' jeu') + ' et votre prochain cr\u00e9dit est offert !');
+  }catch(e){ bloc.style.display='none'; }
+}
+
 function afficherPanier(){
+  chargerMana();     // 🌺 la progression, à jour à chaque ouverture
   const courant=document.querySelector('.wrap > div:not(.hidden)');
   if(courant && courant.id && courant.id!=='ecran-panier') panierRetour=courant.id;
   montrer('ecran-panier'); rendrePanier();
