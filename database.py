@@ -212,6 +212,153 @@ def init_db():
         """)
 
         conn.commit()
+        with get_db() as conn:
+            _init_mana(conn)
+
+
+# ═══ 🌺 CRÉDIT MANA — le programme de fidélité (sceau Maeva 13/08) ═══
+# RÈGLE : 5 JEUX achetés ET PAYÉS EN LIGNE PAR CARTE = 1 CRÉDIT MANA offert.
+#
+# ⚠️⚠️ DEUX RÈGLES D'OR, écrites noir sur blanc par Maeva :
+#   1. Le compteur ne bouge JAMAIS au clic sur « Commander ». Il ne bouge
+#      qu'à la CONFIRMATION DÉFINITIVE du paiement par carte.
+#   2. Les commandes réglées autrement — espèces, virement, boutique, SMS,
+#      paiement manuel, crédit ou geste commercial — apportent
+#      ZÉRO progression. Elles peuvent être enregistrées, mais elles ne
+#      comptent pas.
+#
+# La table garde AUSSI la liste des commandes déjà comptées : c'est ce qui
+# permet d'annuler proprement en cas de remboursement, et ce qui empêche
+# un webhook envoyé deux fois de créditer deux fois.
+
+def _init_mana(conn):
+    conn.execute("""CREATE TABLE IF NOT EXISTS mana (
+        identifiant   TEXT PRIMARY KEY,
+        progression   INTEGER NOT NULL DEFAULT 0,
+        credits       INTEGER NOT NULL DEFAULT 0,
+        credits_total INTEGER NOT NULL DEFAULT 0,
+        maj_le        TEXT
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS mana_journal (
+        commande_id INTEGER PRIMARY KEY,
+        identifiant TEXT NOT NULL,
+        compte_le   TEXT,
+        annule      INTEGER NOT NULL DEFAULT 0
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_mana_journal_ident ON mana_journal(identifiant)")
+
+
+PDF_PAR_CREDIT = 5          # 5 JEUX payés par carte = 1 crédit
+# ⚠️ le nom de la constante reste PDF_PAR_CREDIT (il est cité un peu
+# partout), mais le mot qu'on MONTRE au client est bien « jeux ».
+
+
+def mana_du_client(identifiant):
+    """🌺 La progression et les crédits d'un client."""
+    ident = (identifiant or "").strip().lower()
+    if not ident:
+        return {"identifiant": "", "progression": 0, "credits": 0,
+                "credits_total": 0, "par_credit": PDF_PAR_CREDIT}
+    with get_db() as conn:
+        r = conn.execute("SELECT * FROM mana WHERE identifiant = ?", (ident,)).fetchone()
+    d = dict(r) if r else {"identifiant": ident, "progression": 0,
+                           "credits": 0, "credits_total": 0}
+    d["par_credit"] = PDF_PAR_CREDIT
+    return d
+
+
+def mana_compter(commande_id, identifiant):
+    """🌺 Compte UN JEU payé par carte. Retourne (progression, credits_gagnes).
+
+    ⚠️ N'appeler QU'APRÈS confirmation définitive du paiement par carte.
+    Le journal empêche de compter deux fois la même commande — un webhook
+    Stripe peut très bien arriver en double.
+    """
+    ident = (identifiant or "").strip().lower()
+    cid = int(commande_id or 0)
+    if not ident or not cid:
+        return (0, 0)
+    from datetime import datetime as _dt, timezone as _tz
+    maintenant = _dt.now(_tz.utc).isoformat()
+    with get_db() as conn:
+        deja = conn.execute("SELECT 1 FROM mana_journal WHERE commande_id = ?", (cid,)).fetchone()
+        if deja:
+            r = conn.execute("SELECT * FROM mana WHERE identifiant = ?", (ident,)).fetchone()
+            return ((r["progression"] if r else 0), 0)
+        conn.execute("INSERT INTO mana_journal (commande_id, identifiant, compte_le, annule) "
+                     "VALUES (?,?,?,0)", (cid, ident, maintenant))
+        r = conn.execute("SELECT * FROM mana WHERE identifiant = ?", (ident,)).fetchone()
+        prog = (r["progression"] if r else 0) + 1
+        cred = (r["credits"] if r else 0)
+        total = (r["credits_total"] if r else 0)
+        gagnes = 0
+        while prog >= PDF_PAR_CREDIT:
+            prog -= PDF_PAR_CREDIT
+            cred += 1
+            total += 1
+            gagnes += 1
+        conn.execute(
+            "INSERT INTO mana (identifiant, progression, credits, credits_total, maj_le) "
+            "VALUES (?,?,?,?,?) ON CONFLICT(identifiant) DO UPDATE SET "
+            "progression = excluded.progression, credits = excluded.credits, "
+            "credits_total = excluded.credits_total, maj_le = excluded.maj_le",
+            (ident, prog, cred, total, maintenant))
+    return (prog, gagnes)
+
+
+def mana_annuler(commande_id):
+    """🌺 Annule la progression d'une commande REMBOURSÉE.
+
+    ⚠️ Maeva l'a écrit : « en cas de remboursement, le système doit pouvoir
+    annuler la progression ou les crédits générés par cette commande afin
+    d'éviter les abus ». On retire donc un JEU du compteur ; si cela fait
+    repasser sous zéro, on reprend un crédit.
+    """
+    cid = int(commande_id or 0)
+    if not cid:
+        return False
+    from datetime import datetime as _dt, timezone as _tz
+    maintenant = _dt.now(_tz.utc).isoformat()
+    with get_db() as conn:
+        j = conn.execute("SELECT * FROM mana_journal WHERE commande_id = ? AND annule = 0",
+                         (cid,)).fetchone()
+        if not j:
+            return False
+        ident = j["identifiant"]
+        conn.execute("UPDATE mana_journal SET annule = 1 WHERE commande_id = ?", (cid,))
+        r = conn.execute("SELECT * FROM mana WHERE identifiant = ?", (ident,)).fetchone()
+        if not r:
+            return True
+        prog = r["progression"] - 1
+        cred = r["credits"]
+        total = r["credits_total"]
+        if prog < 0:
+            # le JEU retiré avait déjà donné un crédit : on le reprend
+            if cred > 0:
+                cred -= 1
+                total = max(0, total - 1)
+                prog = PDF_PAR_CREDIT - 1
+            else:
+                prog = 0
+        conn.execute("UPDATE mana SET progression = ?, credits = ?, credits_total = ?, "
+                     "maj_le = ? WHERE identifiant = ?", (prog, cred, total, maintenant, ident))
+    return True
+
+
+def mana_utiliser(identifiant, combien=1):
+    """🌺 Le client dépense ses crédits. Retourne ce qu'il lui reste, ou None."""
+    ident = (identifiant or "").strip().lower()
+    n = max(1, int(combien or 1))
+    from datetime import datetime as _dt, timezone as _tz
+    with get_db() as conn:
+        r = conn.execute("SELECT * FROM mana WHERE identifiant = ?", (ident,)).fetchone()
+        if not r or r["credits"] < n:
+            return None
+        reste = r["credits"] - n
+        conn.execute("UPDATE mana SET credits = ?, maj_le = ? WHERE identifiant = ?",
+                     (reste, _dt.now(_tz.utc).isoformat(), ident))
+    return reste
+
 def normalize_num(n):
     n = (n or "").replace(" ", "").replace(".", "").replace("-", "")
     if n.startswith("+689"):
