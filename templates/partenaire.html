@@ -200,6 +200,10 @@ function fmtF(n){ return (n||0).toLocaleString('fr-FR') + ' F'; }
 // ⚠️ Le serveur revérifie TOUT : que la commande est bien la vôtre, que
 // c'est une fabrique, et qu'elle ne porte aucun dû. Le bouton n'est
 // qu'une commodité — la sécurité est côté serveur.
+// 🏠 La maison-mère (2KEA) voit le 🗑️ sur TOUTES ses lignes.
+// Le serveur revérifie de toute façon : ce drapeau n'est qu'un confort.
+var MAISON_MERE = false;
+
 async function retirerFabrique(id){
   if(!confirm('Retirer d\u00e9finitivement la fabrique n\u00b0' + id + ' ?\n\nElle dispara\u00eetra de votre liste. Cette action est irr\u00e9versible.')) return;
   try{
@@ -261,6 +265,7 @@ async function demanderCommandes(){
       if (r.status === 403){ DERNIERE_RAISON = 'session'; return null; }  // inutile d'insister
       if (r.ok){
         const d = await r.json();
+    try{ MAISON_MERE = (d.slug === '2kea_papeete') || (d.partenaire === '2kea_papeete'); }catch(e){}
         if (d && d.ok) return d;
         DERNIERE_RAISON = (d && d.message) || 'refus';
       } else {
@@ -311,7 +316,9 @@ async function charger(){
         // \ud83d\uddd1\ufe0f 13/08 : le retrait n'appara\u00eet QUE sur les fabriques
         // offertes (d\u00fb 0 F). Une commande cliente porte le d\u00fb 2KEA :
         // l'effacer effacerait la dette \u2014 elle se retire c\u00f4t\u00e9 gestion.
-        + ((!c.du && c.programme) ? '<button class="btn mini" title="Retirer cette fabrique offerte" style="background:var(--coral)" onclick="retirerFabrique(' + c.id + ')">\ud83d\uddd1\ufe0f</button>' : '')
+        // \ud83c\udfe0 la MAISON-M\u00c8RE (2KEA) peut tout retirer ; les autres
+        // partenaires, seulement leurs fabriques offertes (d\u00fb 0 F).
+        + ((MAISON_MERE || !c.du) && c.programme ? '<button class="btn mini" title="Retirer cette commande" style="background:var(--coral)" onclick="retirerFabrique(' + c.id + ')">\ud83d\uddd1\ufe0f</button>' : '')
         + '</span></div>';
     }).join('');
     return true;
