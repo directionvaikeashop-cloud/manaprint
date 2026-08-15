@@ -3427,6 +3427,12 @@ def api_partenaire_logout():
     return jsonify({"ok": True})
 
 
+# 🏠 LA MAISON-MÈRE : 2KEA & Associé, c'est Maeva elle-même. Le « dû 2KEA »
+# est ce que les AUTRES partenaires lui doivent — sur son propre espace,
+# retirer une commande n'efface donc aucune dette.
+MAISON_MERE = "2kea_papeete"
+
+
 @app.route("/api/partenaire/supprimer-commande", methods=["POST"])
 def api_partenaire_supprimer():
     """🗑️ Le partenaire retire UNE DE SES FABRIQUES GRATUITES.
@@ -3468,16 +3474,26 @@ def api_partenaire_supprimer():
     # verrou 1 : c'est bien SA commande
     if (perso.get("partenaire") or "") != slug:
         return jsonify({"ok": False, "message": "Cette commande n'est pas la vôtre."}), 403
-    # verrou 2 : c'est bien une fabrique, pas une commande cliente
-    if cmd.get("mode_paiement") != "fabrique_partenaire":
-        return jsonify({"ok": False,
-                        "message": "Seules vos fabriques offertes peuvent être retirées ici. "
-                                   "Pour une commande cliente, contactez 2KEA."})
-    # verrou 3 : rien à devoir
-    du = round(int(cmd.get("nb_feuilles") or 0) * 1.5) if cmd.get("mode_paiement") != "fabrique_partenaire" else 0
-    if du:
-        return jsonify({"ok": False,
-                        "message": "Cette commande porte un dû — elle ne peut pas être retirée ici."})
+    # ⚠️⚠️ 13/08 (sceau Maeva) : LA MAISON-MÈRE PEUT TOUT RETIRER.
+    # Le « dû 2KEA » est ce que les partenaires doivent à 2KEA — or 2KEA,
+    # c'est Maeva : sur SON espace, retirer une commande n'efface aucune
+    # dette. Les AUTRES partenaires (FUN&CO, COCOTIE MER, RANIHEI) gardent
+    # le garde-fou : ils ne peuvent retirer que leurs fabriques offertes,
+    # sinon ils pourraient effacer ce qu'ils doivent sans que Maeva le voie.
+    if slug != MAISON_MERE:
+        # verrou 2 : c'est bien une fabrique, pas une commande cliente
+        if cmd.get("mode_paiement") != "fabrique_partenaire":
+            return jsonify({"ok": False,
+                            "message": "Seules vos fabriques offertes peuvent être retirées ici. "
+                                       "Pour une commande cliente, contactez 2KEA."})
+        # verrou 3 : rien à devoir
+        # ⚠️ une FABRIQUE est offerte : son dû est nul par définition —
+        # c'est le même calcul que la liste (`du = 0 if fabrique_partenaire`).
+        du = 0 if cmd.get("mode_paiement") == "fabrique_partenaire" else round(
+            int(cmd.get("nb_feuilles") or 0) * 1.5)
+        if du:
+            return jsonify({"ok": False,
+                            "message": "Cette commande porte un dû — elle ne peut pas être retirée ici."})
     try:
         # la même façon de faire que l'espace de gestion
         with db.get_db() as conn:
@@ -3531,7 +3547,8 @@ def api_partenaire_mes_commandes():
             "facture": f"cmd{cmd['id']}_facture.pdf" in au_coffre_tous,
             "evenement": perso.get("nom_evenement", "") or perso.get("titre_jeu", ""),
         })
-    return jsonify({"ok": True, "nom": part["nom"], "zone": part.get("zone", ""),
+    # 🏠 le slug part au navigateur : la maison-mère voit le 🗑️ partout
+    return jsonify({"ok": True, "slug": slug, "nom": part["nom"], "zone": part.get("zone", ""),
                     "commandes": lignes, "stats": totaux,
                     "detail_limite": totaux.get("nb", 0) > len(lignes)})
 
