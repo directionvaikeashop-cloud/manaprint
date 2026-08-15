@@ -2423,7 +2423,101 @@ def webhook_stripe():
                 for cmd in cmds:
                     nom_part = lancer_fabrication(cmd["id"])
                     print(f"[STRIPE PAYE] commande {cmd['id']} du panier {panier_id} -> fabrication ({nom_part or 'sans partenaire ?'})")
+                    # ═══ 🌺 CRÉDIT MANA ═══
+                    # ⚠️⚠️ C'EST LE SEUL ENDROIT OÙ LE COMPTEUR MONTE.
+                    # Maeva l'a écrit noir sur blanc : « le compteur ne doit
+                    # JAMAIS augmenter au moment où le client clique sur
+                    # Commander — il doit augmenter uniquement après
+                    # confirmation définitive du paiement par carte ».
+                    # Nous sommes ici dans le webhook `checkout.session.completed`
+                    # de Stripe : le paiement est confirmé PAYÉ/SUCCEEDED.
+                    try:
+                        _crediter_mana(cmd)
+                    except Exception as e:
+                        print(f"[MANA] commande {cmd['id']} : {e}")
+
+    # 💸 REMBOURSEMENT : on annule la progression qu'il avait donnée.
+    # « En cas de remboursement ultérieur, le système doit pouvoir annuler
+    # la progression ou les crédits générés par cette commande afin
+    # d'éviter les abus » (sceau Maeva 13/08).
+    if event["type"] in ("charge.refunded", "charge.dispute.created"):
+        try:
+            obj = event["data"]["object"]
+            pan = 0
+            try:
+                pan = int(obj["metadata"]["panier_id"])
+            except Exception:
+                pan = 0
+            if pan:
+                for c in db.commandes_du_panier(pan):
+                    if db.mana_annuler(c["id"]):
+                        print(f"[MANA] commande {c['id']} rembours\u00e9e \u2014 progression annul\u00e9e")
+        except Exception as e:
+            print(f"[MANA REMBOURSEMENT] {e}")
     return jsonify({"ok": True})
+
+
+# ═══ 🌺 CRÉDIT MANA — qui a droit à la progression ? ═══
+# 5 JEUX achetés ET PAYÉS EN LIGNE PAR CARTE = 1 CRÉDIT MANA offert.
+#
+# ⚠️⚠️ NE COMPTENT PAS (liste écrite par Maeva le 13/08) :
+#   espèces · virement bancaire · paiement en boutique · commande SMS ·
+#   paiement manuel · crédit ou geste commercial · toute autre méthode
+#   hors carte bancaire en ligne.
+# Ces commandes peuvent être enregistrées dans MANAPRINT, mais elles
+# apportent ZÉRO progression MANA.
+MANA_MODES_ELIGIBLES = ("stripe",)
+
+
+def _mana_eligible(cmd):
+    """🌺 Cette commande fait-elle progresser le compteur ?"""
+    if not cmd:
+        return False
+    # ① réglée EN LIGNE PAR CARTE — et rien d'autre
+    if (cmd.get("mode_paiement") or "") not in MANA_MODES_ELIGIBLES:
+        return False
+    # ② le paiement est bien confirmé
+    if (cmd.get("statut") or "") not in ("payee", "generee", "fabriquee", "envoyee"):
+        return False
+    # ③ commandée directement sur MANAPRINT — pas une fabrique partenaire
+    #    ni un ravitaillement interne
+    if (cmd.get("mode_paiement") or "") in ("fabrique_partenaire", "ravitaillement"):
+        return False
+    # ④ un client identifiable, sinon on ne saurait à qui créditer
+    if "@" not in (cmd.get("identifiant") or ""):
+        return False
+    return True
+
+
+def _crediter_mana(cmd):
+    """🌺 Compte UN JEU au client, et annonce le crédit s'il tombe."""
+    if not _mana_eligible(cmd):
+        return
+    ident = (cmd.get("identifiant") or "").strip()
+    prog, gagnes = db.mana_compter(cmd["id"], ident)
+    print(f"[MANA] {ident} \u2014 commande {cmd['id']} \u2192 {prog}/{db.PDF_PAR_CREDIT}"
+          + (f" \U0001f381 +{gagnes} CR\u00c9DIT MANA" if gagnes else ""))
+    if gagnes:
+        try:
+            envoyer_email_simple(
+                ident, "\U0001f338 Vous avez gagn\u00e9 un CR\u00c9DIT MANA !",
+                "Ia ora na,\n\n"
+                f"F\u00e9licitations ! Vos {db.PDF_PAR_CREDIT} jeux achet\u00e9s vous offrent "
+                f"{gagnes} CR\u00c9DIT MANA \U0001f381\n\n"
+                "Il vous attend sur votre compte MANAPRINT \u2014 \u00e0 utiliser quand vous voudrez.\n\n"
+                "Plus vous utilisez MANAPRINT, plus vos CR\u00c9DITS MANA se cumulent !\n\n"
+                "M\u0101uruuru,\nMANAPRINT")
+        except Exception as e:
+            print(f"[MANA] l'annonce du cr\u00e9dit n'est pas partie : {e}")
+
+
+@app.route("/api/mana/mon-compte", methods=["GET"])
+def api_mana_mon_compte():
+    """🌺 Le client consulte sa progression et ses crédits."""
+    ident = (session.get("identifiant") or "").strip()
+    if not ident:
+        return jsonify({"ok": False, "message": "Connectez-vous pour voir vos CR\u00c9DITS MANA."}), 403
+    return jsonify({"ok": True, "mana": db.mana_du_client(ident)})
 
 
 # ── GÉNÉRATION PAYÉE — réservée aux commandes validées ────────────────────────
