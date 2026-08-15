@@ -249,6 +249,7 @@ def _init_mana(conn):
 
 
 PDF_PAR_CREDIT = 5          # 5 JEUX payés par carte = 1 crédit
+VALEUR_CREDIT_XPF = 50      # 🌺 1 CRÉDIT MANA = 50 F de réduction (sceau Maeva 13/08)
 # ⚠️ le nom de la constante reste PDF_PAR_CREDIT (il est cité un peu
 # partout), mais le mot qu'on MONTRE au client est bien « jeux ».
 
