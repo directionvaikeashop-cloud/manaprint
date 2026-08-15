@@ -3441,8 +3441,14 @@ def api_partenaire_supprimer():
          JAMAIS pouvoir supprimer ce qu'il doit.
     Une commande cliente se supprime depuis l'espace de gestion de Tatie.
     """
-    slug = session.get("partenaire")
-    if not slug or slug not in PARTENAIRES:
+    # ⚠️⚠️ 13/08 : CE FUT MON ERREUR. Je lisais `session["partenaire"]`,
+    # or la session de la plateforme s'appelle `partenaire_slug`. La route
+    # ne trouvait donc JAMAIS le partenaire et refusait TOUT en silence —
+    # Maeva cliquait sur 🗑️ et rien ne se passait.
+    # On passe désormais par `_partenaire_session()`, la même porte que
+    # toutes les autres routes du partenaire : un seul endroit à tenir.
+    slug, _part = _partenaire_session()
+    if not slug:
         return jsonify({"ok": False, "message": "Session expirée — reconnectez-vous."}), 403
     d = request.get_json(silent=True) or {}
     try:
