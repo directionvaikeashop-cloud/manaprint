@@ -50,6 +50,7 @@ from generators import chance as chancegen
 from generators import opoa as opoagen
 from generators import francs as francsgen
 from generators import francs500
+from generators import dollar1
 from generators import tesla as teslagen
 from generators import salute as salutegen
 from generators import pietra as pietragen
@@ -404,6 +405,7 @@ _enregistrer_paire("chance",        "CHANCE 6 boules", "🍀", 8, chancegen.gene
 _enregistrer_paire("opoa",          "OPOA 7 boules", "🏔️", 8, opoagen.generer_pdf)
 _enregistrer_paire("francs",        "100 FRANCS 7 boules", "🪙", 12, francsgen.generer_pdf)
 _enregistrer_paire("francs500",     "500 FRANCS", "\U0001f4b5", 8,  francs500.generer_pdf)
+_enregistrer_paire("dollar1",       "1 DOLLAR",   "\U0001f4b5", 10, dollar1.generer_pdf)
 _enregistrer_paire("tesla",         "TESLA 5 boules", "🚗", 8, teslagen.generer_pdf)
 _enregistrer_paire("salute",        "SALUTE 6 boules", "🗺️", 8, salutegen.generer_pdf)
 _enregistrer_paire("salute_smo",    "SALUTE SMORFIA", "🎴", 8, salutegen.generer_pdf_smorfia)
@@ -1292,6 +1294,7 @@ _PLAGES_CALLER = {
     "opoa": (1, 75),
     "francs": (46, 90),
     "francs500": (1, 75),
+    "dollar1": (1, 75),
     "tesla": (1, 60),
     "salute": (1, 75),
     "salute_smo": (1, 75),
