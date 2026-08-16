@@ -51,6 +51,8 @@ from generators import opoa as opoagen
 from generators import francs as francsgen
 from generators import francs500
 from generators import dollar1
+from generators import francs1000
+from generators import francs5000
 from generators import tesla as teslagen
 from generators import salute as salutegen
 from generators import pietra as pietragen
@@ -406,6 +408,8 @@ _enregistrer_paire("opoa",          "OPOA 7 boules", "🏔️", 8, opoagen.gener
 _enregistrer_paire("francs",        "100 FRANCS 7 boules", "🪙", 12, francsgen.generer_pdf)
 _enregistrer_paire("francs500",     "500 FRANCS", "\U0001f4b5", 8,  francs500.generer_pdf)
 _enregistrer_paire("dollar1",       "1 DOLLAR",   "\U0001f4b5", 10, dollar1.generer_pdf)
+_enregistrer_paire("francs1000",    "1000 FRANCS","\U0001f4b4", 8,  francs1000.generer_pdf)
+_enregistrer_paire("francs5000",    "5000 FRANCS","\U0001f48e", 8,  francs5000.generer_pdf)
 _enregistrer_paire("tesla",         "TESLA 5 boules", "🚗", 8, teslagen.generer_pdf)
 _enregistrer_paire("salute",        "SALUTE 6 boules", "🗺️", 8, salutegen.generer_pdf)
 _enregistrer_paire("salute_smo",    "SALUTE SMORFIA", "🎴", 8, salutegen.generer_pdf_smorfia)
@@ -1295,6 +1299,8 @@ _PLAGES_CALLER = {
     "francs": (46, 90),
     "francs500": (1, 75),
     "dollar1": (1, 75),
+    "francs1000": (1, 90),
+    "francs5000": (1, 65),
     "tesla": (1, 60),
     "salute": (1, 75),
     "salute_smo": (1, 75),
@@ -1553,16 +1559,25 @@ _SW_CALLER_LOCAL = """
 // 📴→🔄 v2 (sceau Maeva 30/07) : RÉSEAU D'ABORD quand il y a internet (les
 // mises à jour arrivent toutes seules), CACHE EN SECOURS quand il n'y en a
 // pas (la promesse hors-ligne tient) ; les vieux caches sont balayés.
-const CACHE = 'mpcl-v3';
-const PAGES = ['/caller-local', '/crieur-local', '/caller-local/manifest.json', '/caller-local/icone.svg'];
+const CACHE = 'mpcl-v4';   // ⚡ v4 : balaye le gardien cassé de la v3
+// ⚠️⚠️ 13/08 : « /caller-local » A ÉTÉ RETIRÉ DE CETTE LISTE. Cette adresse
+// répond par une REDIRECTION (302) vers /crieur-local, or `addAll` refuse
+// les redirections — et comme il met tout en réserve d'un seul coup, UNE
+// SEULE page fautive faisait échouer TOUTE l'installation. C'était la cause
+// du « mode hors-ligne non installé » que Maeva voyait sur sa vraie
+// plateforme. On ne garde que les adresses qui répondent vraiment 200.
+const PAGES = ['/crieur-local', '/caller-local/manifest.json', '/caller-local/icone.svg'];
 const BANDE = '/voix-caller.mp3';   // 🎙️ la voix enregistrée, gardée pour les salles sans réseau
 // 🎲🎙️ les 9 mots du kikiri dits par Tatie Maeva : mis en réserve eux aussi,
 // pour que les dés parlent dans les vallées sans réseau.
 const KIKIRI = [1,2,3,4,5,6,7,8,9].map(n => '/kikiri/' + n + '.mp3');
 self.addEventListener('install', e => {
+  // ⚡ 13/08 : CHAQUE page est mise en réserve SÉPARÉMENT. Avec `addAll`,
+  // une seule adresse en échec faisait tout tomber ; ici, si l'une manque,
+  // les autres passent quand même et le hors-ligne s'installe.
   e.waitUntil(
     caches.open(CACHE)
-      .then(c => c.addAll(PAGES)
+      .then(c => Promise.all(PAGES.map(u => c.add(u).catch(() => null)))
         .then(() => c.add(BANDE).catch(() => null))
         .then(() => Promise.all(KIKIRI.map(u => c.add(u).catch(() => null)))))
       .then(() => self.skipWaiting())
@@ -1588,13 +1603,15 @@ self.addEventListener('fetch', e => {
     );
     return;
   }
-  if (!PAGES.includes(u.pathname)) return;
+  // /caller-local redirige vers /crieur-local : on le laisse passer au
+  // réseau, mais on répond depuis la réserve s'il n'y a plus d'internet.
+  if (!PAGES.includes(u.pathname) && u.pathname !== '/caller-local') return;
   e.respondWith(
     fetch(e.request).then(rep => {
       const copie = rep.clone();
       caches.open(CACHE).then(c => c.put(e.request, copie));
       return rep;
-    }).catch(() => caches.match(e.request))
+    }).catch(() => caches.match(e.request) || caches.match('/crieur-local'))
   );
 });
 """
