@@ -116,12 +116,12 @@
     <p data-i18n="poly_form_d" style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;line-height:1.6">Vos informations pour accéder au générateur (tarif local).</p>
     <input id="poly-nom" data-i18n-ph="ph_nom" placeholder="Votre nom">
     <input id="poly-email" type="email" placeholder="vous@email.com">
-        <!-- \ud83c\udf3a 13/08 (sceau Maeva) : le rappel qui \u00e9vite les cr\u00e9dits perdus.
-         Les clients ne cr\u00e9ent pas de compte : leur EMAIL est la cl\u00e9 de leur
-         progression MANA. S'ils en donnent un autre, ils repartent de z\u00e9ro. -->
+        <!-- 🌺 13/08 (sceau Maeva) : le rappel qui évite les crédits perdus.
+         Les clients ne créent pas de compte : leur EMAIL est la clé de leur
+         progression MANA. S'ils en donnent un autre, ils repartent de zéro. -->
     <p style="font-size:.8rem;color:var(--muted);line-height:1.6;margin:-.5rem 0 1rem;padding:.55rem .75rem;background:#FFF9FB;border-radius:8px;border:1px solid var(--line)">
-      \ud83c\udf3a <b>Utilisez toujours la m\u00eame adresse</b> pour cumuler vos CR\u00c9DITS MANA \u2014
-      5 jeux achet\u00e9s et r\u00e9gl\u00e9s par carte = 1 cr\u00e9dit offert.
+      🌺 <b>Utilisez toujours la même adresse</b> pour cumuler vos CRÉDITS MANA —
+      5 jeux achetés et réglés par carte = 1 crédit offert.
     </p>
     <button class="btn" id="poly-btn" data-i18n="btn_acceder" onclick="accederPoly()">Accéder au générateur</button>
     <p id="poly-msg" style="margin-top:1rem;font-size:.88rem"></p>
@@ -135,12 +135,12 @@
     <input id="intl-nom" data-i18n-ph="ph_nom" placeholder="Votre nom">
     <input id="intl-email" type="email" placeholder="vous@email.com">
     <input id="intl-pays" data-i18n-ph="ph_pays" placeholder="Pays (optionnel)">
-        <!-- \ud83c\udf3a 13/08 (sceau Maeva) : le rappel qui \u00e9vite les cr\u00e9dits perdus.
-         Les clients ne cr\u00e9ent pas de compte : leur EMAIL est la cl\u00e9 de leur
-         progression MANA. S'ils en donnent un autre, ils repartent de z\u00e9ro. -->
+        <!-- 🌺 13/08 (sceau Maeva) : le rappel qui évite les crédits perdus.
+         Les clients ne créent pas de compte : leur EMAIL est la clé de leur
+         progression MANA. S'ils en donnent un autre, ils repartent de zéro. -->
     <p style="font-size:.8rem;color:var(--muted);line-height:1.6;margin:-.5rem 0 1rem;padding:.55rem .75rem;background:#FFF9FB;border-radius:8px;border:1px solid var(--line)">
-      \ud83c\udf3a <b>Utilisez toujours la m\u00eame adresse</b> pour cumuler vos CR\u00c9DITS MANA \u2014
-      5 jeux achet\u00e9s et r\u00e9gl\u00e9s par carte = 1 cr\u00e9dit offert.
+      🌺 <b>Utilisez toujours la même adresse</b> pour cumuler vos CRÉDITS MANA —
+      5 jeux achetés et réglés par carte = 1 crédit offert.
     </p>
     <button class="btn" id="intl-btn" data-i18n="btn_acceder" onclick="accederIntl()">Accéder au générateur</button>
     <p id="intl-msg" style="margin-top:1rem;font-size:.88rem"></p>
@@ -289,34 +289,34 @@
   <div id="ecran-panier" class="hidden" style="max-width:620px;margin:0 auto">
     <button onclick="montrer(panierRetour||'ecran-choix')" data-i18n="retour" class="mono" style="background:none;border:none;color:var(--muted);font-size:.85rem;margin-bottom:1.5rem">← Retour</button>
     <h2 class="display" data-i18n="panier_titre" style="font-size:1.6rem;margin-bottom:.4rem">🛒 Mon panier</h2>
-    <!-- \ud83c\udf3a CR\u00c9DIT MANA (sceau Maeva 13/08) : la progression du client,
-         affich\u00e9e l\u00e0 o\u00f9 il d\u00e9cide. Le compteur ne bouge QU'APR\u00c8S paiement
-         confirm\u00e9 par carte \u2014 jamais au clic sur « Commander ». -->
+    <!-- 🌺 CRÉDIT MANA (sceau Maeva 13/08) : la progression du client,
+         affichée là où il décide. Le compteur ne bouge QU'APRÈS paiement
+         confirmé par carte — jamais au clic sur « Commander ». -->
     <div id="mana-bloc" style="display:none;border:1px solid var(--line);border-radius:10px;padding:.8rem 1rem;margin-bottom:1rem;background:#FFF9FB">
       <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
-        <span style="font-size:1.05rem">\ud83c\udf3a</span>
-        <b style="font-size:.95rem">Mes CR\u00c9DITS MANA</b>
+        <span style="font-size:1.05rem">🌺</span>
+        <b style="font-size:.95rem">Mes CRÉDITS MANA</b>
         <span id="mana-credits" style="margin-left:auto;font-weight:700;color:var(--teal-d)"></span>
       </div>
       <div style="height:9px;background:#F0E4EA;border-radius:999px;margin:.55rem 0 .35rem;overflow:hidden">
         <div id="mana-jauge" style="height:100%;width:0;background:var(--teal);border-radius:999px;transition:width .4s"></div>
       </div>
       <p id="mana-texte" style="font-size:.82rem;color:var(--muted);line-height:1.6;margin:0"></p>
-      <!-- \ud83d\udcb0 13/08 : 1 CR\u00c9DIT MANA = 50 F de r\u00e9duction. Le choix
-           n'appara\u00eet QUE si le client a des cr\u00e9dits \u00e0 d\u00e9penser. -->
+      <!-- 💰 13/08 : 1 CRÉDIT MANA = 50 F de réduction. Le choix
+           n'apparaît QUE si le client a des crédits à dépenser. -->
       <div id="mana-remise" style="display:none;margin-top:.6rem;padding-top:.6rem;border-top:1px dashed var(--line)">
         <label class="field-label" style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-size:.84rem">
-          <span>\ud83d\udcb0 J'utilise</span>
+          <span>💰 J'utilise</span>
           <select id="mana-nb" onchange="majRemiseMana()" style="width:auto;margin:0;padding:.3rem .5rem;font-size:.84rem"></select>
-          <span>cr\u00e9dit(s)</span>
+          <span>crédit(s)</span>
           <b id="mana-remise-txt" style="color:var(--coral)"></b>
         </label>
       </div>
       <p style="font-size:.78rem;color:var(--muted);line-height:1.6;margin:.45rem 0 0">
-        <b>5 JEUX achet\u00e9s = 1 CR\u00c9DIT MANA offert \ud83c\udf3a</b><br>
-        <i>Offre exclusivement r\u00e9serv\u00e9e aux commandes de jeux effectu\u00e9es sur MANAPRINT
-        et r\u00e9gl\u00e9es en ligne par carte bancaire.</i><br>
-        Plus vous utilisez MANAPRINT, plus vos CR\u00c9DITS MANA se cumulent !
+        <b>5 JEUX achetés = 1 CRÉDIT MANA offert 🌺</b><br>
+        <i>Offre exclusivement réservée aux commandes de jeux effectuées sur MANAPRINT
+        et réglées en ligne par carte bancaire.</i><br>
+        Plus vous utilisez MANAPRINT, plus vos CRÉDITS MANA se cumulent !
       </p>
     </div>
     <p data-i18n="panier_sous" style="color:var(--muted);font-size:.88rem;margin-bottom:1.4rem;line-height:1.6">Plusieurs jeux, un seul paiement — chaque article garde sa personnalisation, sa date et son imprimeur partenaire.</p>
@@ -363,7 +363,7 @@
       </div>
       <label class="field-label" style="display:flex;align-items:center;gap:.55rem;cursor:pointer;margin:.4rem 0 .6rem">
         <input id="rav-rapide" type="checkbox" checked style="width:auto;margin:0;accent-color:var(--teal)">
-        <span>\ud83d\udda8\ufe0f Impression rapide \u2014 cartons sans microtexte : ils sortent bien plus vite \u00e0 l\u2019imprimante. Laissez coch\u00e9 pour les tirages boutique.</span>
+        <span>🖨️ Impression rapide — cartons sans microtexte : ils sortent bien plus vite à l’imprimante. Laissez coché pour les tirages boutique.</span>
       </label>
       <p id="rav-msg" style="font-size:.85rem;margin-bottom:1rem"></p>
       <!-- Clients PI -->
@@ -421,11 +421,11 @@
       <button class="btn" style="width:auto;padding:.6rem 1.6rem" onclick="adminRessusciterLot()">🚑 Tout ressusciter</button>
       <div id="resc-lot-msg" style="font-size:.82rem;margin-top:.8rem;line-height:1.8"></div>
 
-      <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">\U0001f527 D\u00e9bloquer une fabrication</h2>
-      <p style="color:var(--muted);font-size:.85rem;margin-bottom:.6rem;line-height:1.7">Une commande reste bloqu\u00e9e sur <b>\u23f3 fabrication\u2026</b> ? Entre son num\u00e9ro et la plateforme la relance, <b>quel que soit son \u00e2ge</b>. Le veilleur automatique, lui, abandonne apr\u00e8s six heures. Tu peux en donner plusieurs s\u00e9par\u00e9s par des virgules \u2014 elles se feront <b>l'une apr\u00e8s l'autre</b>, car plusieurs en m\u00eame temps \u00e9touffent le serveur.</p>
+      <h2 class="display" style="font-size:1.4rem;margin:2rem 0 .4rem">\U0001f527 Débloquer une fabrication</h2>
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:.6rem;line-height:1.7">Une commande reste bloquée sur <b>⏳ fabrication…</b> ? Entre son numéro et la plateforme la relance, <b>quel que soit son âge</b>. Le veilleur automatique, lui, abandonne après six heures. Tu peux en donner plusieurs séparés par des virgules — elles se feront <b>l'une après l'autre</b>, car plusieurs en même temps étouffent le serveur.</p>
       <div style="display:flex;gap:.6rem;margin-bottom:.8rem;flex-wrap:wrap">
-        <input id="forc-ids" type="text" placeholder="N\u00b0 de commande (ex. 2023 ou 2023,2024)" style="margin-bottom:0;flex:1;min-width:230px">
-        <button class="btn" style="width:auto;padding:0 1.4rem;white-space:nowrap" onclick="adminForcerFabrication()">\U0001f527 D\u00e9bloquer</button>
+        <input id="forc-ids" type="text" placeholder="N° de commande (ex. 2023 ou 2023,2024)" style="margin-bottom:0;flex:1;min-width:230px">
+        <button class="btn" style="width:auto;padding:0 1.4rem;white-space:nowrap" onclick="adminForcerFabrication()">\U0001f527 Débloquer</button>
       </div>
       <p id="forc-msg" style="font-size:.82rem;line-height:1.7"></p>
 
