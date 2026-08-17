@@ -473,6 +473,23 @@ TARIF_NB_150 = {
 }
 PRIX_NB_AUTRES = 7.4   # 185 F les 25 feuilles
 
+# 💵 LES JEUX À BILLETS (décision Maeva 13/08) : 250 F les 25 feuilles,
+# en noir & blanc comme en couleur. Ce sont les plus travaillés du
+# catalogue — le dessin du billet, la rosace, les chiffres étirés.
+TARIF_BILLETS_250 = {
+    "dollar1",      # 1 DOLLAR
+    "francs500",    # 500 FRANCS
+    "francs1000",   # 1000 FRANCS
+    "francs5000",   # 5000 FRANCS
+}
+PRIX_BILLETS = 10.0            # 250 F les 25 feuilles, en noir & blanc
+# 🎨 EN COULEUR, LES BILLETS SONT À PART (décision Maeva 13/08) : 375 F les
+# 25 feuilles, au lieu des 250 F de tous les autres jeux. ⚠️ POURQUOI CE
+# SUPPLÉMENT : sur les autres jeux, la couleur ne teinte que les chiffres ;
+# ici, c'est LE BILLET LUI-MÊME qui sera imprimé dans les couleurs de
+# l'original — bien plus d'encre, et un rendu de vraie monnaie.
+PRIX_BILLETS_COULEUR = 15.0    # 375 F les 25 feuilles
+
 # 🎨 LES DEUX OFFRES EN COULEUR (décision Maeva, 05/08 — nouvelles machines
 # attendues en novembre) :
 #   ① « PDF seul »   : 3,5 F la feuille (87 F les 25) — le client reçoit son
@@ -2213,6 +2230,14 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
     # 💰 GRILLE DU 05/08 : la couleur reste au tarif de base (250 F les 25) ;
     # en noir & blanc, seuls les jeux de TARIF_NB_150 gardent 150 F —
     # tous les autres passent à 185 F les 25 feuilles.
+    # 💵 LES JEUX À BILLETS : 250 F les 25, en N&B comme en couleur.
+    # ⚠️ Ce test vient AVANT celui du noir & blanc, sinon ils retomberaient
+    # à 185 F. Les prix partenaires et l'international restent souverains.
+    if (prix_special is None
+            and session.get("acces") != "international"
+            and db._gamme_du_programme(programme) == "eco"
+            and _base_jeu(programme) in TARIF_BILLETS_250):
+        prix_special = PRIX_BILLETS_COULEUR if couleur else PRIX_BILLETS
     if (prix_special is None and not couleur
             and session.get("acces") != "international"
             and db._gamme_du_programme(programme) == "eco"
