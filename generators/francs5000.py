@@ -138,6 +138,23 @@ def _choisir_image(motif, ratio_attendu):
 # l'encre du billet tombe à 2,74 % et le relief reste net.
 _IMAGE_BILLET = _choisir_image("billet5000", _RATIO_BILLET)
 
+# ═══ 🎨 LE BILLET EN COULEURS D'ORIGINE (sceau Maeva 13/08) ═══
+# Deux visages pour un seul jeu : le DESSIN AU TRAIT quand la cliente
+# commande en noir & blanc, et LE BILLET DANS SES VRAIES COULEURS quand
+# elle prend la couleur — c'est ce qui justifie les 375 F au lieu de 250.
+# ⚠️ Les deux images n'ont NI le même cadrage NI le même ratio : chacune
+# a donc SA zone et SON ratio, mesurés au pixel sur l'image elle-même.
+_RATIO_BILLET_C = 1.7215
+ZONE_C = (0.2681, 0.68, 0.1581, 0.857)
+_IMAGE_BILLET_C = _choisir_image("billet5000_c", _RATIO_BILLET_C)
+
+
+def _visage(couleur):
+    """🎨 Le billet à poser, et ses mesures — selon la commande."""
+    if couleur and _os2.path.exists(_IMAGE_BILLET_C):
+        return _IMAGE_BILLET_C, _RATIO_BILLET_C, ZONE_C
+    return _IMAGE_BILLET, _RATIO_BILLET, ZONE
+
 # ⭐ LA POLICE QUI GROSSIT : condensée grasse — plus étroite qu'une grasse
 # ordinaire, donc elle monte plus haut à place égale.
 _POLICE_GROS = ""
@@ -189,25 +206,33 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     # Le dessin de Maeva occupe tout le carton ; les dix numéros se
     # rangent dans son grand vide central, en deux rangées de cinq.
     coins, montant = nums
+    # 🎨 le visage du billet : au trait, ou dans ses vraies couleurs
+    _est_couleur = couleur_hex not in ("#9A9A9A", "#999999")
+    _img, _ratio, _zone = _visage(_est_couleur)
+    # ⚠️ 13/08 : SUR LE BILLET EN COULEURS, les chiffres se noircissent.
+    # Le gris 50 % se lit bien sur du blanc, mais se noie sur un fond
+    # coloré — surtout sur les rouges du 1000 F. On descend à 0,28.
+    if _est_couleur:
+        gris_ch = colors.Color(0.28, 0.28, 0.28)
     iw = CARD_W - 1.5 * mm
-    ih = iw / _RATIO_BILLET
+    ih = iw / _ratio
     if ih > CARD_H - 1.5 * mm:
         ih = CARD_H - 1.5 * mm
-        iw = ih * _RATIO_BILLET
+        iw = ih * _ratio
     px = x0 + (CARD_W - iw) / 2
     py = y0 + (CARD_H - ih) / 2
-    if _os2.path.exists(_IMAGE_BILLET):
+    if _os2.path.exists(_img):
         try:
-            c.drawImage(_IMAGE_BILLET, px, py, iw, ih, mask="auto",
+            c.drawImage(_img, px, py, iw, ih, mask="auto",
                         preserveAspectRatio=True)
         except Exception:
             pass
 
     # la zone libre du billet
-    zx = px + ZONE[0] * iw
-    zw = (ZONE[1] - ZONE[0]) * iw
-    zy = py + ZONE[2] * ih
-    zh = (ZONE[3] - ZONE[2]) * ih
+    zx = px + _zone[0] * iw
+    zw = (_zone[1] - _zone[0]) * iw
+    zy = py + _zone[2] * ih
+    zh = (_zone[3] - _zone[2]) * ih
 
     # ⚠️ le chiffre se cale sur SA case : cinq par rangée, deux rangées,
     # et une bande au milieu pour le numéro de série.
