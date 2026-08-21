@@ -14,6 +14,7 @@ Chiffres en gris (2 gammes ÉCO/PREMIUM).
 import io
 import random
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_o
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
 from reportlab.lib.units import mm
@@ -143,8 +144,16 @@ def _dessiner_carte(c, x0, y0, cols_paires, couleur_hex, serie, titre_jeu="", te
     c.setDash()
 
     # Les cases : cercle + petit numéro (colonne N : la case centrale = FREE SPACE)
-    rayon = min(cell_w * 0.355, cell_h * 0.27)   # bulle élargie : elle ENVELOPPE son chiffre sans le toucher
-    t_cercle, t_petit = 20, 20   # chiffres GROSSIS (décision Maeva)
+    # ⚠️⚠️ 13/08 : LA BULLE DOIT ENVELOPPER SON CHIFFRE. À 24 pt elle était
+    # trop petite et le chiffre débordait. On la calcule DEPUIS le chiffre :
+    # « 88 » à 24 pt fait 10,8 mm, il lui faut donc au moins 6,5 mm de rayon.
+    # Elle reste bornée par la case pour ne jamais mordre la voisine.
+    _t_prevu = 24
+    rayon = min(cell_w * 0.42, cell_h * 0.34,
+                max(_lg_o("88", police_ch, _t_prevu) * 0.64, 3.0 * mm))
+    # ⭐ 13/08 (sceau Maeva) : LES DEUX CHIFFRES À 24 PT, à la taille du
+    # modèle que ses clientes aiment. La bulle est calculée depuis eux.
+    t_cercle, t_petit = 24, 24
     for ci, paires in enumerate(cols_paires):
         idx = 0
         for ri in range(5):
@@ -173,20 +182,38 @@ def _dessiner_carte(c, x0, y0, cols_paires, couleur_hex, serie, titre_jeu="", te
                         pass
                 continue
             n_cercle, n_petit = paires[idx]; idx += 1
-            ccx = case_x + cell_w * 0.38         # la bulle et son chiffre À GAUCHE (décision Maeva)
-            ccy = case_y + cell_h * 0.72
+            # ⚠️⚠️ 13/08 (sceau Maeva : « pousse vers la gauche pour ne pas
+            # déranger les chiffres hors bulles ») : LA BULLE SE COLLE À
+            # GAUCHE. Elle était à 0,36 de la case en dur ; à 24 pt elle
+            # empiétait sur la place du petit chiffre. On la pose depuis le
+            # BORD GAUCHE de la case — juste son rayon plus un cheveu.
+            ccx = case_x + rayon + 0.6 * mm
+            # ⚠️⚠️ 13/08 (sceau Maeva : « que les chiffres dans les bulles
+            # ne dépassent pas les grilles ») : LA BULLE SE PLACE TOUTE
+            # SEULE. Elle était posée à 0,72 de la case en dur ; à 24 pt
+            # son rayon la faisait chevaucher le trait de la rangée du
+            # dessus. On la remonte le plus haut possible, MAIS jamais
+            # au-delà de ce que la case permet — son sommet reste toujours
+            # sous le trait, avec un cheveu de marge.
+            _hors = rayon + 0.4 * mm
+            ccy = case_y + min(cell_h * 0.72, cell_h - _hors)
             c.setStrokeColor(col if False else GRIS); c.setLineWidth(0.7)
             c.setStrokeColor(col)
             c.circle(ccx, ccy, rayon, stroke=1, fill=0)
+            # ⚠️ LE PETIT CHIFFRE se pose SOUS ET À DROITE de la bulle,
+            # sans jamais la toucher : on part du BORD DE LA BULLE, pas
+            # d'une fraction de case en dur. Il reste dans sa case.
+            _lp = _lg_o("88", police_ch, t_petit)
+            _px_petit = min(ccx + rayon + _lp * 0.52, case_x + cell_w - _lp * 0.58)
+            _py_petit = max(case_y + cell_h * 0.075, ccy - rayon - t_petit * 0.62)
             if _sec:  # chiffres "billet de banque" remplis de microtexte
                 _sec.chiffre_micro(c, n_cercle, ccx, ccy - t_cercle * 0.36, t_cercle, gris_ch, police_ch)
-                _sec.chiffre_micro(c, n_petit, case_x + cell_w * 0.70,
-                                   case_y + cell_h * 0.075, t_petit, gris_ch, police_ch)
+                _sec.chiffre_micro(c, n_petit, _px_petit, _py_petit, t_petit, gris_ch, police_ch)
             else:
                 c.setFillColor(gris_ch); c.setFont(police_ch, t_cercle)
                 c.drawCentredString(ccx, ccy - t_cercle * 0.36, str(n_cercle))
                 c.setFont(police_ch, t_petit)
-                c.drawCentredString(case_x + cell_w * 0.70, case_y + cell_h * 0.075, str(n_petit))
+                c.drawCentredString(_px_petit, _py_petit, str(n_petit))
 
 
 def generer_pdf(nb_cartes=4, serie_start=1, theme="", couleur=True,
