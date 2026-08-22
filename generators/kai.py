@@ -12,6 +12,7 @@ Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris 40%.
 import io
 import random
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_k
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import mm
@@ -70,6 +71,42 @@ PAGE_W, PAGE_H = A4
 # (min, max) par colonne
 PLAGES = [(1, 10), (11, 20), (21, 30)]
 
+# ═══ 🎲 LE PUZZLE AUX DÉS (sceau Maeva 13/08) ═══
+# Neuf pièces, une paire de dés sur chacune. Il remplace les traits de
+# grille : le dessin dit le jeu sans un mot.
+# ⚠️ KAI n'a que SEPT numéros : deux cases restent barrées d'un X.
+_RATIO_PUZZLE = 0.9981
+import os as _os2
+
+
+def _choisir_image(motif, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_PUZZLE = _choisir_image("kai_puzzle", _RATIO_PUZZLE)
+
 COLS_PAGE = 3
 ROWS_PAGE = 4
 MARGIN_X = 8 * mm
@@ -103,73 +140,108 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
 
     # Bordure carte
     c.setStrokeColor(col); c.setLineWidth(0.8)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
+    # ⚠️⚠️ 13/08 (sceau Maeva : « retire la protection comme pour le WIN ») :
+    # NI CADRE, NI MICROTEXTE, NI QR sur ce jeu. Maeva veut le carton net.
+    # ⚠️ CE QUE CELA VEUT DIRE : KAI n'a plus aucune protection anti-copie.
 
-    # En-tête
-    hdr_y = y0 + CARD_H - 4 * mm
-    titre = "Le jeu KAI pour 7 boules"
-    if titre_jeu and "KAI" not in titre_jeu.strip().upper():
-        titre = "Le jeu KAI \u00b7 " + titre_jeu.strip()   # le nom du jeu TOUJOURS affiché (décision Maeva)
-    elif titre_jeu:
+    # ═══ 🎫 LE BANDEAU AUX BOUTS RONDS ═══
+    # Le nom du jeu, le n° de série et le téléphone en une seule ligne,
+    # dans une pastille en forme de gélule (rayon = moitié de la hauteur).
+    hdr_y = y0 + CARD_H - 3.6 * mm
+    titre = "KAI 7 boules"
+    if titre_jeu and titre_jeu.strip().upper() != titre.upper():
         titre = titre_jeu.strip()
+    _ligne = titre + "  \u00b7  N\u00b0 %05d" % serie
     if telephone:
-        titre += "  " + telephone
-    c.setFillColor(col); c.setFont(POLICE, 5.5)
-    c.drawCentredString(x0 + CARD_W / 2, hdr_y, titre[:58])
+        _ligne += "  \u00b7  " + telephone
+    _t_l = 6.0
+    while _t_l > 3.4 and _lg_k(_ligne, POLICE, _t_l) > CARD_W - 9.0 * mm:
+        _t_l -= 0.25
+    _bh = _t_l * 1.72
+    _bw = min(_lg_k(_ligne, POLICE, _t_l) + _bh * 1.30, CARD_W - 2.0 * mm)
+    _bx = x0 + (CARD_W - _bw) / 2
+    _by = hdr_y - _bh * 0.34
+    _plein = couleur_hex not in ("#9A9A9A", "#999999")
+    c.setStrokeColor(col)
+    c.setLineWidth(0.6)
+    if _plein:
+        c.setFillColor(col)
+        c.roundRect(_bx, _by, _bw, _bh, _bh / 2.0, stroke=1, fill=1)
+        c.setFillColor(colors.white)
+    else:
+        c.roundRect(_bx, _by, _bw, _bh, _bh / 2.0, stroke=1, fill=0)
+        c.setFillColor(col)
+    c.setFont(POLICE, _t_l)
+    c.drawCentredString(x0 + CARD_W / 2, _by + _bh * 0.32, _ligne)
 
-    # Zone grille 3×3
-    grid_top = hdr_y - 2.5 * mm
-    grid_bot = y0 + 5.5 * mm
-    cell_w = CARD_W / ncols
+    # ═══ 🎲 LE PUZZLE EST LA GRILLE ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'il épouse
+    # la carte. Ses neuf pièces deviennent les neuf cases.
+    grid_top = hdr_y - 2.2 * mm
+    grid_bot = y0 + 1.0 * mm
     grid_h = grid_top - grid_bot
-    row_h = grid_h / 3
-
-    # séparateurs de grille
-    c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.3)
-    for i in range(1, ncols):
-        c.line(x0 + i * cell_w, grid_bot, x0 + i * cell_w, grid_top)
-    for r in range(1, 3):
-        yy = grid_top - r * row_h
-        c.line(x0 + 1.5 * mm, yy, x0 + CARD_W - 1.5 * mm, yy)
+    _pw = CARD_W - 0.8 * mm
+    _ph = grid_h
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = grid_bot
+    if _os2.path.exists(_IMAGE_PUZZLE):
+        try:
+            c.drawImage(_IMAGE_PUZZLE, _px, _py, _pw, _ph, mask="auto")
+        except Exception:
+            pass
+    cell_w = _pw / 3.0
+    row_h = _ph / 3.0
+    # ⚠️ la taille se calcule DEPUIS la pièce, jamais en dur. La PAIRE DE
+    # DÉS occupe le coin haut-gauche : le chiffre descend et va à droite.
+    _t_num = 42.0
+    while _t_num > 8 and (_lg_k("88", police_ch, _t_num) > cell_w * 0.78
+                          or _t_num * 0.72 > row_h * 0.78):
+        _t_num -= 0.5
+    x0_g = _px
 
     # contenu des cellules
     for r in range(3):
         for cc in range(3):
-            cx = x0 + (cc + 0.5) * cell_w
-            cyc = grid_top - (r + 0.5) * row_h
+            cx = x0_g + (cc + 0.54) * cell_w
+            cyc = grid_top - (r + 0.62) * row_h
             val = grille[r][cc]
             if val is None:
-                # case barrée (X)
-                m = 4 * mm
-                cell_x = x0 + cc * cell_w
-                c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.5)
-                c.line(cell_x + m, cyc - row_h / 2 + m, cell_x + cell_w - m, cyc + row_h / 2 - m)
-                c.line(cell_x + m, cyc + row_h / 2 - m, cell_x + cell_w - m, cyc - row_h / 2 + m)
+                # ═══ 🧩 LA PIÈCE MANQUANTE (idée de Trésor, 13/08) ═══
+                # Au lieu d'une croix posée par-dessus, la case devient un
+                # TROU dans le puzzle : un creux hachuré, comme si la pièce
+                # n'avait jamais été placée. C'est le geste naturel du
+                # dessin — il dit « ici, rien à cocher » sans un mot.
+                cell_x = x0_g + cc * cell_w
+                cell_y = cyc - row_h / 2
+                _m = min(cell_w, row_h) * 0.20
+                _tx, _ty = cell_x + _m, cell_y + _m
+                _tw, _th = cell_w - 2 * _m, row_h - 2 * _m
+                # le creux, en trait fin et pointillé
+                c.saveState()
+                try:
+                    c.setStrokeColor(GRIS_CLAIR)
+                    c.setLineWidth(0.7)
+                    c.setDash(2.2, 1.8)
+                    c.roundRect(_tx, _ty, _tw, _th, min(_tw, _th) * 0.16,
+                                stroke=1, fill=0)
+                    c.setDash()
+                    # ⚠️ 13/08 (sceau Maeva) : PAS DE HACHURES. Le creux
+                    # pointillé suffit à dire le vide — les hachures
+                    # alourdissaient la case et buvaient du toner.
+                finally:
+                    c.restoreState()
             elif _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, val, cx, cyc - 11, 32, gris_ch, police_ch)
+                _sec.chiffre_micro(c, val, cx, cyc - _t_num * 0.34, _t_num, gris_ch, police_ch)
             else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, 32)
+                c.setFillColor(gris_ch); c.setFont(police_ch, _t_num)
                 c.drawCentredString(cx, cyc - 11, str(val))
 
-    # Pied : N° SÉRIE
-    c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 4.5)
-    c.drawString(x0 + 2 * mm, y0 + 2 * mm, "N° SÉRIE")
-    c.setFillColor(col); c.setFont(POLICE, 7)
-    c.drawRightString(x0 + CARD_W - 2 * mm, y0 + 2 * mm, "%06d" % serie)
+    # ⚠️ 13/08 : PLUS DE PIED. Le n° de série est désormais dans le bandeau
+    # du haut — l'écrire deux fois faisait doublon, et le pied débordait
+    # sur le puzzle qui descend maintenant jusqu'au bas du carton.
 
-    # QR de vérification par grille (anti-duplication) — coin bas-droit
-    if _sec and evenement_id:
-        try:
-            # 🎯 QR intégré : dans la case barrée bas-gauche (aucun chiffre dérangé)
-            _q = 12.5 * mm
-            _xq = x0 + (cell_w - _q) / 2
-            _yq = grid_bot + (row_h - _q - 3.6 * mm) / 2 + 3.6 * mm
-            _sec.carton_qr(c, _xq, _yq, _q, evenement_id, serie)
-        except Exception:
-            pass
-
+    # ⚠️⚠️ 13/08 : PLUS DE QR — il vivait dans la case barrée du bas-gauche.
+    # Cette case porte désormais la PIÈCE MANQUANTE (voir plus haut).
 
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
