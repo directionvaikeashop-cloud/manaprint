@@ -1,0 +1,267 @@
+# -*- coding: utf-8 -*-
+"""
+MANAPRINT — Générateur BAAM (format A4 PAYSAGE)
+
+🎈 NÉ LE 14/08 (sceau Maeva) : LA FÊTE. Cinq ballons, des confettis, des
+étoiles — et au-dessus de chaque ballon, sa lettre : N · N · G · O · O.
+
+⚠️ RÈGLE PARTICULIÈRE (relevée sur le carton ARES de Maeva) : les cinq
+numéros ne couvrent PAS tout le sac, mais seulement TROIS familles —
+  N (×2) : 31-45
+  G (×1) : 46-60
+  O (×2) : 61-75
+Les deux numéros d'une même lettre sont forcément différents.
+Le sac va donc de 31 à 75.
+
+8 cartes par feuille A4 paysage (2 colonnes × 4 rangées).
+"""
+import io
+import random
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib import colors
+from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
+# SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne : si le module securite
+# est absent, les cartons sortent normalement, simplement sans microtexte.
+try:
+    from generators import securite as _sec
+except Exception:
+    try:
+        import securite as _sec
+    except Exception:
+        _sec = None
+
+
+try:
+    pdfmetrics.registerFont(TTFont("DJL", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
+    POLICE = "DJL"
+except Exception:
+    POLICE = "Helvetica"
+
+RAINBOW = [
+    "#E53935", "#FB8C00", "#F9A825", "#43A047", "#00ACC1",
+    "#1E88E5", "#3949AB", "#8E24AA", "#D81B60", "#6D4C41",
+]
+GRIS = colors.Color(0.42, 0.42, 0.42)
+GRIS_CLAIR = colors.Color(0.80, 0.80, 0.80)
+
+
+# ══ DEUX GAMMES COMMERCIALES (vision Maeva) ══════════════════════════
+# ÉCO      : écriture fine DejaVu ExtraLight, gris 0,50 — économie de toner
+# PREMIUM  : écriture grasse Helvetica-Bold, gris 0,55 — style P15
+from reportlab.pdfbase import pdfmetrics as _pm
+from reportlab.pdfbase.ttfonts import TTFont as _TF
+try:
+    _pm.registerFont(_TF("DJLECO", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
+    _POLICE_ECO = "DJLECO"
+except Exception:
+    _POLICE_ECO = "Helvetica"
+_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
+_POLICE_P15 = "Helvetica-Bold"
+_GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
+
+def _style_chiffres(style):
+    """Retourne (police, gris) des chiffres selon la gamme choisie."""
+    if str(style).lower() in ("p15", "premium"):
+        return _POLICE_P15, _GRIS_P15
+    return _POLICE_ECO, _GRIS_ECO
+# ═════════════════════════════════════════════════════════════════════
+
+PAGE_W, PAGE_H = landscape(A4)
+# Les 5 boules de TAHAA : (plage, position) — haut: coins + centre, bas: centre-gauche/droit
+# 🎈 LES CINQ BALLONS : deux N, un G, deux O
+#    ⚠️ ce ne sont que TROIS familles — les deux N sont tirés ensemble,
+#    les deux O aussi, pour qu'ils ne se répètent jamais.
+FAMILLES = [((31, 45), 2), ((46, 60), 1), ((61, 75), 2)]
+BOULES = [((31, 45), 0, 0), ((31, 45), 0, 0), ((46, 60), 0, 0),
+          ((61, 75), 0, 0), ((61, 75), 0, 0)]
+
+# ═══ 🐛 LA CHENILLE (sceau Maeva 13/08) ═══
+# « VOTRE JEU TAHAA 75 — DE 5 BOULES » : une chenille rieuse, ses CINQ
+# ANNEAUX en ligne, l'herbe et les feuilles autour.
+# ⚠️ Les numéros ne se lisent plus sur deux rangées mais EN LIGNE, dans
+# les anneaux — mesurés au pixel sur l'image elle-même.
+_RATIO_CHENILLE = 1.7219
+ANNEAUX = [[0.2506, 0.4452], [0.4081, 0.4344], [0.5605, 0.4448], [0.7124, 0.4452], [0.8744, 0.4349]]
+DIAM_AN = 0.143
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_t
+
+
+def _choisir_image(motif, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_CHENILLE = _choisir_image("baam_ballons", _RATIO_CHENILLE)
+
+
+# ⚠️ 13/08 : 8 cartes par feuille au lieu de 18 (décision Maeva). La
+# chenille est LARGE (ratio 2,30) : moins de cartes, mais des chiffres
+# qu'on lit à bout de bras — 26 pt au lieu de 14.
+COLS_PAGE = 2
+ROWS_PAGE = 4
+MARGIN_X = 8 * mm
+MARGIN_TOP = 9 * mm
+MARGIN_BOT = 7 * mm
+GUTTER_X = 5 * mm
+GUTTER_Y = 3 * mm
+
+CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
+CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
+
+
+def _gen_carte(rng):
+    """🎈 Cinq numéros : deux N, un G, deux O.
+
+    ⚠️ Les deux numéros d'une même lettre sont tirés ENSEMBLE et triés :
+    ils ne peuvent donc jamais être identiques, et se lisent dans l'ordre.
+    """
+    nums = []
+    for (pmin, pmax), combien in FAMILLES:
+        nums += sorted(rng.sample(range(pmin, pmax + 1), combien))
+    return nums
+
+
+def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
+    police_ch, gris_ch = _style_chiffres(style)
+    col = colors.HexColor(couleur_hex)
+
+    # ⚠️⚠️ 13/08 : ni cadre, ni microtexte, ni QR — comme WIN, KAI, SUN,
+    # WIZ et RAI. Maeva veut le carton net.
+
+    # ═══ 🐛 LA CHENILLE ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
+    # la carte. Les cinq anneaux suivent, chacun à sa place.
+    BANDE_PIED = 4.0 * mm
+    _pw = CARD_W - 0.8 * mm
+    _ph = CARD_H - 0.8 * mm - BANDE_PIED
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + BANDE_PIED + 0.4 * mm
+    if _os2.path.exists(_IMAGE_CHENILLE):
+        try:
+            c.drawImage(_IMAGE_CHENILLE, _px, _py, _pw, _ph, mask="auto")
+        except Exception:
+            pass
+
+    # ⚠️ la taille se calcule DEPUIS l'anneau, jamais en dur.
+    _dia = _pw * DIAM_AN
+    _t_num = 40.0
+    while _t_num > 6 and (_lg_t("88", police_ch, _t_num) > _dia * 0.78
+                          or _t_num * 0.72 > _dia * 0.66):
+        _t_num -= 0.5
+
+    # ═══ les CINQ numéros, dans les anneaux ═══
+    for _i, _val in enumerate(nums[:5]):
+        _ax, _ay = ANNEAUX[_i]
+        _nx = _px + _ax * _pw
+        _ny = _py + _ay * _ph - _t_num * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, _val, _nx, _ny, _t_num, gris_ch, police_ch)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(police_ch, _t_num)
+            c.drawCentredString(_nx, _ny, str(_val))
+
+    # ═══ 🎫 LE BANDEAU AUX BOUTS RONDS, en pied ═══
+    _ligne = "N\u00b0 %05d" % serie
+    if telephone:
+        _ligne += "  \u00b7  " + telephone
+    _t_l = 5.2
+    while _t_l > 3.2 and _lg_t(_ligne, POLICE, _t_l) > CARD_W - 9.0 * mm:
+        _t_l -= 0.25
+    _bh = _t_l * 1.72
+    _bw = min(_lg_t(_ligne, POLICE, _t_l) + _bh * 1.30, CARD_W - 2.0 * mm)
+    _bx = x0 + (CARD_W - _bw) / 2
+    _by = y0 + 0.5 * mm
+    _plein = couleur_hex not in ("#9A9A9A", "#999999")
+    c.setStrokeColor(col)
+    c.setLineWidth(0.6)
+    if _plein:
+        c.setFillColor(col)
+        c.roundRect(_bx, _by, _bw, _bh, _bh / 2.0, stroke=1, fill=1)
+        c.setFillColor(colors.white)
+    else:
+        c.roundRect(_bx, _by, _bw, _bh, _bh / 2.0, stroke=1, fill=0)
+        c.setFillColor(col)
+    c.setFont(POLICE, _t_l)
+    c.drawCentredString(x0 + CARD_W / 2, _by + _bh * 0.32, _ligne)
+
+
+def generer_pdf(nb_cartes=18, serie_start=1, theme="", couleur=True,
+                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
+                style="eco", evenement_id="", page_start=1):
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=landscape(A4), pageCompression=1)
+
+    nb_cartes = max(1, min(int(nb_cartes), 10000))
+    par_page = COLS_PAGE * ROWS_PAGE
+    nb_pages = (nb_cartes + par_page - 1) // par_page
+
+    rng = random.Random(931800 + int(serie_start))
+    serie = int(serie_start)
+    # 📄 la page continue d'une rame à l'autre (sceau Maeva 12/08)
+    no_page = max(1, int(page_start))
+    faites = 0
+
+    for _ in range(nb_pages):
+        # en-tête de page
+        if nom_evenement:
+            c.setFillColor(colors.black); c.setFont(POLICE, 8)
+            c.drawCentredString(PAGE_W / 2, PAGE_H - 4 * mm, nom_evenement)
+        c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 6)
+        c.drawCentredString(PAGE_W / 2, PAGE_H - 6.4 * mm, "%03d" % no_page)
+
+        for row in range(ROWS_PAGE):
+            for col_i in range(COLS_PAGE):
+                if faites >= nb_cartes:
+                    break
+                x0 = MARGIN_X + col_i * (CARD_W + GUTTER_X)
+                y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
+                nums = _gen_carte(rng)
+                coul = (couleur_perso if (couleur and couleur_perso)
+                        else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
+                _dessiner_carte(c, x0, y0, nums, coul, serie, titre_jeu, telephone,
+                                style=style, evenement_id=evenement_id)
+                serie += 1
+                faites += 1
+
+        c.showPage()
+        no_page += 1
+
+    c.save()
+    buf.seek(0)
+    return buf
+
+
+if __name__ == "__main__":
+    pdf = generer_pdf(nb_cartes=18, couleur=True,
+                      nom_evenement="ASSOCIATION TE MANU", titre_jeu="Grand Loto",
+                      telephone="87 04 32 21")
+    with open("test_tahaa.pdf", "wb") as f:
+        f.write(pdf.read())
+    print("TAHAA généré")
