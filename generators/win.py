@@ -10,6 +10,7 @@ Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/P
 import io
 import random
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_h
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import mm
@@ -66,6 +67,45 @@ def _style_chiffres(style):
 PAGE_W, PAGE_H = A4
 # (min, max) par colonne — WIN 9 boules
 PLAGES = [(1, 15), (16, 30), (31, 45)]
+
+# ═══ 🧩 LE PUZZLE DE MAEVA (sceau 13/08) ═══
+# Neuf pièces, une par numéro — et sur chacune, une liasse de billets.
+# Le dessin remplace les traits de grille : il DIT le jeu sans un mot.
+# ⚠️ Ses neuf pièces sont parfaitement régulières (tiers en largeur comme
+# en hauteur, mesuré au pixel) : le numéro se pose donc au centre de sa
+# case, exactement comme avant. Seule la liasse occupe le coin haut-gauche
+# de chaque pièce, il faut donc décaler le chiffre vers le bas.
+_RATIO_PUZZLE = 0.9962
+import os as _os2
+
+
+def _choisir_image(motif, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_PUZZLE = _choisir_image("win_puzzle", _RATIO_PUZZLE)
 
 COLS_PAGE = 3
 ROWS_PAGE = 4
@@ -130,59 +170,170 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
     col = colors.HexColor(couleur_hex)
     ncols = 3
 
-    # Bordure carte
-    c.setStrokeColor(col); c.setLineWidth(0.8)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
+    # ⚠️⚠️ 13/08 (sceau Maeva : « retire la grille qui enveloppe la grille
+    # des puzzles ») : PLUS DE CADRE AUTOUR DU CARTON. Le puzzle se suffit
+    # à lui-même — ses bords dessinés font la bordure. Le microtexte
+    # anti-photocopie reste, lui : il est invisible mais il protège.
+    # ═══ 🧩 LE PUZZLE N'EST QUE POUR WIN NORMAL (sceau Maeva 13/08) ═══
+    # ⚠️⚠️ « c'est seulement sur le WIN NORMALE que je veux faire avec le
+    # modèle puzzle ». WIN CASINO (des=True) garde son ANCIEN visage :
+    # son cadre, sa grille à traits, son QR et son microtexte.
+    _puzzle = not des
 
-    # En-tête (2 lignes : titre + N° carte) — le nom du jeu apparaît TOUJOURS
-    hdr_y = y0 + CARD_H - 3.5 * mm
+    # ⚠️ WIN CASINO garde sa bordure et son microtexte
+    if not _puzzle:
+        c.setStrokeColor(col); c.setLineWidth(0.8)
+        c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
+        if _sec:
+            _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
+
+    # ⚠️⚠️ 13/08 : sur WIN NORMAL seulement, plus de cadre microtexte.
+    # ⚠️⚠️ CE QUE CELA VEUT DIRE : WIN n'a PLUS AUCUNE PROTECTION
+    # anti-copie — ni QR (retiré plus tôt), ni cadre de microtexte.
+    # Maeva a été prévenue et l'a voulu ainsi : elle veut le carton net.
+    # ⚠️ LE MICROTEXTE DANS LES CHIFFRES RESTE, lui : chaque numéro est
+    # dessiné par `chiffre_micro`, qui le trace en minuscules caractères.
+    # C'est discret, invisible à l'œil, et cela survit au retrait du cadre.
+
+    # ═══ UNE SEULE LIGNE : le nom du jeu et le numéro de série ═══
+    # Elle était sur deux lignes ; une seule suffit et rend de la place
+    # au puzzle.
+    hdr_y = y0 + CARD_H - 3.6 * mm
     titre = "WIN 9 boules"
     if titre_jeu and titre_jeu.strip().upper() != titre.upper():
-        titre += "  —  " + titre_jeu.strip()
+        titre = titre_jeu.strip()
+    _ligne = titre + "  ·  N\u00b0 %05d" % serie
     if telephone:
-        titre += " " + telephone
-    c.setFillColor(col); c.setFont(POLICE, 5)
-    c.drawCentredString(x0 + CARD_W / 2, hdr_y, titre[:60])
-    c.setFillColor(col); c.setFont(POLICE, 6.5)
-    c.drawCentredString(x0 + CARD_W / 2, hdr_y - 4 * mm, "Carte N° %05d" % serie)
+        _ligne += "  ·  " + telephone
+    # ⭐ 13/08 (sceau Maeva : « que les côtés soient arrondis pour un rendu
+    # magnifique et pro ») : LE BANDEAU. Une pastille aux bouts ronds — les
+    # coins sont arrondis À MOITIÉ DE SA HAUTEUR, ce qui donne la forme de
+    # gélule des billets et des cartes de jeu. Le texte s'y pose en creux.
+    _t_l = 6.0
+    while _t_l > 3.4 and _lg_h(_ligne, POLICE, _t_l) > CARD_W - 9.0 * mm:
+        _t_l -= 0.25
+    _bh = _t_l * 1.72                       # la hauteur du bandeau
+    _bw = min(_lg_h(_ligne, POLICE, _t_l) + _bh * 1.30, CARD_W - 2.0 * mm)
+    _bx = x0 + (CARD_W - _bw) / 2
+    _by = hdr_y - _bh * 0.34
+    # ⚠️⚠️ EN COULEUR le bandeau est PLEIN et le texte blanc dessus ;
+    # EN NOIR & BLANC il devient CREUX, texte gris à l'intérieur — un
+    # bandeau gris plein aurait bu du toner sur chaque carton, pour rien.
+    _plein = couleur_hex not in ("#9A9A9A", "#999999")
+    if not _puzzle:
+        # WIN CASINO garde son en-tête d'origine, sans bandeau
+        _bh = 0.0
+    c.setStrokeColor(col)
+    c.setLineWidth(0.6)
+    # ⚠️ le rayon vaut la MOITIÉ de la hauteur : c'est ce qui fait les
+    # bouts parfaitement ronds. Plus petit, on aurait de simples coins
+    # adoucis ; plus grand, ReportLab refuserait de dessiner.
+    if not _puzzle:
+        c.setFillColor(col)                 # casino : texte simple
+    elif _plein:
+        c.setFillColor(col)
+        c.roundRect(_bx, _by, _bw, _bh, _bh / 2.0, stroke=1, fill=1)
+        c.setFillColor(colors.white)
+    else:
+        c.roundRect(_bx, _by, _bw, _bh, _bh / 2.0, stroke=1, fill=0)
+        c.setFillColor(col)
+    c.setFont(POLICE, _t_l)
+    c.drawCentredString(x0 + CARD_W / 2, (_by + _bh * 0.32) if _puzzle else hdr_y, _ligne)
 
-    # Zone grille 3×3
-    grid_top = hdr_y - 6.5 * mm
-    grid_bot = y0 + 21 * mm  # 📏 bande dédiée en bas : le QR y vit, la grille au-dessus
+    # Zone grille 3×3 — le puzzle gagne la ligne qu'on vient d'économiser
+    grid_top = hdr_y - 2.2 * mm
+    # ⚠️ 13/08 : la bande du bas était de 21 mm, taillée pour l'ancienne
+    # grille rectangulaire. Le puzzle étant CARRÉ, il est bridé par la
+    # LARGEUR — cette bande ne servait plus qu'à perdre de la place.
+    # ⚠️ 13/08 : sans le cadre, la bande du bas peut encore se réduire —
+    # le QR y tient à l'aise. Le puzzle descend d'autant et ses chiffres
+    # grandissent.
+    # ⚠️ 13/08 : PLUS DE BANDE EN BAS — le QR y vivait, il n'est plus là.
+    # Le puzzle descend au ras du carton et ses chiffres grandissent.
+    grid_bot = y0 + (1.0 if _puzzle else 21.0) * mm
     cell_w = CARD_W / ncols
     grid_h = grid_top - grid_bot
     row_h = grid_h / 3
 
     # séparateurs de grille
     c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.3)
-    for i in range(1, ncols):
-        c.line(x0 + i * cell_w, grid_bot, x0 + i * cell_w, grid_top)
-    for r in range(1, 3):
-        yy = grid_top - r * row_h
-        c.line(x0 + 1.5 * mm, yy, x0 + CARD_W - 1.5 * mm, yy)
+    # ═══ 🧩 LE PUZZLE À LA PLACE DES TRAITS ═══
+    # ⚠️ le puzzle est CARRÉ (ratio ~1) : on le pose au plus grand qui
+    # tienne dans la grille, et la grille se recale dessus — sinon les
+    # neuf pièces ne coïncideraient pas avec les neuf cases.
+    # ⚠️⚠️ 13/08 (sceau Maeva : « LA GRILLE DEVIENT LA GRILLE DU PUZZLE ») :
+    # le puzzle N'EST PLUS un carré posé au milieu — IL EST LA GRILLE. Il
+    # prend TOUTE la carte, en largeur comme en hauteur. Le dessin s'étire
+    # donc un peu (il était carré, la carte ne l'est pas) : ses pièces
+    # restent régulières, seule leur forme s'allonge — et les chiffres
+    # gagnent dix points au passage (24,5 → 34).
+    _pw = CARD_W - 0.8 * mm
+    _ph = grid_h
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = grid_bot
+    if _puzzle and _os2.path.exists(_IMAGE_PUZZLE):
+        try:
+            # ⚠️⚠️ PAS de preserveAspectRatio ICI : il refuserait d'étirer
+            # le puzzle et le recentrerait en laissant du vide sur les
+            # côtés. Ici on VEUT l'étirer — le puzzle EST la grille, il
+            # doit épouser la carte exactement.
+            c.drawImage(_IMAGE_PUZZLE, _px, _py, _pw, _ph, mask="auto")
+        except Exception:
+            pass
+    # la grille suit le puzzle, pièce par pièce
+    cell_w = _pw / 3.0
+    row_h = _ph / 3.0
+    # ⚠️ WIN CASINO garde sa GRILLE À TRAITS, comme avant le puzzle
+    if not _puzzle:
+        c.setStrokeColor(col); c.setLineWidth(0.5)
+        for _i in range(1, 3):
+            c.line(_px + _i * cell_w, _py, _px + _i * cell_w, _py + _ph)
+            c.line(_px, _py + _i * row_h, _px + _pw, _py + _i * row_h)
+    # ⚠️⚠️ 13/08 : LA TAILLE SE CALCULE DEPUIS LA PIÈCE, plus jamais en dur.
+    # Elle était figée à 32 pt : les chiffres débordaient sur les pièces
+    # voisines. La LIASSE occupe le coin haut-gauche, il reste donc environ
+    # les trois quarts de la pièce pour le chiffre.
+    from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_w
+    _t_num = 42.0
+    # ⚠️ 13/08 : la marge de LARGEUR était trop lâche et les chiffres
+    # touchaient le bord de leur pièce. On resserre à 0,62 — la pièce
+    # étant plus large que haute, c'est elle qui commande maintenant.
+    # ⚠️ 13/08 : c'est la LARGEUR qui borne (la pièce fait 20,4 mm et
+    # « 88 » n'en prenait que 12,6). On desserre à 0,70 : le chiffre passe
+    # à 32 pt et garde 3 mm de chaque côté — il ne touche jamais le bord.
+    # ⚠️ 13/08 : sans le QR ni la bande du bas, la pièce est devenue
+    # presque carrée (20,4 × 20,2 mm). On desserre à 0,78 : le chiffre
+    # passe à 35 pt et garde 2,3 mm de chaque côté — il respire encore.
+    while _t_num > 8 and (_lg_w("88", police_ch, _t_num) > cell_w * 0.78
+                          or _t_num * 0.72 > row_h * 0.78):
+        _t_num -= 0.5
+    x0_g = _px
+    grid_top = _py + _ph
 
     # contenu des cellules (toutes pleines)
     for r in range(3):
         for cc in range(3):
-            cx = x0 + (cc + 0.5) * cell_w
-            cyc = grid_top - (r + 0.5) * row_h
+            # ⚠️ la LIASSE occupe le coin haut-gauche de chaque pièce :
+            # le chiffre descend un peu et se décale à droite pour ne pas
+            # la couvrir — il reste bien au cœur de sa pièce.
+            cx = x0_g + (cc + 0.54) * cell_w
+            cyc = grid_top - (r + 0.62) * row_h
             val = grille[r][cc]
             if des and val <= 9:   # 🎲 jumeau CASINO : le petit numéro vit en dés
                 _dessine_des(c, val, cx, cyc, col, gris_ch)
             elif _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, val, cx, cyc - 11, 32, gris_ch, police_ch)
+                _sec.chiffre_micro(c, val, cx, cyc - _t_num * 0.34, _t_num, gris_ch, police_ch)
             else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, 32)
+                c.setFillColor(gris_ch); c.setFont(police_ch, _t_num)
                 c.drawCentredString(cx, cyc - 11, str(val))
 
-    # QR de vérification par grille (anti-duplication) — coin bas-droit
-    if _sec and evenement_id:
+    # ⚠️⚠️ 13/08 : PLUS DE QR SUR WIN NORMAL (Maeva le veut net).
+    # ⚠️ MAIS WIN CASINO LE GARDE : sa bande du bas existe toujours.
+    if not _puzzle and _sec and evenement_id:
         try:
-            # 🎯 QR dans la bande dédiée (aucun chiffre dérangé)
-            _q = 13.0 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 2.0 * mm, y0 + 6.0 * mm, _q, evenement_id, serie)
+            _q = 9.5 * mm
+            _sec.carton_qr(c, x0 + CARD_W - _q - 2.0 * mm, y0 + 6.0 * mm, _q,
+                           evenement_id, serie)
         except Exception:
             pass
 
