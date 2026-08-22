@@ -71,6 +71,47 @@ PLAGE_HAUT_BAS = (16, 30)   # haut ET bas (2 numéros distincts)
 PLAGE_GAUCHE = (1, 15)
 PLAGE_DROITE = (31, 45)
 
+# ═══ 🧊 LES QUATRE GLAÇONS (sceau Maeva 13/08) ═══
+# « VOTRE JEU WIZ — AVEC 4 CHIFFRES » : quatre glaçons empilés 2×2, chacun
+# avec sa fenêtre claire au centre. Ils remplacent le losange d'origine :
+# les numéros se lisent désormais EN CARRÉ, comme le dessin le demande.
+_RATIO_GLACONS = 0.9982
+FENETRES = [[0.3222, 0.6217], [0.6499, 0.622], [0.3222, 0.3059], [0.6503, 0.3059]]
+LARG_FEN = 0.2144
+HAUT_FEN = 0.2179
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_z
+
+
+def _choisir_image(motif, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_GLACONS = _choisir_image("wiz_glacons", _RATIO_GLACONS)
+
+
 COLS_PAGE = 3
 ROWS_PAGE = 4
 MARGIN_X = 8 * mm
@@ -96,64 +137,69 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
 
-    # Bordure carte
-    c.setStrokeColor(col); c.setLineWidth(0.8)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
+    # ⚠️⚠️ 13/08 : ni cadre, ni microtexte, ni QR — comme WIN, KAI et SUN.
+    # Maeva veut le carton net ; le dessin se suffit à lui-même.
 
-    # En-tête (fidèle au modèle) — le nom du jeu apparaît TOUJOURS
-    hdr_y = y0 + CARD_H - 3.0 * mm
-    if titre_jeu and titre_jeu.strip() and "WIZ" not in titre_jeu.strip().upper():
-        titre = "WIZ 4 boules  —  " + titre_jeu.strip()
-    elif titre_jeu and titre_jeu.strip():
-        titre = titre_jeu.strip()
-    else:
-        titre = "Le jeux WIZ pour 4 boules"
-    if telephone:
-        titre += " " + telephone
-    c.setFillColor(col); c.setFont(POLICE, 5)
-    c.drawCentredString(x0 + CARD_W / 2, hdr_y, titre[:56])
-
-    # Trois zones : haut / milieu / bas (traits fins, fidèles au modèle)
-    zone_top = y0 + CARD_H - 5.5 * mm
-    zone_bot = y0 + 5.5 * mm
-    zone_h = zone_top - zone_bot
-    row_h = zone_h / 3
-
-    c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.3)
-    for r in (1, 2):
-        yy = zone_top - r * row_h
-        c.line(x0 + 1.5 * mm, yy, x0 + CARD_W - 1.5 * mm, yy)
-    # trait vertical entre les 2 numéros du milieu
-    c.line(x0 + CARD_W / 2, zone_top - 1.7 * row_h, x0 + CARD_W / 2, zone_top - 1.3 * row_h)
-
-    # Les 4 numéros — gros chiffres bien visibles
-    taille = 40
-    positions = [
-        (haut,   x0 + CARD_W / 2,    zone_top - 0.5 * row_h),
-        (gauche, x0 + CARD_W * 0.25, zone_top - 1.5 * row_h),
-        (droite, x0 + CARD_W * 0.75, zone_top - 1.5 * row_h),
-        (bas,    x0 + CARD_W / 2,    zone_top - 2.5 * row_h),
-    ]
-    for val, px, py in positions:
-        if _sec:  # chiffres "billet de banque" remplis de microtexte
-            _sec.chiffre_micro(c, val, px, py - taille * 0.36, taille, gris_ch, police_ch)
-        else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-            c.drawCentredString(px, py - taille * 0.36, str(val))
-
-    # QR de vérification par carte (anti-duplication) — coin bas-gauche libre
-    if _sec and evenement_id:
+    # ═══ 🧊 LA PLAQUE AUX GLAÇONS ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
+    # la carte. Les quatre fenêtres suivent, chacune à sa place.
+    BANDE_PIED = 5.0 * mm
+    _pw = CARD_W - 0.8 * mm
+    _ph = CARD_H - 1.0 * mm - BANDE_PIED
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + BANDE_PIED + 0.5 * mm
+    if _os2.path.exists(_IMAGE_GLACONS):
         try:
-            _q = 13.0 * mm
-            _sec.carton_qr(c, x0 + 2.0 * mm, y0 + 6.0 * mm, _q, evenement_id, serie)
+            c.drawImage(_IMAGE_GLACONS, _px, _py, _pw, _ph, mask="auto")
         except Exception:
             pass
 
-    # Pied : série centrée (fidèle au modèle « 0001 »)
-    c.setFillColor(col); c.setFont(POLICE, 6)
-    c.drawCentredString(x0 + CARD_W / 2, y0 + 1.6 * mm, "%04d" % serie if serie < 10000 else "%06d" % serie)
+    # ⚠️ la taille se calcule DEPUIS la fenêtre du glaçon, jamais en dur.
+    _fw = _pw * LARG_FEN
+    _fh = _ph * HAUT_FEN
+    _t_num = 44.0
+    while _t_num > 8 and (_lg_z("88", police_ch, _t_num) > _fw * 0.80
+                          or _t_num * 0.72 > _fh * 0.66):
+        _t_num -= 0.5
+
+    # ═══ les QUATRE numéros, dans leurs glaçons ═══
+    # ⚠️ l'ordre du tirage est (haut, gauche, droite, bas) — hérité du
+    # losange. On le range en CARRÉ : haut-gauche, haut-droite,
+    # bas-gauche, bas-droite.
+    for _i, _val in enumerate((haut, gauche, bas, droite)):
+        _fx, _fy = FENETRES[_i]
+        _nx = _px + _fx * _pw
+        _ny = _py + _fy * _ph - _t_num * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, _val, _nx, _ny, _t_num, gris_ch, police_ch)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(police_ch, _t_num)
+            c.drawCentredString(_nx, _ny, str(_val))
+
+    # ═══ 🎫 LE BANDEAU AUX BOUTS RONDS, en pied ═══
+    _ligne = "N\u00b0 %05d" % serie
+    if telephone:
+        _ligne += "  \u00b7  " + telephone
+    _t_l = 5.4
+    while _t_l > 3.2 and _lg_z(_ligne, POLICE, _t_l) > CARD_W - 9.0 * mm:
+        _t_l -= 0.25
+    _bh = _t_l * 1.72
+    _bw = min(_lg_z(_ligne, POLICE, _t_l) + _bh * 1.30, CARD_W - 2.0 * mm)
+    _bx = x0 + (CARD_W - _bw) / 2
+    _by = y0 + 0.8 * mm
+    _plein = couleur_hex not in ("#9A9A9A", "#999999")
+    c.setStrokeColor(col)
+    c.setLineWidth(0.6)
+    if _plein:
+        c.setFillColor(col)
+        c.roundRect(_bx, _by, _bw, _bh, _bh / 2.0, stroke=1, fill=1)
+        c.setFillColor(colors.white)
+    else:
+        c.roundRect(_bx, _by, _bw, _bh, _bh / 2.0, stroke=1, fill=0)
+        c.setFillColor(col)
+    c.setFont(POLICE, _t_l)
+    c.drawCentredString(x0 + CARD_W / 2, _by + _bh * 0.32, _ligne)
 
 
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
