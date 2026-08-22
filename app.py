@@ -167,6 +167,27 @@ SMTP_PASS = os.environ.get("SMTP_PASS", "")   # mot de passe d'application Gmail
 
 # ── Partenaires d'impression (le client polynésien peut faire imprimer chez eux) ──
 # Pour en ajouter un : ajoute une ligne ici (id, nom, email, zone, tel). C'est tout.
+# ═══ 🔒 LES JEUX RÉSERVÉS (sceau Maeva 13/08) ═══
+# Certains partenaires n'ont pas accès à tous les jeux dans « Ma fabrique ».
+# ⚠️ Ce sont les SEPT JEUX HABILLÉS — ceux au puzzle, au soleil, aux
+# glaçons, aux nuages, à la chenille. Maeva les réserve.
+# Pour en réserver d'autres un jour : ajouter le slug du partenaire ici,
+# avec la liste des jeux qu'il ne doit pas voir.
+JEUX_HABILLES = {
+    "win", "kai", "sun", "wiz", "rai", "tahaa", "tahaa90",
+}
+JEUX_INTERDITS = {
+    "ranihei": JEUX_HABILLES,
+}
+
+
+def _jeu_interdit(slug, programme):
+    """🔒 Ce partenaire a-t-il le droit de fabriquer ce jeu ?"""
+    if not slug:
+        return False
+    return _base_jeu(programme) in JEUX_INTERDITS.get(slug, ())
+
+
 PARTENAIRES = {
     "2kea_papeete": {
         "nom": "2KEA & Associé — Papeete",
@@ -2035,10 +2056,15 @@ def essais_restants():
 @app.route("/api/jeux", methods=["GET"])
 def api_jeux():
     """Liste des jeux du registre universel (pour construire le menu côté page)."""
+    # 🔒 un partenaire connecté ne voit pas les jeux qui lui sont réservés
+    _slug = session.get("partenaire_slug") or ""
+    _interdits = JEUX_INTERDITS.get(_slug, ())
     return jsonify({"ok": True, "jeux": [
         {"id": jid, "nom": j["nom"], "emoji": j["emoji"],
          "cartes_par_feuille": j["cartes_par_feuille"], "couleur": j["couleur"]}
-        for jid, j in REGISTRE_JEUX.items() if "_p15" not in jid  # 🌙 PREMIUM en veilleuse
+        for jid, j in REGISTRE_JEUX.items()
+        if "_p15" not in jid                      # 🌙 PREMIUM en veilleuse
+        and _base_jeu(jid) not in _interdits      # 🔒 réservés à leur enseigne
     ]})
 
 
@@ -3618,6 +3644,13 @@ def api_partenaire_generer():
     programme = str(data.get("programme") or "")
     if programme not in REGISTRE_JEUX or "_p15" in programme:
         return jsonify({"ok": False, "message": "Choisissez un jeu (gamme \u00c9CO) dans la liste."}), 400
+    # 🔒 LE VERROU : certains jeux sont réservés (sceau Maeva 13/08).
+    # ⚠️ Il est ICI, côté serveur : même si le jeu apparaissait dans la
+    # liste par erreur, la fabrication serait refusée.
+    if _jeu_interdit(slug, programme):
+        return jsonify({"ok": False,
+                        "message": "Ce jeu n'est pas disponible pour votre enseigne. "
+                                   "Contactez 2KEA."}), 403
     try:
         nb_feuilles = int(data.get("nb_feuilles") or 0)
     except Exception:
