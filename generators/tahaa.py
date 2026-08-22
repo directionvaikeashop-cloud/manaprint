@@ -74,8 +74,52 @@ BOULES = [
     ((46, 60), 0.69, 0.26),   # bas centre-droit
 ]
 
-COLS_PAGE = 3
-ROWS_PAGE = 6
+# ═══ 🐛 LA CHENILLE (sceau Maeva 13/08) ═══
+# « VOTRE JEU TAHAA 75 — DE 5 BOULES » : une chenille rieuse, ses CINQ
+# ANNEAUX en ligne, l'herbe et les feuilles autour.
+# ⚠️ Les numéros ne se lisent plus sur deux rangées mais EN LIGNE, dans
+# les anneaux — mesurés au pixel sur l'image elle-même.
+_RATIO_CHENILLE = 2.303
+ANNEAUX = [[0.3645, 0.4804], [0.4873, 0.481], [0.6113, 0.4811], [0.7357, 0.481], [0.8592, 0.481]]
+DIAM_AN = 0.1217
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_t
+
+
+def _choisir_image(motif, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_CHENILLE = _choisir_image("tahaa_chenille", _RATIO_CHENILLE)
+
+
+# ⚠️ 13/08 : 8 cartes par feuille au lieu de 18 (décision Maeva). La
+# chenille est LARGE (ratio 2,30) : moins de cartes, mais des chiffres
+# qu'on lit à bout de bras — 26 pt au lieu de 14.
+COLS_PAGE = 2
+ROWS_PAGE = 4
 MARGIN_X = 8 * mm
 MARGIN_TOP = 9 * mm
 MARGIN_BOT = 7 * mm
@@ -95,47 +139,65 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
 
-    # Bordure carte
-    c.setStrokeColor(col); c.setLineWidth(0.9)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.2 * mm, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.8 * mm)
+    # ⚠️⚠️ 13/08 : ni cadre, ni microtexte, ni QR — comme WIN, KAI, SUN,
+    # WIZ et RAI. Maeva veut le carton net.
 
-    # Les 5 boules cerclées (fidèle au modèle)
-    rayon = 5.4 * mm  # cercles élargis avec les chiffres
-    taille = 24  # AU MAX dans les cercles (Maeva)
-    for val, fx, fy in [(v, fx, fy) for v, ((a, b), fx, fy) in zip(nums, BOULES)]:
-        cx = x0 + CARD_W * fx
-        cy = y0 + CARD_H * fy
-        c.setStrokeColor(col); c.setLineWidth(0.8)
-        c.circle(cx, cy, rayon, stroke=1, fill=0)
-        if _sec:  # chiffres "billet de banque" remplis de microtexte
-            _sec.chiffre_micro(c, val, cx, cy - taille * 0.36, taille, gris_ch, police_ch)
-        else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-            c.drawCentredString(cx, cy - taille * 0.36, str(val))
-
-    # Ligne signature au CENTRE — le nom du jeu apparaît TOUJOURS (fidèle au modèle)
-    signature = "TAHAA pour 5 boules"
-    if titre_jeu and "TAHAA" not in titre_jeu.strip().upper():
-        signature = "TAHAA \u00b7 " + titre_jeu.strip() + ""
-    if telephone:
-        signature += " " + telephone
-    c.setFillColor(col); c.setFont(POLICE, 4.2)
-    c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H * 0.48, signature[:66])
-
-    # Série discrète en bas à gauche
-    c.setFillColor(col); c.setFont(POLICE, 4.6)
-    c.drawString(x0 + 2.2 * mm, y0 + 1.6 * mm, "N\u00b0 %06d" % serie)
-
-    # QR de vérification par carte (anti-duplication) — coin bas-droit
-    if _sec and evenement_id:
+    # ═══ 🐛 LA CHENILLE ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
+    # la carte. Les cinq anneaux suivent, chacun à sa place.
+    BANDE_PIED = 4.0 * mm
+    _pw = CARD_W - 0.8 * mm
+    _ph = CARD_H - 0.8 * mm - BANDE_PIED
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + BANDE_PIED + 0.4 * mm
+    if _os2.path.exists(_IMAGE_CHENILLE):
         try:
-            _q = min(CARD_H * 0.40, 11.5 * mm)
-            _sec.carton_qr(c, x0 + CARD_W - _q - 1.8 * mm,
-                           y0 + 1.5 * mm, _q, evenement_id, serie)
+            c.drawImage(_IMAGE_CHENILLE, _px, _py, _pw, _ph, mask="auto")
         except Exception:
             pass
+
+    # ⚠️ la taille se calcule DEPUIS l'anneau, jamais en dur.
+    _dia = _pw * DIAM_AN
+    _t_num = 40.0
+    while _t_num > 6 and (_lg_t("88", police_ch, _t_num) > _dia * 0.78
+                          or _t_num * 0.72 > _dia * 0.66):
+        _t_num -= 0.5
+
+    # ═══ les CINQ numéros, dans les anneaux ═══
+    for _i, _val in enumerate(nums[:5]):
+        _ax, _ay = ANNEAUX[_i]
+        _nx = _px + _ax * _pw
+        _ny = _py + _ay * _ph - _t_num * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, _val, _nx, _ny, _t_num, gris_ch, police_ch)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(police_ch, _t_num)
+            c.drawCentredString(_nx, _ny, str(_val))
+
+    # ═══ 🎫 LE BANDEAU AUX BOUTS RONDS, en pied ═══
+    _ligne = "N\u00b0 %05d" % serie
+    if telephone:
+        _ligne += "  \u00b7  " + telephone
+    _t_l = 5.2
+    while _t_l > 3.2 and _lg_t(_ligne, POLICE, _t_l) > CARD_W - 9.0 * mm:
+        _t_l -= 0.25
+    _bh = _t_l * 1.72
+    _bw = min(_lg_t(_ligne, POLICE, _t_l) + _bh * 1.30, CARD_W - 2.0 * mm)
+    _bx = x0 + (CARD_W - _bw) / 2
+    _by = y0 + 0.5 * mm
+    _plein = couleur_hex not in ("#9A9A9A", "#999999")
+    c.setStrokeColor(col)
+    c.setLineWidth(0.6)
+    if _plein:
+        c.setFillColor(col)
+        c.roundRect(_bx, _by, _bw, _bh, _bh / 2.0, stroke=1, fill=1)
+        c.setFillColor(colors.white)
+    else:
+        c.roundRect(_bx, _by, _bw, _bh, _bh / 2.0, stroke=1, fill=0)
+        c.setFillColor(col)
+    c.setFont(POLICE, _t_l)
+    c.drawCentredString(x0 + CARD_W / 2, _by + _bh * 0.32, _ligne)
 
 
 def generer_pdf(nb_cartes=18, serie_start=1, theme="", couleur=True,
