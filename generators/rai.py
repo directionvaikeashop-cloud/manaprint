@@ -69,6 +69,48 @@ PAGE_W, PAGE_H = A4
 # Les 3 familles de DIX (fidèle au modèle)
 COLONNES = [(30, 39), (40, 49), (50, 59)]
 
+# ═══ ☁️ LES NEUF NUAGES (sceau Maeva 13/08) ═══
+# « VOTRE JEU RAI — LE CIEL » : neuf nuages en 3×3, portés par un ciel de
+# vent et de petits nuages. Ils remplacent les traits de grille.
+# ⚠️ RAI n'a que HUIT boules : le nuage du CENTRE accueille donc le
+# numéro de série — la case libérée trouve enfin son usage.
+_RATIO_NUAGES = 0.9982
+NUAGES = [[0.1907, 0.6921], [0.4993, 0.6979], [0.8077, 0.6899], [0.1919, 0.4454], [0.5006, 0.4478], [0.8089, 0.446], [0.1932, 0.1967], [0.5004, 0.1957], [0.8083, 0.1962]]
+LARG_NU = 0.2909
+HAUT_NU = 0.2321
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_r
+
+
+def _choisir_image(motif, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_NUAGES = _choisir_image("rai_nuages", _RATIO_NUAGES)
+
+
 COLS_PAGE = 3
 ROWS_PAGE = 4
 MARGIN_X = 8 * mm
@@ -94,57 +136,87 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     col = colors.HexColor(couleur_hex)
     cell_w = CARD_W / 3
 
-    # Bordure carte
-    c.setStrokeColor(col); c.setLineWidth(0.8)
-    c.rect(x0, y0, CARD_W, CARD_H, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.8 * mm)
+    # ⚠️⚠️ 13/08 : ni cadre, ni microtexte, ni QR — comme WIN, KAI, SUN, WIZ.
 
-    # En-tête 2 lignes (fidèle au modèle) — le nom du jeu TOUJOURS visible
-    hdr_bas = y0 + CARD_H - HDR_H
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0, hdr_bas, x0 + CARD_W, hdr_bas)
-    l1 = "Le jeu RAI"
-    if titre_jeu and "RAI" not in titre_jeu.strip().upper():
-        l1 = "Le jeu RAI \u00b7 " + titre_jeu.strip() + ""
-    if telephone:
-        l1 += " " + telephone
-    tx = x0 + CARD_W / 2                  # l'en-tête bien centré
-    c.setFillColor(col); c.setFont(POLICE, 4.4)
-    c.drawCentredString(tx, y0 + CARD_H - 3.6 * mm, l1[:44])
-    c.setFont(POLICE, 6)
-    c.drawCentredString(tx, y0 + CARD_H - 8.2 * mm, "Carte N\u00b0 %06d" % serie)
-
-    # La grille 3×3 (traits complets)
-    z_top = hdr_bas
-    z_bot = y0 + 1.5 * mm
-    row_h = (z_top - z_bot) / 3
-    c.setStrokeColor(col); c.setLineWidth(0.35)
-    for i in range(1, 3):
-        c.line(x0 + i * cell_w, z_bot, x0 + i * cell_w, z_top)
-        c.line(x0 + 1.5 * mm, z_top - i * row_h, x0 + CARD_W - 1.5 * mm, z_top - i * row_h)
-
-    # Les 8 boules — la colonne du milieu saute sa case centrale
-    taille = 36
-    for ci, nums in enumerate(cols_nums):
-        cx = x0 + (ci + 0.5) * cell_w
-        rangees = (0, 2) if len(nums) == 2 else (0, 1, 2)
-        for val, ri in zip(nums, rangees):
-            cyc = z_top - (ri + 0.5) * row_h
-            if _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, val, cx, cyc - taille * 0.36, taille, gris_ch, police_ch)
-            else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-                c.drawCentredString(cx, cyc - taille * 0.36, str(val))
-
-    # QR de vérification — logé dans la case libérée du CŒUR (décision Maeva)
-    if _sec and evenement_id:
+    # ═══ ☁️ LA PLAQUE AU CIEL ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
+    # la carte. Les neuf nuages suivent, chacun à sa place.
+    BANDE_PIED = 4.5 * mm
+    _pw = CARD_W - 0.8 * mm
+    _ph = CARD_H - 1.0 * mm - BANDE_PIED
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + BANDE_PIED + 0.5 * mm
+    if _os2.path.exists(_IMAGE_NUAGES):
         try:
-            _q = min(row_h - 2.0 * mm, cell_w - 3 * mm, 13.0 * mm)
-            _sec.carton_qr(c, x0 + 1.5 * cell_w - _q / 2,
-                           z_top - 1.5 * row_h - _q / 2, _q, evenement_id, serie)
+            c.drawImage(_IMAGE_NUAGES, _px, _py, _pw, _ph, mask="auto")
         except Exception:
             pass
+
+    # ⚠️ la taille se calcule DEPUIS le nuage, jamais en dur. Le nuage est
+    # bombé : le chiffre ne peut occuper que son ventre, pas ses bords.
+    _nw = _pw * LARG_NU
+    _nh = _ph * HAUT_NU
+    _t_num = 44.0
+    while _t_num > 8 and (_lg_r("88", police_ch, _t_num) > _nw * 0.60
+                          or _t_num * 0.72 > _nh * 0.56):
+        _t_num -= 0.5
+
+    # ═══ les HUIT numéros, dans leurs nuages ═══
+    # ⚠️ cols_nums donne les COLONNES (3, 2, 3). On les range dans la
+    # grille 3×3 en LAISSANT LE CENTRE LIBRE — il portera la série.
+    _grille = [
+        [cols_nums[0][0], cols_nums[1][0], cols_nums[2][0]],
+        [cols_nums[0][1], None,            cols_nums[2][1]],
+        [cols_nums[0][2], cols_nums[1][1], cols_nums[2][2]],
+    ]
+    for _r in range(3):
+        for _c2 in range(3):
+            _val = _grille[_r][_c2]
+            if _val is None:
+                continue
+            _nx0, _ny0 = NUAGES[_r * 3 + _c2]
+            _nx = _px + _nx0 * _pw
+            _ny = _py + _ny0 * _ph - _t_num * 0.34
+            if _sec:
+                _sec.chiffre_micro(c, _val, _nx, _ny, _t_num, gris_ch, police_ch)
+            else:
+                c.setFillColor(gris_ch)
+                c.setFont(police_ch, _t_num)
+                c.drawCentredString(_nx, _ny, str(_val))
+
+    # ⭐ LE NUAGE DU CENTRE porte le numéro de série
+    _cx0, _cy0 = NUAGES[4]
+    _t_s = _t_num * 0.44
+    c.setFillColor(col)
+    c.setFont(POLICE, _t_s)
+    c.drawCentredString(_px + _cx0 * _pw, _py + _cy0 * _ph - _t_s * 0.34,
+                        "N\u00b0 %05d" % serie)
+
+    # ═══ 🎫 LE BANDEAU AUX BOUTS RONDS, en pied ═══
+    _ligne = "RAI"
+    if titre_jeu and titre_jeu.strip().upper() != "RAI":
+        _ligne = titre_jeu.strip()
+    if telephone:
+        _ligne += "  \u00b7  " + telephone
+    _t_l = 5.4
+    while _t_l > 3.2 and _lg_r(_ligne, POLICE, _t_l) > CARD_W - 9.0 * mm:
+        _t_l -= 0.25
+    _bh = _t_l * 1.72
+    _bw = min(_lg_r(_ligne, POLICE, _t_l) + _bh * 1.30, CARD_W - 2.0 * mm)
+    _bx = x0 + (CARD_W - _bw) / 2
+    _by = y0 + 0.7 * mm
+    _plein = couleur_hex not in ("#9A9A9A", "#999999")
+    c.setStrokeColor(col)
+    c.setLineWidth(0.6)
+    if _plein:
+        c.setFillColor(col)
+        c.roundRect(_bx, _by, _bw, _bh, _bh / 2.0, stroke=1, fill=1)
+        c.setFillColor(colors.white)
+    else:
+        c.roundRect(_bx, _by, _bw, _bh, _bh / 2.0, stroke=1, fill=0)
+        c.setFillColor(col)
+    c.setFont(POLICE, _t_l)
+    c.drawCentredString(x0 + CARD_W / 2, _by + _bh * 0.32, _ligne)
 
 
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
