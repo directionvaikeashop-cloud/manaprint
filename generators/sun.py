@@ -67,6 +67,45 @@ PAGE_W, PAGE_H = A4
 # (min, max) par colonne — SUN 8 boules
 PLAGES = [(1, 8), (9, 16), (17, 24)]
 
+# ═══ ☀️ LA PLAQUE AU SOLEIL (sceau Maeva 13/08) ═══
+# « VOTRE JEU SUN — AVEC 8 BOULES » : un soleil rieur, et HUIT BULLES en
+# couronne autour de lui, reliées par ses rayons.
+# ⚠️ Les numéros ne se lisent plus en grille 3×3 mais EN COURONNE, comme
+# le dessin le demande — mesuré au pixel sur l'image elle-même.
+_RATIO_PLAQUE = 1.0
+BULLES = [[0.496, 0.759], [0.239, 0.714], [0.132, 0.482], [0.193, 0.235], [0.489, 0.129], [0.792, 0.235], [0.853, 0.482], [0.746, 0.714]]
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_s
+
+
+def _choisir_image(motif, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_PLAQUE = _choisir_image("sun_plaque", _RATIO_PLAQUE)
+
 COLS_PAGE = 3
 ROWS_PAGE = 4
 MARGIN_X = 8 * mm
@@ -138,65 +177,134 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
 
     # Bordure carte
     c.setStrokeColor(col); c.setLineWidth(0.8)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
+    # ═══ ☀️ LA PLAQUE N'EST QUE POUR SUN NORMAL (sceau Maeva 13/08) ═══
+    # ⚠️⚠️ « ce travail seulement pour le SUN normale ». SUN CASINO
+    # (des=True) garde son ANCIEN visage : son cadre, sa grille 3×3 à
+    # traits, ses dés, son QR et son microtexte.
+    _plaque = not des
 
-    # En-tête
-    hdr_y = y0 + CARD_H - 4 * mm
-    titre = "Le jeu SUN pour 8 boules"
-    if titre_jeu and "SUN" not in titre_jeu.strip().upper():
-        titre = "SUN · " + titre_jeu.strip()
-    if telephone:
-        titre += " " + telephone
-    c.setFillColor(col); c.setFont(POLICE, 5.5)
-    c.drawCentredString(x0 + CARD_W / 2, hdr_y, titre[:60])
+    if not _plaque:
+        # ⚠️ SUN CASINO : sa bordure et sa protection, comme avant
+        c.setStrokeColor(col); c.setLineWidth(0.8)
+        c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
+        if _sec:
+            _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
+        # son en-tête d'origine
+        _hdr = y0 + CARD_H - 4 * mm
+        _t = "SUN 8 boules"
+        if titre_jeu and titre_jeu.strip().upper() != _t.upper():
+            _t += "  \u2014  " + titre_jeu.strip()
+        if telephone:
+            _t += " " + telephone
+        c.setFillColor(col); c.setFont(POLICE, 5.5)
+        c.drawCentredString(x0 + CARD_W / 2, _hdr, _t[:60])
+        # sa grille 3×3 à traits
+        _gt = _hdr - 2.5 * mm
+        _gb = y0 + 5.5 * mm
+        _cw = CARD_W / 3
+        _rh = (_gt - _gb) / 3
+        c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.3)
+        for _i in range(1, 3):
+            c.line(x0 + _i * _cw, _gb, x0 + _i * _cw, _gt)
+            c.line(x0 + 1.5 * mm, _gt - _i * _rh, x0 + CARD_W - 1.5 * mm, _gt - _i * _rh)
+        # ses chiffres (ou ses dés) dans les neuf cases
+        for _r in range(3):
+            for _c2 in range(3):
+                _v = grille[_r][_c2]
+                if _v is None:
+                    continue
+                _cx = x0 + (_c2 + 0.5) * _cw
+                _cy = _gt - (_r + 0.5) * _rh
+                if des and _v <= 9:
+                    _dessine_des(c, _v, _cx, _cy, col, gris_ch)
+                elif _sec:
+                    _sec.chiffre_micro(c, _v, _cx, _cy - 11, 32, gris_ch, police_ch)
+                else:
+                    c.setFillColor(gris_ch); c.setFont(police_ch, 32)
+                    c.drawCentredString(_cx, _cy - 11, str(_v))
+        # son QR dans la case vide du bas-milieu
+        if _sec and evenement_id:
+            try:
+                _q = 12.5 * mm
+                _sec.carton_qr(c, x0 + 1.5 * _cw - _q / 2, _gb + _rh / 2 - _q / 2,
+                               _q, evenement_id, serie)
+            except Exception:
+                pass
+        # son pied
+        c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 4.5)
+        c.drawString(x0 + 2 * mm, y0 + 2 * mm, "N\u00b0 S\u00c9RIE")
+        c.setFillColor(col); c.setFont(POLICE, 7)
+        c.drawRightString(x0 + CARD_W - 2 * mm, y0 + 2 * mm, "%06d" % serie)
+        return
 
-    # Zone grille 3×3
-    grid_top = hdr_y - 2.5 * mm
-    grid_bot = y0 + 5.5 * mm
-    cell_w = CARD_W / ncols
-    grid_h = grid_top - grid_bot
-    row_h = grid_h / 3
+    # ⚠️ SUN NORMAL : ni cadre, ni microtexte, ni QR. Le carton est net.
 
-    # séparateurs de grille
-    c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.3)
-    for i in range(1, ncols):
-        c.line(x0 + i * cell_w, grid_bot, x0 + i * cell_w, grid_top)
-    for r in range(1, 3):
-        yy = grid_top - r * row_h
-        c.line(x0 + 1.5 * mm, yy, x0 + CARD_W - 1.5 * mm, yy)
-
-    # contenu des cellules
-    for r in range(3):
-        for cc in range(3):
-            cx = x0 + (cc + 0.5) * cell_w
-            cyc = grid_top - (r + 0.5) * row_h
-            val = grille[r][cc]
-            if val is None:
-                continue  # case vide (pas de X, juste blanche — style SUN)
-            elif des and val <= 9:   # 🎲 jumeau CASINO : le petit numéro vit en dés
-                _dessine_des(c, val, cx, cyc, col, gris_ch)
-            elif _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, val, cx, cyc - 11, 32, gris_ch, police_ch)
-            else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, 32)
-                c.drawCentredString(cx, cyc - 11, str(val))
-
-    # Pied : N° SÉRIE (centré sous la carte, comme la référence SUN)
-    c.setFillColor(col); c.setFont(POLICE, 6)
-    c.drawCentredString(x0 + CARD_W / 2, y0 + 2 * mm, "%04d" % serie)
-
-    # QR de vérification par grille (anti-duplication) — coin bas-gauche
-    if _sec and evenement_id:
+    # ═══ ☀️ LA PLAQUE AU SOLEIL, ET SES HUIT BULLES ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
+    # la carte. Les huit bulles suivent, chacune à sa place.
+    # ⚠️ 13/08 : une bande est RÉSERVÉE en bas pour le bandeau, sinon il
+    # couvrait la bulle du bas. La plaque monte d'autant.
+    BANDE_PIED = 5.0 * mm
+    _pw = CARD_W - 0.8 * mm
+    _ph = CARD_H - 1.0 * mm - BANDE_PIED
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + BANDE_PIED + 0.5 * mm
+    if _os2.path.exists(_IMAGE_PLAQUE):
         try:
-            # 🎯 QR intégré : dans la case vide bas-milieu (aucun chiffre dérangé)
-            _q = 12.0 * mm
-            _xq = x0 + cell_w + (cell_w - _q) / 2
-            _yq = grid_bot + (row_h - _q - 3.4 * mm) / 2 + 3.4 * mm
-            _sec.carton_qr(c, _xq, _yq, _q, evenement_id, serie)
+            c.drawImage(_IMAGE_PLAQUE, _px, _py, _pw, _ph, mask="auto")
         except Exception:
             pass
+
+    # ⚠️ la taille se calcule DEPUIS la bulle : deux bulles voisines sont
+    # séparées d'environ 0,24 de la largeur, le chiffre ne doit pas
+    # déborder de la sienne.
+    # ⚠️ la bulle mesure 0,158 de la largeur de la plaque. Le chiffre doit
+    # tenir DEDANS : « 88 » ne peut pas dépasser 0,74 du diamètre, et sa
+    # hauteur 0,58 — sinon il déborde par le haut, comme le « 3 » l'a fait.
+    _dia = _pw * 0.2388
+    _t_num = 30.0
+    while _t_num > 6 and (_lg_s("88", police_ch, _t_num) > _dia * 0.74
+                          or _t_num * 0.72 > _dia * 0.58):
+        _t_num -= 0.5
+
+    # ═══ les HUIT numéros, dans leurs bulles ═══
+    # On aplatit la grille (elle porte 8 numéros et une case vide) et on
+    # les pose dans l'ordre de la couronne, en partant du bas.
+    _plat = [v for rang in grille for v in rang if v is not None]
+    for _i, _val in enumerate(_plat[:8]):
+        _bx, _by = BULLES[_i]
+        _nx = _px + _bx * _pw
+        _ny = _py + _by * _ph - _t_num * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, _val, _nx, _ny, _t_num, gris_ch, police_ch)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(police_ch, _t_num)
+            c.drawCentredString(_nx, _ny, str(_val))
+
+    # ═══ 🎫 LE BANDEAU AUX BOUTS RONDS, en pied ═══
+    _ligne = "N\u00b0 %05d" % serie
+    if telephone:
+        _ligne += "  \u00b7  " + telephone
+    _t_l = 5.4
+    while _t_l > 3.2 and _lg_s(_ligne, POLICE, _t_l) > CARD_W - 9.0 * mm:
+        _t_l -= 0.25
+    _bh = _t_l * 1.72
+    _bw = min(_lg_s(_ligne, POLICE, _t_l) + _bh * 1.30, CARD_W - 2.0 * mm)
+    _bbx = x0 + (CARD_W - _bw) / 2
+    _bby = y0 + 0.8 * mm
+    _plein = couleur_hex not in ("#9A9A9A", "#999999")
+    c.setStrokeColor(col)
+    c.setLineWidth(0.6)
+    if _plein:
+        c.setFillColor(col)
+        c.roundRect(_bbx, _bby, _bw, _bh, _bh / 2.0, stroke=1, fill=1)
+        c.setFillColor(colors.white)
+    else:
+        c.roundRect(_bbx, _bby, _bw, _bh, _bh / 2.0, stroke=1, fill=0)
+        c.setFillColor(col)
+    c.setFont(POLICE, _t_l)
+    c.drawCentredString(x0 + CARD_W / 2, _bby + _bh * 0.32, _ligne)
 
 
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
