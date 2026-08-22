@@ -113,6 +113,7 @@ from generators import brown14
 from generators import ino8
 from generators import ino
 from generators import tahaa
+from generators import tahaa90
 from generators import boules60
 from generators import ahuru
 from generators import tchin
@@ -564,7 +565,8 @@ _enregistrer_paire("ani",           "ANI",        "🌠", 12, ani.generer_pdf)
 _enregistrer_paire("brown14",       "BROWN 14 boules", "🟤", 8, brown14.generer_pdf)
 _enregistrer_paire("ino8",          "INO 8 boules", "🎐", 12, ino8.generer_pdf)
 _enregistrer_paire("ino",           "INO 5 boules", "🎏", 12, ino.generer_pdf)
-_enregistrer_paire("tahaa",         "TAHAA",      "🥥", 18, tahaa.generer_pdf)
+_enregistrer_paire("tahaa",         "TAHAA",      "🥥", 8, tahaa.generer_pdf)
+_enregistrer_paire("tahaa90",       "TAHAA 90",   "\U0001f41b", 8,  tahaa90.generer_pdf)
 _enregistrer_paire("boules60",      "60 BOULES",  "🔵", 12, boules60.generer_pdf)
 _enregistrer_paire("ahuru",         "AHURU",      "🔟", 10, ahuru.generer_pdf)
 _enregistrer_paire("tchin",         "TCHIN",      "🍻", 12, tchin.generer_pdf)
@@ -1385,6 +1387,7 @@ _PLAGES_CALLER = {
     "ino8": (16, 75),
     "ino": (16, 75),
     "tahaa": (1, 75),
+    "tahaa90": (1, 90),
     "boules60": (1, 60),
     "ahuru": (1, 75),
     "tchin": (1, 30),
