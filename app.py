@@ -115,6 +115,7 @@ from generators import ino
 from generators import tahaa
 from generators import tahaa90
 from generators import baam
+from generators import papeari
 from generators import boules60
 from generators import ahuru
 from generators import tchin
@@ -175,7 +176,7 @@ SMTP_PASS = os.environ.get("SMTP_PASS", "")   # mot de passe d'application Gmail
 # Pour en réserver d'autres un jour : ajouter le slug du partenaire ici,
 # avec la liste des jeux qu'il ne doit pas voir.
 JEUX_HABILLES = {
-    "win", "kai", "sun", "wiz", "rai", "tahaa", "tahaa90", "baam",
+    "win", "kai", "sun", "wiz", "rai", "tahaa", "tahaa90", "baam", "papeari",
 }
 JEUX_INTERDITS = {
     "ranihei": JEUX_HABILLES,
@@ -590,6 +591,7 @@ _enregistrer_paire("ino",           "INO 5 boules", "🎏", 12, ino.generer_pdf)
 _enregistrer_paire("tahaa",         "TAHAA",      "🥥", 8, tahaa.generer_pdf)
 _enregistrer_paire("tahaa90",       "TAHAA 90",   "\U0001f41b", 8,  tahaa90.generer_pdf)
 _enregistrer_paire("baam",          "BAAM",       "\U0001f388", 8,  baam.generer_pdf)
+_enregistrer_paire("papeari",       "PAPEARI",    "\U0001f38a", 8,  papeari.generer_pdf)
 _enregistrer_paire("boules60",      "60 BOULES",  "🔵", 12, boules60.generer_pdf)
 _enregistrer_paire("ahuru",         "AHURU",      "🔟", 10, ahuru.generer_pdf)
 _enregistrer_paire("tchin",         "TCHIN",      "🍻", 12, tchin.generer_pdf)
@@ -1412,6 +1414,7 @@ _PLAGES_CALLER = {
     "tahaa": (1, 75),
     "tahaa90": (1, 90),
     "baam": (31, 75),
+    "papeari": (1, 75),
     "boules60": (1, 60),
     "ahuru": (1, 75),
     "tchin": (1, 30),
