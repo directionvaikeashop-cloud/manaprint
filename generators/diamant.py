@@ -114,8 +114,56 @@ _IMAGE_BAGUE = _choisir_image("diamant_bague", _RATIO_BAGUE)
 # un large blanc a droite des bagues. En le serrant sur elles, on en
 # tient QUATRE par rangee au lieu de deux — deux fois plus de cartons
 # par feuille, et les chiffres gardent leurs 18 pt.
-COLS_PAGE = 4
-ROWS_PAGE = 3
+# ═══ 💎 LES DIX DIAMANTS (sceau Maeva 14/08) ═══
+# « VOTRE JEU DIAMANT » : dix diamants taillés, chacun portant SA LETTRE
+# sur un ruban et son corps hexagonal pour le numéro.
+# ⚠️ L'ORDRE suit les rubans du dessin : rangée du haut B·B·I·I·N,
+# rangée du bas G·G·N·O·O.
+_RATIO_DIAM = 1.4991
+DIAMANTS = [[0.2418, 0.8185], [0.399, 0.7436], [0.5617, 0.6849], [0.7154, 0.8189], [0.8658, 0.6874], [0.224, 0.2444], [0.3884, 0.2213], [0.5554, 0.2325], [0.7265, 0.2304], [0.8955, 0.2302]]
+LARG_DIAM = 0.106
+HAUT_DIAM = 0.1732
+# ⚠️ chaque case dit (lettre, rang) : le rang 0 est le premier numéro de
+# la paire, le rang 1 le second.
+ORDRE_RUBANS = [("B", 0), ("B", 1), ("I", 0), ("I", 1), ("N", 0),
+                ("G", 0), ("G", 1), ("N", 1), ("O", 0), ("O", 1)]
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_d
+
+
+def _choisir_image(motif_img, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif_img + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif_img in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_DIAM = _choisir_image("diamant_dix", _RATIO_DIAM)
+
+
+# ⚠️ 14/08 : le dessin est en PAYSAGE (ratio 1,50) — on passe de 12 cartes
+# à 8 cartes-plaques (2 colonnes × 4 rangées).
+COLS_PAGE = 2
+ROWS_PAGE = 4
 MARGIN_X = 6 * mm
 MARGIN_TOP = 11 * mm
 MARGIN_BOT = 8 * mm
@@ -156,88 +204,75 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
                     telephone="", titre_jeu="", style="eco", evenement_id=""):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
-    cell_w = CARD_W / GRID_N
+    # ⚠️⚠️ 14/08 : ni cadre, ni microtexte, ni QR — comme les autres jeux
+    # habillés. Maeva veut le carton net.
 
-    # Bordure ÉPAISSE (signature DIAMANT)
-    c.setStrokeColor(col)
-    c.setLineWidth(2.4)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.8 * mm, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.4 * mm)
-
-    # Mini-bandeau : nom du jeu + nom du tournoi (sécurité)
-    bandeau = "LE JEU \u00ab DIAMANT \u00bb"
-    if titre_jeu:
-        bandeau += "  \u2014  " + titre_jeu
-    c.setFillColor(GREY); c.setFont("Helvetica", 4)
-    c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 2.3 * mm, bandeau[:60])
-
-    # ═══ 💍 LES DIX BAGUES — DEUX PAR LETTRE DU MOT BINGO ═══
-    # Cinq rangées, chacune avec sa lettre à gauche et ses deux bagues.
-    grid_top = y0 + CARD_H - BANDEAU_H - 0.8 * mm
-    # ⚠️ le bas du carton est RÉSERVÉ au pied et au QR.
-    grid_bot = y0 + FOOT_H + 10.0 * mm
-    zone_h = grid_top - grid_bot
-    NR = 5
-    case_h = zone_h / NR
-    LET_W = CARD_W * 0.11               # la colonne des lettres
-    case_w = (CARD_W - LET_W - 3.0 * mm) / 2
-    bw = min(case_w * 0.96, case_h * 0.99 * _RATIO_BAGUE)
-    bh = bw / _RATIO_BAGUE
-    pl = (PIERRE[1] - PIERRE[0]) * bw
-    ph = (PIERRE[3] - PIERRE[2]) * bh
-    taille = 30.0
-    # ⚠️ la pierre est un OVALE : à mi-hauteur, là où se pose le chiffre,
-    # elle est plus large que le rectangle qu'on peut y inscrire. On
-    # mesure donc avec la VRAIE police et on s'autorise un quart de plus
-    # en largeur — sinon les chiffres restaient à 16 pt dans une pierre
-    # qui pouvait en porter 25.
-    while taille > 10 and (_lgd("88", police_ch, taille) > pl * 1.06
-                           or taille * 0.72 > ph * 0.92):
-        taille -= 0.5
-    for ri in range(NR):
-        cyc = grid_top - (ri + 0.5) * case_h
-        # la lettre B·I·N·G·O
-        c.setFillColor(col)
-        c.setFont("Helvetica-Bold", max(9.0, taille * 0.62))
-        c.drawCentredString(x0 + 1.5 * mm + LET_W / 2,
-                            cyc - taille * 0.62 * 0.34, LETTRES_BINGO[ri])
-        for ci in range(2):
-            n = carte[ri][ci]
-            bx = x0 + 1.5 * mm + LET_W + ci * case_w + (case_w - bw) / 2
-            by = cyc - bh / 2
-            if _os2.path.exists(_IMAGE_BAGUE):
-                try:
-                    c.drawImage(_IMAGE_BAGUE, bx, by, bw, bh, mask="auto",
-                                preserveAspectRatio=True)
-                except Exception:
-                    pass
-            nx = bx + (PIERRE[0] + PIERRE[1]) / 2 * bw
-            ny = by + (PIERRE[2] + PIERRE[3]) / 2 * bh - taille * 0.34
-            if _sec:
-                _sec.chiffre_micro(c, n, nx, ny, taille, gris_ch, police_ch)
-            else:
-                c.setFillColor(gris_ch)
-                c.setFont(police_ch, taille)
-                c.drawCentredString(nx, ny, str(n))
-
-    # ── LE PIED : n° de série, téléphone, et le QR ───────────────────────
-    # ⚠️ Ce bloc vivait sous l'ancienne grille 5×5 ; en la remplaçant par
-    # les bagues, j'avais emporté le pied ET le QR avec elle (attrapé le
-    # 10/08 : le carton sortait sans numéro de série ni QR).
-    c.setFillColor(GREY)
-    c.setFont("Helvetica", 4.4)
-    c.drawString(x0 + 1.5 * mm, y0 + 1.3 * mm, "Carte N\u00b0 %05d" % serie)
-    if telephone:
-        c.drawRightString(x0 + CARD_W - 14.5 * mm, y0 + 1.3 * mm,
-                          "Resp. %s" % telephone)
-    if _sec and evenement_id:
+    # ═══ 💎 LA PLAQUE AUX DIX DIAMANTS ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
+    # la carte. Les dix corps suivent, chacun à sa place.
+    _pw = CARD_W - 0.6 * mm
+    _ph = CARD_H - 0.6 * mm
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + 0.3 * mm
+    if _os2.path.exists(_IMAGE_DIAM):
         try:
-            _q = 8.0 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 2.0 * mm, y0 + 0.9 * mm,
-                           _q, evenement_id, serie, avec_code=False)
+            c.drawImage(_IMAGE_DIAM, _px, _py, _pw, _ph, mask="auto")
         except Exception:
             pass
+
+    # ⚠️ la taille se calcule DEPUIS le corps du diamant, jamais en dur.
+    # ⚠️ MESURER AVEC LA VRAIE POLICE (`police_ch`), pas Helvetica.
+    # ⚠️ le corps est un HEXAGONE qui se resserre vers le bas : le chiffre
+    #    se pose dans sa partie large, en haut.
+    _lg_c = _pw * LARG_DIAM
+    _ht_c = _ph * HAUT_DIAM
+    _t_num = 25.0
+    # ⚠️⚠️ 14/08 : le chiffre doit tenir DANS LE CŒUR VIDÉ (0,92 du corps),
+    # pas déborder sur les arêtes de la pierre. On borne donc à 0,80 en
+    # largeur — c'est ce qui garde le diamant entièrement visible.
+    # ⚠️⚠️ 14/08 (nouvelle image, plus grands diamants) : Maeva veut 25 pt.
+    # Le cœur est ouvert à 1,12 du corps dans l'image, et le chiffre est
+    # borné à 1,10 — il tient DEDANS sans mordre les arêtes de la pierre.
+    while _t_num > 6 and (_lg_d("88", police_ch, _t_num) > _lg_c * 1.10
+                          or _t_num * 0.72 > _ht_c * 0.62):
+        _t_num -= 0.5
+
+    # ═══ les DIX numéros, au cœur de leur diamant ═══
+    # ⚠️ `carte` est une LISTE de cinq paires triées (B, I, N, G, O).
+    _par_lettre = {"B": carte[0], "I": carte[1], "N": carte[2],
+                   "G": carte[3], "O": carte[4]}
+    for _k, (_lettre, _rang) in enumerate(ORDRE_RUBANS):
+        _vals = _par_lettre.get(_lettre) or []
+        if _rang >= len(_vals):
+            continue
+        _n = _vals[_rang]
+        _dx, _dy = DIAMANTS[_k]
+        _nx = _px + _dx * _pw
+        _ny = _py + _dy * _ph - _t_num * 0.34
+        # ⭐⭐ 14/08 (sceau Maeva : « je n'aime pas quand les chiffres
+        # cachent nos diamants — trouve une solution où on voit bien le
+        # diamant ») : PLUS DE VOILE BLANC PLAQUÉ SUR LA PIERRE.
+        # ⚠️ LA SOLUTION EST DANS L'IMAGE : le CŒUR de chaque pierre a été
+        # vidé de ses facettes (un losange inscrit à 0,78 de sa taille).
+        # La couronne, les arêtes extérieures et la pointe restent — la
+        # pierre se voit entièrement, et le chiffre a sa place nette.
+        if _sec:
+            _sec.chiffre_micro(c, _n, _nx, _ny, _t_num, gris_ch, police_ch)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(police_ch, _t_num)
+            c.drawCentredString(_nx, _ny, str(_n))
+
+    # ═══ 🎫 LE BANDEAU, écrit dans sa pastille creuse ═══
+    c.setFillColor(gris_ch)
+    _bl = "N\u00b0 %05d" % serie
+    if telephone:
+        _bl += "   \u2022   " + telephone
+    _tb = 9.0
+    while _tb > 3.4 and _lg_d(_bl, "Helvetica-Bold", _tb) > _pw * 0.30:
+        _tb -= 0.25
+    c.setFont("Helvetica-Bold", _tb)
+    c.drawCentredString(_px + _pw * 0.535, _py + _ph * 0.030, _bl)
 
 
 def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
@@ -260,12 +295,10 @@ def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
             c.setFillColor(NOIR); c.setFont("Helvetica-Bold", 11)
             c.drawCentredString(PAGE_W / 2, PAGE_H - 5 * mm, nom_evenement)
         titre_aff = titre_jeu if titre_jeu else "DIAMANT"
-        ligne2 = titre_aff
-        if date_lieu: ligne2 += "  \u00b7  " + date_lieu
-        ligne2 += f"  \u00b7  Page {no_page}"
-        c.setFillColor(GREY); c.setFont("Helvetica", 7)
-        y2 = (PAGE_H - 8.5 * mm) if nom_evenement else (PAGE_H - 6 * mm)
-        c.drawCentredString(PAGE_W / 2, y2, ligne2)
+        # ⚠️ 14/08 : PLUS DE TITRE EN HAUT DE PAGE — le dessin porte déjà
+        # « DIAMANT » en grand. Seul le numéro de page reste, discret.
+        c.setFillColor(GRIS40); c.setFont("Helvetica", 5)
+        c.drawRightString(PAGE_W - 6 * mm, PAGE_H - 5 * mm, "Page %d" % no_page)
 
         idx = 0
         for row in range(ROWS_PAGE):
