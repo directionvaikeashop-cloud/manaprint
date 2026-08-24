@@ -92,6 +92,7 @@ from generators import havai
 from generators import flash_debout
 from generators import dual_dab
 from generators import cerf_volant
+from generators import bubulle
 from generators import moorea
 from generators import triple_action_90
 from generators import trio75
@@ -178,7 +179,7 @@ SMTP_PASS = os.environ.get("SMTP_PASS", "")   # mot de passe d'application Gmail
 JEUX_HABILLES = {
     "win", "kai", "sun", "wiz", "rai", "tahaa", "tahaa90", "baam", "papeari",
     "fan90", "lagoon", "boules60", "fleche", "brown8", "diamant",
-    "cerf_volant", "boules40",
+    "cerf_volant", "boules40", "bubulle",
 }
 JEUX_INTERDITS = {
     "ranihei": JEUX_HABILLES,
@@ -570,6 +571,7 @@ _enregistrer_paire("havai",         "HAVAI","🌋", 8,  havai.generer_pdf)  # 2�
 _enregistrer_paire("flash_debout",  "FLASH QUINES DEBOUT","⚡", 8,  flash_debout.generer_pdf)
 _enregistrer_paire("dual_dab",      "DUAL DAB 75","🤜", 8,  dual_dab.generer_pdf)
 _enregistrer_paire("cerf_volant",   "CERF VOLANT","🪁", 8,  cerf_volant.generer_pdf)
+_enregistrer_paire("bubulle",       "BUBULLE",    "\U0001fae7", 8,  bubulle.generer_pdf)
 _enregistrer_paire("moorea",        "MOOREA",     "🌴", 6,  moorea.generer_pdf)
 _enregistrer_paire("triple_action_90", "TRIPLE ACTION 90", "🎪", 8, triple_action_90.generer_pdf)
 _enregistrer_paire("trio75",        "TRIO 75",     "\U0001f3ab", 2,  trio75.generer_pdf)
@@ -1394,6 +1396,7 @@ _PLAGES_CALLER = {
     "fan90": (1, 90),
     "oaoa": (16, 75),
     "lagoon": (1, 50),
+    "bubulle": (1, 75),
     "havai": (1, 75),
     "flash_debout": (1, 90),
     "dual_dab": (1, 75),
