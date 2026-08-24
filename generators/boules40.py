@@ -80,8 +80,50 @@ PAGE_W, PAGE_H = A4
 # Les 5 colonnes du 40 BOULES : (min, max, nombre de numéros)
 COLONNES = [(1, 8, 2), (9, 16, 1), (17, 24, 2), (25, 32, 1), (33, 40, 2)]
 
+# ═══ 🐙 LA PIEUVRE ET SES HUIT BULLES (sceau Maeva 14/08) ═══
+# « J'AI 40 BOULES — 8 BOULES » : une pieuvre souriante, ses huit
+# tentacules qui portent chacun une bulle pour un numéro.
+# ⚠️ L'ORDRE de lecture : de haut en bas, gauche puis droite.
+_RATIO_PIEUVRE = 1.5018
+BULLES = [[0.3741, 0.7193], [0.7476, 0.7179], [0.269, 0.5682], [0.8442, 0.5677], [0.2962, 0.3527], [0.804, 0.3447], [0.4631, 0.1985], [0.648, 0.1997]]
+DIAM_BULLE = 0.108
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_p
+
+
+def _choisir_image(motif_img, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif_img + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif_img in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_PIEUVRE = _choisir_image("b40_pieuvre", _RATIO_PIEUVRE)
+
+
+# ⚠️ 14/08 : le dessin est en PAYSAGE (ratio 1,50) — on passe de 12 cartes
+# à 8 cartes-plaques (2 colonnes × 4 rangées).
 COLS_PAGE = 2
-ROWS_PAGE = 6
+ROWS_PAGE = 4
 MARGIN_X = 8 * mm
 MARGIN_TOP = 10 * mm
 MARGIN_BOT = 8 * mm
@@ -105,79 +147,61 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
 
-    # Bordure carte
-    c.setStrokeColor(col); c.setLineWidth(0.8)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.9 * mm)
+    # ⚠️⚠️ 14/08 : ni cadre, ni microtexte, ni QR — comme les autres jeux
+    # habillés. Maeva veut le carton net.
 
-    # En-tête — le nom du jeu apparaît TOUJOURS (fidèle au modèle)
-    hdr_y = y0 + CARD_H - 3.4 * mm
-    titre = "Le jeu 40 boules · 8 boules"
-    if titre_jeu and "40 BOULES" not in titre_jeu.strip().upper():
-        titre += " · " + titre_jeu.strip()
-    if telephone:
-        titre += " · " + telephone
-    c.setFillColor(col); c.setFont(POLICE, 4.8)
-    c.drawCentredString(x0 + (CARD_W - ZONE_QR) / 2, hdr_y, titre[:72])
-
-    # Pied de carte : « N° SÉRIE | 030001 »
-    PIED_H = 4.4 * mm
-    zx = x0 + 1.5 * mm
-    zw = CARD_W - 3 * mm - ZONE_QR
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(zx, y0 + PIED_H, zx + zw, y0 + PIED_H)
-    c.line(zx + zw * 0.42, y0 + 0.8 * mm, zx + zw * 0.42, y0 + PIED_H - 0.6 * mm)
-    c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 4.2)
-    c.drawCentredString(zx + zw * 0.21, y0 + 1.5 * mm, "N\u00b0 S\u00c9RIE")
-    c.setFillColor(col); c.setFont(POLICE, 6)
-    c.drawCentredString(zx + zw * 0.71, y0 + 1.4 * mm, "%06d" % serie)
-
-    # Zone de jeu : 5 colonnes avec la grille à traits (fidèle au modèle)
-    z_bot = y0 + PIED_H
-    z_top = hdr_y - 2.4 * mm
-    z_h = z_top - z_bot
-    frac = [0.20, 0.20, 0.20, 0.20, 0.20]           # 5 colonnes égales (32 pts partout)
-    xs, bords, cursor = [], [zx], zx
-    for f in frac:
-        xs.append(cursor + (zw * f) / 2)
-        cursor += zw * f
-        bords.append(cursor)
-
-    # séparateurs verticaux entre les 5 colonnes
-    c.setStrokeColor(col); c.setLineWidth(0.5)
-    for b in bords[1:-1]:
-        c.line(b, z_bot, b, z_top)
-
-    for ci, ((pmin, pmax, n), nums) in enumerate(zip(COLONNES, cols_nums)):
-        if n == 2:
-            # trait horizontal au milieu de la colonne empilée
-            c.setStrokeColor(col); c.setLineWidth(0.5)
-            c.line(bords[ci], z_bot + z_h / 2, bords[ci + 1], z_bot + z_h / 2)
-            for ri, val in enumerate(nums):
-                cyc = z_top - (ri + 0.5) * (z_h / 2)
-                if _sec:  # chiffres "billet de banque" remplis de microtexte
-                    _sec.chiffre_micro(c, val, xs[ci], cyc - 32 * 0.36, 32, gris_ch, police_ch)
-                else:
-                    c.setFillColor(gris_ch); c.setFont(police_ch, 32)
-                    c.drawCentredString(xs[ci], cyc - 32 * 0.36, str(val))
-        else:
-            # le GRAND numéro solitaire, pleine hauteur
-            cyc = z_bot + z_h / 2
-            if _sec:
-                _sec.chiffre_micro(c, nums[0], xs[ci], cyc - 32 * 0.36, 32, gris_ch, police_ch)
-            else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, 32)
-                c.drawCentredString(xs[ci], cyc - 32 * 0.36, str(nums[0]))
-
-    # QR de vérification par carte (anti-duplication) — bande de droite
-    if _sec and evenement_id:
+    # ═══ 🐙 LA PLAQUE À LA PIEUVRE ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
+    # la carte. Les huit bulles suivent, chacune à sa place.
+    _pw = CARD_W - 0.6 * mm
+    _ph = CARD_H - 0.6 * mm
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + 0.3 * mm
+    if _os2.path.exists(_IMAGE_PIEUVRE):
         try:
-            _q = 12.0 * mm
-            _sec.carton_qr(c, x0 + CARD_W - ZONE_QR + 1.2 * mm,
-                           y0 + (CARD_H - _q) / 2 - 0.8 * mm, _q, evenement_id, serie)
+            c.drawImage(_IMAGE_PIEUVRE, _px, _py, _pw, _ph, mask="auto")
         except Exception:
             pass
+
+    # ⚠️ la taille se calcule DEPUIS la bulle, jamais en dur.
+    # ⚠️ MESURER AVEC LA VRAIE POLICE (`police_ch`), pas Helvetica.
+    _dia = _pw * DIAM_BULLE
+    _t_num = 25.0
+    while _t_num > 6 and (_lg_p("88", police_ch, _t_num) > _dia * 1.00
+                          or _t_num * 0.72 > _dia * 0.82):
+        _t_num -= 0.5
+
+    # ═══ les HUIT numéros, dans les bulles de la pieuvre ═══
+    # ⚠️ cols_nums donne CINQ colonnes de tailles 2-1-2-1-2. On les aplatit
+    # dans l'ordre de lecture des bulles.
+    _plat = [v for col in cols_nums for v in col]
+    for _k, _n in enumerate(_plat[:8]):
+        _bx, _by = BULLES[_k]
+        _nx = _px + _bx * _pw
+        _ny = _py + _by * _ph - _t_num * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, _n, _nx, _ny, _t_num, gris_ch, police_ch)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(police_ch, _t_num)
+            c.drawCentredString(_nx, _ny, str(_n))
+
+    # ═══ 🎫 LES DEUX BANDEAUX, écrits dans leurs pastilles creuses ═══
+    c.setFillColor(gris_ch)
+    _t8 = 7.0
+    while _t8 > 3.2 and _lg_p("8 BOULES", "Helvetica-Bold", _t8) > _pw * 0.14:
+        _t8 -= 0.25
+    c.setFont("Helvetica-Bold", _t8)
+    c.drawCentredString(_px + _pw * 0.560, _py + _ph * 0.795, "8 BOULES")
+
+    _bl = "N\u00b0 %05d" % serie
+    if telephone:
+        _bl += "   \u2022   " + telephone
+    _tb = 9.0
+    while _tb > 3.4 and _lg_p(_bl, "Helvetica-Bold", _tb) > _pw * 0.29:
+        _tb -= 0.25
+    c.setFont("Helvetica-Bold", _tb)
+    c.drawCentredString(_px + _pw * 0.530, _py + _ph * 0.028, _bl)
 
 
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
