@@ -70,7 +70,56 @@ def _style_chiffres(style):
 PAGE_W, PAGE_H = A4
 LETTERS = ["B", "R", "O", "W", "N"]
 # (lettre, min, max, nb de numéros)
-PLAGES = [("B", 1, 15, 2), ("R", 16, 30, 1), ("O", 31, 45, 2), ("W", 46, 60, 1), ("N", 61, 75, 2)]
+# ⚠️⚠️ 14/08 (sceau Maeva : « les lettres sont les plages du jeu ») :
+# LES LETTRES DEVIENNENT CELLES DU BINGO — B · I · N · G · O — au lieu de
+# B · R · O · W · N. Les plages et les comptes ne changent PAS :
+#   B ×2 : 1-15 · I ×1 : 16-30 · N ×2 : 31-45 · G ×1 : 46-60 · O ×2 : 61-75
+PLAGES = [("B", 1, 15, 2), ("I", 16, 30, 1), ("N", 31, 45, 2),
+          ("G", 46, 60, 1), ("O", 61, 75, 2)]
+
+# ═══ 💐 LE BOUQUET DE HUIT FLEURS (sceau Maeva 14/08) ═══
+# « VOTRE JEU BROWN — 8 BOULES » : huit fleurs liées d'un ruban, chacune
+# portant SA LETTRE sur un fanion et son cœur rond pour le numéro.
+# ⚠️ L'ORDRE suit les fanions du dessin : rangée du haut B·I·N·N,
+# rangée du bas B·G·O·O.
+_RATIO_BOUQUET = 1.4991
+FLEURS = [[0.3108, 0.6544], [0.4644, 0.647], [0.6486, 0.6474], [0.821, 0.6541], [0.2939, 0.3968], [0.4603, 0.3981], [0.6519, 0.3979], [0.8277, 0.3953]]
+DIAM_FLEUR = 0.112
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_w
+
+
+def _choisir_image(motif_img, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif_img + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif_img in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_BOUQUET = _choisir_image("brown_bouquet", _RATIO_BOUQUET)
+
+# ⚠️ l'ordre des numéros, fanion par fanion
+ORDRE_FANIONS = [("B", 0), ("I", 0), ("N", 0), ("N", 1),
+                 ("B", 1), ("G", 0), ("O", 0), ("O", 1)]
 
 COLS_PAGE = 2
 ROWS_PAGE = 4
@@ -92,87 +141,64 @@ def _gen_carte(rng):
 def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, telephone="", titre_jeu="", style="eco", evenement_id=""):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
-    ncols = 5
-    cell_w = CARD_W / ncols
+    # ⚠️⚠️ 14/08 : ni cadre, ni microtexte, ni QR — comme les autres jeux
+    # habillés. Maeva veut le carton net.
 
-    # Bordure carte
-    c.setStrokeColor(col); c.setLineWidth(0.8)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
-
-    # En-tête B R O W N
-    hdr_y = y0 + CARD_H - 6 * mm
-    c.setFont(POLICE, 11)
-    for i, lettre in enumerate(LETTERS):
-        c.setFillColor(col)
-        c.drawCentredString(x0 + (i + 0.5) * cell_w, hdr_y, lettre)
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0 + 1.5 * mm, hdr_y - 2 * mm, x0 + CARD_W - 1.5 * mm, hdr_y - 2 * mm)
-
-    # Grille 3 rangées × 5 colonnes
-    grid_top = hdr_y - 2 * mm
-    grid_bot = y0 + 2.5 * mm
-    grid_h = grid_top - grid_bot
-    row_h = grid_h / 3
-
-    # séparateurs colonnes
-    c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.3)
-    for i in range(1, ncols):
-        c.line(x0 + i * cell_w, grid_bot, x0 + i * cell_w, grid_top)
-    # séparateurs rangées
-    for r in range(1, 3):
-        yy = grid_top - r * row_h
-        c.line(x0 + 1.5 * mm, yy, x0 + CARD_W - 1.5 * mm, yy)
-
-    # placement des 8 numéros (motif quinconce) + série au centre
-    #   r=0 (haut) : B(0), O(2), N(4)  -> index 0 de la colonne
-    #   r=1 (mil.) : R(1), W(3) ; centre (col 2) = série
-    #   r=2 (bas)  : B(0), O(2), N(4)  -> index 1 de la colonne
-    def cy(r):
-        return grid_top - (r + 0.5) * row_h
-
-    def cx(i):
-        return x0 + (i + 0.5) * cell_w
-
-    if _sec:  # chiffres "billet de banque" remplis de microtexte
-        for (i, lettre) in [(0, "B"), (2, "O"), (4, "N")]:
-            _sec.chiffre_micro(c, carte[lettre][0], cx(i), cy(0) - 11, 32, gris_ch, police_ch)
-        _sec.chiffre_micro(c, carte["R"][0], cx(1), cy(1) - 11, 32, gris_ch, police_ch)
-        _sec.chiffre_micro(c, carte["W"][0], cx(3), cy(1) - 11, 32, gris_ch, police_ch)
-    else:
-        c.setFont(police_ch, 32)
-        # rangée haute
-        for (i, lettre) in [(0, "B"), (2, "O"), (4, "N")]:
-            c.setFillColor(gris_ch)
-            c.drawCentredString(cx(i), cy(0) - 11, str(carte[lettre][0]))
-        # rangée milieu : R et W
-        c.setFillColor(gris_ch)
-        c.drawCentredString(cx(1), cy(1) - 11, str(carte["R"][0]))
-        c.drawCentredString(cx(3), cy(1) - 11, str(carte["W"][0]))
-    # centre = série
-    c.setFillColor(GRIS); c.setFont(POLICE, 6)
-    c.drawCentredString(cx(2), cy(1) - 2, "%06d" % serie)
-    # rangée basse
-    if _sec:
-        for (i, lettre) in [(0, "B"), (2, "O"), (4, "N")]:
-            _sec.chiffre_micro(c, carte[lettre][1], cx(i), cy(2) - 11, 32, gris_ch, police_ch)
-    else:
-        c.setFont(police_ch, 32)
-        for (i, lettre) in [(0, "B"), (2, "O"), (4, "N")]:
-            c.setFillColor(gris_ch)
-            c.drawCentredString(cx(i), cy(2) - 11, str(carte[lettre][1]))
-
-    # QR de vérification par grille (anti-duplication) — coin bas-droit
-    if _sec and evenement_id:
+    # ═══ 💐 LA PLAQUE AU BOUQUET ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
+    # la carte. Les huit cœurs suivent, chacun à sa place.
+    _pw = CARD_W - 0.6 * mm
+    _ph = CARD_H - 0.6 * mm
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + 0.3 * mm
+    if _os2.path.exists(_IMAGE_BOUQUET):
         try:
-            # 🎯 QR intégré : case vide fixe du quinconce (rangée basse, colonne W)
-            _q = 12.5 * mm
-            _xq = x0 + 3 * cell_w + (cell_w - _q) / 2
-            _yq = grid_bot + (row_h - _q - 3.4 * mm) / 2 + 3.4 * mm
-            _sec.carton_qr(c, _xq, _yq, _q, evenement_id, serie)
+            c.drawImage(_IMAGE_BOUQUET, _px, _py, _pw, _ph, mask="auto")
         except Exception:
             pass
+
+    # ⚠️ la taille se calcule DEPUIS le cœur de la fleur, jamais en dur.
+    # ⚠️ MESURER AVEC LA VRAIE POLICE (`police_ch`), pas Helvetica.
+    _dia = _pw * DIAM_FLEUR
+    _t_num = 25.0
+    while _t_num > 6 and (_lg_w("88", police_ch, _t_num) > _dia * 1.05
+                          or _t_num * 0.72 > _dia * 0.86):
+        _t_num -= 0.5
+
+    # ═══ les HUIT numéros, au cœur de leur fleur ═══
+    for _k, (_lettre, _rang) in enumerate(ORDRE_FANIONS):
+        _vals = carte.get(_lettre) or []
+        if _rang >= len(_vals):
+            continue
+        _n = _vals[_rang]
+        _fx, _fy = FLEURS[_k]
+        _nx = _px + _fx * _pw
+        _ny = _py + _fy * _ph - _t_num * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, _n, _nx, _ny, _t_num, gris_ch, police_ch)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(police_ch, _t_num)
+            c.drawCentredString(_nx, _ny, str(_n))
+
+    # ═══ 🎫 LES DEUX BANDEAUX, écrits dans leurs pastilles creuses ═══
+    # ⚠️ Ils étaient NOIRS PLEINS dans le dessin (70 % et 45 % de leur
+    # surface en encre) : ils sont désormais CREUX, texte en gris.
+    c.setFillColor(gris_ch)
+    _t8 = 7.0
+    while _t8 > 3.2 and _lg_w("8 BOULES", "Helvetica-Bold", _t8) > _pw * 0.14:
+        _t8 -= 0.25
+    c.setFont("Helvetica-Bold", _t8)
+    c.drawCentredString(_px + _pw * 0.560, _py + _ph * 0.790, "8 BOULES")
+
+    _bl = "N\u00b0 %05d" % serie
+    if telephone:
+        _bl += "   \u2022   " + telephone
+    _tb = 9.0
+    while _tb > 3.4 and _lg_w(_bl, "Helvetica-Bold", _tb) > _pw * 0.29:
+        _tb -= 0.25
+    c.setFont("Helvetica-Bold", _tb)
+    c.drawCentredString(_px + _pw * 0.525, _py + _ph * 0.020, _bl)
 
 
 def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
@@ -196,12 +222,11 @@ def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
         if nom_evenement:
             c.setFillColor(colors.black); c.setFont(POLICE, 10)
             c.drawCentredString(PAGE_W / 2, PAGE_H - 5 * mm, nom_evenement)
-        ligne2 = (titre_jeu or "BROWN 8 boules")
-        if date_lieu:
-            ligne2 += "  ·  " + date_lieu
-        ligne2 += "  ·  Page %d" % no_page
-        c.setFillColor(GRIS); c.setFont(POLICE, 6)
-        c.drawCentredString(PAGE_W / 2, PAGE_H - 7.5 * mm, ligne2)
+        # ⚠️ 14/08 : PLUS DE TITRE EN HAUT DE PAGE — le dessin de Maeva
+        # porte déjà « BROWN » et « 8 BOULES » en grand. Seul le numéro de
+        # page reste, discret, pour s'y retrouver dans une grosse commande.
+        c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 5)
+        c.drawRightString(PAGE_W - 6 * mm, PAGE_H - 5 * mm, "Page %d" % no_page)
 
         for row in range(ROWS_PAGE):
             for col_i in range(COLS_PAGE):
