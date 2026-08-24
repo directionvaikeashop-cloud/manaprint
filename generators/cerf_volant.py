@@ -51,8 +51,53 @@ def _style_chiffres(style):
 
 
 PAGE_W, PAGE_H = A4
+# ═══ 🪁 LES SIX CERFS-VOLANTS (sceau Maeva 14/08) ═══
+# « VOTRE JEU CERF VOLANT » : six cerfs-volants dans le ciel, chacun
+# portant SA LETTRE sur un fanion et son disque pour le numéro.
+# ⚠️ L'ORDRE suit les fanions : rangée du haut B·B·I, rangée du bas I·G·O.
+#   B ×2 : 1-15 · I ×2 : 16-30 · G : 46-60 · O : 61-75
+#   (pas de 31-45 — c'est la plage morte du jeu)
+_RATIO_CERF = 1.5018
+CERFS = [[0.3436, 0.7326], [0.5688, 0.7331], [0.7914, 0.7332], [0.3499, 0.3353], [0.5682, 0.3365], [0.7928, 0.3359]]
+LARG_CERF = 0.104
+HAUT_CERF = 0.104
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_c
+
+
+def _choisir_image(motif_img, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif_img + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif_img in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_CERF = _choisir_image("cerf_six", _RATIO_CERF)
+
+
+# ⚠️ 14/08 : le dessin est en PAYSAGE (ratio 1,50) — on passe de 6 cartes
+# à 8 cartes-plaques (2 colonnes × 4 rangées).
 COLS_PAGE = 2
-ROWS_PAGE = 3
+ROWS_PAGE = 4
 MARGIN_X = 6 * mm
 MARGIN_TOP = 11 * mm
 MARGIN_BOT = 8 * mm
@@ -113,68 +158,69 @@ def _dessiner_carte(c, x0, y0, donnees, couleur_hex, serie, encre,
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
 
-    # Bordure
-    c.setStrokeColor(col)
-    c.setLineWidth(1.0)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.8 * mm, stroke=1, fill=0)
-    if _sec:
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
+    # ⚠️⚠️ 14/08 : ni cadre, ni microtexte, ni QR — comme les autres jeux
+    # habillés. Maeva veut le carton net.
 
-    # Bandeau
-    bandeau = "LE JEU \u00ab CERF VOLANT \u00bb"
-    if titre_jeu:
-        bandeau += "  \u2014  " + titre_jeu
-    elif telephone:
-        bandeau += f"  \u00b7  {telephone}"
-    c.setFillColor(GREY); c.setFont("Helvetica", 4)
-    c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 2.4 * mm, bandeau[:64])
-
-    taille = 32  # bien gros (Maeva, juil. 2026)
-
-    def num(n, xx, yy):
-        if _sec:
-            _sec.chiffre_micro(c, n, xx, yy, taille, gris_ch, police_ch)
-        else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-            c.drawCentredString(xx, yy, str(n))
-
-    def case(bx, btop):
-        c.setStrokeColor(GRIS_GRILLE); c.setLineWidth(0.5)
-        c.rect(bx, btop - CELL, CELL, CELL, stroke=1, fill=0)
-
-    # Bloc 2×2 haut-gauche
-    gx = x0 + 7 * mm
-    gtop = y0 + CARD_H - 8 * mm
-    grille = [[c1[0], c2[0]], [c1[1], c2[1]]]
-    for ri in range(2):
-        for ci in range(2):
-            bx = gx + ci * CELL
-            btop = gtop - ri * CELL
-            case(bx, btop)
-            num(grille[ri][ci], bx + CELL / 2, btop - CELL + CELL * 0.28)
-
-    # La queue : case 46-60 puis case 61-75 en diagonale
-    a_x, a_top = gx + 2 * CELL + 3 * mm, gtop - 2 * CELL + 4 * mm
-    case(a_x, a_top)
-    num(n_a, a_x + CELL / 2, a_top - CELL + CELL * 0.28)
-    b_x, b_top = a_x + CELL + 3 * mm, a_top - CELL - 1 * mm
-    case(b_x, b_top)
-    num(n_b, b_x + CELL / 2, b_top - CELL + CELL * 0.28)
-
-    # 🎯 QR au coin bas-gauche libre
-    if _sec and evenement_id:
+    # ═══ 🪁 LA PLAQUE AUX SIX CERFS-VOLANTS ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
+    # la carte. Les six disques suivent, chacun à sa place.
+    _pw = CARD_W - 0.6 * mm
+    _ph = CARD_H - 0.6 * mm
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + 0.3 * mm
+    if _os2.path.exists(_IMAGE_CERF):
         try:
-            _q = 13.0 * mm
-            _sec.carton_qr(c, x0 + 4 * mm, y0 + FOOT_H + 5.2 * mm,
-                           _q, evenement_id, serie)
+            c.drawImage(_IMAGE_CERF, _px, _py, _pw, _ph, mask="auto")
         except Exception:
             pass
 
-    # Pied : série centrée
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0, y0 + FOOT_H, x0 + CARD_W, y0 + FOOT_H)
-    c.setFillColor(GREY); c.setFont("Helvetica", 5)
-    c.drawCentredString(x0 + CARD_W / 2, y0 + 1.2 * mm, f"{serie:06d}")
+    # ⚠️ la taille se calcule DEPUIS le disque, jamais en dur.
+    # ⚠️ MESURER AVEC LA VRAIE POLICE (`police_ch`), pas Helvetica.
+    # ⚠️⚠️ 14/08 (sceau Maeva : « je ne veux pas en rond, je veux en
+    # triangle comme dans l'image originale ») : le rond agrandi mangeait
+    # la forme du cerf-volant — il ressemblait à un ballon.
+    # ⭐ L'INTÉRIEUR DU LOSANGE est vidé dans l'image, et le chiffre se
+    # pose DEDANS. La forme en losange reste entière.
+    # ⚠️ un losange se resserre vers ses pointes : le chiffre ne peut
+    # occuper que sa TAILLE, la bande large du milieu.
+    _lg_l = _pw * LARG_CERF
+    _ht_l = _ph * HAUT_CERF
+    _t_num = 25.0
+    while _t_num > 6 and (_lg_c("88", police_ch, _t_num) > _lg_l * 1.12
+                          or _t_num * 0.72 > _ht_l * 1.05):
+        _t_num -= 0.5
+
+    # ═══ les SIX numéros, au cœur de leur cerf-volant ═══
+    # ⚠️ l'ordre suit les fanions : B·B·I en haut, I·G·O en bas.
+    _plat = [c1[0], c1[1], c2[0], c2[1], n_a, n_b]
+    for _k, _n in enumerate(_plat):
+        if _k >= len(CERFS):
+            break
+        _cx0, _cy0 = CERFS[_k]
+        _nx = _px + _cx0 * _pw
+        # ⚠️ 14/08 : mesuré au rendu — le chiffre tombait 0,054 SOUS le
+        # centre du losange. On le remonte d'autant pour qu'il se pose
+        # bien dans la taille du cerf-volant.
+        _ny = _py + _cy0 * _ph - _t_num * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, _n, _nx, _ny, _t_num, gris_ch, police_ch)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(police_ch, _t_num)
+            c.drawCentredString(_nx, _ny, str(_n))
+
+    # ═══ 🎫 LE BANDEAU, écrit dans sa pastille creuse ═══
+    # ⚠️ Il était NOIR PLEIN dans le dessin (51 % de sa surface en encre) :
+    # il est désormais CREUX, et le PDF y écrit en gris.
+    c.setFillColor(gris_ch)
+    _bl = "N\u00b0 %05d" % serie
+    if telephone:
+        _bl += "   \u2605   " + telephone
+    _tb = 9.0
+    while _tb > 3.4 and _lg_c(_bl, "Helvetica-Bold", _tb) > _pw * 0.31:
+        _tb -= 0.25
+    c.setFont("Helvetica-Bold", _tb)
+    c.drawCentredString(_px + _pw * 0.515, _py + _ph * 0.030, _bl)
 
 
 def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
@@ -197,12 +243,10 @@ def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
             c.setFillColor(NOIR); c.setFont("Helvetica-Bold", 11)
             c.drawCentredString(PAGE_W / 2, PAGE_H - 5 * mm, nom_evenement)
         titre_aff = titre_jeu if titre_jeu else "CERF VOLANT"
-        ligne2 = titre_aff
-        if date_lieu: ligne2 += "  \u00b7  " + date_lieu
-        ligne2 += f"  \u00b7  Page {no_page}"
-        c.setFillColor(GREY); c.setFont("Helvetica", 7)
-        y2 = (PAGE_H - 8.5 * mm) if nom_evenement else (PAGE_H - 6 * mm)
-        c.drawCentredString(PAGE_W / 2, y2, ligne2)
+        # ⚠️ 14/08 : PLUS DE TITRE EN HAUT DE PAGE — le dessin porte déjà
+        # « CERF VOLANT » en grand. Seul le numéro de page reste, discret.
+        c.setFillColor(colors.Color(0.62,0.62,0.62)); c.setFont("Helvetica", 5)
+        c.drawRightString(PAGE_W - 6 * mm, PAGE_H - 5 * mm, "Page %d" % no_page)
 
         for row in range(ROWS_PAGE):
             for col_i in range(COLS_PAGE):
