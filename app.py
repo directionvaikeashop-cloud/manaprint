@@ -177,7 +177,7 @@ SMTP_PASS = os.environ.get("SMTP_PASS", "")   # mot de passe d'application Gmail
 # avec la liste des jeux qu'il ne doit pas voir.
 JEUX_HABILLES = {
     "win", "kai", "sun", "wiz", "rai", "tahaa", "tahaa90", "baam", "papeari",
-    "fan90",
+    "fan90", "lagoon",
 }
 JEUX_INTERDITS = {
     "ranihei": JEUX_HABILLES,
@@ -564,7 +564,7 @@ _enregistrer_paire("spacex",       "SPACE X",   "🚀", 1,  spacex.generer_pdf)
 _enregistrer_paire("champagne",     "CHAMPAGNE","🥂", 6,  champagne.generer_pdf)
 _enregistrer_paire("fan90",         "FAN 90","☀️", 8,  fan90.generer_pdf)
 _enregistrer_paire("oaoa",          "OAOA","⭕", 12, oaoa.generer_pdf)
-_enregistrer_paire("lagoon",        "LAGOON 5 boules","🏝️", 12, lagoon.generer_pdf)
+_enregistrer_paire("lagoon",        "LAGOON 5 boules","🏝️", 8, lagoon.generer_pdf)
 _enregistrer_paire("havai",         "HAVAI","🌋", 8,  havai.generer_pdf)  # 2×4 = 8 cartons/feuille (corrigé 04/08 : 6 déclarés → 188 pages au lieu de 250)
 _enregistrer_paire("flash_debout",  "FLASH QUINES DEBOUT","⚡", 8,  flash_debout.generer_pdf)
 _enregistrer_paire("dual_dab",      "DUAL DAB 75","🤜", 8,  dual_dab.generer_pdf)
