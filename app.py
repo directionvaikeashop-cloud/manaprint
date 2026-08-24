@@ -178,6 +178,7 @@ SMTP_PASS = os.environ.get("SMTP_PASS", "")   # mot de passe d'application Gmail
 JEUX_HABILLES = {
     "win", "kai", "sun", "wiz", "rai", "tahaa", "tahaa90", "baam", "papeari",
     "fan90", "lagoon", "boules60", "fleche", "brown8", "diamant",
+    "cerf_volant",
 }
 JEUX_INTERDITS = {
     "ranihei": JEUX_HABILLES,
@@ -568,7 +569,7 @@ _enregistrer_paire("lagoon",        "LAGOON 5 boules","🏝️", 8, lagoon.gener
 _enregistrer_paire("havai",         "HAVAI","🌋", 8,  havai.generer_pdf)  # 2×4 = 8 cartons/feuille (corrigé 04/08 : 6 déclarés → 188 pages au lieu de 250)
 _enregistrer_paire("flash_debout",  "FLASH QUINES DEBOUT","⚡", 8,  flash_debout.generer_pdf)
 _enregistrer_paire("dual_dab",      "DUAL DAB 75","🤜", 8,  dual_dab.generer_pdf)
-_enregistrer_paire("cerf_volant",   "CERF VOLANT","🪁", 6,  cerf_volant.generer_pdf)
+_enregistrer_paire("cerf_volant",   "CERF VOLANT","🪁", 8,  cerf_volant.generer_pdf)
 _enregistrer_paire("moorea",        "MOOREA",     "🌴", 6,  moorea.generer_pdf)
 _enregistrer_paire("triple_action_90", "TRIPLE ACTION 90", "🎪", 8, triple_action_90.generer_pdf)
 _enregistrer_paire("trio75",        "TRIO 75",     "\U0001f3ab", 2,  trio75.generer_pdf)
