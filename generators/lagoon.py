@@ -49,7 +49,48 @@ def _style_chiffres(style):
 
 
 PAGE_W, PAGE_H = A4
-COLS_PAGE = 3
+# ═══ 🏝️ LES CINQ ÎLOTS (sceau Maeva 14/08) ═══
+# « VOTRE JEU LAGOON — 5 BOULES » : cinq îlots au lagon, leurs palmiers,
+# et un cercle clair au cœur de chacun pour le numéro.
+_RATIO_ILES = 1.4991
+ILES = [[0.3067, 0.5353], [0.5567, 0.5373], [0.8074, 0.5347], [0.4128, 0.2088], [0.7256, 0.203]]
+DIAM_ILE = 0.118
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_l
+
+
+def _choisir_image(motif, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_ILES = _choisir_image("lagoon_iles", _RATIO_ILES)
+
+
+# ⚠️ 14/08 : le dessin de Maeva est en PAYSAGE (ratio 1,50) — on passe de
+# 12 cartes rondes à 8 cartes-plaques (2 colonnes × 4 rangées).
+COLS_PAGE = 2
 ROWS_PAGE = 4
 MARGIN_X = 6 * mm
 MARGIN_TOP = 11 * mm
@@ -78,51 +119,61 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, encre,
     cx = x0 + CARD_W / 2
     cy = y0 + FOOT_H + 1 * mm + RAYON
 
-    # Le grand cercle LAGOON
-    c.setStrokeColor(col)
-    c.setLineWidth(1.1)
-    c.circle(cx, cy, RAYON, stroke=1, fill=0)
-    if _sec:
-        _sec.cadre_micro(c, cx - RAYON, cy - RAYON, 2 * RAYON, 2 * RAYON, serie,
-                         retrait=-1.2 * mm)
+    # ⚠️⚠️ 14/08 : ni cadre, ni microtexte, ni QR — comme les autres jeux
+    # habillés. Maeva veut le carton net.
 
-    n_haut, n1, n2, n3, n_bas = nums
-    taille = 32
-
-    def chiffre(n, xx, yy):
-        if _sec:
-            _sec.chiffre_micro(c, n, xx, yy, taille, gris_ch, police_ch)
-        else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-            c.drawCentredString(xx, yy, str(n))
-
-    # 1-10 en haut
-    chiffre(n_haut, cx, cy + RAYON * 0.52)
-    # Titre + série à l'intérieur
-    bandeau = "LE JEU \u00ab LAGOON 5 BOULES \u00bb"   # le nom du jeu, TOUJOURS
-    if titre_jeu and "LAGOON" not in titre_jeu.upper():
-        bandeau += " \u00b7 " + titre_jeu.strip()      # le titre client vient EN PLUS
-    c.setFillColor(GREY); c.setFont("Helvetica", 3.6)
-    c.drawCentredString(cx, cy + RAYON * 0.44, bandeau[:52])   # remonté : le 32 pts central passait dessous
-    c.setFont("Helvetica", 4.2)
-    c.drawCentredString(cx, cy + RAYON * 0.335, f"N\u00b0 {serie:06d}")
-    # Trio central 11-20 / 21-30 / 31-40
-    yy = cy - RAYON * 0.02
-    chiffre(n1, cx - RAYON * 0.58, yy)
-    chiffre(n2, cx, yy)
-    chiffre(n3, cx + RAYON * 0.58, yy)
-    # Bas du cercle : le 41-50 à gauche, le QR à droite — TOUT est dans la grille
-    chiffre(n_bas, cx - RAYON * 0.34, cy - RAYON * 0.67)
-    if _sec and evenement_id:
+    # ═══ 🏝️ LA PLAQUE AU LAGON ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
+    # la carte. Les cinq îlots suivent, chacun à sa place.
+    _pw = CARD_W - 0.6 * mm
+    _ph = CARD_H - 0.6 * mm
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + 0.3 * mm
+    if _os2.path.exists(_IMAGE_ILES):
         try:
-            _q = 12.0 * mm
-            _sec.carton_qr(c, cx + 2.5 * mm, cy - 19.5 * mm, _q, evenement_id, serie)
+            c.drawImage(_IMAGE_ILES, _px, _py, _pw, _ph, mask="auto")
         except Exception:
             pass
-    # Pied : Resp. à gauche
-    c.setFillColor(GREY); c.setFont("Helvetica", 4.5)
+
+    # ⚠️ la taille se calcule DEPUIS le cercle de l'îlot, jamais en dur.
+    # ⚠️ MESURER AVEC LA VRAIE POLICE (`police_ch`), pas Helvetica : elle
+    # est plus large et le chiffre déborderait.
+    _dia = _pw * DIAM_ILE
+    _t_num = 25.0
+    while _t_num > 6 and (_lg_l("88", police_ch, _t_num) > _dia * 1.05
+                          or _t_num * 0.72 > _dia * 0.86):
+        _t_num -= 0.5
+
+    # ═══ les CINQ numéros, au cœur de leur îlot ═══
+    for _k, _n in enumerate(nums[:5]):
+        _ix, _iy = ILES[_k]
+        _nx = _px + _ix * _pw
+        _ny = _py + _iy * _ph - _t_num * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, _n, _nx, _ny, _t_num, gris_ch, police_ch)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(police_ch, _t_num)
+            c.drawCentredString(_nx, _ny, str(_n))
+
+    # ═══ 🎫 LES DEUX BANDEAUX, écrits dans leurs pastilles creuses ═══
+    # ⚠️ Ils étaient NOIRS PLEINS dans le dessin (50 % de leur surface en
+    # encre) : ils sont désormais CREUX, et le PDF y écrit en gris.
+    c.setFillColor(gris_ch)
+    _t5 = 6.5
+    while _t5 > 3.2 and _lg_l("5 BOULES", "Helvetica-Bold", _t5) > _pw * 0.13:
+        _t5 -= 0.25
+    c.setFont("Helvetica-Bold", _t5)
+    c.drawCentredString(_px + _pw * 0.537, _py + _ph * 0.795, "5 BOULES")
+
+    _bl = "N\u00b0 %05d" % serie
     if telephone:
-        c.drawString(x0 + 2 * mm, y0 + 1.3 * mm, f"Resp. {telephone}")
+        _bl += "   \u2605   " + telephone
+    _tb = 9.0
+    while _tb > 3.4 and _lg_l(_bl, "Helvetica-Bold", _tb) > _pw * 0.34:
+        _tb -= 0.25
+    c.setFont("Helvetica-Bold", _tb)
+    c.drawCentredString(_px + _pw * 0.525, _py + _ph * 0.036, _bl)
 
 
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
@@ -144,13 +195,12 @@ def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
         if nom_evenement:
             c.setFillColor(NOIR); c.setFont("Helvetica-Bold", 11)
             c.drawCentredString(PAGE_W / 2, PAGE_H - 5 * mm, nom_evenement)
-        titre_aff = ("LAGOON 5 BOULES \u2014 " + titre_jeu.strip()) if titre_jeu else "LAGOON 5 BOULES"
-        ligne2 = titre_aff[:60]
-        if date_lieu: ligne2 += "  \u00b7  " + date_lieu
-        ligne2 += f"  \u00b7  Page {no_page}"
-        c.setFillColor(GREY); c.setFont("Helvetica", 7)
-        y2 = (PAGE_H - 8.5 * mm) if nom_evenement else (PAGE_H - 6 * mm)
-        c.drawCentredString(PAGE_W / 2, y2, ligne2)
+        # ⚠️ 14/08 : PLUS DE TITRE EN HAUT DE PAGE — le dessin de Maeva
+        # porte déjà « LAGOON » et « 5 BOULES » en grand. Seul le numéro
+        # de page reste, discret, pour s'y retrouver dans une commande.
+        c.setFillColor(GREY); c.setFont("Helvetica", 5)
+        y2 = (PAGE_H - 8.5 * mm) if nom_evenement else (PAGE_H - 5 * mm)
+        c.drawRightString(PAGE_W - 6 * mm, y2, f"Page {no_page}")
 
         for row in range(ROWS_PAGE):
             for col_i in range(COLS_PAGE):
