@@ -76,8 +76,52 @@ PAGE_W, PAGE_H = A4
 # Les 4 colonnes du 60 BOULES : 2 numéros chacune
 PLAGES = [(1, 15), (16, 30), (31, 45), (46, 60)]
 
+# ═══ 🦋 LES HUIT PAPILLONS (sceau Maeva 14/08) ═══
+# « J'AI 60 BOULES — 8 BOULES » : huit papillons numérotés de 1 à 8, un
+# cercle clair au cœur de chacun, reliés par des traits pointillés.
+# ⚠️ L'ORDRE suit les PASTILLES NOIRES du dessin (1 à 8), pas la position :
+#   1 haut-gauche · 2 haut-droite · 3 milieu-gauche · 4 centre
+#   5 milieu-droite · 6 bas-gauche · 7 bas-centre · 8 bas-droite
+_RATIO_PAP = 1.5018
+PAPILLONS = [[0.2827, 0.673], [0.7434, 0.6571], [0.2761, 0.3911], [0.5131, 0.4999], [0.8429, 0.394], [0.4165, 0.1791], [0.6323, 0.2311], [0.8372, 0.1488]]
+DIAM_PAP = 0.115
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_b
+
+
+def _choisir_image(motif_img, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif_img + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif_img in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_PAP = _choisir_image("b60_papillons", _RATIO_PAP)
+
+
+# ⚠️ 14/08 : le dessin est en PAYSAGE (ratio 1,50) — on passe de 12 cartes
+# à 8 cartes-plaques (2 colonnes × 4 rangées).
 COLS_PAGE = 2
-ROWS_PAGE = 6
+ROWS_PAGE = 4
 MARGIN_X = 8 * mm
 MARGIN_TOP = 10 * mm
 MARGIN_BOT = 8 * mm
@@ -103,67 +147,64 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
 
-    # Bordure carte
-    c.setStrokeColor(col); c.setLineWidth(0.6)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.2 * mm, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.9 * mm)
+    # ⚠️⚠️ 14/08 : ni cadre, ni microtexte, ni QR — comme les autres jeux
+    # habillés. Maeva veut le carton net.
 
-    # BANDEAU en BLANC — économie d'encre (décision Maeva, 24/07) :
-    # plus de pavé rempli, le nom du jeu s'écrit en couleur sur fond blanc
-    hdr_bas = y0 + CARD_H - HDR_H
-    c.setStrokeColor(col); c.setLineWidth(0.45)
-    c.line(x0, hdr_bas, x0 + CARD_W, hdr_bas)
-    bandeau = "JEUX 60 \u00b7 8 BOULES \u00b7 BY 2KEA"
-    if titre_jeu and "60" not in titre_jeu.strip():
-        bandeau += "  \u00b7  " + titre_jeu.strip().upper()
-    if telephone:
-        bandeau += "  \u00b7  " + telephone
-    c.setFillColor(col); c.setFont(POLICE, 6)
-    c.drawCentredString(x0 + CARD_W / 2, hdr_bas + 2.0 * mm, bandeau[:58])
-
-    # Pied de carte : « N° SÉRIE | 027001 »
-    zx = x0 + 1.5 * mm
-    zw = CARD_W - 3 * mm - ZONE_QR
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(zx, y0 + PIED_H, zx + zw, y0 + PIED_H)
-    c.line(zx + zw * 0.42, y0 + 0.8 * mm, zx + zw * 0.42, y0 + PIED_H - 0.6 * mm)
-    c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 4.2)
-    c.drawCentredString(zx + zw * 0.21, y0 + 1.5 * mm, "N\u00b0 S\u00c9RIE")
-    c.setFillColor(col); c.setFont(POLICE, 6)
-    c.drawCentredString(zx + zw * 0.71, y0 + 1.4 * mm, "%06d" % serie)
-
-    # Grille 4×2 (traits complets, fidèle au modèle)
-    z_top = hdr_bas
-    z_bot = y0 + PIED_H
-    cell_w = zw / 4
-    row_h = (z_top - z_bot) / 2
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    for i in range(1, 4):
-        c.line(zx + i * cell_w, z_bot, zx + i * cell_w, z_top)
-    c.line(zx + zw, z_bot, zx + zw, z_top)
-    c.line(zx, z_top - row_h, zx + zw, z_top - row_h)
-
-    # Les 8 numéros triés
-    taille = 36  # AU MAX physique (Maeva)
-    for ci, nums in enumerate(cols_nums):
-        cx = zx + (ci + 0.5) * cell_w
-        for ri, val in enumerate(nums):
-            cyc = z_top - (ri + 0.5) * row_h
-            if _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, val, cx, cyc - taille * 0.36, taille, gris_ch, police_ch)
-            else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-                c.drawCentredString(cx, cyc - taille * 0.36, str(val))
-
-    # QR de vérification par carte (anti-duplication) — bande de droite
-    if _sec and evenement_id:
+    # ═══ 🦋 LA PLAQUE AUX PAPILLONS ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
+    # la carte. Les huit cercles suivent, chacun à sa place.
+    _pw = CARD_W - 0.6 * mm
+    _ph = CARD_H - 0.6 * mm
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + 0.3 * mm
+    if _os2.path.exists(_IMAGE_PAP):
         try:
-            _q = 12.5 * mm
-            _sec.carton_qr(c, x0 + CARD_W - ZONE_QR + 1.2 * mm,
-                           y0 + (CARD_H - _q) / 2 - 0.8 * mm, _q, evenement_id, serie)
+            c.drawImage(_IMAGE_PAP, _px, _py, _pw, _ph, mask="auto")
         except Exception:
             pass
+
+    # ⚠️ la taille se calcule DEPUIS le cercle du papillon, jamais en dur.
+    # ⚠️ MESURER AVEC LA VRAIE POLICE (`police_ch`), pas Helvetica.
+    _dia = _pw * DIAM_PAP
+    _t_num = 25.0
+    while _t_num > 6 and (_lg_b("88", police_ch, _t_num) > _dia * 1.05
+                          or _t_num * 0.72 > _dia * 0.86):
+        _t_num -= 0.5
+
+    # ═══ les HUIT numéros, au cœur de leur papillon ═══
+    # ⚠️ cols_nums donne QUATRE COLONNES de deux numéros triés. On les
+    # aplatit dans l'ordre des pastilles : 1,2 = 1-15 · 3,4 = 16-30 ·
+    # 5,6 = 31-45 · 7,8 = 46-60.
+    _plat = [v for col in cols_nums for v in col]
+    for _k, _n in enumerate(_plat[:8]):
+        _bx, _by = PAPILLONS[_k]
+        _nx = _px + _bx * _pw
+        _ny = _py + _by * _ph - _t_num * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, _n, _nx, _ny, _t_num, gris_ch, police_ch)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(police_ch, _t_num)
+            c.drawCentredString(_nx, _ny, str(_n))
+
+    # ═══ 🎫 LES DEUX BANDEAUX, écrits dans leurs pastilles creuses ═══
+    # ⚠️ Ils étaient NOIRS PLEINS dans le dessin (plus de la moitié de
+    # leur surface en encre) : ils sont désormais CREUX, texte en gris.
+    c.setFillColor(gris_ch)
+    _t8 = 6.5
+    while _t8 > 3.2 and _lg_b("8 BOULES", "Helvetica-Bold", _t8) > _pw * 0.14:
+        _t8 -= 0.25
+    c.setFont("Helvetica-Bold", _t8)
+    c.drawCentredString(_px + _pw * 0.530, _py + _ph * 0.800, "8 BOULES")
+
+    _bl = "N\u00b0 %05d" % serie
+    if telephone:
+        _bl += "   \u2022   " + telephone
+    _tb = 9.0
+    while _tb > 3.4 and _lg_b(_bl, "Helvetica-Bold", _tb) > _pw * 0.28:
+        _tb -= 0.25
+    c.setFont("Helvetica-Bold", _tb)
+    c.drawCentredString(_px + _pw * 0.532, _py + _ph * 0.020, _bl)
 
 
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
