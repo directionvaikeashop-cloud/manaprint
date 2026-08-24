@@ -178,7 +178,7 @@ SMTP_PASS = os.environ.get("SMTP_PASS", "")   # mot de passe d'application Gmail
 JEUX_HABILLES = {
     "win", "kai", "sun", "wiz", "rai", "tahaa", "tahaa90", "baam", "papeari",
     "fan90", "lagoon", "boules60", "fleche", "brown8", "diamant",
-    "cerf_volant",
+    "cerf_volant", "boules40",
 }
 JEUX_INTERDITS = {
     "ranihei": JEUX_HABILLES,
@@ -576,7 +576,7 @@ _enregistrer_paire("trio75",        "TRIO 75",     "\U0001f3ab", 2,  trio75.gene
 _enregistrer_paire("trio90",        "TRIO 90",     "\U0001f4cf", 2,  trio90.generer_pdf)
 _enregistrer_paire("funday",        "FUNDAY",     "🎈", 10, funday.generer_pdf)
 _enregistrer_paire("huahine",       "HUAHINE",    "⛵", 8,  huahine.generer_pdf)
-_enregistrer_paire("boules40",      "40 BOULES",  "🎳", 12, boules40.generer_pdf)
+_enregistrer_paire("boules40",      "40 BOULES",  "🎳", 8, boules40.generer_pdf)
 _enregistrer_paire("tea",           "TEA",        "🍵", 12, tea.generer_pdf)
 _enregistrer_paire("ohana75_4series", "OHANA 75 · 4 séries", "🌺", 4, ohana75_4series.generer_pdf)
 _enregistrer_paire("ohana90_4series", "OHANA 90 · 4 séries", "🌸", 4, ohana90_4series.generer_pdf)
