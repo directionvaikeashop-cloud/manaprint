@@ -177,7 +177,7 @@ SMTP_PASS = os.environ.get("SMTP_PASS", "")   # mot de passe d'application Gmail
 # avec la liste des jeux qu'il ne doit pas voir.
 JEUX_HABILLES = {
     "win", "kai", "sun", "wiz", "rai", "tahaa", "tahaa90", "baam", "papeari",
-    "fan90", "lagoon", "boules60", "fleche", "brown8",
+    "fan90", "lagoon", "boules60", "fleche", "brown8", "diamant",
 }
 JEUX_INTERDITS = {
     "ranihei": JEUX_HABILLES,
@@ -555,7 +555,7 @@ _enregistrer_paire("bno",           "BNO 8 boules","🎯", 12, bno.generer_pdf)
 _enregistrer_paire("bno_casino",    "BNO CASINO","🎰", 12, bno.generer_pdf_casino)
 _enregistrer_paire("ngo",           "NGO 8 boules","🎳", 12, ngo.generer_pdf)
 _enregistrer_paire("ngo_casino",    "NGO CASINO","🎰", 12, ngo.generer_pdf_casino)
-_enregistrer_paire("diamant",       "DIAMANT","💎", 12,  diamant.generer_pdf)
+_enregistrer_paire("diamant",       "DIAMANT","💎", 8,  diamant.generer_pdf)
 _enregistrer_paire("rui",           "RUI","🎴", 12, rui.generer_pdf)
 _enregistrer_paire("tureia",        "TUREIA","🔶", 6,  tureia.generer_pdf)
 _enregistrer_paire("tureia_atoll", "ATOLL DE TUREIA","🏝️", 8,  tureia_atoll.generer_pdf)
