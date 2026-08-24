@@ -177,7 +177,7 @@ SMTP_PASS = os.environ.get("SMTP_PASS", "")   # mot de passe d'application Gmail
 # avec la liste des jeux qu'il ne doit pas voir.
 JEUX_HABILLES = {
     "win", "kai", "sun", "wiz", "rai", "tahaa", "tahaa90", "baam", "papeari",
-    "fan90", "lagoon", "boules60", "fleche",
+    "fan90", "lagoon", "boules60", "fleche", "brown8",
 }
 JEUX_INTERDITS = {
     "ranihei": JEUX_HABILLES,
