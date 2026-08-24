@@ -71,14 +71,58 @@ FOOT_H = 3 * mm
 
 # Les 7 places de l'éventail : (plage, position x, position y, décor)
 #   positions en fractions de la carte ; décor : "soleil", "cercle" ou ""
+# ═══ 🗝️ LES SEPT CLÉS (sceau Maeva 14/08) ═══
+# « VOTRE JEU FAN » : sept clés ouvragées, chacune portant SA LETTRE
+# gravée sur son manche — B · I · N · N · N · G · O.
+# ⚠️ Les numéros ne flottent plus : chacun vit dans l'anneau de SA clé,
+# dans l'ordre du dessin (quatre en haut, trois en bas).
+_RATIO_CLES = 1.5018
+CLES = [[0.2844, 0.6698], [0.4658, 0.675], [0.6405, 0.6737], [0.8572, 0.6755], [0.3707, 0.3196], [0.5839, 0.3173], [0.797, 0.3118]]
+DIAM_CLE = 0.118
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_f
+
+
+def _choisir_image(motif, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_CLES = _choisir_image("fan_cles", _RATIO_CLES)
+
+# ⚠️ L'ORDRE COMPTE : il suit les clés du dessin, de gauche à droite,
+# la rangée du haut puis celle du bas.
+#   clé 1 = B (1-10) · 2 = I (20-30) · 3 et 4 = N (31-45)
+#   clé 5 = le 7e numéro (76-90) · 6 = G (46-59) · 7 = O (60-75)
 PLACES = [
-    ((1, 10),  0.16, 0.78, "soleil"),
-    ((31, 45), 0.52, 0.80, ""),
-    ((20, 30), 0.30, 0.58, ""),
-    ((76, 90), 0.52, 0.58, "cercle"),
-    ((46, 59), 0.76, 0.58, ""),
-    ((31, 45), 0.52, 0.36, ""),
-    ((60, 75), 0.80, 0.22, "soleil"),
+    ((1, 10),  0.28, 0.67, ""),
+    ((20, 30), 0.46, 0.68, ""),
+    ((31, 45), 0.63, 0.68, ""),
+    ((31, 45), 0.84, 0.68, ""),
+    ((76, 90), 0.38, 0.34, ""),
+    ((46, 59), 0.55, 0.37, ""),
+    ((60, 75), 0.73, 0.35, ""),
 ]
 
 
@@ -118,58 +162,64 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, encre,
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
 
-    # Bordure jaune
-    c.setStrokeColor(col)
-    c.setLineWidth(1.2)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.8 * mm, stroke=1, fill=0)
-    if _sec:
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
+    # ⚠️⚠️ 14/08 : ni cadre, ni microtexte, ni QR — comme WIN, KAI, SUN,
+    # WIZ, RAI, TAHAA, BAAM et PAPEARI. Maeva veut le carton net.
 
-    # Les 7 numéros de l'éventail
-    taille = 32
-    for (plage, fx, fy, deco), n in zip(PLACES, nums):
-        cx = x0 + fx * CARD_W
-        cy = y0 + FOOT_H + fy * (CARD_H - FOOT_H - 2 * mm)
-        if deco == "soleil":
-            _soleil(c, cx, cy + taille * 0.16, 8.2 * mm, col)
-        elif deco == "cercle":
-            c.setStrokeColor(col); c.setLineWidth(0.9)
-            c.setDash(2.2, 2.0)
-            c.circle(cx, cy + taille * 0.16, 6.4 * mm, stroke=1, fill=0)
-            c.setDash()
-        # médaillon blanc (recette 100 FRANCS) : les rayons s'effacent sous le chiffre
-        c.setFillColor(colors.white)
-        c.roundRect(cx - 8.0 * mm, cy - 1.4 * mm, 16.0 * mm, 10.6 * mm, 1.8 * mm, stroke=0, fill=1)
-        if _sec:
-            _sec.chiffre_micro(c, n, cx, cy, taille, gris_ch, police_ch)
-        else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-            c.drawCentredString(cx, cy, str(n))
-
-    # Bandeau règle du jeu (en bas à gauche, comme la maquette)
-    bandeau = "Le jeu FAN 90 boules sans le 11 \u00e0 19"
-    if titre_jeu:
-        bandeau += "  \u2014  " + titre_jeu
-    c.setFillColor(GREY); c.setFont("Helvetica", 4)
-    c.drawString(x0 + CARD_W * 0.42, y0 + FOOT_H + 1.0 * mm, bandeau[:52])
-
-    # Pied : N° série + responsable
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0, y0 + FOOT_H, x0 + CARD_W, y0 + FOOT_H)
-    c.setFillColor(GREY); c.setFont("Helvetica", 4.5)
-    c.drawString(x0 + 1.5 * mm, y0 + 1.3 * mm, f"N\u00b0 {serie:06d}")
-    if telephone:
-        c.drawRightString(x0 + CARD_W - 1.5 * mm, y0 + 1.3 * mm, f"Resp. {telephone}")
-
-    # 🎯 QR intégré : coin bas-gauche libre de l'éventail (aucun chiffre dérangé)
-    if _sec and evenement_id:
+    # ═══ 🗝️ LA PLAQUE AUX SEPT CLÉS ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
+    # la carte. Les sept anneaux suivent, chacun à sa place.
+    # ⚠️ le dessin porte déjà son bandeau : il prend TOUTE la carte.
+    _pw = CARD_W - 0.6 * mm
+    _ph = CARD_H - 0.6 * mm
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + 0.3 * mm
+    if _os2.path.exists(_IMAGE_CLES):
         try:
-            _q = 14.0 * mm
-            _sec.carton_qr(c, x0 + 3.5 * mm, y0 + FOOT_H + 2.2 * mm, _q, evenement_id, serie,
-                           position_code="droite")
+            c.drawImage(_IMAGE_CLES, _px, _py, _pw, _ph, mask="auto")
         except Exception:
             pass
 
+    # ⚠️⚠️ 14/08 : MAEVA VEUT 25 PT — on part de 25 et on ne descend que
+    # si le chiffre ne tient vraiment pas.
+    # ⚠️ LE PIÈGE : la police des chiffres n'est PAS Helvetica mais
+    # « DJLECO », bien plus large. « 88 » à 25 pt fait 11,2 mm pour un
+    # anneau de 7,6 — il faut donc une marge de 1,48, pas de 1,00.
+    # Le chiffre déborde un peu de l'anneau et repose sur le médaillon
+    # de la clé : c'est le prix de la lisibilité sur 8 cartes par feuille.
+    _dia = _pw * DIAM_CLE
+    _t_num = 25.0
+    while _t_num > 6 and (_lg_f("88", police_ch, _t_num) > _dia * 1.50
+                          or _t_num * 0.72 > _dia * 1.30):
+        _t_num -= 0.5
+
+    # ═══ les SEPT numéros, dans l'anneau de leur clé ═══
+    for _k, _n in enumerate(nums[:7]):
+        _cx0, _cy0 = CLES[_k]
+        _nx = _px + _cx0 * _pw
+        _ny = _py + _cy0 * _ph - _t_num * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, _n, _nx, _ny, _t_num, gris_ch, police_ch)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(police_ch, _t_num)
+            c.drawCentredString(_nx, _ny, str(_n))
+
+    # ⚠️ 14/08 : PAS DE BANDEAU ICI — le dessin de Maeva en porte déjà un,
+    # « N° 00001 • 89 22 23 05 ». On écrit dedans, à sa place exacte.
+    _bl = "N\u00b0 %05d" % serie
+    if telephone:
+        _bl += "  \u2022  " + telephone
+    # ⚠️ le bandeau du dessin est LARGE : le texte peut prendre ses aises
+    _tb = 9.0
+    while _tb > 3.4 and _lg_f(_bl, "Helvetica-Bold", _tb) > _pw * 0.33:
+        _tb -= 0.25
+    # ⚠️ 14/08 (Maeva : « le numéro de série en blanc, pas en noir, pour
+    # notre économie de toner ») : LE BANDEAU EST DEVENU CREUX dans
+    # l'image — un simple contour au lieu d'un rectangle noir plein qui
+    # buvait la moitié de sa surface. Le texte passe donc EN GRIS.
+    c.setFillColor(gris_ch)
+    c.setFont("Helvetica-Bold", _tb)
+    c.drawCentredString(_px + _pw * 0.515, _py + _ph * 0.043, _bl)
 
 def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
@@ -190,13 +240,12 @@ def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
         if nom_evenement:
             c.setFillColor(NOIR); c.setFont("Helvetica-Bold", 11)
             c.drawCentredString(PAGE_W / 2, PAGE_H - 5 * mm, nom_evenement)
-        titre_aff = titre_jeu if titre_jeu else "FAN 90"
-        ligne2 = titre_aff
-        if date_lieu: ligne2 += "  \u00b7  " + date_lieu
-        ligne2 += f"  \u00b7  Page {no_page}"
-        c.setFillColor(GREY); c.setFont("Helvetica", 7)
-        y2 = (PAGE_H - 8.5 * mm) if nom_evenement else (PAGE_H - 6 * mm)
-        c.drawCentredString(PAGE_W / 2, y2, ligne2)
+        # ⚠️ 14/08 : PLUS DE TITRE EN HAUT DE PAGE — le dessin de Maeva
+        # porte déjà « FAN » en grand. Seul le numéro de page reste, très
+        # discret, pour qu'elle s'y retrouve dans une grosse commande.
+        c.setFillColor(GREY); c.setFont("Helvetica", 5)
+        y2 = (PAGE_H - 8.5 * mm) if nom_evenement else (PAGE_H - 5 * mm)
+        c.drawRightString(PAGE_W - 6 * mm, y2, f"Page {no_page}")
 
         for row in range(ROWS_PAGE):
             for col_i in range(COLS_PAGE):
