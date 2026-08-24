@@ -173,8 +173,51 @@ def _des_casino(c, valeur, cx, cy, ech, col, gris_ch):
 # 28 mm de blanc de chaque cote de la bouteille. En le serrant sur
 # elle, on en tient TROIS par rangee au lieu de deux — +50 % de
 # cartons par feuille, et les chiffres ne perdent que 2 pt.
-COLS_PAGE = 3
-ROWS_PAGE = 2   # 4 cartes / A4 : les numéros vivent DANS la bouteille
+# ═══ 🍾 LE BAC AUX DIX BOUTEILLES (sceau Maeva 14/08) ═══
+# « VOTRE JEU TAHITI — 10 BOUTEILLES » : dix bouteilles au frais dans un
+# bac à glaçons, chacune portant SA LETTRE sur le goulot et son étiquette
+# ovale pour le numéro. Deux rangées de cinq : B · I · N · G · O.
+_RATIO_BAC = 1.5018
+BOUTEILLES = [[0.2933, 0.5884], [0.4178, 0.586], [0.5507, 0.586], [0.6787, 0.5858], [0.8055, 0.5862], [0.2499, 0.3643], [0.3903, 0.3495], [0.5458, 0.3505], [0.702, 0.3492], [0.8452, 0.3616]]
+LARG_ETIQ = 0.0743
+RAP_ETIQ = 1.5
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_t
+
+
+def _choisir_image(motif_img, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif_img + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif_img in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_BAC = _choisir_image("tahiti_bac", _RATIO_BAC)
+
+
+# ⚠️ 14/08 : le dessin est en PAYSAGE (ratio 1,50) — on passe de 6 cartes
+# à 8 cartes-plaques (2 colonnes × 4 rangées).
+COLS_PAGE = 2
+ROWS_PAGE = 4
 MARGIN_X = 8 * mm
 MARGIN_TOP = 10 * mm
 MARGIN_BOT = 7 * mm
@@ -201,113 +244,91 @@ def _dessiner_carte(c, x0, y0, cols_nums, bonus_des, couleur_hex, serie, titre_j
     col = colors.HexColor(couleur_hex)
     cell_w = CARD_W / 5
 
-    # Bordure carte
-    c.setStrokeColor(col); c.setLineWidth(0.8)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.9 * mm)
+    # ⚠️⚠️ 14/08 : ni cadre, ni microtexte, ni QR — comme les autres jeux
+    # habillés. Maeva veut le carton net.
 
-    # En-tête : nom du jeu (TOUJOURS visible) + série (fidèle au modèle)
-    hdr_bas = y0 + CARD_H - HDR_H
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0, hdr_bas, x0 + CARD_W, hdr_bas)
-    l1 = "TAHITI"
-    if titre_jeu and "TAHITI" not in titre_jeu.strip().upper():
-        l1 = "TAHITI \u00b7 " + titre_jeu.strip() + ""
+    # ═══ 🍾 LA PLAQUE AU BAC ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
+    # la carte. Les dix étiquettes suivent, chacune à sa place.
+    _pw = CARD_W - 0.6 * mm
+    _ph = CARD_H - 0.6 * mm
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + 0.3 * mm
+    if _os2.path.exists(_IMAGE_BAC):
+        try:
+            c.drawImage(_IMAGE_BAC, _px, _py, _pw, _ph, mask="auto")
+        except Exception:
+            pass
+
+    # ⚠️ la taille se calcule DEPUIS l'étiquette, jamais en dur.
+    # ⚠️ MESURER AVEC LA VRAIE POLICE (`police_ch`), pas Helvetica.
+    # ⚠️ l'étiquette est un OVALE : plus haute que large (×1,50), donc
+    #    c'est sa LARGEUR qui bride.
+    _lg_e = _pw * LARG_ETIQ
+    _ht_e = _lg_e * RAP_ETIQ
+    _t_num = 25.0
+    # ⚠️ 14/08 : le chiffre peut DÉBORDER un peu de l'étiquette — il
+    # repose sur le corps de la bouteille, que le voile éclaircit. On
+    # desserre donc à 1,45 en largeur pour retrouver de la lisibilité.
+    while _t_num > 6 and (_lg_t("88", police_ch, _t_num) > _lg_e * 1.45
+                          or _t_num * 0.72 > _ht_e * 0.78):
+        _t_num -= 0.5
+
+    # ═══ les DIX numéros, sur l'étiquette de leur bouteille ═══
+    # ⭐ 14/08 (sceau Maeva : « les ronds cachent le visuel des bouteilles,
+    # trouve-nous une autre solution ») : PLUS D'OVALE BLANC PLAQUÉ SUR
+    # LE VERRE. Le dessin reste intact, et le numéro se pose SUR
+    # l'étiquette d'origine — avec, sous lui, un simple VOILE CLAIR qui
+    # éclaircit le fond juste assez pour qu'il se lise, sans effacer les
+    # reflets ni le galbe de la bouteille.
+    # ⚠️ cols_nums donne CINQ paires (B, I, N, G, O). On les range en
+    # DEUX RANGÉES : la rangée du haut prend le premier de chaque paire,
+    # celle du bas le second — comme le dessin le montre.
+    _haut = [p[0] for p in cols_nums]
+    _bas = [p[1] for p in cols_nums]
+    for _k, _n in enumerate(_haut + _bas):
+        if _k >= len(BOUTEILLES):
+            break
+        _bx, _by = BOUTEILLES[_k]
+        _nx = _px + _bx * _pw
+        _ny = _py + _by * _ph - _t_num * 0.34
+        # 🕯️ LE VOILE : un ovale blanc à peine opaque, juste sous le
+        # chiffre. Il éclaircit le verre sans le masquer.
+        c.saveState()
+        try:
+            c.setFillColor(colors.Color(1, 1, 1, alpha=0.72))
+            _vw = _lg_e * 1.62
+            _vh = _vw * 0.78
+            c.ellipse(_nx - _vw / 2, _ny - _vh * 0.30,
+                      _nx + _vw / 2, _ny + _vh * 0.70, stroke=0, fill=1)
+        finally:
+            c.restoreState()
+        if _sec:
+            _sec.chiffre_micro(c, _n, _nx, _ny, _t_num, gris_ch, police_ch)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(police_ch, _t_num)
+            c.drawCentredString(_nx, _ny, str(_n))
+
+    # ═══ 🎫 LE BANDEAU, écrit dans sa pastille creuse ═══
+    # ⚠️ Il était NOIR PLEIN dans le dessin (61 % de sa surface en encre) :
+    # il est désormais CREUX, et le PDF y écrit en gris.
+    c.setFillColor(gris_ch)
+    _t10 = 7.0
+    while _t10 > 3.2 and _lg_t("10 BOUTEILLES", "Helvetica-Bold", _t10) > _pw * 0.15:
+        _t10 -= 0.25
+    c.setFont("Helvetica-Bold", _t10)
+    c.drawCentredString(_px + _pw * 0.547, _py + _ph * 0.777, "10 BOUTEILLES")
+
+    # le numéro de série, discret au pied du bac
+    _bl = "N\u00b0 %05d" % serie
     if telephone:
-        l1 += " " + telephone
-    c.setFillColor(col); c.setFont(POLICE, 5)
-    c.drawString(x0 + 2.5 * mm, hdr_bas + 1.8 * mm, l1[:54])
-    c.setFont(POLICE, 6.5)
-    c.drawRightString(x0 + CARD_W - 2.5 * mm, hdr_bas + 1.7 * mm, "%06d" % serie)
-
-    # ═══ 🍾 LES QUATORZE NUMÉROS DANS LA BOUTEILLE ═══
-    z_top = hdr_bas - 1.0 * mm
-    z_bot = y0 + 1.5 * mm
-    z_h = z_top - z_bot
-
-    ilw = CARD_W - 3.5 * mm      # le carton est taille sur la bouteille
-    ilh = ilw / _RATIO_TAHITI
-    if ilh > z_h:
-        ilh = z_h
-        ilw = ilh * _RATIO_TAHITI
-    ilx = x0 + (CARD_W - ilw) / 2
-    ily = z_bot + (z_h - ilh) / 2
-    if _os2.path.exists(_IMAGE_TAHITI):
-        try:
-            c.drawImage(_IMAGE_TAHITI, ilx, ily, ilw, ilh, mask="auto",
-                        preserveAspectRatio=True)
-        except Exception:
-            pass
-
-    # ── 🎲 NOS DÉS, AU CŒUR DE LA FLEUR ─────────────────────────────────
-    # 💰 LE BONUS, AU CŒUR DE LA FLEUR (sceau Maeva 09/08) : un montant
-    # en francs, tiré avec la carte — 5, 10, 20, 50 ou 100.
-    fcx = ilx + 0.268 * ilw
-    fcy = ily + 0.143 * ilh
-    tm = min(ilw * 0.125, ilh * 0.065) * 72 / 25.4 * 0.72
-    tm = min(tm, 24.0)
-    # ⚠️ le bloc « montant + FRANCS » est CENTRÉ sur le cœur : le chiffre
-    # remonte d'un quart pour que l'ensemble tombe juste dans le calice.
-    y_chiffre = fcy - tm * 0.34 + tm * 0.22
-    if _sec:
-        _sec.chiffre_micro(c, bonus_des, fcx, y_chiffre, tm, gris_ch, police_ch)
-    else:
-        c.setFillColor(gris_ch)
-        c.setFont(police_ch, tm)
-        c.drawCentredString(fcx, y_chiffre, str(bonus_des))
-    c.setFillColor(col)
-    c.setFont("Helvetica-Bold", tm * 0.32)
-    c.drawCentredString(fcx, y_chiffre - tm * 0.40, "FRANCS")
-
-    # ── les DIX numéros, DANS le verre : une rangée par lettre ──────────
-    # Chaque rangée porte sa lettre du mot BINGO et ses DEUX numéros.
-    gx = ilx + CORPS[0] * ilw
-    gw = (CORPS[1] - CORPS[0]) * ilw
-    gy = ily + CORPS[2] * ilh
-    gh = (CORPS[3] - CORPS[2]) * ilh
-    NR = 5
-    chh = gh / NR
-    # ⚠️ 12/08 : la colonne des lettres passe de 15 % à 11 % — en gras,
-    # une lettre reste lisible dans moins de place, et les DEUX nombres
-    # de la rangée gagnent chacun la moitié de ce qu'elle rend.
-    LET_W = gw * 0.11                      # la colonne des lettres, à gauche
-    cw2 = (gw - LET_W) / 2.0
-    taille = 34.0
-    # ⚠️ 0,74 et non 0,80 : deux nombres par rangée, il leur faut de l'air
-    # ⚠️ 12/08 : on mesure avec LA VRAIE POLICE (police_ch), pas Helvetica.
-    # La grasse condensée est plus étroite : à place égale elle monte plus
-    # haut. Marges élargies en conséquence pour tenir les 25 pt demandés.
-    while taille > 12 and (_lgt("88", police_ch, taille) > cw2 * 0.88
-                           or taille * 0.72 > chh * 0.82):
-        taille -= 0.5
-    for ri in range(NR):
-        cyc = gy + gh - (ri + 0.5) * chh
-        # la lettre B·I·N·G·O
-        c.setFillColor(col)
-        c.setFont("Helvetica-Bold", taille * 0.46)
-        c.drawCentredString(gx + LET_W / 2, cyc - taille * 0.46 * 0.34,
-                            LETTRES_BINGO[ri])
-        # ses deux numéros
-        for ci in range(2):
-            val = cols_nums[ri][ci]
-            nx = gx + LET_W + (ci + 0.5) * cw2
-            ny = cyc - taille * 0.34
-            if _sec:
-                _sec.chiffre_micro(c, val, nx, ny, taille, gris_ch, police_ch)
-            else:
-                c.setFillColor(gris_ch)
-                c.setFont(police_ch, taille)
-                c.drawCentredString(nx, ny, str(val))
-
-    # QR de vérification — dans sa case barrée du haut
-    if _sec and evenement_id:
-        try:
-            _q = 11.0 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 3.0 * mm, y0 + 2.5 * mm,
-                           _q, evenement_id, serie, avec_code=False)
-        except Exception:
-            pass
+        _bl += "   \u2022   " + telephone
+    _tb = 6.5
+    while _tb > 3.4 and _lg_t(_bl, "Helvetica-Bold", _tb) > _pw * 0.30:
+        _tb -= 0.25
+    c.setFont("Helvetica-Bold", _tb)
+    c.drawCentredString(_px + _pw * 0.560, _py + _ph * 0.025, _bl)
 
 
 def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
