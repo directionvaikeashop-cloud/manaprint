@@ -179,7 +179,7 @@ SMTP_PASS = os.environ.get("SMTP_PASS", "")   # mot de passe d'application Gmail
 JEUX_HABILLES = {
     "win", "kai", "sun", "wiz", "rai", "tahaa", "tahaa90", "baam", "papeari",
     "fan90", "lagoon", "boules60", "fleche", "brown8", "diamant",
-    "cerf_volant", "boules40", "bubulle",
+    "cerf_volant", "boules40", "bubulle", "dual_dab",
 }
 JEUX_INTERDITS = {
     "ranihei": JEUX_HABILLES,
