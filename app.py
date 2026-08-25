@@ -180,7 +180,7 @@ JEUX_HABILLES = {
     "win", "kai", "sun", "wiz", "rai", "tahaa", "tahaa90", "baam", "papeari",
     "fan90", "lagoon", "boules60", "fleche", "brown8", "diamant",
     "cerf_volant", "boules40", "bubulle", "dual_dab",
-    "aloha75",
+    "aloha75", "pol",
 }
 JEUX_INTERDITS = {
     "ranihei": JEUX_HABILLES,
@@ -406,7 +406,7 @@ _enregistrer_paire("ohana75_8b_myst","OHANA 75 · 8 boules MYSTÈRE","💰", 9, 
 _enregistrer_paire("ohana75_10b",   "OHANA 75 · 10 boules","🌺", 9,  ohana75_10boules.generer_pdf)
 _enregistrer_paire("ohana75_10b_myst","OHANA 75 · 10 boules MYSTÈRE","💰", 9,  ohana75_10boules.generer_pdf_mystere)
 _enregistrer_paire("quatre_coin",   "4 COIN","🎯", 6,  quatre_coin.generer_pdf)
-_enregistrer_paire("pol",           "POL 6 boules","🎲", 12, pol.generer_pdf)
+_enregistrer_paire("pol",           "POL 6 boules","🎲", 8, pol.generer_pdf)
 _enregistrer_paire("sun",           "SUN 8 boules","☀️", 12, sun.generer_pdf)
 _enregistrer_paire("sun_casino",    "SUN CASINO","🎲", 12, sun.generer_pdf_casino)
 _enregistrer_paire("pow",           "POW 8 boules","💥", 12, powgen.generer_pdf)
