@@ -94,7 +94,16 @@ def _gen_carte(rng):
 
 def _dessiner_carte(c, x0, y0, cols_paires, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
     police_ch, gris_ch = _style_chiffres(style)
-    col = colors.HexColor(couleur_hex)
+    # ⭐⭐ 14/08 (sceau Maeva : « peut-on alléger la couleur sur OHANA 90
+    # 2 séries ») : LA COULEUR DEVIENT PASTEL.
+    # ⚠️ On ne touche PAS aux chiffres — ils restent en gris, pleinement
+    # lisibles. Seuls le cadre, la grille, les cercles et les lettres
+    # s'éclaircissent : on les mélange à 55 % de blanc.
+    _brut = colors.HexColor(couleur_hex)
+    _PALE = 0.55                      # 0 = blanc · 1 = la couleur d'origine
+    col = colors.Color(1 - (1 - _brut.red) * _PALE,
+                       1 - (1 - _brut.green) * _PALE,
+                       1 - (1 - _brut.blue) * _PALE)
     cell_w = CARD_W / 6
 
     # Ligne d'identité au-dessus de la carte — le nom du jeu apparaît TOUJOURS
