@@ -57,8 +57,56 @@ def _style_chiffres(style):
 
 PAGE_W, PAGE_H = A4
 
-COLS_PAGE = 2   # 2 cartes par rangée
-ROWS_PAGE = 6   # 6 rangées
+# ═══ 🌺 LE COLLIER DE FLEURS (sceau Maeva 14/08) ═══
+# « ALOHA » : dix fleurs tressées en collier, chacune portant SA LETTRE
+# sur une pastille et son cœur rond pour le numéro.
+# ⚠️ LES LETTRES SONT CELLES DU BINGO (comme sur le dessin de Maeva) :
+#   B ×2 : 1-15 · I ×2 : 16-30 · N ×2 : 31-45 · G ×2 : 46-60 · O ×2 : 61-75
+# Les plages ne changent PAS — seules les lettres affichées.
+# L'ORDRE : rangée du haut B·B·I·I·N, rangée du bas N·G·G·O·O.
+_RATIO_COLLIER = 1.4336
+FLEURS = [[0.2677, 0.6379], [0.4173, 0.6396], [0.5669, 0.6395], [0.7181, 0.6393], [0.8716, 0.6384], [0.2336, 0.2746], [0.4079, 0.2424], [0.5686, 0.2426], [0.7285, 0.2423], [0.9007, 0.2746]]
+DIAM_FLEUR = 0.0782
+# ⚠️ le cœur est un OVALE : sa hauteur est bornée pour ne pas recouvrir
+# la PASTILLE DE LA LETTRE, qui vit 0,05 en dessous.
+HAUT_FLEUR = 0.0782
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_a
+
+
+def _choisir_image(motif_img, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif_img + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif_img in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_COLLIER = _choisir_image("aloha_collier", _RATIO_COLLIER)
+
+
+# ⚠️ 14/08 : le dessin est en PAYSAGE (ratio 1,50) — on passe de 12 cartes
+# à 8 cartes-plaques (2 colonnes × 4 rangées).
+COLS_PAGE = 2
+ROWS_PAGE = 4
 MARGIN_X = 6 * mm
 MARGIN_TOP = 12 * mm
 MARGIN_BOT = 8 * mm
@@ -82,70 +130,72 @@ def _gen_carte():
 def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", titre_jeu="", nom_jeu="ALOHA 75", style="eco", evenement_id=""):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
-    ncols = len(LETTERS)
-    cell_w = (CARD_W - 15 * mm) / ncols  # 15 mm réservés à droite : la maison du QR
 
-    # Bordure
-    c.setStrokeColor(col)
-    c.setLineWidth(0.8)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
+    # ⚠️⚠️ 14/08 : ni cadre, ni microtexte, ni QR — comme les autres jeux
+    # habillés. Maeva veut le carton net.
 
-    # Mini-bandeau : nom du jeu + nom du tournoi (sécurité, sur chaque grille)
-    bandeau = nom_jeu
-    if titre_jeu:
-        bandeau += "  —  " + titre_jeu
-    c.setFillColor(GREY); c.setFont("Helvetica", 4)
-    c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 2.5 * mm, bandeau[:60])
-
-    # Header lettres
-    hdr_y = y0 + CARD_H - HDR_H - 2.5 * mm
-    c.setFillColor(col)
-    c.setFont("Helvetica-Bold", 8)
-    for i, lettre in enumerate(LETTERS):
-        c.drawCentredString(x0 + (i + 0.5) * cell_w, hdr_y + 1.4 * mm, lettre)
-    c.setStrokeColor(col)
-    c.setLineWidth(0.4)
-    c.line(x0, hdr_y, x0 + CARD_W, hdr_y)
-
-    # Zone des numéros (2 lignes)
-    zone_h = (CARD_H - 2.5 * mm) - HDR_H - FOOT_H
-    for i, nums in enumerate(carte):
-        cx = x0 + (i + 0.5) * cell_w
-        if _sec:  # chiffres "billet de banque" remplis de microtexte
-            _sec.chiffre_micro(c, nums[0], cx, y0 + FOOT_H + zone_h * 0.55, 32, gris_ch, police_ch)
-            _sec.chiffre_micro(c, nums[1], cx, y0 + FOOT_H + zone_h * 0.12, 32, gris_ch, police_ch)
-        else:
-            c.setFillColor(gris_ch)
-            c.setFont(police_ch, 32)
-            c.drawCentredString(cx, y0 + FOOT_H + zone_h * 0.55, str(nums[0]))
-            c.drawCentredString(cx, y0 + FOOT_H + zone_h * 0.12, str(nums[1]))
-        if i > 0:
-            c.setStrokeColor(colors.Color(0.85, 0.85, 0.85))
-            c.setLineWidth(0.3)
-            c.line(x0 + i * cell_w, y0 + FOOT_H, x0 + i * cell_w, hdr_y)
-
-    # Pied : N° série à gauche + responsable à droite (sur chaque grille)
-    c.setStrokeColor(col)
-    c.setLineWidth(0.4)
-    c.line(x0, y0 + FOOT_H, x0 + CARD_W, y0 + FOOT_H)
-    c.setFillColor(GREY)
-    c.setFont("Helvetica", 4.5)
-    c.drawString(x0 + 1.5 * mm, y0 + 1.3 * mm, f"N° {serie:06d}")
-    if telephone:
-        c.drawRightString(x0 + CARD_W - 1.5 * mm, y0 + 1.3 * mm, f"Resp. {telephone}")
-
-    # QR de vérification par grille (anti-duplication) — coin bas-droit
-    if _sec and evenement_id:
+    # ═══ 🌺 LA PLAQUE AU COLLIER ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
+    # la carte. Les dix cœurs suivent, chacun à sa place.
+    _pw = CARD_W - 0.6 * mm
+    _ph = CARD_H - 0.6 * mm
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + 0.3 * mm
+    if _os2.path.exists(_IMAGE_COLLIER):
         try:
-            # 🎯 QR dans la marge droite réservée (aucun chiffre dérangé)
-            _q = 12.0 * mm
-            _xq = x0 + CARD_W - _q - 3.0 * mm
-            _yq = y0 + (CARD_H - _q - 3.4 * mm) / 2 + 3.4 * mm
-            _sec.carton_qr(c, _xq, _yq, _q, evenement_id, serie)
+            c.drawImage(_IMAGE_COLLIER, _px, _py, _pw, _ph, mask="auto")
         except Exception:
             pass
+
+    # ⚠️ la taille se calcule DEPUIS le cœur, jamais en dur.
+    # ⚠️ MESURER AVEC LA VRAIE POLICE (`police_ch`), pas Helvetica.
+    # ⚠️ les fleurs sont espacées de 0,1395 pour un cœur de 0,088 : le
+    #    chiffre peut déborder un peu sans jamais toucher sa voisine.
+    _dia = _pw * DIAM_FLEUR
+    # ⚠️ 14/08 : Maeva veut 23 pt sur ce jeu (le collier est fin, les
+    # chiffres y respirent mieux un peu plus petits).
+    # ⭐⭐ 14/08 : LA POLICE DES CHIFFRES DEVIENT « Helvetica-Bold ».
+    # Maeva voulait des chiffres qui RENTRENT dans le rond ET qui fassent
+    # « waouh ». Le secret n'est pas la taille : c'est LE GRAS.
+    #   DJLECO       16,0 pt · 4,38 mm de haut · 24 % de chair
+    #   Helvetica-Bold 18,5 pt · 4,76 mm de haut · 58 % de chair  ⭐
+    #   Times-Bold   21,0 pt · 5,14 mm · mais ses empattements font
+    #                « journal », moins moderne sur un carton coloré.
+    # ⚠️ le cœur fait 7,50 mm : « 88 » à 18,5 pt en prend 6,92 — il tient
+    # DEDANS avec de l'air.
+    _POLICE_NUM = "Helvetica-Bold"
+    _t_num = 18.5
+    while _t_num > 6 and (_lg_a("88", _POLICE_NUM, _t_num) > _dia * 0.99
+                          or _t_num * 0.72 > _ph * HAUT_FLEUR * 0.95):
+        _t_num -= 0.5
+
+    # ═══ les DIX numéros, au cœur de leur fleur ═══
+    # ⚠️ `carte` donne CINQ colonnes de deux numéros triés. On les aplatit
+    # dans l'ordre des pastilles : B·B · I·I · N (haut) puis N · G·G · O·O.
+    _plat = [v for colonne in carte for v in colonne]
+    for _k, _n in enumerate(_plat[:10]):
+        _fx, _fy = FLEURS[_k]
+        _nx = _px + _fx * _pw
+        _ny = _py + _fy * _ph - _t_num * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, _n, _nx, _ny, _t_num, gris_ch, _POLICE_NUM)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(_POLICE_NUM, _t_num)
+            c.drawCentredString(_nx, _ny, str(_n))
+
+    # ═══ 🎫 LE BANDEAU, écrit dans sa pastille creuse ═══
+    # ⚠️ Il était NOIR PLEIN dans le dessin (54 % de sa surface) : il est
+    # désormais CREUX, et le PDF y écrit en gris.
+    c.setFillColor(gris_ch)
+    _bl = "N\u00b0 %05d" % serie
+    if telephone:
+        _bl += "   \u2605   " + telephone
+    _tb = 9.0
+    while _tb > 3.4 and _lg_a(_bl, "Helvetica-Bold", _tb) > _pw * 0.30:
+        _tb -= 0.25
+    c.setFont("Helvetica-Bold", _tb)
+    c.drawCentredString(_px + _pw * 0.520, _py + _ph * 0.030, _bl)
 
 
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
@@ -168,13 +218,10 @@ def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
         if nom_evenement:
             c.setFillColor(NOIR); c.setFont("Helvetica-Bold", 11)
             c.drawCentredString(PAGE_W / 2, PAGE_H - 5 * mm, nom_evenement)
-        titre_aff = titre_jeu if titre_jeu else "ALOHA 75"
-        ligne2 = titre_aff
-        if date_lieu: ligne2 += "  ·  " + date_lieu
-        ligne2 += f"  ·  Page {no_page}"
-        c.setFillColor(GREY); c.setFont("Helvetica", 7)
-        y2 = (PAGE_H - 8.5 * mm) if nom_evenement else (PAGE_H - 6 * mm)
-        c.drawCentredString(PAGE_W / 2, y2, ligne2)
+        # ⚠️ 14/08 : PLUS DE TITRE EN HAUT DE PAGE — le dessin porte déjà
+        # « ALOHA » en grand. Seul le numéro de page reste, discret.
+        c.setFillColor(colors.Color(0.62, 0.62, 0.62)); c.setFont("Helvetica", 5)
+        c.drawRightString(PAGE_W - 6 * mm, PAGE_H - 5 * mm, "Page %d" % no_page)
 
         for row in range(ROWS_PAGE):
             for col_i in range(COLS_PAGE):
