@@ -52,6 +52,54 @@ def _style_chiffres(style):
 
 
 PAGE_W, PAGE_H = A4
+# ═══ 🍾 LES CAPSULES (sceau Maeva 14/08) ═══
+# « DUAL DAB » : quatre paires de capsules de bouteille et une GRANDE
+# capsule au centre, entourée d'éclairs.
+# ⚠️ DEUX SORTES DE PAIRES dans le dessin :
+#   · paires 1 et 4 → DEUX capsules rondes reliées par une flèche ↔
+#   · paires 2 et 3 → UNE barrette allongée, ses deux numéros de part et
+#     d'autre du « / »
+# L'ORDRE des neuf places suit celui du jeu :
+#   1-15 a·b · 16-30 a·b · 61-75 (le centre) · 31-45 a·b · 46-60 a·b
+_RATIO_DAB = 1.5018
+PLACES = [[0.2244, 0.6377], [0.3991, 0.6381], [0.7164, 0.6359], [0.8702, 0.6359], [0.5456, 0.4432], [0.2481, 0.2071], [0.3869, 0.2071], [0.7019, 0.2126], [0.8781, 0.2126]]
+LARG_CAPS = 0.0964
+HAUT_CAPS = 0.1455
+LARG_CENTRE = 0.1628
+HAUT_CENTRE = 0.2432
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_d
+
+
+def _choisir_image(motif_img, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif_img + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif_img in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_DAB = _choisir_image("dab_capsules", _RATIO_DAB)
+
+
 COLS_PAGE = 2
 ROWS_PAGE = 4          # 8 grilles par feuille A4 (décision Maeva, 28/07)
 MARGIN_X = 6 * mm
@@ -105,78 +153,74 @@ def _dessiner_carte(c, x0, y0, donnees, couleur_hex, serie, encre,
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
 
-    # Bordure
-    c.setStrokeColor(col)
-    c.setLineWidth(1.0)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
-    if _sec:
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
+    # ⚠️⚠️ 14/08 : ni cadre, ni microtexte, ni QR — comme les autres jeux
+    # habillés. Maeva veut le carton net.
 
-    # En-tête double : titre à gauche, "" à droite
-    hdr_y = y0 + CARD_H - HDR_H
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0, hdr_y, x0 + CARD_W, hdr_y)
-    c.line(x0 + CARD_W * 0.44, hdr_y, x0 + CARD_W * 0.44, y0 + CARD_H)
-    c.setFillColor(col); c.setFont("Helvetica-Bold", 7)
-    titre = titre_jeu[:18] if titre_jeu else "DUAL DAB 75"
-    c.drawString(x0 + 3 * mm, hdr_y + 1.8 * mm, titre)
-    c.setFillColor(GREY); c.setFont("Helvetica-Oblique", 5)
-    droite = f"{telephone}" if telephone else ""
-    c.drawRightString(x0 + CARD_W - 3 * mm, hdr_y + 2.0 * mm, droite)
-
-    taille = 30  # GROS chiffres — les cartes sont spacieuses, on en profite !
-
-    def num(n, xx, yy):
-        if _sec:
-            _sec.chiffre_micro(c, n, xx, yy, taille, gris_ch, police_ch)
-        else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-            c.drawCentredString(xx, yy, str(n))
-
-    # Les 4 paires
-    for a, b, sep, fx, rang in paires:
-        cx = x0 + CARD_W * fx
-        yy = y0 + CARD_H * (0.66 if rang == "haut" else 0.14)
-        wa = stringWidth(str(a), police_ch, taille)
-        wb = stringWidth(str(b), police_ch, taille)
-        wsep = 6.2 * mm
-        total = wa + wsep + wb
-        xa = cx - total / 2 + wa / 2
-        xb = cx + total / 2 - wb / 2
-        num(a, xa, yy)
-        num(b, xb, yy)
-        milieu_g = xa + wa / 2 + 1.0 * mm
-        milieu_d = xb - wb / 2 - 1.0 * mm
-        if sep == "fleche":
-            _fleche(c, milieu_g, milieu_d, yy + taille * 0.30, gris_ch)
-        else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-            c.drawCentredString((milieu_g + milieu_d) / 2, yy, "/")
-
-    # Le numéro central dans son cercle pointillé
-    ccx = x0 + CARD_W / 2
-    ccy = y0 + CARD_H * 0.42
-    c.setStrokeColor(col); c.setLineWidth(0.7)
-    c.setDash(1.6, 1.8)
-    c.circle(ccx, ccy + taille * 0.16, 10.0 * mm, stroke=1, fill=0)
-    c.setDash()
-    num(centre, ccx, ccy)
-
-    # 🎯 QR au milieu-droit (entre les deux rangées de paires)
-    if _sec and evenement_id:
+    # ═══ 🍾 LA PLAQUE AUX CAPSULES ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
+    # la carte. Les neuf places suivent, chacune à son endroit.
+    _pw = CARD_W - 0.6 * mm
+    _ph = CARD_H - 0.6 * mm
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + 0.3 * mm
+    if _os2.path.exists(_IMAGE_DAB):
         try:
-            _q = 13.0 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 2.5 * mm,
-                           y0 + CARD_H * 0.42 - 5.5 * mm, _q, evenement_id, serie)
+            c.drawImage(_IMAGE_DAB, _px, _py, _pw, _ph, mask="auto")
         except Exception:
             pass
 
-    # Pied : N° SERIE + numéro
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0, y0 + FOOT_H, x0 + CARD_W, y0 + FOOT_H)
-    c.setFillColor(GREY); c.setFont("Helvetica", 4.5)
-    c.drawString(x0 + 1.5 * mm, y0 + 1.3 * mm, "N\u00b0 SERIE")
-    c.drawRightString(x0 + CARD_W - 1.5 * mm, y0 + 1.3 * mm, f"{serie:06d}")
+    # ⚠️ deux tailles : les huit capsules de paire, et LA GRANDE du centre.
+    # ⚠️ MESURER AVEC LA VRAIE POLICE (`police_ch`), pas Helvetica.
+    _lg_p = _pw * LARG_CAPS
+    _ht_p = _ph * HAUT_CAPS
+    _t_num = 25.0
+    # ⚠️⚠️ 14/08 (Maeva veut 22 à 25 pt dans les paires) : la capsule fait
+    # 9,29 mm et « 88 » à 25 pt en prend 11,22 — il DÉBORDE un peu, mais
+    # les capsules d'une paire sont espacées de 0,175 pour une largeur de
+    # 0,096 : il reste 0,078 de vide entre elles, le chiffre ne touche
+    # jamais sa voisine. On desserre donc à 1,22.
+    # ⚠️ mesuré avec la VRAIE police (DJLECO), pas Helvetica.
+    while _t_num > 6 and (_lg_d("88", police_ch, _t_num) > _lg_p * 1.22
+                          or _t_num * 0.72 > _ht_p * 0.68):
+        _t_num -= 0.5
+
+    _lg_g = _pw * LARG_CENTRE
+    _ht_g = _ph * HAUT_CENTRE
+    _t_gros = 34.0
+    while _t_gros > 8 and (_lg_d("88", police_ch, _t_gros) > _lg_g * 0.86
+                           or _t_gros * 0.72 > _ht_g * 0.52):
+        _t_gros -= 0.5
+
+    # ═══ les NEUF numéros, dans leurs capsules ═══
+    # ⚠️ `paires` donne quatre (a, b, sep, fx, rang) ; on aplatit dans
+    # l'ordre du dessin, en glissant le centre à la cinquième place.
+    _plat = []
+    for _k, (_a, _b, _sep, _fx, _rang) in enumerate(paires):
+        _plat += [_a, _b]
+        if _k == 1:
+            _plat.append(centre)
+    for _k, _n in enumerate(_plat[:9]):
+        _dx, _dy = PLACES[_k]
+        _t = _t_gros if _k == 4 else _t_num
+        _nx = _px + _dx * _pw
+        _ny = _py + _dy * _ph - _t * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, _n, _nx, _ny, _t, gris_ch, police_ch)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(police_ch, _t)
+            c.drawCentredString(_nx, _ny, str(_n))
+
+    # ═══ 🎫 LE BANDEAU, écrit dans sa pastille creuse ═══
+    c.setFillColor(gris_ch)
+    _bl = "N\u00b0 %05d" % serie
+    if telephone:
+        _bl += "   \u2605   " + telephone
+    _tb = 9.0
+    while _tb > 3.4 and _lg_d(_bl, "Helvetica-Bold", _tb) > _pw * 0.31:
+        _tb -= 0.25
+    c.setFont("Helvetica-Bold", _tb)
+    c.drawCentredString(_px + _pw * 0.520, _py + _ph * 0.030, _bl)
 
 
 def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
@@ -199,12 +243,10 @@ def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
             c.setFillColor(NOIR); c.setFont("Helvetica-Bold", 11)
             c.drawCentredString(PAGE_W / 2, PAGE_H - 5 * mm, nom_evenement)
         titre_aff = titre_jeu if titre_jeu else "DUAL DAB 75"
-        ligne2 = titre_aff
-        if date_lieu: ligne2 += "  \u00b7  " + date_lieu
-        ligne2 += f"  \u00b7  Page {no_page}"
-        c.setFillColor(GREY); c.setFont("Helvetica", 7)
-        y2 = (PAGE_H - 8.5 * mm) if nom_evenement else (PAGE_H - 6 * mm)
-        c.drawCentredString(PAGE_W / 2, y2, ligne2)
+        # ⚠️ 14/08 : PLUS DE TITRE EN HAUT DE PAGE — le dessin porte déjà
+        # « DUAL DAB » en grand. Seul le numéro de page reste, discret.
+        c.setFillColor(colors.Color(0.62, 0.62, 0.62)); c.setFont("Helvetica", 5)
+        c.drawRightString(PAGE_W - 6 * mm, PAGE_H - 5 * mm, "Page %d" % no_page)
 
         for row in range(ROWS_PAGE):
             for col_i in range(COLS_PAGE):
