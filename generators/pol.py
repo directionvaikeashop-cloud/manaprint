@@ -71,7 +71,51 @@ PAGE_W, PAGE_H = A4
 # (min, max) par colonne — POL 6 boules
 PLAGES = [(30, 40), (41, 50), (51, 60)]
 
-COLS_PAGE = 3
+# ═══ 🪸 LE CORAIL ET SES SIX BULLES (sceau Maeva 14/08) ═══
+# « VOTRE JEU CORAIL — 6 BOULES » : un corail branchu, coquillages au
+# pied, et six bulles numérotées de 1 à 6 par des pastilles noires.
+# ⚠️ L'ORDRE suit les pastilles du dessin, PAS la position :
+#   1 haut-gauche · 2 haut-centre · 3 haut-droite
+#   4 milieu-gauche · 5 milieu-droite · 6 bas-centre
+_RATIO_CORAIL = 1.5018
+BULLES = [[0.3434, 0.6977], [0.541, 0.6504], [0.7485, 0.698], [0.2581, 0.4472], [0.8511, 0.4471], [0.5422, 0.2538]]
+DIAM_BULLE = 0.1045
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_co
+
+
+def _choisir_image(motif_img, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif_img + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif_img in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_CORAIL = _choisir_image("corail_six", _RATIO_CORAIL)
+
+
+# ⚠️ 14/08 : le dessin est en PAYSAGE (ratio 1,50) — on passe de 12 cartes
+# à 8 cartes-plaques (2 colonnes × 4 rangées).
+COLS_PAGE = 2
 ROWS_PAGE = 4
 MARGIN_X = 8 * mm
 MARGIN_TOP = 8 * mm
@@ -101,78 +145,68 @@ def _gen_carte(rng):
 def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
-    ncols = 3
 
-    # Bordure carte
-    c.setStrokeColor(col); c.setLineWidth(0.8)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
+    # ⚠️⚠️ 14/08 : ni cadre, ni microtexte, ni QR — comme les autres jeux
+    # habillés. Maeva veut le carton net.
 
-    # En-tête
-    hdr_y = y0 + CARD_H - 4 * mm
-    # Le nom du jeu apparaît TOUJOURS (garde : « POLYNÉSIE » contient « POL » mais n'est pas le jeu !)
-    if titre_jeu and titre_jeu.strip():
-        mots = titre_jeu.strip().upper().replace("\u00b7", " ").split()
-        if "POL" in mots:
-            titre = titre_jeu.strip()
-        else:
-            titre = "POL 6 boules  \u2014  " + titre_jeu.strip()
-    else:
-        titre = "Le jeux POL pour 6 boules"
-    if telephone:
-        titre += " " + telephone
-    c.setFillColor(col); c.setFont(POLICE, 5.5)
-    c.drawCentredString(x0 + CARD_W / 2, hdr_y, titre[:52])
-
-    # Zone grille 3×3
-    grid_top = hdr_y - 2.5 * mm
-    grid_bot = y0 + 3.5 * mm
-    cell_w = CARD_W / ncols
-    grid_h = grid_top - grid_bot
-    row_h = grid_h / 3
-
-    # séparateurs de grille
-    c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.3)
-    for i in range(1, ncols):
-        c.line(x0 + i * cell_w, grid_bot, x0 + i * cell_w, grid_top)
-    for r in range(1, 3):
-        yy = grid_top - r * row_h
-        c.line(x0 + 1.5 * mm, yy, x0 + CARD_W - 1.5 * mm, yy)
-
-    # contenu des cellules
-    for r in range(3):
-        for cc in range(3):
-            cx = x0 + (cc + 0.5) * cell_w
-            cyc = grid_top - (r + 0.5) * row_h
-            val = grille[r][cc]
-            if val is None:
-                # case barrée (X)
-                m = 4 * mm
-                cell_x = x0 + cc * cell_w
-                c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.5)
-                c.line(cell_x + m, cyc - row_h / 2 + m, cell_x + cell_w - m, cyc + row_h / 2 - m)
-                c.line(cell_x + m, cyc + row_h / 2 - m, cell_x + cell_w - m, cyc - row_h / 2 + m)
-            elif val == "SER":
-                # numéro de série AU CENTRE (comme la carte POL de référence)
-                c.setFillColor(col); c.setFont(POLICE, 8)
-                c.drawCentredString(cx, cyc - 2.5, "%06d" % serie)
-            elif _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, val, cx, cyc - 11, 32, gris_ch, police_ch)
-            else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, 32)
-                c.drawCentredString(cx, cyc - 11, str(val))
-
-    # QR de vérification par grille (anti-duplication) — coin bas-gauche (le bas-droite est barré)
-    if _sec and evenement_id:
+    # ═══ 🪸 LA PLAQUE AU CORAIL ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
+    # la carte. Les six bulles suivent, chacune à sa place.
+    _pw = CARD_W - 0.6 * mm
+    _ph = CARD_H - 0.6 * mm
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + 0.3 * mm
+    if _os2.path.exists(_IMAGE_CORAIL):
         try:
-            # 🎯 QR intégré : dans la case barrée bas-droite (aucun chiffre dérangé)
-            _q = 12.5 * mm
-            _xq = x0 + 2 * cell_w + (cell_w - _q) / 2
-            _yq = grid_bot + (row_h - _q - 3.6 * mm) / 2 + 3.6 * mm
-            _sec.carton_qr(c, _xq, _yq, _q, evenement_id, serie)
+            c.drawImage(_IMAGE_CORAIL, _px, _py, _pw, _ph, mask="auto")
         except Exception:
             pass
+
+    # ⭐⭐ LA POLICE DES CHIFFRES : « Helvetica-Bold » (sceau Maeva 14/08).
+    # Le secret n'est pas la taille, c'est LE GRAS : 58 % de chair contre
+    # 24 % pour DJLECO — les chiffres se voient de loin.
+    _POLICE_NUM = "Helvetica-Bold"
+    _dia = _pw * DIAM_BULLE
+    _t_num = 34.0
+    while _t_num > 6 and (_lg_co("88", _POLICE_NUM, _t_num) > _dia * 0.90
+                          or _t_num * 0.72 > _dia * 0.80):
+        _t_num -= 0.5
+
+    # ═══ les SIX numéros, dans les bulles du corail ═══
+    # ⚠️ `grille` est 3×3 : None = barré, "SER" = la série. On en tire les
+    # six numéros dans l'ordre de lecture, puis on les range sur les
+    # pastilles 1 à 6 du dessin.
+    _plat = [v for rangee in grille for v in rangee
+             if v is not None and v != "SER"]
+    for _k, _n in enumerate(_plat[:6]):
+        _bx, _by = BULLES[_k]
+        _nx = _px + _bx * _pw
+        _ny = _py + _by * _ph - _t_num * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, _n, _nx, _ny, _t_num, gris_ch, _POLICE_NUM)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(_POLICE_NUM, _t_num)
+            c.drawCentredString(_nx, _ny, str(_n))
+
+    # ═══ 🎫 LES DEUX BANDEAUX, écrits dans leurs pastilles creuses ═══
+    # ⚠️ Ils étaient NOIRS PLEINS dans le dessin : ils sont désormais
+    # CREUX, et le PDF y écrit en gris.
+    c.setFillColor(gris_ch)
+    _t6 = 7.0
+    while _t6 > 3.2 and _lg_co("6 BOULES", "Helvetica-Bold", _t6) > _pw * 0.13:
+        _t6 -= 0.25
+    c.setFont("Helvetica-Bold", _t6)
+    c.drawCentredString(_px + _pw * 0.545, _py + _ph * 0.768, "6 BOULES")
+    c.setFillColor(gris_ch)
+    _bl = "N\u00b0 %05d" % serie
+    if telephone:
+        _bl += "   \u2022   " + telephone
+    _tb = 9.0
+    while _tb > 3.4 and _lg_co(_bl, "Helvetica-Bold", _tb) > _pw * 0.30:
+        _tb -= 0.25
+    c.setFont("Helvetica-Bold", _tb)
+    c.drawCentredString(_px + _pw * 0.520, _py + _ph * 0.022, _bl)
 
 
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
