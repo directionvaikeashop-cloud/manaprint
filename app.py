@@ -181,6 +181,7 @@ JEUX_HABILLES = {
     "fan90", "lagoon", "boules60", "fleche", "brown8", "diamant",
     "cerf_volant", "boules40", "bubulle", "dual_dab",
     "aloha75", "pol", "bingo_ball", "rubis75", "losange",
+    "ani",
 }
 JEUX_INTERDITS = {
     "ranihei": JEUX_HABILLES,
@@ -589,7 +590,7 @@ _enregistrer_paire("bgo",           "BGO",        "🔠", 12, bgo.generer_pdf)
 _enregistrer_paire("igo",           "IGO",        "🎱", 12, igo.generer_pdf)
 _enregistrer_paire("kea",           "KEA",        "🌿", 12, kea.generer_pdf)
 _enregistrer_paire("moon",          "MOON",       "🌙", 8,  moon.generer_pdf)
-_enregistrer_paire("ani",           "ANI",        "🌠", 12, ani.generer_pdf)
+_enregistrer_paire("ani",           "TEAHUPOO",        "🌊", 8, ani.generer_pdf)
 _enregistrer_paire("brown14",       "BROWN 14 boules", "🟤", 8, brown14.generer_pdf)
 _enregistrer_paire("ino8",          "INO 8 boules", "🎐", 12, ino8.generer_pdf)
 _enregistrer_paire("ino",           "INO 5 boules", "🎏", 12, ino.generer_pdf)
