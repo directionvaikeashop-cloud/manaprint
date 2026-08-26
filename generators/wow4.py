@@ -63,7 +63,51 @@ PAGE_W, PAGE_H = A4
 LETTERS = ["W", "O"]
 RANGES = [(30, 44), (45, 60)]
 
-COLS_PAGE = 3
+# ═══ 💥 LE WOW ! EN BANDE DESSINÉE (sceau Maeva 14/08) ═══
+# « WOW ! — 4 BOULES » : une explosion de bulle de BD, le mot WOW en
+# relief au centre, et quatre grands cercles aux coins.
+# ⚠️ L'ORDRE suit les colonnes du jeu :
+#   W (30-44) à GAUCHE — haut puis bas
+#   O (45-60) à DROITE — haut puis bas
+_RATIO_WOW = 1.5018
+CERCLES = [[0.2764, 0.7886], [0.272, 0.2544], [0.7425, 0.7886], [0.774, 0.2544]]
+DIAM_CERCLE = 0.1998
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_wo
+
+
+def _choisir_image(motif_img, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif_img + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif_img in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_WOW = _choisir_image("wow_bd", _RATIO_WOW)
+
+
+# ⚠️ 14/08 : le dessin est en PAYSAGE (ratio 1,50) — on passe de 12 cartes
+# à 8 cartes-plaques (2 colonnes × 4 rangées).
+COLS_PAGE = 2
 ROWS_PAGE = 4
 MARGIN_X = 8 * mm
 MARGIN_TOP = 8 * mm
@@ -89,69 +133,58 @@ def _gen_carte(rng):
 def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
-    ncols = 2
 
-    # Bordure carte
-    c.setStrokeColor(col); c.setLineWidth(0.8)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
-    if _sec:
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
+    # ⚠️⚠️ 14/08 : ni cadre, ni microtexte, ni QR — comme les autres jeux
+    # habillés. Maeva veut le carton net.
 
-    # En-tête colonnes W / O avec plages
-    hdr_y = y0 + CARD_H - 5 * mm
-    cell_w = CARD_W / ncols
-    for i, lettre in enumerate(LETTERS):
-        cx = x0 + (i + 0.5) * cell_w
-        c.setFillColor(col); c.setFont(POLICE, 7)
-        c.drawCentredString(cx, hdr_y, lettre)
-        lo, hi = RANGES[i]
-        c.setFillColor(GREY); c.setFont(POLICE, 4)
-        c.drawCentredString(cx, hdr_y - 2.6 * mm, "%d - %d" % (lo, hi))
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0, hdr_y - 3.8 * mm, x0 + CARD_W, hdr_y - 3.8 * mm)
-
-    # Zone des numéros (2 colonnes × 2 rangées)
-    grid_top = hdr_y - 3.8 * mm
-    grid_bot = y0 + 21 * mm  # 📏 bande dédiée en bas : le QR y vit, la grille au-dessus
-    grid_h = grid_top - grid_bot
-    row_h = grid_h / 2
-
-    # séparateur de colonnes
-    c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.3)
-    c.line(x0 + cell_w, grid_bot, x0 + cell_w, grid_top)
-    c.line(x0 + 1.5 * mm, grid_top - row_h, x0 + CARD_W - 1.5 * mm, grid_top - row_h)
-
-    # contenu
-    for r in range(2):
-        for cc in range(2):
-            cx = x0 + (cc + 0.5) * cell_w
-            cyc = grid_top - (r + 0.5) * row_h
-            val = grille[r][cc]
-            if _sec:
-                _sec.chiffre_micro(c, val, cx, cyc - 11, 32, gris_ch, police_ch)
-            else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, 32)
-                c.drawCentredString(cx, cyc - 11, str(val))
-
-    # Pied : N° SÉRIE
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0, y0 + 4.5 * mm, x0 + CARD_W, y0 + 4.5 * mm)
-    c.setFillColor(GREY); c.setFont("Helvetica", 4.5)
-    c.drawString(x0 + 2 * mm, y0 + 1.5 * mm, "N° SÉRIE")
-    # le nom du jeu, gravé au centre du pied (audit des noms, 25/07)
-    c.setFillColor(col); c.setFont(POLICE, 4.6)
-    c.drawCentredString(x0 + CARD_W / 2, y0 + 1.5 * mm, "WOW 4")
-    c.setFillColor(col); c.setFont("Helvetica", 6)
-    c.drawRightString(x0 + CARD_W - 2 * mm, y0 + 1.5 * mm, "%06d" % serie)
-
-    # QR de vérification par grille — coin bas-droit (au-dessus du pied)
-    if _sec and evenement_id:
+    # ═══ 💥 LA PLAQUE AU WOW ! ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
+    # la carte. Les quatre cercles suivent, chacun à sa place.
+    _pw = CARD_W - 0.6 * mm
+    _ph = CARD_H - 0.6 * mm
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + 0.3 * mm
+    if _os2.path.exists(_IMAGE_WOW):
         try:
-            # 🎯 QR dans la bande dédiée (aucun chiffre dérangé)
-            _q = 13.0 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 2.0 * mm, y0 + 6.0 * mm, _q, evenement_id, serie)
+            c.drawImage(_IMAGE_WOW, _px, _py, _pw, _ph, mask="auto")
         except Exception:
             pass
+
+    # ⭐⭐ LA POLICE DES CHIFFRES : « Helvetica-Bold » (sceau Maeva 14/08).
+    # Le secret n'est pas la taille, c'est LE GRAS — 58 % de chair contre
+    # 24 % pour DJLECO : les chiffres se voient de loin.
+    _POLICE_NUM = "Helvetica-Bold"
+    _dia = _pw * DIAM_CERCLE
+    _t_num = 48.0
+    while _t_num > 6 and (_lg_wo("88", _POLICE_NUM, _t_num) > _dia * 0.72
+                          or _t_num * 0.72 > _dia * 0.62):
+        _t_num -= 0.5
+
+    # ═══ les QUATRE numéros, dans les cercles du WOW ═══
+    # ⚠️ `grille` est [rangée][colonne] : rangée 0 = [W a, O a],
+    #    rangée 1 = [W b, O b]. Les cercles sont rangés W a · W b · O a · O b.
+    _plat = [grille[0][0], grille[1][0], grille[0][1], grille[1][1]]
+    for _k, _n in enumerate(_plat[:4]):
+        _bx, _by = CERCLES[_k]
+        _nx = _px + _bx * _pw
+        _ny = _py + _by * _ph - _t_num * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, _n, _nx, _ny, _t_num, gris_ch, _POLICE_NUM)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(_POLICE_NUM, _t_num)
+            c.drawCentredString(_nx, _ny, str(_n))
+
+    # ═══ 🎫 LE BANDEAU, écrit dans sa pastille (déjà creuse au dessin) ═══
+    c.setFillColor(gris_ch)
+    _bl = "N\u00b0 %05d" % serie
+    if telephone:
+        _bl += "        \u2605        " + telephone
+    _tb = 9.0
+    while _tb > 3.4 and _lg_wo(_bl, "Helvetica-Bold", _tb) > _pw * 0.42:
+        _tb -= 0.25
+    c.setFont("Helvetica-Bold", _tb)
+    c.drawCentredString(_px + _pw * 0.540, _py + _ph * 0.036, _bl)
 
 
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
