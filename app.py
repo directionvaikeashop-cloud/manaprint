@@ -180,7 +180,7 @@ JEUX_HABILLES = {
     "win", "kai", "sun", "wiz", "rai", "tahaa", "tahaa90", "baam", "papeari",
     "fan90", "lagoon", "boules60", "fleche", "brown8", "diamant",
     "cerf_volant", "boules40", "bubulle", "dual_dab",
-    "aloha75", "pol", "bingo_ball",
+    "aloha75", "pol", "bingo_ball", "rubis75",
 }
 JEUX_INTERDITS = {
     "ranihei": JEUX_HABILLES,
@@ -540,7 +540,7 @@ def _base_jeu(programme):
 _enregistrer_paire("win",           "WIN 9 boules","🏆", 12, win.generer_pdf)
 _enregistrer_paire("win_casino",    "WIN CASINO","🎲", 12, win.generer_pdf_casino)
 _enregistrer_paire("rubis90",       "RUBIS 90","💎", 12, rubis90.generer_pdf)
-_enregistrer_paire("rubis75",       "RUBIS 75 · 32 pts","💎", 10, rubis75.generer_pdf)
+_enregistrer_paire("rubis75",       "RUBIS 75 · 32 pts","💎", 8, rubis75.generer_pdf)
 _enregistrer_paire("sicilio",       "SICILIO",          "🔷", 6,  sicilio.generer_pdf)
 _enregistrer_paire("sicilio_smo",   "SICILIO SMORFIA",  "🎴", 6,  sicilio.generer_pdf_smorfia)
 _enregistrer_paire("avinda",        "A VINDA · 2 séries","🍷", 2,  avinda.generer_pdf)
