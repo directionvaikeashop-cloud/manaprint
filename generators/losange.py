@@ -50,8 +50,54 @@ def _style_chiffres(style):
 
 
 PAGE_W, PAGE_H = A4
+# ═══ 🔷 LE DAMIER DE HUIT LOSANGES (sceau Maeva 14/08) ═══
+# « LOSANGE » : huit losanges en damier, chacun coiffé de SA LETTRE —
+# B · I · I · N en haut, N · G · G · O en bas.
+# ⭐ Ces lettres tombent EXACTEMENT sur la règle du jeu :
+#   B + I + I  = les 3 numéros de 1-30  (le flanc gauche)
+#   N + N      = les 2 numéros de 31-45 (le haut et le bas)
+#   G + G + O  = les 3 numéros de 46-75 (le flanc droit)
+_RATIO_LOSANGE = 1.5018
+LOSANGES = [(0.249, 0.5951), (0.4356, 0.5949), (0.619, 0.5947), (0.8042, 0.5946), (0.2463, 0.253), (0.4376, 0.2525), (0.6207, 0.2524), (0.8073, 0.2503)]
+LARG_LOS = 0.1494
+HAUT_LOS = 0.2232
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_lo
+
+
+def _choisir_image(motif_img, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif_img + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif_img in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_LOSANGE = _choisir_image("losange_huit", _RATIO_LOSANGE)
+
+
+# ⚠️ 14/08 : le dessin est en PAYSAGE (ratio 1,50) — on passe de 6 cartes
+# à 8 cartes-plaques (2 colonnes × 4 rangées).
 COLS_PAGE = 2
-ROWS_PAGE = 3
+ROWS_PAGE = 4
 MARGIN_X = 8 * mm
 MARGIN_TOP = 9 * mm
 MARGIN_BOT = 8 * mm
@@ -80,45 +126,63 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
 
-    # le LOSANGE (carré sur pointe) — sommets avec marge
-    cx, cyc = x0 + CARD_W / 2, y0 + CARD_H / 2
-    ht, hb = y0 + CARD_H - 1.5 * mm, y0 + 1.5 * mm
-    xg, xd = x0 + 2.0 * mm, x0 + CARD_W - 2.0 * mm
-    c.setStrokeColor(col); c.setLineWidth(1.0)
-    p = c.beginPath()
-    p.moveTo(cx, ht); p.lineTo(xd, cyc); p.lineTo(cx, hb); p.lineTo(xg, cyc); p.close()
-    c.drawPath(p, stroke=1, fill=0)
-    if _sec:
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.6 * mm)
+    # ⚠️⚠️ 14/08 : ni cadre, ni microtexte, ni QR — comme les autres jeux
+    # habillés. Maeva veut le carton net.
 
-    # texte central (esprit du modèle)
-    c.setFillColor(colors.Color(0.55, 0.55, 0.55)); c.setFont(POLICE, 4.6)
-    c.drawCentredString(cx, cyc + 1.6 * mm, "Le jeu LOSANGE pour 8 boules by 2KEA")
-    c.setFont(POLICE, 4.6)
-    c.drawCentredString(cx, cyc - 1.2 * mm, "N° %06d" % serie)
-    if telephone:
-        c.setFont(POLICE, 4.0)
-        c.drawCentredString(cx, cyc - 3.8 * mm, "Tèl : " + telephone)
-    if titre_jeu:
-        c.setFillColor(col); c.setFont(POLICE, 5.0)
-        c.drawCentredString(cx, cyc + 4.4 * mm, titre_jeu.strip()[:36])
-
-    # les 8 numéros à leur poste
-    for i, (fx, fy) in enumerate(POS):
-        nx, ny = x0 + CARD_W * fx, y0 + CARD_H * fy
-        if _sec:
-            _sec.chiffre_micro(c, nums[i], nx, ny - TAILLE_CHIFFRE * 0.36, TAILLE_CHIFFRE, gris_ch, police_ch)
-        else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, TAILLE_CHIFFRE)
-            c.drawCentredString(nx, ny - TAILLE_CHIFFRE * 0.36, str(nums[i]))
-
-    # QR de vérification — DANS le losange, sous le texte central (décision Maeva)
-    if _sec and evenement_id:
+    # ═══ 🔷 LA PLAQUE AU DAMIER ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
+    # la carte. Les huit losanges suivent, chacun à sa place.
+    _pw = CARD_W - 0.6 * mm
+    _ph = CARD_H - 0.6 * mm
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + 0.3 * mm
+    if _os2.path.exists(_IMAGE_LOSANGE):
         try:
-            _q = 8.5 * mm
-            _sec.carton_qr(c, cx - _q / 2, cyc - 14.6 * mm, _q, evenement_id, serie)
+            c.drawImage(_IMAGE_LOSANGE, _px, _py, _pw, _ph, mask="auto")
         except Exception:
             pass
+
+    # ⭐⭐ LA POLICE DES CHIFFRES : « Helvetica-Bold » (sceau Maeva 14/08).
+    # Le secret n'est pas la taille, c'est LE GRAS — 58 % de chair contre
+    # 24 % pour DJLECO : les chiffres se voient de loin.
+    # ⚠️ un LOSANGE se resserre vers ses pointes : le chiffre ne peut
+    #    occuper que sa TAILLE, la bande large du milieu.
+    _POLICE_NUM = "Helvetica-Bold"
+    _lg_l = _pw * LARG_LOS
+    _ht_l = _ph * HAUT_LOS
+    _t_num = 34.0
+    while _t_num > 6 and (_lg_lo("88", _POLICE_NUM, _t_num) > _lg_l * 0.62
+                          or _t_num * 0.72 > _ht_l * 0.44):
+        _t_num -= 0.5
+
+    # ═══ les HUIT numéros, dans les losanges du damier ═══
+    # ⚠️ `nums` arrive dans l'ordre : haut · fg1 · fd1 · g · d · fg2 · fd2 · bas
+    # On le range sur les lettres du dessin : B·I·I·N (haut) · N·G·G·O (bas)
+    #   B = fg1 · I = fg2 · I = g   · N = haut
+    #   N = bas · G = fd1 · G = fd2 · O = d
+    _h, _fg1, _fd1, _g, _d, _fg2, _fd2, _b = nums
+    _plat = [_fg1, _fg2, _g, _h, _b, _fd1, _fd2, _d]
+    for _k, _n in enumerate(_plat[:8]):
+        _bx, _by = LOSANGES[_k]
+        _nx = _px + _bx * _pw
+        _ny = _py + _by * _ph - _t_num * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, _n, _nx, _ny, _t_num, gris_ch, _POLICE_NUM)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(_POLICE_NUM, _t_num)
+            c.drawCentredString(_nx, _ny, str(_n))
+
+    # ═══ 🎫 LE BANDEAU, écrit dans sa pastille (déjà creuse au dessin) ═══
+    c.setFillColor(gris_ch)
+    _bl = "N\u00b0 %05d" % serie
+    if telephone:
+        _bl += "        \u2605        " + telephone
+    _tb = 9.0
+    while _tb > 3.4 and _lg_lo(_bl, "Helvetica-Bold", _tb) > _pw * 0.44:
+        _tb -= 0.25
+    c.setFont("Helvetica-Bold", _tb)
+    c.drawCentredString(_px + _pw * 0.520, _py + _ph * 0.042, _bl)
 
 
 def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
