@@ -60,8 +60,55 @@ def _style_chiffres(style):
 
 PAGE_W, PAGE_H = A4
 
+# ═══ 🎱 LE BOULIER ET SES SEPT BOULES (sceau Maeva 14/08) ═══
+# « BINGO BALL » : un boulier à manivelle, sept boules dedans, et au socle
+# les lettres B · I · N · N · N · G · O.
+# ⚠️ L'ORDRE suit les lettres du socle, dans la lecture du dessin :
+#   B haut-gauche · I haut-droite
+#   N · N · N au milieu, en ligne
+#   G bas-gauche · O bas-droite
+# ⭐ C'est EXACTEMENT ce que rend `_gen_carte` : la ligne B·I·N·G·O plus
+# les deux verticaux (tous deux dans la plage N 31-45).
+_RATIO_BOULIER = 1.4964
+BOULES = [(0.4669, 0.6973), (0.6205, 0.6973), (0.406, 0.5209), (0.5436, 0.521), (0.6792, 0.5209), (0.4696, 0.3502), (0.6176, 0.3503)]
+DIAM_BOULE = 0.1135
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_bb
+
+
+def _choisir_image(motif_img, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif_img + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif_img in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_BOULIER = _choisir_image("ball_boulier", _RATIO_BOULIER)
+
+
+# ⚠️ 14/08 : le dessin est en PAYSAGE (ratio 1,49) — on passe de 10 cartes
+# à 8 cartes-plaques (2 colonnes × 4 rangées).
 COLS_PAGE = 2
-ROWS_PAGE = 5
+ROWS_PAGE = 4
 MARGIN_X = 8 * mm
 MARGIN_TOP = 12 * mm
 MARGIN_BOT = 8 * mm
@@ -89,66 +136,56 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
     col = colors.HexColor(couleur_hex)
     ligne, haut, bas = carte
 
-    # Cadre extérieur de toute la carte (visuel fini)
-    c.setStrokeColor(col); c.setLineWidth(1.2)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 2.5 * mm, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
+    # ⚠️⚠️ 14/08 : ni cadre, ni microtexte, ni QR — comme les autres jeux
+    # habillés. Maeva veut le carton net.
 
-    # 5 cases de la ligne horizontale
-    cell_w = CARD_W / 5
-    cell_h = 12 * mm
-    # ligne centrée verticalement
-    ligne_y = y0 + (CARD_H - cell_h) / 2 - 3 * mm
-
-    # case verticale (même largeur que cell_w) : haut au-dessus, bas en-dessous
-    cx_centre = x0 + 2 * cell_w  # case du milieu (index 2)
-
-    # --- numéro du haut (sans cadre interne) ---
-    haut_y = ligne_y + cell_h
-    c.setFillColor(col); c.setFont("Helvetica-Bold", 7)
-    titre_aff = "BINGO BALL"
-    if titre_jeu:
-        titre_aff += "  —  " + titre_jeu[:30]
-    c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 4 * mm, titre_aff)
-    c.setFillColor(GREY); c.setFont("Helvetica", 4.5)
-    c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 6.5 * mm, f"N° {serie:06d}")
-    if _sec:
-        _sec.chiffre_micro(c, haut, cx_centre + cell_w / 2, haut_y + cell_h * 0.30, 30, gris_ch, police_ch)
-    else:
-        c.setFillColor(gris_ch); c.setFont(police_ch, 30)
-        c.drawCentredString(cx_centre + cell_w / 2, haut_y + cell_h * 0.30, str(haut))
-
-    # --- ligne horizontale de 5 numéros (sans cadres internes) ---
-    for i, num in enumerate(ligne):
-        cx = x0 + i * cell_w
-        if _sec:
-            _sec.chiffre_micro(c, num, cx + cell_w / 2, ligne_y + cell_h * 0.30, 30, gris_ch, police_ch)
-        else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, 30)
-            c.drawCentredString(cx + cell_w / 2, ligne_y + cell_h * 0.30, str(num))
-
-    # --- numéro du bas (sans cadre interne) ---
-    bas_y = ligne_y - cell_h
-    if _sec:
-        _sec.chiffre_micro(c, bas, cx_centre + cell_w / 2, bas_y + cell_h * 0.30, 30, gris_ch, police_ch)
-    else:
-        c.setFillColor(gris_ch); c.setFont(police_ch, 30)
-        c.drawCentredString(cx_centre + cell_w / 2, bas_y + cell_h * 0.30, str(bas))
-
-    # --- responsable en bas de la carte ---
-    if telephone:
-        c.setFillColor(GREY); c.setFont("Helvetica", 4.5)
-        c.drawCentredString(x0 + CARD_W / 2, y0 + 1 * mm, f"Resp. {telephone}")
-
-    # QR de vérification par grille (anti-duplication) — coin bas-droit
-    if _sec and evenement_id:
+    # ═══ 🎱 LA PLAQUE AU BOULIER ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
+    # la carte. Les sept boules suivent, chacune à sa place.
+    _pw = CARD_W - 0.6 * mm
+    _ph = CARD_H - 0.6 * mm
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + 0.3 * mm
+    if _os2.path.exists(_IMAGE_BOULIER):
         try:
-            # 🎯 QR intégré : dans le coin bas-droit vide de la croix
-            _q = 11.5 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 5 * mm, y0 + 5.4 * mm, _q, evenement_id, serie)
+            c.drawImage(_IMAGE_BOULIER, _px, _py, _pw, _ph, mask="auto")
         except Exception:
             pass
+
+    # ⭐⭐ LA POLICE DES CHIFFRES : « Helvetica-Bold » (sceau Maeva 14/08).
+    # Le secret n'est pas la taille, c'est LE GRAS — 58 % de chair contre
+    # 24 % pour DJLECO : les chiffres se voient de loin.
+    _POLICE_NUM = "Helvetica-Bold"
+    _dia = _pw * DIAM_BOULE
+    _t_num = 34.0
+    while _t_num > 6 and (_lg_bb("88", _POLICE_NUM, _t_num) > _dia * 0.88
+                          or _t_num * 0.72 > _dia * 0.78):
+        _t_num -= 0.5
+
+    # ═══ les SEPT numéros, dans les boules du boulier ═══
+    # ⚠️ l'ordre du socle : B · I · N(haut) · N(central) · N(bas) · G · O
+    _plat = [ligne[0], ligne[1], haut, ligne[2], bas, ligne[3], ligne[4]]
+    for _k, _n in enumerate(_plat[:7]):
+        _bx, _by = BOULES[_k]
+        _nx = _px + _bx * _pw
+        _ny = _py + _by * _ph - _t_num * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, _n, _nx, _ny, _t_num, gris_ch, _POLICE_NUM)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(_POLICE_NUM, _t_num)
+            c.drawCentredString(_nx, _ny, str(_n))
+
+    # ═══ 🎫 LE BANDEAU, écrit dans sa pastille (déjà creuse au dessin) ═══
+    c.setFillColor(gris_ch)
+    _bl = "N\u00b0 %05d" % serie
+    if telephone:
+        _bl += "        \u2605        " + telephone
+    _tb = 9.0
+    while _tb > 3.4 and _lg_bb(_bl, "Helvetica-Bold", _tb) > _pw * 0.44:
+        _tb -= 0.25
+    c.setFont("Helvetica-Bold", _tb)
+    c.drawCentredString(_px + _pw * 0.615, _py + _ph * 0.042, _bl)
 
 
 def generer_pdf(nb_cartes=10, serie_start=1, theme="", couleur=True,
@@ -170,13 +207,10 @@ def generer_pdf(nb_cartes=10, serie_start=1, theme="", couleur=True,
         if nom_evenement:
             c.setFillColor(NOIR); c.setFont("Helvetica-Bold", 11)
             c.drawCentredString(PAGE_W / 2, PAGE_H - 5 * mm, nom_evenement)
-        titre_aff = titre_jeu if titre_jeu else "BINGO BALL"
-        ligne2 = titre_aff
-        if date_lieu: ligne2 += "  ·  " + date_lieu
-        ligne2 += f"  ·  Page {no_page}"
-        c.setFillColor(GREY); c.setFont("Helvetica", 7)
-        y2 = (PAGE_H - 8.5 * mm) if nom_evenement else (PAGE_H - 6 * mm)
-        c.drawCentredString(PAGE_W / 2, y2, ligne2)
+        # ⚠️ 14/08 : PLUS DE TITRE EN HAUT DE PAGE — le dessin porte déjà
+        # « BINGO BALL » en grand. Seul le numéro de page reste, discret.
+        c.setFillColor(colors.Color(0.62, 0.62, 0.62)); c.setFont("Helvetica", 5)
+        c.drawRightString(PAGE_W - 6 * mm, PAGE_H - 5 * mm, "Page %d" % no_page)
 
         for row in range(ROWS_PAGE):
             for col_i in range(COLS_PAGE):
