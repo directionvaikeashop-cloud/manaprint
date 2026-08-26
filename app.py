@@ -180,7 +180,7 @@ JEUX_HABILLES = {
     "win", "kai", "sun", "wiz", "rai", "tahaa", "tahaa90", "baam", "papeari",
     "fan90", "lagoon", "boules60", "fleche", "brown8", "diamant",
     "cerf_volant", "boules40", "bubulle", "dual_dab",
-    "aloha75", "pol", "bingo_ball", "rubis75",
+    "aloha75", "pol", "bingo_ball", "rubis75", "losange",
 }
 JEUX_INTERDITS = {
     "ranihei": JEUX_HABILLES,
@@ -546,7 +546,7 @@ _enregistrer_paire("sicilio_smo",   "SICILIO SMORFIA",  "🎴", 6,  sicilio.gene
 _enregistrer_paire("avinda",        "A VINDA · 2 séries","🍷", 2,  avinda.generer_pdf)
 _enregistrer_paire("avinda_myst",   "A VINDA MYSTÈRE LETTRE","🔮", 2,  avinda.generer_pdf_mystere)
 _enregistrer_paire("avinda_fort",   "A VINDA FORTUNO","💰", 2,  avinda.generer_pdf_fortune)
-_enregistrer_paire("losange",       "LOSANGE · 8 boules","🪁", 6,  losange.generer_pdf)
+_enregistrer_paire("losange",       "LOSANGE · 8 boules","🪁", 8,  losange.generer_pdf)
 _enregistrer_paire("italia",        "ITALIA",     "🇮🇹", 10, italia.generer_pdf)
 _enregistrer_paire("italia_villes", "ITALIA VILLES","🗺️", 6,  italia_villes.generer_pdf)
 _enregistrer_paire("italia_esc",    "ITALIA ESCALIER","\U0001fa9c", 10, italia_escalier.generer_pdf)
