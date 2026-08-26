@@ -182,7 +182,7 @@ JEUX_HABILLES = {
     "fan90", "lagoon", "boules60", "fleche", "brown8", "diamant",
     "cerf_volant", "boules40", "bubulle", "dual_dab",
     "aloha75", "pol", "bingo_ball", "rubis75", "losange",
-    "ani", "wow4", "wow6",
+    "ani", "wow4", "wow6", "moon",
 }
 JEUX_INTERDITS = {
     "ranihei": JEUX_HABILLES,
