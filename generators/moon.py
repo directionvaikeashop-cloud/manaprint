@@ -71,6 +71,48 @@ LETTRES = ["M", "O", "O", "N"]
 PLAGES = [(1, 15), (16, 30), (46, 60), (61, 75)]
 # CHIFFRES REMONTÉS (décision Maeva 24/07) : plus de damier à trous —
 # chaque colonne empile ses 2 numéros sur 2 LIGNES pleines → carte courte, 8/A4
+# ═══ 🌙 LES HUIT LUNES (sceau Maeva 14/08) ═══
+# « VOTRE JEU MOON — 8 BOULES » : huit lunes cratérées, chacune coiffée
+# de SA LETTRE — B · B · I · I en haut, G · G · O · O en bas.
+# ⭐ Ces lettres tombent sur les quatre colonnes du jeu :
+#   B = 1-15 · I = 16-30 · G = 46-60 · O = 61-75
+# ⚠️ Le 31-45 n'existe pas dans MOON.
+_RATIO_LUNES = 1.5018
+LUNES = [[0.2551, 0.5474], [0.4539, 0.5473], [0.6604, 0.5474], [0.8645, 0.5474], [0.255, 0.238], [0.454, 0.2368], [0.6604, 0.2368], [0.8645, 0.2369]]
+DIAM_LUNE = 0.1319
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_mo
+
+
+def _choisir_image(motif_img, ratio_attendu):
+    """Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif_img + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif_img in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_LUNES = _choisir_image("moon_lunes", _RATIO_LUNES)
+
+
 COLS_PAGE = 2
 ROWS_PAGE = 4
 MARGIN_X = 8 * mm
@@ -136,67 +178,59 @@ def _croissant(c, cx, cy, r, teinte):
 def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
-    cell_w = CARD_W / 4
 
-    # Bordure carte
-    c.setStrokeColor(col); c.setLineWidth(0.8)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
+    # 14/08 : ni cadre, ni microtexte, ni QR — comme les autres jeux
+    # habilles. Maeva veut le carton net.
 
-    # En-tête M | O | O | N (fidèle au modèle)
-    hdr_bas = y0 + CARD_H - HDR_H
-    c.setStrokeColor(col); c.setLineWidth(0.45)
-    c.line(x0, hdr_bas, x0 + CARD_W, hdr_bas)
-    c.setFillColor(col); c.setFont(POLICE, 8)
-    for i, lettre in enumerate(LETTRES):
-        c.drawCentredString(x0 + (i + 0.5) * cell_w, hdr_bas + 2.0 * mm, lettre)
-
-    # Grille 4 colonnes × 2 LIGNES pleines (chiffres remontés)
-    z_top = hdr_bas
-    z_bot = y0 + PIED_H
-    row_h = (z_top - z_bot) / 2
-    c.setStrokeColor(col); c.setLineWidth(0.35)
-    for i in range(1, 4):
-        c.line(x0 + i * cell_w, z_bot, x0 + i * cell_w, y0 + CARD_H)
-    c.line(x0, z_top - row_h, x0 + CARD_W, z_top - row_h)
-    c.line(x0, z_bot, x0 + CARD_W, z_bot)
-
-    # Le croissant de lune en filigrane — au cœur de la grille, sous les chiffres
-    _croissant(c, x0 + CARD_W / 2, z_top - row_h,
-               row_h * 0.52, colors.Color(0.48, 0.48, 0.52))
-
-    # Les 8 numéros : chaque colonne empile ses 2 numéros (haut puis bas)
-    taille = 40  # gros chiffres au maximum
-    for ci, nums in enumerate(cols_nums):
-        cx = x0 + (ci + 0.5) * cell_w
-        for ri, val in enumerate(nums):
-            cyc = z_top - (ri + 0.5) * row_h
-            if _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, val, cx, cyc - taille * 0.36, taille, gris_ch, police_ch)
-            else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-                c.drawCentredString(cx, cyc - taille * 0.36, str(val))
-
-    # Pied de carte : signature + série (le nom du jeu apparaît TOUJOURS)
-    signature = "MOON"
-    if titre_jeu and titre_jeu.strip().upper() != "MOON":
-        signature += " · " + titre_jeu.strip()
-    if telephone:
-        signature += " · " + telephone
-    c.setFillColor(col); c.setFont(POLICE, 3.9)
-    c.drawString(x0 + 2.5 * mm, y0 + 1.7 * mm, signature[:56])
-    c.setFont(POLICE, 6.5)
-    c.drawCentredString(x0 + CARD_W / 2, y0 + 1.5 * mm, "%06d" % serie)
-
-    # QR de vérification par carte — dans le pied, à droite
-    if _sec and evenement_id:
+    # ═══ LA PLAQUE AUX HUIT LUNES ═══
+    # PAS de preserveAspectRatio : on VEUT l'etirer pour qu'elle epouse
+    # la carte. Les huit lunes suivent, chacune a sa place.
+    _pw = CARD_W - 0.6 * mm
+    _ph = CARD_H - 0.6 * mm
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + 0.3 * mm
+    if _os2.path.exists(_IMAGE_LUNES):
         try:
-            _q = 12.0 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 2.2 * mm,
-                           y0 + (PIED_H - _q) / 2 + 1.2 * mm, _q, evenement_id, serie)
+            c.drawImage(_IMAGE_LUNES, _px, _py, _pw, _ph, mask="auto")
         except Exception:
             pass
+
+    # LA POLICE DES CHIFFRES : « Helvetica-Bold » (sceau Maeva 14/08).
+    # Le secret n'est pas la taille, c'est LE GRAS — 58 % de chair contre
+    # 24 % pour DJLECO : les chiffres se voient de loin.
+    _POLICE_NUM = "Helvetica-Bold"
+    _dia = _pw * DIAM_LUNE
+    _t_num = 40.0
+    while _t_num > 6 and (_lg_mo("88", _POLICE_NUM, _t_num) > _dia * 0.74
+                          or _t_num * 0.72 > _dia * 0.64):
+        _t_num -= 0.5
+
+    # ═══ les HUIT numeros, dans les lunes ═══
+    # `cols_nums` donne QUATRE colonnes de deux numeros tries.
+    # L'ordre du dessin : B a · B b · I a · I b (haut) · G a · G b · O a · O b (bas)
+    _B, _I, _G, _O = cols_nums
+    _plat = [_B[0], _B[1], _I[0], _I[1], _G[0], _G[1], _O[0], _O[1]]
+    for _k, _n in enumerate(_plat[:8]):
+        _bx, _by = LUNES[_k]
+        _nx = _px + _bx * _pw
+        _ny = _py + _by * _ph - _t_num * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, _n, _nx, _ny, _t_num, gris_ch, _POLICE_NUM)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(_POLICE_NUM, _t_num)
+            c.drawCentredString(_nx, _ny, str(_n))
+
+    # ═══ LE BANDEAU, ecrit dans sa pastille (deja creuse au dessin) ═══
+    c.setFillColor(gris_ch)
+    _bl = "N\u00b0 %05d" % serie
+    if telephone:
+        _bl += "        \u2605        " + telephone
+    _tb = 9.0
+    while _tb > 3.4 and _lg_mo(_bl, "Helvetica-Bold", _tb) > _pw * 0.42:
+        _tb -= 0.25
+    c.setFont("Helvetica-Bold", _tb)
+    c.drawCentredString(_px + _pw * 0.535, _py + _ph * 0.036, _bl)
 
 
 def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
