@@ -63,8 +63,53 @@ PAGE_W, PAGE_H = A4
 LETTERS = ["R", "U", "B", "I", "S"]
 RANGES = [(1, 15), (16, 30), (31, 45), (46, 60), (61, 75)]
 
-COLS_PAGE = 2   # 2 cartes par rangée
-ROWS_PAGE = 5   # 5 rangées -> 10 grilles par feuille
+# ═══ 💎 LE COFFRET AUX QUATORZE PIERRES (sceau Maeva 14/08) ═══
+# « RUBIS 75 » : un écrin ouvert, ses quatorze gemmes taillées en
+# rectangle, une serrure au pied et des diamants aux coins.
+# ⚠️ Les pierres sont rangées 4 · 3 · 4 · 3, du HAUT vers le BAS.
+# ⚠️ On les remplit dans l'ordre de lecture — le dessin ne porte pas les
+# lettres R·U·B·I·S, les numéros y coulent naturellement.
+_RATIO_COFFRET = 1.4964
+PIERRES = [(0.315, 0.6672), (0.4656, 0.6683), (0.615, 0.6683), (0.7637, 0.6684), (0.3771, 0.5331), (0.5399, 0.533), (0.7005, 0.5317), (0.2949, 0.403), (0.4571, 0.403), (0.6176, 0.4078), (0.7839, 0.4091), (0.3688, 0.2725), (0.5383, 0.2725), (0.7048, 0.2724)]
+LARG_PIERRE = 0.1160
+HAUT_PIERRE = 0.1030
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_ru
+
+
+def _choisir_image(motif_img, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif_img + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif_img in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_COFFRET = _choisir_image("rubis_coffret", _RATIO_COFFRET)
+
+
+# ⚠️ 14/08 : le dessin est en PAYSAGE (ratio 1,50) — on passe de 10 cartes
+# à 8 cartes-plaques (2 colonnes × 4 rangées).
+COLS_PAGE = 2
+ROWS_PAGE = 4
 MARGIN_X = 8 * mm
 MARGIN_TOP = 8 * mm
 MARGIN_BOT = 8 * mm
@@ -98,73 +143,60 @@ def _gen_carte(rng):
 def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
-    ncols = len(LETTERS)
-    cell_w = CARD_W / ncols
 
-    # Bordure
-    c.setStrokeColor(col); c.setLineWidth(0.8)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
-    if _sec:
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
+    # ⚠️⚠️ 14/08 : ni cadre, ni microtexte, ni QR — comme les autres jeux
+    # habillés. Maeva veut le carton net.
 
-    # Bandeau titre
-    bandeau = (titre_jeu or "RUBIS 75")
+    # ═══ 💎 LA PLAQUE AU COFFRET ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
+    # la carte. Les quatorze pierres suivent, chacune à sa place.
+    _pw = CARD_W - 0.6 * mm
+    _ph = CARD_H - 0.6 * mm
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + 0.3 * mm
+    if _os2.path.exists(_IMAGE_COFFRET):
+        try:
+            c.drawImage(_IMAGE_COFFRET, _px, _py, _pw, _ph, mask="auto")
+        except Exception:
+            pass
+
+    # ⭐⭐ LA POLICE DES CHIFFRES : « Helvetica-Bold » (sceau Maeva 14/08).
+    # Le secret n'est pas la taille, c'est LE GRAS — 58 % de chair contre
+    # 24 % pour DJLECO : les chiffres se voient de loin.
+    _POLICE_NUM = "Helvetica-Bold"
+    _lg_p = _pw * LARG_PIERRE
+    _ht_p = _ph * HAUT_PIERRE
+    _t_num = 34.0
+    while _t_num > 6 and (_lg_ru("88", _POLICE_NUM, _t_num) > _lg_p * 0.80
+                          or _t_num * 0.72 > _ht_p * 0.74):
+        _t_num -= 0.5
+
+    # ═══ les QUATORZE numéros, dans les pierres du coffret ═══
+    # ⚠️ `grille` est 3×5 ; la case centrale (colonne B, rangée 1) est None.
+    # On aplatit en sautant le vide, puis on remplit les pierres dans
+    # l'ordre de lecture du dessin (4 · 3 · 4 · 3).
+    _plat = [v for rangee in grille for v in rangee if v is not None]
+    for _k, _n in enumerate(_plat[:14]):
+        _bx, _by = PIERRES[_k]
+        _nx = _px + _bx * _pw
+        _ny = _py + _by * _ph - _t_num * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, _n, _nx, _ny, _t_num, gris_ch, _POLICE_NUM)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(_POLICE_NUM, _t_num)
+            c.drawCentredString(_nx, _ny, str(_n))
+
+    # ═══ 🎫 LE BANDEAU, écrit dans sa pastille (déjà creuse au dessin) ═══
+    c.setFillColor(gris_ch)
+    _bl = "N\u00b0 %05d" % serie
     if telephone:
-        bandeau += " " + telephone
-    c.setFillColor(col); c.setFont(POLICE, 4.5)
-    c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 2.5 * mm, bandeau[:64])
-
-    # En-tête lettres R-U-B-I-S
-    hdr_y = y0 + CARD_H - HDR_H - 2.5 * mm
-    c.setFillColor(col); c.setFont(POLICE, 6)
-    for i, lettre in enumerate(LETTERS):
-        c.drawCentredString(x0 + (i + 0.5) * cell_w, hdr_y + 1.2 * mm, lettre)
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0, hdr_y, x0 + CARD_W, hdr_y)
-
-    # Zone des numéros (3 rangées)
-    grid_top = hdr_y
-    grid_bot = y0 + FOOT_H
-    grid_h = grid_top - grid_bot
-    row_h = grid_h / 3
-
-    # séparateurs de colonnes
-    c.setStrokeColor(colors.Color(0.85, 0.85, 0.85)); c.setLineWidth(0.3)
-    for i in range(1, ncols):
-        c.line(x0 + i * cell_w, grid_bot, x0 + i * cell_w, grid_top)
-
-    # contenu
-    for r in range(3):
-        for cc in range(ncols):
-            val = grille[r][cc]
-            if val is None:
-                # case centrale vide -> on y place le QR de vérification
-                if _sec and evenement_id:
-                    try:
-                        cx = x0 + (cc + 0.5) * cell_w
-                        cy = grid_top - (r + 0.5) * row_h
-                        _q = min(cell_w, row_h) - 2.0 * mm
-                        _q = max(5.0 * mm, _q)
-                        _sec.carton_qr(c, cx - _q / 2, cy - _q / 2, _q, evenement_id, serie)
-                    except Exception:
-                        pass
-                continue
-            cx = x0 + (cc + 0.5) * cell_w
-            taille = 32  # calibre POW : 32 points
-            cy = grid_top - (r + 0.5) * row_h - taille * 0.36
-            if _sec:
-                _sec.chiffre_micro(c, val, cx, cy, taille, gris_ch, police_ch)
-            else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-                c.drawCentredString(cx, cy, str(val))
-
-    # Pied
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0, y0 + FOOT_H, x0 + CARD_W, y0 + FOOT_H)
-    c.setFillColor(GREY); c.setFont("Helvetica", 4.5)
-    c.drawString(x0 + 1.5 * mm, y0 + 1.3 * mm, "N° SÉRIE")
-    c.setFillColor(col); c.setFont("Helvetica", 6)
-    c.drawRightString(x0 + CARD_W - 1.5 * mm, y0 + 1.3 * mm, "%06d" % serie)
+        _bl += "        \u2605        " + telephone
+    _tb = 9.0
+    while _tb > 3.4 and _lg_ru(_bl, "Helvetica-Bold", _tb) > _pw * 0.44:
+        _tb -= 0.25
+    c.setFont("Helvetica-Bold", _tb)
+    c.drawCentredString(_px + _pw * 0.555, _py + _ph * 0.042, _bl)
 
 
 def generer_pdf(nb_cartes=10, serie_start=1, theme="", couleur=True,
@@ -188,7 +220,9 @@ def generer_pdf(nb_cartes=10, serie_start=1, theme="", couleur=True,
             c.setFillColor(colors.black); c.setFont(POLICE, 9)
             c.drawCentredString(PAGE_W / 2, PAGE_H - 5 * mm, nom_evenement)
         c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 6)
-        c.drawCentredString(PAGE_W / 2, PAGE_H - 7.2 * mm, "Page %d" % no_page)
+        # ⚠️ 14/08 : le numéro de page passe à DROITE et en tout petit —
+        # le dessin porte déjà « RUBIS 75 » en grand au centre.
+        c.drawRightString(PAGE_W - 6 * mm, PAGE_H - 5 * mm, "Page %d" % no_page)
 
         for row in range(ROWS_PAGE):
             for col_i in range(COLS_PAGE):
