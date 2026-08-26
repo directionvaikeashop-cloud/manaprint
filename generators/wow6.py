@@ -70,7 +70,48 @@ PLAGE = (30, 59)                       # les boules du WOW 6
 VIDES = {(0, 2), (1, 0), (2, 1)}       # cases vides FIXES (fidèle au modèle)
 CASE_QR = (2, 1)                       # le QR vit dans la case vide bas-milieu
 
-COLS_PAGE = 3
+# ═══ 💥 LE WOW ! À SIX CERCLES (sceau Maeva 14/08) ═══
+# « VOTRE JEU WOW ! — 6 BOULES » : la même explosion de bande dessinée
+# que WOW 4, mais six grands cercles — trois en haut, trois en bas.
+_RATIO_WOW6 = 1.5018
+CERCLES = [[0.2552, 0.7992], [0.5037, 0.798], [0.7476, 0.7992], [0.2642, 0.2509], [0.5121, 0.2506], [0.7704, 0.2505]]
+DIAM_CERCLE = 0.179
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_w6
+
+
+def _choisir_image(motif_img, ratio_attendu):
+    """Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif_img + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif_img in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_WOW6 = _choisir_image("wow6_bd", _RATIO_WOW6)
+
+
+# 14/08 : le dessin est en PAYSAGE (ratio 1,50) — on passe de 12 cartes
+# a 8 cartes-plaques (2 colonnes x 4 rangees).
+COLS_PAGE = 2
 ROWS_PAGE = 4
 MARGIN_X = 8 * mm
 MARGIN_TOP = 8 * mm
@@ -100,64 +141,58 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
 
-    # Bordure carte
-    c.setStrokeColor(col); c.setLineWidth(0.8)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
+    # 14/08 : ni cadre, ni microtexte, ni QR — comme les autres jeux
+    # habilles. Maeva veut le carton net.
 
-    # En-tête (2 lignes : titre + N° carte) — le nom du jeu apparaît TOUJOURS
-    hdr_y = y0 + CARD_H - 3.5 * mm
-    titre = "WOW 6 boules"
-    if titre_jeu and titre_jeu.strip() and titre_jeu.strip().upper() != titre.upper():
-        if "WOW" in titre_jeu.strip().upper():
-            titre = titre_jeu.strip()
-        else:
-            titre += "  —  " + titre_jeu.strip()
-    if telephone:
-        titre += " " + telephone
-    c.setFillColor(col); c.setFont(POLICE, 5)
-    c.drawCentredString(x0 + CARD_W / 2, hdr_y, titre[:60])
-    c.setFillColor(col); c.setFont(POLICE, 6.5)
-    c.drawCentredString(x0 + CARD_W / 2, hdr_y - 4 * mm, "Carte N° %05d" % serie)
-
-    # Grille 3×3 (traits fins, fidèle au modèle)
-    grid_top = hdr_y - 6.5 * mm
-    grid_bot = y0 + 2.5 * mm
-    ncols = 3
-    cell_w = CARD_W / ncols
-    grid_h = grid_top - grid_bot
-    row_h = grid_h / 3
-
-    c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.3)
-    for i in range(1, ncols):
-        c.line(x0 + i * cell_w, grid_bot, x0 + i * cell_w, grid_top)
-    for r in range(1, 3):
-        yy = grid_top - r * row_h
-        c.line(x0 + 1.5 * mm, yy, x0 + CARD_W - 1.5 * mm, yy)
-
-    # Les 6 numéros — gros chiffres bien visibles (cases vides propres, comme le modèle)
-    taille = 34
-    for (r, cc), val in grille.items():
-        cx = x0 + (cc + 0.5) * cell_w
-        cyc = grid_top - (r + 0.5) * row_h
-        if _sec:  # chiffres "billet de banque" remplis de microtexte
-            _sec.chiffre_micro(c, val, cx, cyc - taille * 0.36, taille, gris_ch, police_ch)
-        else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-            c.drawCentredString(cx, cyc - taille * 0.36, str(val))
-
-    # QR de vérification par carte (anti-duplication) — la case vide bas-milieu
-    if _sec and evenement_id:
+    # ═══ LA PLAQUE AU WOW ! ═══
+    # PAS de preserveAspectRatio : on VEUT l'etirer pour qu'elle epouse
+    # la carte. Les six cercles suivent, chacun a sa place.
+    _pw = CARD_W - 0.6 * mm
+    _ph = CARD_H - 0.6 * mm
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + 0.3 * mm
+    if _os2.path.exists(_IMAGE_WOW6):
         try:
-            r, cc = CASE_QR
-            _q = min(cell_w, row_h) - 2.4 * mm
-            _q = max(9.0 * mm, min(_q, 13.5 * mm))
-            cx = x0 + (cc + 0.5) * cell_w
-            cyc = grid_top - (r + 0.5) * row_h
-            _sec.carton_qr(c, cx - _q / 2, cyc - _q / 2, _q, evenement_id, serie)
+            c.drawImage(_IMAGE_WOW6, _px, _py, _pw, _ph, mask="auto")
         except Exception:
             pass
+
+    # LA POLICE DES CHIFFRES : « Helvetica-Bold » (sceau Maeva 14/08).
+    # Le secret n'est pas la taille, c'est LE GRAS — 58 % de chair contre
+    # 24 % pour DJLECO : les chiffres se voient de loin.
+    _POLICE_NUM = "Helvetica-Bold"
+    _dia = _pw * DIAM_CERCLE
+    _t_num = 48.0
+    while _t_num > 6 and (_lg_w6("88", _POLICE_NUM, _t_num) > _dia * 0.72
+                          or _t_num * 0.72 > _dia * 0.62):
+        _t_num -= 0.5
+
+    # ═══ les SIX numeros, dans les cercles du WOW ═══
+    # `grille` est un DICTIONNAIRE {(rangee, colonne): numero} — les trois
+    # cases vides n'y figurent pas. On lit dans l'ordre naturel.
+    _plat = [grille[(r, cc)] for r in range(3) for cc in range(3)
+             if (r, cc) in grille]
+    for _k, _n in enumerate(_plat[:6]):
+        _bx, _by = CERCLES[_k]
+        _nx = _px + _bx * _pw
+        _ny = _py + _by * _ph - _t_num * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, _n, _nx, _ny, _t_num, gris_ch, _POLICE_NUM)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(_POLICE_NUM, _t_num)
+            c.drawCentredString(_nx, _ny, str(_n))
+
+    # ═══ LE BANDEAU, ecrit dans sa pastille (deja creuse au dessin) ═══
+    c.setFillColor(gris_ch)
+    _bl = "N\u00b0 %05d" % serie
+    if telephone:
+        _bl += "        \u2605        " + telephone
+    _tb = 9.0
+    while _tb > 3.4 and _lg_w6(_bl, "Helvetica-Bold", _tb) > _pw * 0.42:
+        _tb -= 0.25
+    c.setFont("Helvetica-Bold", _tb)
+    c.drawCentredString(_px + _pw * 0.510, _py + _ph * 0.036, _bl)
 
 
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
