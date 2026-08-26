@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-MANAPRINT — Générateur ANI (format A4)
-12 cartes par feuille A4 (3 colonnes × 4 rangées).
-Chaque carte : en-tête A | N | I puis grille complète de TROIS rangées —
-3 numéros par lettre, triés de haut en bas (9 numéros par carte) :
-  A = 61-70,  N = 71-80,  I = 81-90   (les dizaines hautes, fidèle au modèle)
-Pied de carte : « N° SERIE | 030001 ».
-Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
+MANAPRINT — Générateur TEAHUPOO (format A4)
+
+🌊 REBAPTISÉ LE 14/08 (sceau Maeva) : l'ancien « ANI » devient TEAHUPOO.
+Une surfeuse dans la vague, l'écume tout autour, et neuf bulles
+numérotées de 1 à 9.
+
+RÈGLE INCHANGÉE : neuf numéros, trois par lettre —
+  A : 61-70 · N : 71-80 · I : 81-90
+⚠️ Ce sont les dizaines hautes, fidèles au modèle d'origine.
+
+8 cartes par feuille A4 (2 colonnes × 4 rangées).
 """
 import io
 import random
@@ -68,7 +72,50 @@ LETTRES = "ANI"
 # (min, max) par lettre — A N I (les dizaines hautes)
 PLAGES = [(61, 70), (71, 80), (81, 90)]
 
-COLS_PAGE = 3
+# ═══ 🌊 LA VAGUE ET SES NEUF BULLES (sceau Maeva 14/08) ═══
+# « TEAHUPOO — 9 BOULES » : une surfeuse dans le tube, l'écume partout,
+# et neuf bulles numérotées de 1 à 9 par des pastilles noires.
+# ⚠️ L'ORDRE suit les pastilles : 3 en haut · 4 au milieu · 2 en bas.
+_RATIO_VAGUE = 1.5018
+BULLES = [[0.363, 0.6294], [0.5181, 0.6295], [0.6729, 0.6293], [0.2871, 0.4157], [0.4407, 0.4156], [0.5987, 0.4156], [0.7536, 0.4155], [0.3985, 0.1949], [0.65, 0.1946]]
+LARG_BULLE = 0.1166
+HAUT_BULLE = 0.1832
+import os as _os2
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_te
+
+
+def _choisir_image(motif_img, ratio_attendu):
+    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
+    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
+    exact = _os2.path.join(dossier, motif_img + ".png")
+    candidats = []
+    try:
+        for f in _os2.listdir(dossier):
+            if motif_img in f and f.lower().endswith(".png"):
+                candidats.append(_os2.path.join(dossier, f))
+    except Exception:
+        return exact
+    if not candidats:
+        return exact
+    meilleur, ecart = candidats[0], 9e9
+    for chemin in candidats:
+        try:
+            from PIL import Image as _Im
+            with _Im.open(chemin) as im:
+                e = abs(im.width / float(im.height) - ratio_attendu)
+        except Exception:
+            continue
+        if e < ecart:
+            meilleur, ecart = chemin, e
+    return meilleur
+
+
+_IMAGE_VAGUE = _choisir_image("teahu_vague", _RATIO_VAGUE)
+
+
+# ⚠️ 14/08 : le dessin est en PAYSAGE (ratio 1,50) — on passe de 12 cartes
+# à 8 cartes-plaques (2 colonnes × 4 rangées).
+COLS_PAGE = 2
 ROWS_PAGE = 4
 MARGIN_X = 8 * mm
 MARGIN_TOP = 10 * mm
@@ -91,70 +138,69 @@ def _gen_carte(rng):
 def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
-    cell_w = CARD_W / 3
 
-    # Bordure carte
-    c.setStrokeColor(col); c.setLineWidth(0.8)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.9 * mm)
+    # ⚠️⚠️ 14/08 : ni cadre, ni microtexte, ni QR — comme les autres jeux
+    # habillés. Maeva veut le carton net.
 
-    # En-tête T | E | A — bande à séparateurs verticaux (fidèle au modèle)
-    hdr_bas = y0 + CARD_H - HDR_H
-    c.setStrokeColor(col); c.setLineWidth(0.5)
-    c.line(x0, hdr_bas, x0 + CARD_W, hdr_bas)
-    for i in (1, 2):
-        c.line(x0 + i * cell_w, hdr_bas, x0 + i * cell_w, y0 + CARD_H)
-    c.setFillColor(col); c.setFont(POLICE, 7.5)
-    for i, lettre in enumerate(LETTRES):
-        c.drawCentredString(x0 + (i + 0.5) * cell_w, hdr_bas + 1.8 * mm, lettre)
-
-    # Le nom du jeu apparaît TOUJOURS : signature fine sous l'en-tête
-    signature = "ANI"
-    if titre_jeu and titre_jeu.strip().upper() != "ANI":
-        signature += " · " + titre_jeu.strip()
-    if telephone:
-        signature += " · " + telephone
-    c.setFillColor(col); c.setFont(POLICE, 3.8)
-    c.drawCentredString(x0 + CARD_W / 2, hdr_bas - 2.4 * mm, signature[:60])
-
-    # Pied de carte : « N° SERIE | 030001 »
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0 + 1.5 * mm, y0 + PIED_H, x0 + CARD_W - 1.5 * mm, y0 + PIED_H)
-    c.line(x0 + CARD_W * 0.42, y0 + 0.8 * mm, x0 + CARD_W * 0.42, y0 + PIED_H - 0.6 * mm)
-    c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 4.2)
-    c.drawString(x0 + 2.5 * mm, y0 + 1.5 * mm, "N\u00b0 SERIE")
-    c.setFillColor(col); c.setFont(POLICE, 6)
-    c.drawRightString(x0 + CARD_W - 2.5 * mm, y0 + 1.4 * mm, "%06d" % serie)
-
-    # Zone des numéros : grille complète 3 rangées, 3 numéros par lettre
-    z_top = hdr_bas - 3.6 * mm
-    z_bot = y0 + PIED_H + ZONE_QR_H
-    row_h = (z_top - z_bot) / 3
-    # traits de la grille (fidèle au modèle : cases complètes)
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    for i in (1, 2):
-        c.line(x0 + i * cell_w, z_bot, x0 + i * cell_w, hdr_bas)
-    for i in range(4):
-        c.line(x0 + 1.5 * mm, z_top - i * row_h, x0 + CARD_W - 1.5 * mm, z_top - i * row_h)
-    taille = 34  # AU MAX physique (Maeva)
-    for ci, nums in enumerate(cols_nums):
-        cx = x0 + (ci + 0.5) * cell_w
-        for ri, val in enumerate(nums):
-            cyc = z_top - (ri + 0.5) * row_h
-            if _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, val, cx, cyc - taille * 0.36, taille, gris_ch, police_ch)
-            else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-                c.drawCentredString(cx, cyc - taille * 0.36, str(val))
-
-    # QR de vérification par carte (anti-duplication) — bande basse, centré
-    if _sec and evenement_id:
+    # ═══ 🌊 LA PLAQUE À LA VAGUE ═══
+    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
+    # la carte. Les neuf bulles suivent, chacune à sa place.
+    _pw = CARD_W - 0.6 * mm
+    _ph = CARD_H - 0.6 * mm
+    _px = x0 + (CARD_W - _pw) / 2
+    _py = y0 + 0.3 * mm
+    if _os2.path.exists(_IMAGE_VAGUE):
         try:
-            _q = 12.5 * mm
-            _sec.carton_qr(c, x0 + (CARD_W - _q) / 2, y0 + PIED_H + 1.0 * mm, _q, evenement_id, serie)
+            c.drawImage(_IMAGE_VAGUE, _px, _py, _pw, _ph, mask="auto")
         except Exception:
             pass
+
+    # ⭐⭐ LA POLICE DES CHIFFRES : « Helvetica-Bold » (sceau Maeva 14/08).
+    # Le secret n'est pas la taille, c'est LE GRAS — 58 % de chair contre
+    # 24 % pour DJLECO : les chiffres se voient de loin.
+    _POLICE_NUM = "Helvetica-Bold"
+    _lg_b = _pw * LARG_BULLE
+    _ht_b = _ph * HAUT_BULLE
+    _t_num = 34.0
+    while _t_num > 6 and (_lg_te("88", _POLICE_NUM, _t_num) > _lg_b * 0.86
+                          or _t_num * 0.72 > _ht_b * 0.58):
+        _t_num -= 0.5
+
+    # ═══ les NEUF numéros, dans les bulles de la vague ═══
+    # ⚠️ `carte` donne trois colonnes A · N · I de trois numéros triés.
+    # On les aplatit dans l'ordre des pastilles 1 à 9.
+    _plat = [v for colonne in cols_nums for v in colonne]
+    for _k, _n in enumerate(_plat[:9]):
+        _bx, _by = BULLES[_k]
+        _nx = _px + _bx * _pw
+        _ny = _py + _by * _ph - _t_num * 0.34
+        if _sec:
+            _sec.chiffre_micro(c, _n, _nx, _ny, _t_num, gris_ch, _POLICE_NUM)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(_POLICE_NUM, _t_num)
+            c.drawCentredString(_nx, _ny, str(_n))
+
+    # ═══ 🎫 LE BANDEAU, au PIED de la carte ═══
+    # ⚠️ la pastille « 9 BOULES » du dessin est trop courte : le numéro de
+    # série la chevauchait. On l'écrit donc au pied, dans sa propre
+    # pastille aux bouts ronds.
+    _bl = "N\u00b0 %05d" % serie
+    if telephone:
+        _bl += "   \u2605   " + telephone
+    _tb = 7.5
+    while _tb > 3.4 and _lg_te(_bl, "Helvetica-Bold", _tb) > _pw * 0.30:
+        _tb -= 0.25
+    _bh = _tb * 1.68
+    _bw = _lg_te(_bl, "Helvetica-Bold", _tb) + _bh * 1.4
+    _bx = _px + _pw * 0.520 - _bw / 2
+    _by = _py + _ph * 0.022
+    c.setStrokeColor(gris_ch); c.setLineWidth(0.7)
+    c.setFillColor(colors.white)
+    c.roundRect(_bx, _by, _bw, _bh, _bh / 2.0, stroke=1, fill=1)
+    c.setFillColor(gris_ch)
+    c.setFont("Helvetica-Bold", _tb)
+    c.drawCentredString(_px + _pw * 0.520, _by + _bh * 0.30, _bl)
 
 
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
