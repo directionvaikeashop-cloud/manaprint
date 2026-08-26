@@ -74,6 +74,7 @@ from generators import italia_villes
 from generators import italia_escalier
 from generators import vai
 from generators import wow4
+from generators import wow6
 from generators import maia as maiagen
 from generators import corsica as corsicagen
 from generators import bno
@@ -181,7 +182,7 @@ JEUX_HABILLES = {
     "fan90", "lagoon", "boules60", "fleche", "brown8", "diamant",
     "cerf_volant", "boules40", "bubulle", "dual_dab",
     "aloha75", "pol", "bingo_ball", "rubis75", "losange",
-    "ani", "wow4",
+    "ani", "wow4", "wow6",
 }
 JEUX_INTERDITS = {
     "ranihei": JEUX_HABILLES,
@@ -553,6 +554,7 @@ _enregistrer_paire("italia_villes", "ITALIA VILLES","🗺️", 6,  italia_villes
 _enregistrer_paire("italia_esc",    "ITALIA ESCALIER","\U0001fa9c", 10, italia_escalier.generer_pdf)
 _enregistrer_paire("vai",           "VAI 9 boules","🌊", 8, vai.generer_pdf)
 _enregistrer_paire("wow4",          "WOW 4","🎆", 8, wow4.generer_pdf)
+_enregistrer_paire("wow6",          "WOW 6","\U0001f4a5", 8,  wow6.generer_pdf)
 _enregistrer_paire("maia",          "MAIA \u00b7 Ma\u00efa", "🍌", 12, maiagen.generer_pdf)
 _enregistrer_paire("corsica",       "CORSICA \u00b7 l'\u00eele de la beaut\u00e9", "\u2b50", 8, corsicagen.generer_pdf)
 _enregistrer_paire("bno",           "BNO 8 boules","🎯", 12, bno.generer_pdf)
@@ -1382,6 +1384,7 @@ _PLAGES_CALLER = {
     "italia_villes": (1, 75),
     "vai": (61, 90),
     "wow4": (30, 60),
+    "wow6": (30, 59),
     "maia": (30, 59),
     "corsica": (1, 80),
     "bno": (1, 75),
