@@ -643,6 +643,8 @@ def commandes_du_partenaire(slug, limite=150):
         totaux = conn.execute(
             "SELECT COUNT(*) AS n, "
             "       COALESCE(SUM(nb_feuilles), 0) AS feuilles, "
+            # ⚠️ 15/08 : 'fabrique_partenaire' = offert, tout le reste est dû —
+            # y compris 'fabrique_habillee' (les jeux à image au-delà du quota).
             "       COALESCE(SUM(CASE WHEN mode_paiement = 'fabrique_partenaire' "
             "                         THEN 0 ELSE nb_feuilles END), 0) AS feuilles_dues "
             "FROM commandes WHERE params_perso LIKE ? OR params_perso LIKE ?",
