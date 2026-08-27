@@ -110,6 +110,26 @@ from generators import bgo
 from generators import igo
 from generators import kea
 from generators import moon
+
+# ═══ 🌺 LES JUMEAUX « CLASSIC » (sceau Maeva 15/08) ═══
+# Chaque jeu décoré garde son carton d'ORIGINE, pour les clientes qui
+# le préfèrent sobre. Les deux vivent côte à côte dans la boutique.
+from generators import aloha75_classic
+from generators import pol_classic
+from generators import bingo_ball_classic
+from generators import rubis75_classic
+from generators import losange_classic
+from generators import ani_classic
+from generators import wow4_classic
+from generators import wow6_classic
+from generators import moon_classic
+from generators import dual_dab_classic
+from generators import boules40_classic
+from generators import cerf_volant_classic
+from generators import brown8_classic
+from generators import boules60_classic
+from generators import lagoon_classic
+from generators import fan90_classic
 from generators import ani
 from generators import brown14
 from generators import ino8
@@ -592,6 +612,24 @@ _enregistrer_paire("bgo",           "BGO",        "🔠", 12, bgo.generer_pdf)
 _enregistrer_paire("igo",           "IGO",        "🎱", 12, igo.generer_pdf)
 _enregistrer_paire("kea",           "KEA",        "🌿", 12, kea.generer_pdf)
 _enregistrer_paire("moon",          "MOON",       "🌙", 8,  moon.generer_pdf)
+
+# ═══ 🌺 les jumeaux CLASSIC, juste après leurs frères décorés ═══
+_enregistrer_paire("aloha75_classic", "ALOHA 75 CLASSIC", "🌺", 12, aloha75_classic.generer_pdf)
+_enregistrer_paire("pol_classic", "POL 6 boules CLASSIC", "🎲", 12, pol_classic.generer_pdf)
+_enregistrer_paire("bingo_ball_classic", "Bingo Ball CLASSIC", "🎱", 10, bingo_ball_classic.generer_pdf)
+_enregistrer_paire("rubis75_classic", "RUBIS 75 CLASSIC", "💎", 10, rubis75_classic.generer_pdf)
+_enregistrer_paire("losange_classic", "LOSANGE CLASSIC", "🪁", 6, losange_classic.generer_pdf)
+_enregistrer_paire("ani_classic", "TEAHUPOO CLASSIC", "🌊", 12, ani_classic.generer_pdf)
+_enregistrer_paire("wow4_classic", "WOW 4 CLASSIC", "🎆", 12, wow4_classic.generer_pdf)
+_enregistrer_paire("wow6_classic", "WOW 6 CLASSIC", "💥", 12, wow6_classic.generer_pdf)
+_enregistrer_paire("moon_classic", "MOON CLASSIC", "🌙", 8, moon_classic.generer_pdf)
+_enregistrer_paire("dual_dab_classic", "DUAL DAB CLASSIC", "🤜", 8, dual_dab_classic.generer_pdf)
+_enregistrer_paire("boules40_classic", "40 BOULES CLASSIC", "🎳", 12, boules40_classic.generer_pdf)
+_enregistrer_paire("cerf_volant_classic", "CERF VOLANT CLASSIC", "🪁", 6, cerf_volant_classic.generer_pdf)
+_enregistrer_paire("brown8_classic", "BROWN 8 CLASSIC", "🟤", 8, brown8_classic.generer_pdf)
+_enregistrer_paire("boules60_classic", "60 BOULES CLASSIC", "🎯", 12, boules60_classic.generer_pdf)
+_enregistrer_paire("lagoon_classic", "LAGOON CLASSIC", "🏝️", 12, lagoon_classic.generer_pdf)
+_enregistrer_paire("fan90_classic", "FAN 90 CLASSIC", "🗝️", 8, fan90_classic.generer_pdf)
 _enregistrer_paire("ani",           "TEAHUPOO",        "🌊", 8, ani.generer_pdf)
 _enregistrer_paire("brown14",       "BROWN 14 boules", "🟤", 8, brown14.generer_pdf)
 _enregistrer_paire("ino8",          "INO 8 boules", "🎐", 12, ino8.generer_pdf)
@@ -1417,6 +1455,23 @@ _PLAGES_CALLER = {
     "igo": (16, 75),
     "kea": (35, 67),
     "moon": (1, 75),
+    # 🌺 les jumeaux CLASSIC tirent dans le même sac que leurs frères
+    "aloha75_classic": (1, 75),
+    "bingo_ball_classic": (1, 75),
+    "brown8_classic": (1, 75),
+    "pol_classic": (30, 60),
+    "rubis75_classic": (1, 75),
+    "losange_classic": (1, 75),
+    "ani_classic": (61, 90),
+    "wow4_classic": (30, 60),
+    "wow6_classic": (30, 59),
+    "moon_classic": (1, 75),
+    "dual_dab_classic": (1, 75),
+    "boules40_classic": (1, 40),
+    "cerf_volant_classic": (1, 75),
+    "boules60_classic": (1, 60),
+    "lagoon_classic": (1, 50),
+    "fan90_classic": (1, 90),
     "ani": (61, 90),
     "brown14": (1, 75),
     "ino8": (16, 75),
