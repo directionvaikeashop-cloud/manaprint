@@ -130,6 +130,12 @@ from generators import brown8_classic
 from generators import boules60_classic
 from generators import lagoon_classic
 from generators import fan90_classic
+from generators import win_classic
+from generators import kai_classic
+from generators import sun_classic
+from generators import wiz_classic
+from generators import rai_classic
+from generators import tahaa_classic
 from generators import ani
 from generators import brown14
 from generators import ino8
@@ -664,6 +670,12 @@ _enregistrer_paire("brown8_classic", "BROWN 8 CLASSIC", "🟤", 8, brown8_classi
 _enregistrer_paire("boules60_classic", "60 BOULES CLASSIC", "🎯", 12, boules60_classic.generer_pdf)
 _enregistrer_paire("lagoon_classic", "LAGOON CLASSIC", "🏝️", 12, lagoon_classic.generer_pdf)
 _enregistrer_paire("fan90_classic", "FAN 90 CLASSIC", "🗝️", 8, fan90_classic.generer_pdf)
+_enregistrer_paire("win_classic", "WIN CLASSIC", "🏆", 12, win_classic.generer_pdf)
+_enregistrer_paire("kai_classic", "KAI CLASSIC", "🍽️", 12, kai_classic.generer_pdf)
+_enregistrer_paire("sun_classic", "SUN CLASSIC", "☀️", 12, sun_classic.generer_pdf)
+_enregistrer_paire("wiz_classic", "WIZ CLASSIC", "🧙", 12, wiz_classic.generer_pdf)
+_enregistrer_paire("rai_classic", "RAI CLASSIC", "🌈", 12, rai_classic.generer_pdf)
+_enregistrer_paire("tahaa_classic", "TAHAA CLASSIC", "🥥", 8, tahaa_classic.generer_pdf)
 _enregistrer_paire("ani",           "TEAHUPOO",        "🌊", 8, ani.generer_pdf)
 _enregistrer_paire("brown14",       "BROWN 14 boules", "🟤", 8, brown14.generer_pdf)
 _enregistrer_paire("ino8",          "INO 8 boules", "🎐", 12, ino8.generer_pdf)
@@ -1490,6 +1502,12 @@ _PLAGES_CALLER = {
     "kea": (35, 67),
     "moon": (1, 75),
     # 🌺 les jumeaux CLASSIC tirent dans le même sac que leurs frères
+    "win_classic": (1, 45),
+    "kai_classic": (1, 29),
+    "sun_classic": (1, 24),
+    "wiz_classic": (1, 45),
+    "rai_classic": (30, 59),
+    "tahaa_classic": (1, 75),
     "aloha75_classic": (1, 75),
     "bingo_ball_classic": (1, 75),
     "brown8_classic": (1, 75),
