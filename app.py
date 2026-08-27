@@ -204,9 +204,43 @@ JEUX_HABILLES = {
     "aloha75", "pol", "bingo_ball", "rubis75", "losange",
     "ani", "wow4", "wow6", "moon",
 }
-JEUX_INTERDITS = {
-    "ranihei": JEUX_HABILLES,
+# ⚠️⚠️ 15/08 (sceau Maeva) : RANIHEI N'EST PLUS BLOQUÉE SUR LES JEUX À
+# IMAGE — elle en reçoit **500 FEUILLES OFFERTES**, puis paie **1,5 F la
+# feuille**. Le verrou sec (403) devient un compteur.
+# Pour interdire vraiment un jeu à quelqu'un un jour : remettre son slug
+# dans JEUX_INTERDITS ci-dessous.
+JEUX_INTERDITS = {}
+
+# 🎁 LE QUOTA DES JEUX À IMAGE, partenaire par partenaire.
+#    {slug: nombre de feuilles offertes}
+QUOTA_HABILLES = {
+    "ranihei": 500,
 }
+PRIX_FEUILLE_HABILLEE = 1.5      # ce que coûte la feuille au-delà du quota
+
+
+def _feuilles_habillees_faites(slug):
+    """🎁 Combien de feuilles de jeux À IMAGE ce partenaire a-t-il déjà
+    fabriquées ? On ne compte QUE sa fabrique à lui, et seulement les jeux
+    habillés — ses autres commandes ne touchent pas au quota."""
+    if not slug:
+        return 0
+    motifs = ('%"partenaire": "' + str(slug) + '"%',
+              '%"partenaire":"' + str(slug) + '"%')
+    total = 0
+    try:
+        with db.get_db() as conn:
+            rows = conn.execute(
+                "SELECT programme, nb_feuilles FROM commandes "
+                "WHERE (params_perso LIKE ? OR params_perso LIKE ?) "
+                "  AND mode_paiement IN ('fabrique_partenaire', 'fabrique_habillee')",
+                motifs).fetchall()
+        for r in rows:
+            if _base_jeu(str(r["programme"] or "")) in JEUX_HABILLES:
+                total += int(r["nb_feuilles"] or 0)
+    except Exception as e:
+        print("[QUOTA] lecture impossible :", e)
+    return total
 
 
 def _jeu_interdit(slug, programme):
@@ -3728,6 +3762,30 @@ def api_partenaire_generer():
         nb_feuilles = 0
     if nb_feuilles < 25 or nb_feuilles > 250 or nb_feuilles % 25:
         return jsonify({"ok": False, "message": "Choisissez de 25 \u00e0 250 feuilles, par paquets de 25."}), 400
+
+    # ═══ 🎁 LE QUOTA DES JEUX À IMAGE (sceau Maeva 15/08) ═══
+    # Le partenaire reçoit un nombre de feuilles OFFERTES sur les jeux
+    # habillés. Au-delà, chaque feuille lui est due à 1,5 F.
+    # ⚠️ On refuse une commande À CHEVAL sur les deux : le partenaire
+    # prend d'abord ce qui lui reste d'offert, puis repasse commande.
+    # C'est plus honnête que de lui faire perdre son solde.
+    _mode = "fabrique_partenaire"      # gratuit par défaut
+    _prix = 0
+    _quota = QUOTA_HABILLES.get(slug)
+    if _quota is not None and _base_jeu(programme) in JEUX_HABILLES:
+        _faites = _feuilles_habillees_faites(slug)
+        _reste = max(0, int(_quota) - _faites)
+        if nb_feuilles <= _reste:
+            pass                        # tout tient dans l'offert
+        elif _reste == 0:
+            _mode = "fabrique_habillee"   # tout est dû
+            _prix = PRIX_FEUILLE_HABILLEE
+        else:
+            return jsonify({"ok": False, "message":
+                (f"\U0001f381 Il vous reste {_reste} feuille(s) offerte(s) sur les jeux "
+                 f"\u00e0 image (sur {int(_quota)}). Prenez {_reste} feuilles pour finir "
+                 f"votre cadeau, puis les suivantes vous seront compt\u00e9es "
+                 f"\u00e0 {PRIX_FEUILLE_HABILLEE} F la feuille.")}), 400
     enseigne = (str(data.get("titre") or "").strip() or part.get("enseigne_pdf") or part["nom"])[:40]
     telephone = (str(data.get("telephone") or "").strip() or part.get("tel_pdf") or part.get("tel", ""))[:24]
     perso = _json.dumps({
@@ -3740,16 +3798,26 @@ def api_partenaire_generer():
     commande_id, _ = db.creer_commande(
         identifiant=enseigne, origine="polynesien",
         programme=programme, couleur=REGISTRE_JEUX[programme].get("couleur", True),
-        nb_feuilles=nb_feuilles, mode_paiement="fabrique_partenaire",
-        params_perso=perso, prix_feuille=0,
+        nb_feuilles=nb_feuilles, mode_paiement=_mode,
+        params_perso=perso, prix_feuille=_prix,
     )
     db.marquer_commande_payee(commande_id)
     lancer_fabrication(commande_id)
     jeu = REGISTRE_JEUX.get(programme, {})
-    return jsonify({"ok": True, "commande_id": commande_id,
+    _sup = ""
+    if _quota is not None and _base_jeu(programme) in JEUX_HABILLES:
+        _apres = _feuilles_habillees_faites(slug)
+        if _mode == "fabrique_habillee":
+            _sup = (f" \u2014 \U0001f4b0 {nb_feuilles} feuilles \u00e0 "
+                    f"{PRIX_FEUILLE_HABILLEE} F = {round(nb_feuilles * PRIX_FEUILLE_HABILLEE)} F "
+                    f"(votre cadeau de {int(_quota)} feuilles est \u00e9puis\u00e9).")
+        else:
+            _sup = (f" \u2014 \U0001f381 offert : il vous reste "
+                    f"{max(0, int(_quota) - _apres)} feuille(s) sur {int(_quota)}.")
+    return jsonify({"ok": True, "commande_id": commande_id, "supplement": _sup,
                     "message": (f"\U0001f5a8\ufe0f Fabrique #{commande_id} lanc\u00e9e : {nb_feuilles} feuilles de "
                                 f"{jeu.get('emoji','')} {jeu.get('nom', programme)} \u00e0 l'enseigne \u00ab {enseigne} \u00bb \u2014 "
-                                "appuyez sur \u21bb dans 1-2 minutes, le bouton \u2b07\ufe0f Cartons appara\u00eetra.")})
+                                "appuyez sur \u21bb dans 1-2 minutes, le bouton \u2b07\ufe0f Cartons appara\u00eetra." + _sup)})
 
 
 _PRIX_PART_LOCK = _threading.Lock()
