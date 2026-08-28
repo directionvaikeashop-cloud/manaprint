@@ -154,6 +154,7 @@ from generators import echec_et_mat
 from generators import pomare
 from generators import unite
 from generators import talon
+from generators import hoanui
 from generators import lunes75
 from generators import miss75
 from generators import bien_sur
@@ -233,6 +234,7 @@ JEUX_EXCLUSIFS = {
     "pomare": {"ranihei"},
     "unite": {"ranihei"},
     "talon": {"ranihei"},
+    "hoanui": {"ranihei"},
 }
 
 
@@ -719,6 +721,7 @@ _enregistrer_paire("echec_et_mat",  "\u00c9CHEC ET MAT", "\u265f\ufe0f", 5,  ech
 _enregistrer_paire("pomare",        "POMARE",     "\U0001f451", 8,  pomare.generer_pdf)
 _enregistrer_paire("unite",         "UNIT\u00c9",     "\U0001f497", 8,  unite.generer_pdf)
 _enregistrer_paire("talon",         "TALON",      "\u26bd", 12,  talon.generer_pdf)
+_enregistrer_paire("hoanui",        "HOANUI",     "\U0001f932", 8,  hoanui.generer_pdf)
 _enregistrer_paire("ing_casino",    "ING CASINO","🎰", 12, ing.generer_pdf_casino)
 _enregistrer_paire("lunes75",       "LUNES 75",   "🌜", 12, lunes75.generer_pdf)
 _enregistrer_paire("miss75",        "MISS 75",    "👑", 4,  miss75.generer_pdf)
@@ -1573,6 +1576,7 @@ _PLAGES_CALLER = {
     "pomare": (1, 90),
     "unite": (1, 75),
     "talon": (1, 90),
+    "hoanui": (1, 90),
     "ing_casino": (16, 60),
     "lunes75": (1, 75),
     "miss75": (1, 75),
