@@ -149,6 +149,7 @@ from generators import ahuru
 from generators import tchin
 from generators import ing
 from generators import perle
+from generators import hunter
 from generators import lunes75
 from generators import miss75
 from generators import bien_sur
@@ -217,6 +218,21 @@ JEUX_HABILLES = {
 # Pour interdire vraiment un jeu à quelqu'un un jour : remettre son slug
 # dans JEUX_INTERDITS ci-dessous.
 JEUX_INTERDITS = {}
+
+# ⭐⭐ 15/08 : LES JEUX EXCLUSIFS — un jeu qui n'appartient qu'à une seule
+# enseigne. HUNTER est celui de RANIHEI : personne d'autre ne le voit ni
+# ne peut le fabriquer, pas même la boutique publique.
+#   {slug du jeu: {les slugs autorisés}}
+JEUX_EXCLUSIFS = {
+    "hunter": {"ranihei"},
+}
+
+
+def _jeu_exclusif_refuse(slug, programme):
+    """⭐ Vrai si ce jeu appartient à quelqu'un d'autre."""
+    proprios = JEUX_EXCLUSIFS.get(_base_jeu(programme or ""))
+    return bool(proprios) and (slug or "") not in proprios
+
 
 # 🎁 LE QUOTA DES JEUX À IMAGE, partenaire par partenaire.
 #    {slug: nombre de feuilles offertes}
@@ -690,6 +706,7 @@ _enregistrer_paire("ahuru",         "AHURU",      "🔟", 10, ahuru.generer_pdf)
 _enregistrer_paire("tchin",         "TCHIN",      "🍻", 12, tchin.generer_pdf)
 _enregistrer_paire("ing",           "ING CLASSIC",        "🧭", 12, ing.generer_pdf)
 _enregistrer_paire("perle",         "PERLE",      "\U0001f9aa", 8,  perle.generer_pdf)
+_enregistrer_paire("hunter",        "HUNTER",     "\U0001f3af", 5,  hunter.generer_pdf)
 _enregistrer_paire("ing_casino",    "ING CASINO","🎰", 12, ing.generer_pdf_casino)
 _enregistrer_paire("lunes75",       "LUNES 75",   "🌜", 12, lunes75.generer_pdf)
 _enregistrer_paire("miss75",        "MISS 75",    "👑", 4,  miss75.generer_pdf)
@@ -1539,6 +1556,7 @@ _PLAGES_CALLER = {
     "tchin": (1, 30),
     "ing": (16, 60),
     "perle": (16, 60),
+    "hunter": (1, 90),
     "ing_casino": (16, 60),
     "lunes75": (1, 75),
     "miss75": (1, 75),
@@ -3773,6 +3791,9 @@ def api_partenaire_generer():
     # 🔒 LE VERROU : certains jeux sont réservés (sceau Maeva 13/08).
     # ⚠️ Il est ICI, côté serveur : même si le jeu apparaissait dans la
     # liste par erreur, la fabrication serait refusée.
+    if _jeu_exclusif_refuse(slug, programme):
+        return jsonify({"ok": False,
+                        "message": "Ce jeu appartient \u00e0 une autre enseigne."}), 403
     if _jeu_interdit(slug, programme):
         return jsonify({"ok": False,
                         "message": "Ce jeu n'est pas disponible pour votre enseigne. "
