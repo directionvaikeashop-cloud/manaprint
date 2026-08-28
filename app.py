@@ -148,6 +148,7 @@ from generators import boules60
 from generators import ahuru
 from generators import tchin
 from generators import ing
+from generators import perle
 from generators import lunes75
 from generators import miss75
 from generators import bien_sur
@@ -687,7 +688,8 @@ _enregistrer_paire("papeari",       "PAPEARI",    "\U0001f38a", 8,  papeari.gene
 _enregistrer_paire("boules60",      "60 BOULES",  "🔵", 8, boules60.generer_pdf)
 _enregistrer_paire("ahuru",         "AHURU",      "🔟", 10, ahuru.generer_pdf)
 _enregistrer_paire("tchin",         "TCHIN",      "🍻", 12, tchin.generer_pdf)
-_enregistrer_paire("ing",           "ING",        "🧭", 12, ing.generer_pdf)
+_enregistrer_paire("ing",           "ING CLASSIC",        "🧭", 12, ing.generer_pdf)
+_enregistrer_paire("perle",         "PERLE",      "\U0001f9aa", 8,  perle.generer_pdf)
 _enregistrer_paire("ing_casino",    "ING CASINO","🎰", 12, ing.generer_pdf_casino)
 _enregistrer_paire("lunes75",       "LUNES 75",   "🌜", 12, lunes75.generer_pdf)
 _enregistrer_paire("miss75",        "MISS 75",    "👑", 4,  miss75.generer_pdf)
@@ -1536,6 +1538,7 @@ _PLAGES_CALLER = {
     "ahuru": (1, 75),
     "tchin": (1, 30),
     "ing": (16, 60),
+    "perle": (16, 60),
     "ing_casino": (16, 60),
     "lunes75": (1, 75),
     "miss75": (1, 75),
