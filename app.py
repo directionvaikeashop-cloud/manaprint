@@ -152,6 +152,7 @@ from generators import perle
 from generators import hunter
 from generators import echec_et_mat
 from generators import pomare
+from generators import unite
 from generators import lunes75
 from generators import miss75
 from generators import bien_sur
@@ -229,6 +230,7 @@ JEUX_EXCLUSIFS = {
     "hunter": {"ranihei"},
     "echec_et_mat": {"ranihei"},
     "pomare": {"ranihei"},
+    "unite": {"ranihei"},
 }
 
 
@@ -713,6 +715,7 @@ _enregistrer_paire("perle",         "PERLE",      "\U0001f9aa", 8,  perle.genere
 _enregistrer_paire("hunter",        "HUNTER",     "\U0001f3af", 5,  hunter.generer_pdf)
 _enregistrer_paire("echec_et_mat",  "\u00c9CHEC ET MAT", "\u265f\ufe0f", 5,  echec_et_mat.generer_pdf)
 _enregistrer_paire("pomare",        "POMARE",     "\U0001f451", 8,  pomare.generer_pdf)
+_enregistrer_paire("unite",         "UNIT\u00c9",     "\U0001f497", 8,  unite.generer_pdf)
 _enregistrer_paire("ing_casino",    "ING CASINO","🎰", 12, ing.generer_pdf_casino)
 _enregistrer_paire("lunes75",       "LUNES 75",   "🌜", 12, lunes75.generer_pdf)
 _enregistrer_paire("miss75",        "MISS 75",    "👑", 4,  miss75.generer_pdf)
@@ -1565,6 +1568,7 @@ _PLAGES_CALLER = {
     "hunter": (1, 90),
     "echec_et_mat": (1, 90),
     "pomare": (1, 90),
+    "unite": (1, 75),
     "ing_casino": (16, 60),
     "lunes75": (1, 75),
     "miss75": (1, 75),
