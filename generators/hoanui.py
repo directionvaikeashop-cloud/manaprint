@@ -6,12 +6,14 @@ MANAPRINT — Générateur HOANUI (format A4)
 Deux mains ouvertes en offrande, des hibiscus de part et d'autre, et sept
 cercles tout autour.
 
-RÈGLE (sceau Maeva 15/08) : sept numéros —
-  la DIAGONALE DROITE — haut-droite et bas-gauche  : 1-15
-  la DIAGONALE GAUCHE — haut-gauche et bas-droite  : 26-45
-  les DEUX du MILIEU  — gauche et droite           : 16-25
+RÈGLE — sept numéros (refondue le 27/08, sceau Maeva : les trois plages ont tourné) :
+  la DIAGONALE DROITE — haut-droite et bas-gauche  : 26-45
+  la DIAGONALE GAUCHE — haut-gauche et bas-droite  : 16-25
+  les DEUX du MILIEU  — gauche et droite           : 1-15
   et AU BAS DES MAINS, le cercle du centre         : 46-90
-⚠️ Les deux numéros d'une même paire sont toujours DIFFÉRENTS.
+⚠️ Les quatre plages se suivent sans trou et sans chevauchement : tout le
+   sac de 1 à 90 sert, et les sept numéros sont forcément différents.
+⚠️ Les deux numéros d'une même paire sont tirés d'un coup (jamais égaux).
 ⚠️ Le sac du crieur va de 1 à 90.
 
 ⚠️ Le dessin est en PAYSAGE (ratio 1,50) — 8 cartes par feuille A4 (2×4).
@@ -80,9 +82,9 @@ COLONNES = [(16, 30, 3), (31, 45, 2), (46, 60, 3)]
 
 # ═══ 🤲 LES SEPT CERCLES ═══
 # Rangés par PAIRE, le centre en dernier :
-#   0 haut-droite · 1 bas-gauche  (1-15)
-#   2 haut-gauche · 3 bas-droite  (26-45)
-#   4 milieu-gauche · 5 milieu-droite (16-25)
+#   0 haut-droite · 1 bas-gauche  (26-45)
+#   2 haut-gauche · 3 bas-droite  (16-25)
+#   4 milieu-gauche · 5 milieu-droite (1-15)
 #   6 le bas des mains (46-90)
 _RATIO_HOANUI = 1.5
 CERCLES = [[0.8439, 0.7879], [0.2206, 0.257], [0.1612, 0.7878], [0.7796, 0.2568], [0.115, 0.5057], [0.8875, 0.5057], [0.4996, 0.2281]]
@@ -91,9 +93,9 @@ HAUT_CERCLE = 0.205
 
 # 🤲 les paires et leur plage — puis le cercle du centre
 PAIRES = [
-    ((0, 1), (1, 15)),      # la diagonale droite
-    ((2, 3), (26, 45)),     # la diagonale gauche
-    ((4, 5), (16, 25)),     # les deux du milieu
+    ((0, 1), (26, 45)),     # la diagonale droite
+    ((2, 3), (16, 25)),     # la diagonale gauche
+    ((4, 5), (1, 15)),      # les deux du milieu
 ]
 PLAGE_CENTRE = (46, 90)
 
@@ -151,12 +153,21 @@ GRIS_CLAIR = colors.Color(0.62, 0.62, 0.62)
 
 
 def _gen_carte(rng):
-    """🤲 Sept numéros. Les paires partagent leur plage : on tire donc les
-    DEUX d'un coup pour qu'ils soient toujours différents."""
+    """🤲 Sept numéros.
+
+    Les cases sont regroupées PAR PLAGE et chaque paquet est tiré d'un seul
+    coup : deux paires qui partageraient une plage ne pourraient donc jamais
+    poser deux fois le même chiffre sur la carte. (Au 27/08 les quatre plages
+    sont distinctes, mais le garde-fou reste en place pour l'avenir.)
+    """
     nums = [None] * 7
-    for (a, b), (lo, hi) in PAIRES:
-        x, y = rng.sample(range(lo, hi + 1), 2)
-        nums[a], nums[b] = x, y
+    par_plage = {}
+    for cases, plage in PAIRES:
+        par_plage.setdefault(plage, []).extend(cases)
+    for (lo, hi), cases in par_plage.items():
+        tirage = rng.sample(range(lo, hi + 1), len(cases))
+        for case, n in zip(cases, tirage):
+            nums[case] = n
     nums[6] = rng.randint(*PLAGE_CENTRE)
     return nums
 
