@@ -16,7 +16,15 @@ cinq numéros, un par cœur —
 toujours différents.
 ⚠️ Le sac du crieur va de 1 à 75.
 
-8 cartes par feuille A4 (2 colonnes × 4 rangées).
+⭐ DESSIN REFAIT PAR MAEVA LE 28/08, PUIS DÉPOUILLÉ SUR SA DEMANDE :
+   les RAMEAUX et le PETIT CŒUR PLEIN au creux de chaque cœur ont été
+   retirés, et le titre UNITÉ ramené à 70 % de sa taille. Le carton ne garde
+   que le cadre à découper, les cinq cœurs à double contour, le titre et le
+   bloc RANIHEI SISTERS & SHOP · téléphone · courriel.
+   ⚠️ Les cœurs étant désormais VIDES, le chiffre peut occuper plus de place :
+   les marges de calcul passent de 0,66 / 0,56 à 0,74 / 0,64.
+
+10 cartes par feuille A4 (2 colonnes × 5 rangées, sceau Maeva 28/08).
 """
 import io
 from reportlab.pdfbase.pdfmetrics import stringWidth as _lgn
@@ -82,10 +90,11 @@ COLONNES = [(16, 30, 3), (31, 45, 2), (46, 60, 3)]
 
 # ═══ 💗 LES CINQ CŒURS ═══
 # Rangés : haut-gauche · haut-droite · milieu-gauche · milieu-droite · centre
-_RATIO_UNITE = 1.5
-COEURS = [[0.1662, 0.8123], [0.8409, 0.8125], [0.3289, 0.5195], [0.6756, 0.5201], [0.5015, 0.2491]]
-LARG_COEUR = 0.2092
-HAUT_COEUR = 0.2918
+_RATIO_UNITE = 1.4957
+COEURS = [[0.1571, 0.7954], [0.8414, 0.7954], [0.3157, 0.5123],
+          [0.6682, 0.5123], [0.4893, 0.2468]]
+LARG_COEUR = 0.1896
+HAUT_COEUR = 0.2705
 
 # 💗 les cinq cœurs et leur plage, dans l'ordre du dessin
 PLAGES = [
@@ -129,19 +138,22 @@ def _choisir_image(motif_img, ratio_attendu):
 _IMAGE_UNITE = _choisir_image("unite_coeurs", _RATIO_UNITE)
 
 PAGE_W, PAGE_H = A4
-MARGIN_X = 8 * mm
-MARGIN_TOP = 10 * mm
-MARGIN_BOT = 8 * mm
-GUTTER_X = 4 * mm
-GUTTER_Y = 3 * mm
-# ⚠️ ON RESPECTE LE RATIO DU DESSIN : la largeur commande, la hauteur suit.
+MARGIN_X = 6 * mm
+MARGIN_TOP = 6 * mm
+MARGIN_BOT = 6 * mm
+GUTTER_X = 3 * mm
+GUTTER_Y = 2 * mm
+# ⚠️⚠️ ON RESPECTE LE RATIO DU DESSIN : les deux côtés se calculent ENSEMBLE
+# (à 5 rangées la hauteur commande), et le bloc est centré dans les DEUX sens.
 COLS_PAGE = 2
-ROWS_PAGE = 4
-CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
+ROWS_PAGE = 5
+_DISPO_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
+_DISPO_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
+CARD_W = min(_DISPO_W, _DISPO_H * _RATIO_UNITE)
 CARD_H = CARD_W / _RATIO_UNITE
-MARGE_G = MARGIN_X
-# ⚠️ le bloc est CENTRÉ en hauteur, sinon les cartes s'entassent en bas.
+_TOTAL_W = COLS_PAGE * CARD_W + (COLS_PAGE - 1) * GUTTER_X
 _TOTAL_H = ROWS_PAGE * CARD_H + (ROWS_PAGE - 1) * GUTTER_Y
+MARGE_G = (PAGE_W - _TOTAL_W) / 2
 MARGE_B = MARGIN_BOT + max(0, (PAGE_H - MARGIN_TOP - MARGIN_BOT - _TOTAL_H) / 2)
 GRIS_CLAIR = colors.Color(0.62, 0.62, 0.62)
 
@@ -175,8 +187,8 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, telephone="",
     _lg_c = _pw * LARG_COEUR
     _ht_c = _ph * HAUT_COEUR
     _t_num = 48.0
-    while _t_num > 6 and (_lg_un("88", _POLICE_NUM, _t_num) > _lg_c * 0.66
-                          or _t_num * 0.72 > _ht_c * 0.56):
+    while _t_num > 6 and (_lg_un("88", _POLICE_NUM, _t_num) > _lg_c * 0.74
+                          or _t_num * 0.72 > _ht_c * 0.64):
         _t_num -= 0.5
 
     for _k, _n in enumerate(nums[:5]):
@@ -191,13 +203,13 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, telephone="",
     c.setFillColor(gris_ch)
     _tb = 11.0
     _bl = "S\u00c9RIE %03d" % serie
-    while _tb > 3.4 and _lg_un(_bl, "Helvetica-Bold", _tb) > _pw * 0.20:
+    while _tb > 3.4 and _lg_un(_bl, "Helvetica-Bold", _tb) > _pw * 0.164:
         _tb -= 0.25
     c.setFont("Helvetica-Bold", _tb)
-    c.drawCentredString(_px + _pw * 0.135, _py + _ph * 0.055, _bl)
+    c.drawCentredString(_px + _pw * 0.1293, _py + _ph * 0.0577 - _tb * 0.34, _bl)
 
 
-def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
+def generer_pdf(nb_cartes=10, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="",
                 telephone="", style="eco", evenement_id="", page_start=1):
     buf = io.BytesIO()
