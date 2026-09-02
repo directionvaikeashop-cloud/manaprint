@@ -226,19 +226,19 @@ JEUX_HABILLES = {
 # dans JEUX_INTERDITS ci-dessous.
 JEUX_INTERDITS = {}
 
-# ⭐⭐ 15/08 : LES JEUX EXCLUSIFS — un jeu qui n'appartient qu'à une seule
-# enseigne. HUNTER est celui de RANIHEI : personne d'autre ne le voit ni
-# ne peut le fabriquer, pas même la boutique publique.
+# ⭐⭐ LES JEUX EXCLUSIFS — un jeu qui n'appartient qu'à une seule enseigne :
+# personne d'autre ne le voit ni ne peut le fabriquer.
 #   {slug du jeu: {les slugs autorisés}}
-JEUX_EXCLUSIFS = {
-    "hunter": {"ranihei"},
-    "echec_et_mat": {"ranihei"},
-    "pomare": {"ranihei"},
-    "unite": {"ranihei"},
-    "talon": {"ranihei"},
-    "hoanui": {"ranihei"},
-    "cristal": {"ranihei"},
-}
+#
+# ⚠️⚠️ 29/08 (sceau Maeva) : LES SEPT JEUX DE RANIHEI SONT OUVERTS À TOUS.
+# La table est VIDE — les 4 partenaires peuvent fabriquer HUNTER,
+# ÉCHEC ET MAT, POMARE, UNITÉ, TALON, HOANUI et LES 7 BOULES DE CRISTAL.
+# ⚠️ À SAVOIR : ces sept dessins portent « RANIHEI SISTERS & SHOP » et le
+#    87 77 39 19 IMPRIMÉS DANS L'IMAGE. Une autre enseigne qui les commande
+#    distribuera donc des cartons au nom et au numéro de RANIHEI.
+# ⭐ POUR REVERROUILLER un jeu un jour, il suffit de remettre sa ligne ici,
+#    par exemple :   "hunter": {"ranihei"},
+JEUX_EXCLUSIFS = {}
 
 
 def _jeu_exclusif_refuse(slug, programme):
