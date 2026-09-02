@@ -160,6 +160,7 @@ from generators import unite
 from generators import talon
 from generators import hoanui
 from generators import cristal
+from generators import sicile
 from generators import lunes75
 from generators import miss75
 from generators import bien_sur
@@ -478,6 +479,7 @@ def _variante(fn, couleur_force, style_force="eco"):
 # ⚠️ Elle ne sert QU'À NOMMER. La facturation des jeux à image reste réglée
 #    par JEUX_HABILLES, qui est une autre liste, plus courte, et volontaire.
 JEUX_AVEC_IMAGE = {
+    "sicile",
     "aloha75", "ani", "australes", "baam", "bin6", "bingo_ball",
     "boules40", "boules60", "brown8", "bubulle", "caller", "cerf_volant",
     "champagne", "corsica", "cristal", "diamant", "dollar1", "dual_dab",
@@ -759,6 +761,7 @@ _enregistrer_paire("unite",         "UNIT\u00c9",     "\U0001f497", 10, unite.ge
 _enregistrer_paire("talon",         "TALON",      "\u26bd", 12,  talon.generer_pdf)
 _enregistrer_paire("hoanui",        "HOANUI",     "\U0001f932", 8,  hoanui.generer_pdf)
 _enregistrer_paire("cristal",       "LES 7 BOULES DE CRISTAL", "\U0001f52e", 14, cristal.generer_pdf)
+_enregistrer_paire("sicile",        "SICILE",     "\U0001f451", 8,  sicile.generer_pdf)
 _enregistrer_paire("ing_casino",    "ING CASINO","🎰", 12, ing.generer_pdf_casino)
 _enregistrer_paire("lunes75",       "LUNES 75",   "🌜", 12, lunes75.generer_pdf)
 _enregistrer_paire("miss75",        "MISS 75",    "👑", 4,  miss75.generer_pdf)
@@ -1616,6 +1619,7 @@ _PLAGES_CALLER = {
     "talon": (1, 90),
     "hoanui": (1, 90),
     "cristal": (1, 90),
+    "sicile": (1, 75),
     "ing_casino": (16, 60),
     "lunes75": (1, 75),
     "miss75": (1, 75),
