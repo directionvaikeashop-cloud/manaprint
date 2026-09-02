@@ -3,8 +3,14 @@
 MANAPRINT — Générateur HOANUI (format A4)
 
 🤲 NÉ LE 15/08 (sceau Maeva) — LE SIXIÈME JEU DE RANIHEI, rien qu'à elle.
-Deux mains ouvertes en offrande, des hibiscus de part et d'autre, et sept
-cercles tout autour.
+⭐ DESSIN REFAIT PAR MAEVA LE 28/08 (version définitive) — carton dépouillé :
+le cadre à découper, le titre HOANUI en lettres creuses, le filet,
+« RANIHEI SISTERS & SHOP · 7 BOULES », les deux mains ouvertes, les SEPT
+CERCLES posés à plat et reliés par un trait, et le bloc RANIHEI · téléphone.
+⚠️ Plus rien ne passe DEVANT les cercles : leurs sept contours sont fermés et
+   se relèvent tout seuls. (Sur une version d'essai portant deux bouquets
+   d'hibiscus, les feuilles passaient devant et perçaient les cercles du
+   haut — il avait fallu les refermer à la main.)
 
 RÈGLE — sept numéros (refondue le 27/08, sceau Maeva : les trois plages ont tourné) :
   la DIAGONALE DROITE — haut-droite et bas-gauche  : 26-45
@@ -16,7 +22,7 @@ RÈGLE — sept numéros (refondue le 27/08, sceau Maeva : les trois plages ont 
 ⚠️ Les deux numéros d'une même paire sont tirés d'un coup (jamais égaux).
 ⚠️ Le sac du crieur va de 1 à 90.
 
-⚠️ Le dessin est en PAYSAGE (ratio 1,50) — 8 cartes par feuille A4 (2×4).
+⚠️ Le dessin est en PAYSAGE (ratio 1,4973) — 8 cartes par feuille A4 (2×4).
 """
 import io
 from reportlab.pdfbase.pdfmetrics import stringWidth as _lgn
@@ -86,10 +92,17 @@ COLONNES = [(16, 30, 3), (31, 45, 2), (46, 60, 3)]
 #   2 haut-gauche · 3 bas-droite  (16-25)
 #   4 milieu-gauche · 5 milieu-droite (1-15)
 #   6 le bas des mains (46-90)
-_RATIO_HOANUI = 1.5
-CERCLES = [[0.8439, 0.7879], [0.2206, 0.257], [0.1612, 0.7878], [0.7796, 0.2568], [0.115, 0.5057], [0.8875, 0.5057], [0.4996, 0.2281]]
-LARG_CERCLE = 0.1379
-HAUT_CERCLE = 0.205
+_RATIO_HOANUI = 1.4973
+# ⚠️ L'ORDRE COMPTE : il suit les PAIRES ci-dessous, pas la lecture du dessin.
+CERCLES = [[0.8546, 0.7840],   # 0 · haut-DROITE   ┐ diagonale droite
+           [0.2232, 0.2567],   # 1 · bas-GAUCHE    ┘
+           [0.1475, 0.7834],   # 2 · haut-GAUCHE   ┐ diagonale gauche
+           [0.7757, 0.2572],   # 3 · bas-DROITE    ┘
+           [0.1121, 0.5016],   # 4 · milieu-GAUCHE ┐ les deux du milieu
+           [0.8879, 0.5027],   # 5 · milieu-DROITE ┘
+           [0.4996, 0.2337]]   # 6 · le CENTRE, au bas des mains
+LARG_CERCLE = 0.1250   # le plus petit des sept (celui du centre)
+HAUT_CERCLE = 0.1914
 
 # 🤲 les paires et leur plage — puis le cercle du centre
 PAIRES = [
@@ -212,7 +225,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, telephone="",
     while _tb > 3.2 and _lg_ho(_bl, "Helvetica-Bold", _tb) > _pw * 0.15:
         _tb -= 0.25
     c.setFont("Helvetica-Bold", _tb)
-    c.drawCentredString(_px + _pw * 0.115, _py + _ph * 0.045, _bl)
+    c.drawCentredString(_px + _pw * 0.1014, _py + _ph * 0.0898 - _tb * 0.34, _bl)
 
 
 def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
