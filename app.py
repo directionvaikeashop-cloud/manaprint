@@ -1,3 +1,4 @@
+# 🔄 REDÉPLOIEMENT FORCÉ — 02/09 (Maeva) : commit neuf pour réveiller Railway.
 """
 MANAPRINT — Application Flask
 Relie : contrôle d'accès (Pacific Ink / international), génération PDF, espace gestion.
