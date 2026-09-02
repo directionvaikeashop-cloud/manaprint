@@ -722,7 +722,7 @@ _enregistrer_paire("perle",         "PERLE",      "\U0001f9aa", 8,  perle.genere
 _enregistrer_paire("hunter",        "HUNTER",     "\U0001f3af", 5,  hunter.generer_pdf)
 _enregistrer_paire("echec_et_mat",  "\u00c9CHEC ET MAT", "\u265f\ufe0f", 12, echec_et_mat.generer_pdf)
 _enregistrer_paire("pomare",        "POMARE",     "\U0001f451", 8,  pomare.generer_pdf)
-_enregistrer_paire("unite",         "UNIT\u00c9",     "\U0001f497", 8,  unite.generer_pdf)
+_enregistrer_paire("unite",         "UNIT\u00c9",     "\U0001f497", 10, unite.generer_pdf)
 _enregistrer_paire("talon",         "TALON",      "\u26bd", 12,  talon.generer_pdf)
 _enregistrer_paire("hoanui",        "HOANUI",     "\U0001f932", 8,  hoanui.generer_pdf)
 _enregistrer_paire("cristal",       "LES 7 BOULES DE CRISTAL", "\U0001f52e", 14, cristal.generer_pdf)
