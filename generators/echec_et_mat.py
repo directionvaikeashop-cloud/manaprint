@@ -14,7 +14,14 @@ RÈGLE (sceau Maeva 15/08) : six numéros, TOUS DIFFÉRENTS —
   6 · ♙ le PION     : 1-15   (le B)
 ⚠️ Le sac du crieur va de 1 à 90.
 
-5 languettes par feuille A4, empilées — découpe en ligne droite.
+⭐⭐ DESSIN REFAIT PAR MAEVA LE 28/08 (deuxième version) — tout en contours,
+   RANIHEI SISTERS & SHOP et le téléphone remontés en tête, « 6 BOULES » et la
+   couronne sous le titre, et surtout DES RONDS BEAUCOUP PLUS GROS :
+   0,0714 → 0,1186 de la largeur. Le ratio passe de 2,6966 à 1,7094.
+   Résultat : à 12 cartes par feuille les chiffres montent de 16 à 21,5 pt.
+
+12 languettes par feuille A4 — 2 colonnes × 6 rangées (sceau Maeva 28/08 :
+elle est passée de 5 à 12 cartons par feuille, chiffres à 14,5 pt).
 """
 import io
 from reportlab.pdfbase.pdfmetrics import stringWidth as _lgn
@@ -80,10 +87,11 @@ COLONNES = [(16, 30, 3), (31, 45, 2), (46, 60, 3)]
 
 # ═══ ♟️ LA LANGUETTE D'ÉCHECS ═══
 # Les six ronds, sous leurs pièces, de gauche à droite.
-_RATIO_TICKET = 2.6966
-CERCLES = [[0.1407, 0.3259], [0.2986, 0.3271], [0.4517, 0.3276], [0.5992, 0.3295], [0.7321, 0.3268], [0.8672, 0.3264]]
-LARG_CERCLE = 0.0728
-HAUT_CERCLE = 0.1965
+_RATIO_TICKET = 1.7094
+CERCLES = [[0.1357, 0.2179], [0.2904, 0.2179], [0.4371, 0.2179],
+           [0.5761, 0.2179], [0.7186, 0.2179], [0.8636, 0.2167]]
+LARG_CERCLE = 0.1186
+HAUT_CERCLE = 0.2234
 
 # ♟️ les six pièces et leur plage — une seule chacune
 BOULES = [
@@ -128,18 +136,23 @@ def _choisir_image(motif_img, ratio_attendu):
 _IMAGE_TICKET = _choisir_image("echec_pieces", _RATIO_TICKET)
 
 PAGE_W, PAGE_H = A4
-MARGIN_X = 8 * mm
-MARGIN_TOP = 10 * mm
-MARGIN_BOT = 8 * mm
-GUTTER_X = 4 * mm
-GUTTER_Y = 3 * mm
-# ⚠️⚠️ ON RESPECTE LE RATIO DU DESSIN : la HAUTEUR commande, la largeur
-# suit, et la languette est centrée. Sinon le dessin s'aplatit.
-COLS_PAGE = 1
-ROWS_PAGE = 5
-CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
-CARD_W = min(PAGE_W - 2 * MARGIN_X, CARD_H * _RATIO_TICKET)
-MARGE_G = (PAGE_W - CARD_W) / 2
+MARGIN_X = 6 * mm
+MARGIN_TOP = 6 * mm
+MARGIN_BOT = 6 * mm
+GUTTER_X = 3 * mm
+GUTTER_Y = 2 * mm
+# ⚠️⚠️ ON RESPECTE LE RATIO DU DESSIN : les deux côtés se calculent ENSEMBLE
+# et la grille est centrée dans les DEUX sens. Sinon le dessin s'aplatit.
+COLS_PAGE = 2
+ROWS_PAGE = 6
+_DISPO_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
+_DISPO_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
+CARD_W = min(_DISPO_W, _DISPO_H * _RATIO_TICKET)
+CARD_H = CARD_W / _RATIO_TICKET
+_TOTAL_W = COLS_PAGE * CARD_W + (COLS_PAGE - 1) * GUTTER_X
+_TOTAL_H = ROWS_PAGE * CARD_H + (ROWS_PAGE - 1) * GUTTER_Y
+MARGE_G = (PAGE_W - _TOTAL_W) / 2
+MARGE_B = MARGIN_BOT + max(0, (PAGE_H - MARGIN_TOP - MARGIN_BOT - _TOTAL_H) / 2)
 GRIS_CLAIR = colors.Color(0.62, 0.62, 0.62)
 
 
@@ -189,10 +202,10 @@ def _dessiner_ticket(c, x0, y0, nums, couleur_hex, serie, telephone="",
     while _tb > 3.2 and _lg_ec(_bl, "Helvetica-Bold", _tb) > _pw * 0.13:
         _tb -= 0.25
     c.setFont("Helvetica-Bold", _tb)
-    c.drawCentredString(_px + _pw * 0.870, _py + _ph * 0.085, _bl)
+    c.drawCentredString(_px + _pw * 0.8679, _py + _ph * 0.7497 - _tb * 0.34, _bl)
 
 
-def generer_pdf(nb_cartes=5, serie_start=1, theme="", couleur=True,
+def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="",
                 telephone="", style="eco", evenement_id="", page_start=1):
     buf = io.BytesIO()
@@ -215,7 +228,7 @@ def generer_pdf(nb_cartes=5, serie_start=1, theme="", couleur=True,
                 if faites >= nb_cartes:
                     break
                 x0 = MARGE_G + col_i * (CARD_W + GUTTER_X)
-                y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
+                y0 = MARGE_B + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
                 coul = (couleur_perso or "#000000") if couleur else "#000000"
                 _dessiner_ticket(c, x0, y0, _gen_carte(rng), coul, serie,
                                  telephone, style, evenement_id)
