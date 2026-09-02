@@ -725,7 +725,7 @@ _enregistrer_paire("pomare",        "POMARE",     "\U0001f451", 8,  pomare.gener
 _enregistrer_paire("unite",         "UNIT\u00c9",     "\U0001f497", 8,  unite.generer_pdf)
 _enregistrer_paire("talon",         "TALON",      "\u26bd", 12,  talon.generer_pdf)
 _enregistrer_paire("hoanui",        "HOANUI",     "\U0001f932", 8,  hoanui.generer_pdf)
-_enregistrer_paire("cristal",       "LES 7 BOULES DE CRISTAL", "\U0001f52e", 16, cristal.generer_pdf)
+_enregistrer_paire("cristal",       "LES 7 BOULES DE CRISTAL", "\U0001f52e", 14, cristal.generer_pdf)
 _enregistrer_paire("ing_casino",    "ING CASINO","🎰", 12, ing.generer_pdf_casino)
 _enregistrer_paire("lunes75",       "LUNES 75",   "🌜", 12, lunes75.generer_pdf)
 _enregistrer_paire("miss75",        "MISS 75",    "👑", 4,  miss75.generer_pdf)
