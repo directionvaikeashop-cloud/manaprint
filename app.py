@@ -470,15 +470,44 @@ def _variante(fn, couleur_force, style_force="eco"):
         return fn(**kwargs)
     return _w
 
+# ══ 🖼️ AVEC IMAGE / SANS IMAGE (sceau Maeva 02/09) ════════════════════
+# Les clientes se perdaient entre « CLASSIC », « ÉCO » et les jeux décorés.
+# Désormais le menu dit simplement si le carton porte un dessin ou non.
+# ⚠️ Cette liste a été établie en FABRIQUANT une carte de chaque jeu et en
+#    regardant si le PDF contient vraiment une image — pas à la main.
+# ⚠️ Elle ne sert QU'À NOMMER. La facturation des jeux à image reste réglée
+#    par JEUX_HABILLES, qui est une autre liste, plus courte, et volontaire.
+JEUX_AVEC_IMAGE = {
+    "aloha75", "ani", "australes", "baam", "bin6", "bingo_ball",
+    "boules40", "boules60", "brown8", "bubulle", "caller", "cerf_volant",
+    "champagne", "corsica", "cristal", "diamant", "dollar1", "dual_dab",
+    "echec_et_mat", "fan90", "fleche", "francs", "francs1000",
+    "francs500", "francs5000", "gambier", "hakari", "havai",
+    "henua_enana", "hoanui", "huahine", "hunter", "italia_villes", "kai",
+    "lagoon", "losange", "maia", "moon", "moorea", "ok", "opoa",
+    "papeari", "perle", "pietra", "pietra_smo", "poe_parau", "pol",
+    "pomare", "pow9", "quatre_coin", "rai", "rubis75", "salute",
+    "salute_smo", "societe", "sun", "tahaa", "tahaa90", "talon", "tesla",
+    "tiare", "tiki", "trio75", "trio90", "tuamotu", "tureia_atoll",
+    "unite", "vanille", "win", "wiz", "wow4", "wow6",
+}
+
+
+def _suffixe_image(base_id):
+    """🖼️ « AVEC IMAGE » si le carton porte un dessin, « SANS IMAGE » sinon."""
+    return "AVEC IMAGE" if base_id in JEUX_AVEC_IMAGE else "SANS IMAGE"
+
+
 def _enregistrer_paire(base_id, nom, emoji, cpf, fn, kwarg_nb="nb_cartes"):
     """Enregistre les 4 variantes d'un jeu — vision 2 gammes :
     ÉCO (écriture fine, économie de toner)  et  PREMIUM (écriture grasse, style P15).
     Chacune en (Couleur) et (N&B). 1 ligne = 4 entrées au menu.
     Les identifiants historiques (…_couleur / …_nb) restent sur la gamme ÉCO :
     les anciennes commandes se régénèrent à l'identique."""
-    _enregistrer_jeu(base_id + "_couleur", nom + " · ÉCO (Couleur)", emoji, cpf,
+    _img = _suffixe_image(base_id)
+    _enregistrer_jeu(base_id + "_couleur", nom + " · " + _img + " (Couleur)", emoji, cpf,
                      _variante(fn, True, "eco"),  kwarg_nb=kwarg_nb, couleur=True)
-    _enregistrer_jeu(base_id + "_nb",      nom + " · ÉCO (N&B)",     emoji, cpf,
+    _enregistrer_jeu(base_id + "_nb",      nom + " · " + _img + " (N&B)",     emoji, cpf,
                      _variante(fn, False, "eco"), kwarg_nb=kwarg_nb, couleur=False)
     _enregistrer_jeu(base_id + "_p15_couleur", nom + " · PREMIUM (Couleur)", emoji, cpf,
                      _variante(fn, True, "p15"),  kwarg_nb=kwarg_nb, couleur=True)
