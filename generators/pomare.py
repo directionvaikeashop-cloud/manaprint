@@ -3,8 +3,14 @@
 MANAPRINT — Générateur POMARE (format A4)
 
 👑 NÉ LE 15/08 (sceau Maeva) — LE TROISIÈME JEU DE RANIHEI, rien qu'à elle.
-Une couronne royale à sept pointes, un rond au bout de chacune, et
-« H-TMH » gravé sur son bandeau.
+⭐ DESSIN REFAIT PAR MAEVA LE 28/08 (version définitive) — la couronne royale
+à sept pointes, un rond au bout de chacune, le bandeau laissé NU, « POMARE »
+en tête, l'étoile « 7 BOULES » et, en bas à gauche, RANIHEI SISTERS & SHOP
+avec UNE PASTILLE PRÊTE POUR LE NUMÉRO.
+⚠️ Maeva a retiré les deux hibiscus et la gravure « H-TMH » : c'est là que
+   partait l'encre (9,03 % → 6,90 % par feuille).
+⚠️ La pastille est CONSERVÉE : seul le faux numéro qu'elle contenait a été
+   effacé, et le PDF écrit le vrai exactement dedans.
 
 RÈGLE (sceau Maeva 15/08, relevée sur sa maquette 12·24·37·84·41·27·7) :
 sept numéros, les pointes vont PAR PAIRES, de l'extérieur vers le centre —
@@ -81,10 +87,16 @@ COLONNES = [(16, 30, 3), (31, 45, 2), (46, 60, 3)]
 
 # ═══ 👑 LA COURONNE ET SES SEPT POINTES ═══
 # Les ronds, de gauche à droite : 1G · 2G · 3G · MILIEU · 3D · 2D · 1D
-_RATIO_COURONNE = 1.4173
-RONDS = [[0.0836, 0.4556], [0.1995, 0.6234], [0.3565, 0.7318], [0.5219, 0.8654], [0.6781, 0.7318], [0.8341, 0.6167], [0.9223, 0.444]]
-DIAM_ROND = 0.1013
-HAUT_ROND = 0.1487
+_RATIO_COURONNE = 1.4127
+RONDS = [[0.0818, 0.4490],   # 1G
+         [0.1975, 0.6176],   # 2G
+         [0.3600, 0.7255],   # 3G
+         [0.5232, 0.8587],   # MILIEU, la pointe la plus haute
+         [0.6775, 0.7245],   # 3D
+         [0.8375, 0.6130],   # 2D
+         [0.9232, 0.4379]]   # 1D
+DIAM_ROND = 0.0893   # le plus petit des sept
+HAUT_ROND = 0.1352
 
 # 👑 les sept pointes et leur plage, dans l'ordre du dessin
 POINTES = [
@@ -200,10 +212,10 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, telephone="",
     c.setFillColor(gris_ch)
     _tb = 10.0
     _bl = "N\u00b0 %06d" % serie
-    while _tb > 3.4 and _lg_po(_bl, "Helvetica-Bold", _tb) > _pw * 0.20:
+    while _tb > 3.4 and _lg_po(_bl, "Helvetica-Bold", _tb) > _pw * 0.205:
         _tb -= 0.25
     c.setFont("Helvetica-Bold", _tb)
-    c.drawCentredString(_px + _pw * 0.245, _py + _ph * 0.052, _bl)
+    c.drawCentredString(_px + _pw * 0.2438, _py + _ph * 0.0589 - _tb * 0.34, _bl)
 
 
 def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
