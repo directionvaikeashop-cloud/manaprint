@@ -325,9 +325,12 @@
     <div id="panier-pied" class="hidden">
       <p style="font-weight:700;font-size:1.15rem;margin:.6rem 0 1.1rem;text-align:right"><span data-i18n="panier_total">Total</span> : <span id="panier-total" style="color:var(--teal)">0 XPF</span></p>
       <div style="display:flex;gap:.7rem;flex-wrap:wrap">
+        <!-- 💳 02/09 (sceau Maeva) : LA CARTE EST LE SEUL MOYEN DE PAIEMENT.
+             Les boutons « Payer en boutique » et « Payer par virement » ont été
+             retirés — trop de commandes n'étaient jamais honorées.
+             Pour en remettre un, il suffit de décommenter sa ligne ici ET de
+             rouvrir le mode dans app.py (_MODES_PAIEMENT). -->
         <button class="btn" id="panier-carte-btn" onclick="payerPanier('stripe')" style="flex:1;min-width:180px" data-i18n="panier_carte">💳 Payer par carte</button>
-        <button class="btn" id="panier-virement-btn" onclick="payerPanier('virement')" style="flex:1;min-width:180px;background:var(--teal-d)" data-i18n="panier_virement">🏦 Payer par virement</button>
-        <button class="btn" id="panier-manuel-btn" onclick="payerPanier('boutique')" style="flex:1;min-width:180px;background:var(--muted)" data-i18n="panier_boutique">🏪 Payer en boutique</button>
       </div>
     </div>
     <p id="panier-msg" style="margin-top:1rem;font-size:.88rem;line-height:1.6"></p>
@@ -1003,8 +1006,11 @@ function commanderPanier(){
 async function payerPanier(mode){
   const msg=document.getElementById('panier-msg');
   const p=lirePanier(); if(!p.length) return;
-  const b1=document.getElementById('panier-carte-btn'), b2=document.getElementById('panier-manuel-btn'), b3=document.getElementById('panier-virement-btn');
-  b1.disabled=true; b2.disabled=true; b3.disabled=true;
+  // ⚠️ seuls les boutons PRÉSENTS sont verrouillés : les modes retirés
+  //    (boutique, virement) n'ont plus de bouton, on ne suppose donc rien.
+  const _btns=['panier-carte-btn','panier-manuel-btn','panier-virement-btn']
+    .map(function(i){return document.getElementById(i);}).filter(Boolean);
+  _btns.forEach(function(b){b.disabled=true;});
   msg.style.color="var(--muted)"; msg.textContent=t("panier_envoi");
   try{
     const items=p.map(function(a){ const c=Object.assign({},a); delete c.nomJeu; delete c.couleur; delete c.origine; delete c.partenaireNom; return c; });
@@ -1021,7 +1027,7 @@ async function payerPanier(mode){
     else{ msg.style.color="var(--coral)"; msg.textContent=d.message||t("msg_erreur");
       if(r.status===403){ msg.textContent+=" — "+t("panier_reconnecte"); } }
   }catch(e){ msg.style.color="var(--coral)"; msg.textContent=t("msg_erreur_reseau"); }
-  b1.disabled=false; b2.disabled=false; b3.disabled=false;
+  _btns.forEach(function(b){b.disabled=false;});
 }
 function retourPaiement(){
   const q=new URLSearchParams(location.search);
