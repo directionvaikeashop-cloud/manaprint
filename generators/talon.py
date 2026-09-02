@@ -17,7 +17,13 @@ six numéros, un par panneau —
 toujours différents.
 ⚠️ Le sac du crieur va de 1 à 90.
 
-⚠️ Le dessin est CARRÉ (ratio 1,0) — 8 cartes par feuille A4 (2×4).
+⭐ DESSIN REFAIT PAR MAEVA LE 28/08 — tout en contours : titre TALON en
+   lettres creuses penchées, étoile « 6 BOULES » en haut à droite, traits de
+   vitesse de part et d'autre, hibiscus + RANIHEI SISTERS & SHOP + téléphone
+   au pied. La géométrie du ballon n'a pas bougé d'un cheveu : les six
+   panneaux tombent aux mêmes fractions qu'avant.
+
+⚠️ Le dessin est presque CARRÉ (ratio 0,9909) — 12 cartes par feuille A4 (3×4).
 """
 import io
 from reportlab.pdfbase.pdfmetrics import stringWidth as _lgn
@@ -82,10 +88,20 @@ LETTRES = "ING"
 COLONNES = [(16, 30, 3), (31, 45, 2), (46, 60, 3)]
 
 # ═══ ⚽ LES SIX PANNEAUX DU BALLON ═══
-_RATIO_TALON = 1.0
-ZONES = [[0.2691, 0.5953], [0.5052, 0.7577], [0.7411, 0.5971], [0.6603, 0.2967], [0.3505, 0.2972], [0.5056, 0.4954]]
-LARG_ZONE = 0.26
-HAUT_ZONE = 0.26
+_RATIO_TALON = 0.9909
+# ⚠️⚠️ LEÇON DU 28/08 : un panneau de ballon est un TRAPÈZE INCLINÉ. Son
+# centre de MASSE n'est PAS le milieu de la place libre à la hauteur du
+# chiffre — en le prenant, les nombres à deux chiffres mordaient la couture.
+# Chaque X ci-dessous est le MILIEU DU GOULOT : on balaie la bande de hauteur
+# qu'occupera le chiffre et on retient le passage le plus étroit.
+ZONES = [[0.2881, 0.5951],   # panneau de GAUCHE
+         [0.5038, 0.7564],   # panneau du HAUT
+         [0.7215, 0.5977],   # panneau de DROITE
+         [0.6485, 0.2975],   # panneau BAS-DROITE
+         [0.3677, 0.2978],   # panneau BAS-GAUCHE
+         [0.5050, 0.4956]]   # le PENTAGONE du CENTRE
+LARG_ZONE = 0.2038   # le goulot du PENTAGONE, le plus étroit des six
+HAUT_ZONE = 0.2400
 
 # ⚽ les six panneaux et leur plage, dans l'ordre de la maquette
 PLAGES = [
@@ -182,8 +198,9 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, telephone="",
     _lg_z = _pw * LARG_ZONE
     _ht_z = _ph * HAUT_ZONE
     _t_num = 48.0
+    # LARG_ZONE est désormais la VRAIE place libre au goulot : 0,86 suffit.
     while _t_num > 6 and (_lg_ta("88", _POLICE_NUM, _t_num) > _lg_z * 0.86
-                          or _t_num * 0.72 > _ht_z * 0.72):
+                          or _t_num * 0.72 > _ht_z * 0.86):
         _t_num -= 0.5
 
     for _k, _n in enumerate(nums[:6]):
@@ -201,7 +218,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, telephone="",
     while _tb > 3.2 and _lg_ta(_bl, "Helvetica-Bold", _tb) > _pw * 0.16:
         _tb -= 0.25
     c.setFont("Helvetica-Bold", _tb)
-    c.drawCentredString(_px + _pw * 0.155, _py + _ph * 0.030, _bl)
+    c.drawCentredString(_px + _pw * 0.1369, _py + _ph * 0.0389 - _tb * 0.34, _bl)
 
 
 def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
