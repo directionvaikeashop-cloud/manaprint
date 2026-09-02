@@ -178,6 +178,7 @@ from generators import bo90
 from generators import bn90
 from generators import bi90
 from generators import bgo5
+from generators import tiki
 from generators import bo75
 from generators import bg75
 from generators import bn75
@@ -216,7 +217,7 @@ JEUX_HABILLES = {
     "fan90", "lagoon", "boules60", "fleche", "brown8", "diamant",
     "cerf_volant", "boules40", "bubulle", "dual_dab",
     "aloha75", "pol", "bingo_ball", "rubis75", "losange",
-    "ani", "wow4", "wow6", "moon",
+    "ani", "wow4", "wow6", "moon", "tiki",
 }
 # ⚠️⚠️ 15/08 (sceau Maeva) : RANIHEI N'EST PLUS BLOQUÉE SUR LES JEUX À
 # IMAGE — elle en reçoit **500 FEUILLES OFFERTES**, puis paie **1,5 F la
@@ -748,6 +749,7 @@ _enregistrer_paire("bo90",          "BO 90",      "🟠", 12, bo90.generer_pdf)
 _enregistrer_paire("bn90",          "BN 90",      "🟤", 12, bn90.generer_pdf)
 _enregistrer_paire("bi90",          "BI 90",      "🔵", 12, bi90.generer_pdf)
 _enregistrer_paire("bgo5",          "BGO 5 boules", "🅾️", 12, bgo5.generer_pdf)
+_enregistrer_paire("tiki",          "BGO TIKI",   "🗿", 8, tiki.generer_pdf)
 _enregistrer_paire("bo75",          "BO 75",      "🔷", 12, bo75.generer_pdf)
 _enregistrer_paire("bg75",          "BG 75",      "💠", 12, bg75.generer_pdf)
 _enregistrer_paire("bn75",          "BN 75",      "🔶", 12, bn75.generer_pdf)
@@ -1604,6 +1606,7 @@ _PLAGES_CALLER = {
     "bn90": (1, 90),
     "bi90": (1, 90),
     "bgo5": (1, 75),
+    "tiki": (1, 75),
     "bo75": (1, 75),
     "bg75": (1, 75),
     "bn75": (1, 75),
@@ -1672,6 +1675,7 @@ _BOULES_CALLER = {
     "bn90": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(76, 91)],  # BN 90 — B 1-15 · N 31-45 · 90 76-90
     "bi90": [n for n in range(1, 31)] + [n for n in range(76, 91)],  # BI 90 — B 1-15 · I 16-30 · 90 76-90
     "bgo5": [n for n in range(1, 16)] + [n for n in range(46, 76)],  # BGO 5 — B 1-15 · G 46-60 · O 61-75
+    "tiki": [n for n in range(1, 16)] + [n for n in range(46, 76)],  # BGO TIKI — B 1-15 · G 46-60 · O 61-75
     "bo75": [n for n in range(1, 16)] + [n for n in range(46, 76)],  # BO 75 — B 1-15 · O 46-60 · 75 61-75
     "bg75": [n for n in range(1, 16)] + [n for n in range(46, 76)],  # BG 75 — B 1-15 · G 46-60 · 75 61-75
     "bn75": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(61, 76)],  # BN 75 — B 1-15 · N 31-45 · 75 61-75
