@@ -18,8 +18,12 @@ RÈGLE — sept numéros, une plage par boule, de gauche à droite :
    1 à 90 sert, et les sept numéros sont forcément différents.
 ⚠️ Le sac du crieur va de 1 à 90.
 
-⚠️ Le dessin est une LANGUETTE (ratio 2,7119) — 16 cartes par feuille A4
-   (2 colonnes × 8 rangées, sceau Maeva 27/08). Le ratio commande : on calcule
+⭐⭐ DESSIN REFAIT PAR MAEVA LE 28/08 pour l'économie de toner : le titre, le
+   nom de l'enseigne et le téléphone sont passés en CONTOURS, plus un seul
+   aplat — le dessin est tombé de 15,30 % à 9,10 % d'encre.
+⚠️ Le carton est devenu PLUS HAUT (ratio 2,7119 → 2,2508) : à 16 grilles les
+   chiffres seraient tombés à 17,5 pt. On passe donc à 14 cartes par feuille
+   A4 (2 colonnes × 7 rangées) pour garder 20,5 pt. Le ratio commande : on calcule
    les deux côtés ENSEMBLE et on centre dans les deux sens, sinon les boules
    s'ovalisent.
 """
@@ -79,18 +83,18 @@ def _style_chiffres(style):
 
 # ═══ 🔮 LES SEPT BOULES, de gauche à droite ═══
 # (relevées sur le dessin — fractions de la carte, repère bas-gauche)
-_RATIO_CRISTAL = 2.7119
+_RATIO_CRISTAL = 2.2508
 BOULES = [
-    [0.1141, 0.4788],
-    [0.2426, 0.4778],
-    [0.3707, 0.4778],
-    [0.4980, 0.4788],
-    [0.6254, 0.4788],
-    [0.7531, 0.4788],
-    [0.8801, 0.4778],
+    [0.1175, 0.4775],
+    [0.2479, 0.4775],
+    [0.3775, 0.4767],
+    [0.5086, 0.4767],
+    [0.6364, 0.4767],
+    [0.7636, 0.4767],
+    [0.8907, 0.4767],
 ]
-LARG_BOULE = 0.1156
-HAUT_BOULE = 0.2966
+LARG_BOULE = 0.1155
+HAUT_BOULE = 0.2689
 # le chiffre descend un cheveu sous le milieu : le haut de la boule porte
 # le reflet et l'étincelle du dessin
 _DESCENTE = 0.0
@@ -108,8 +112,8 @@ PLAGES = [
 
 # la mention « SÉRIE : 001 » a été effacée du dessin — le PDF écrit le vrai
 # numéro exactement à sa place
-_SERIE_X = 0.8854
-_SERIE_Y = 0.8140
+_SERIE_X = 0.8913
+_SERIE_Y = 0.8038
 _SERIE_LARG = 0.128
 
 
@@ -150,7 +154,7 @@ GUTTER_Y = 2 * mm
 # ⚠️ ON RESPECTE LE RATIO : les deux côtés se calculent ENSEMBLE, sinon les
 # boules deviennent des œufs. On centre ensuite dans les deux sens.
 COLS_PAGE = 2
-ROWS_PAGE = 8
+ROWS_PAGE = 7
 _DISPO_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
 _DISPO_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
 CARD_W = min(_DISPO_W, _DISPO_H * _RATIO_CRISTAL)
@@ -214,7 +218,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, telephone="",
                         _py + _SERIE_Y * _ph - _tb * 0.34, _bl)
 
 
-def generer_pdf(nb_cartes=16, serie_start=1, theme="", couleur=True,
+def generer_pdf(nb_cartes=14, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="",
                 telephone="", style="eco", evenement_id="", page_start=1):
     buf = io.BytesIO()
