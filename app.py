@@ -1,4 +1,7 @@
-# 🔄 REDÉPLOIEMENT FORCÉ — 02/09 (Maeva) : commit neuf pour réveiller Railway.
+# 🩹 CORRECTIF 02/09 (Maeva) : TAHAA CLASSIC était déclaré à 8 cartes/feuille
+# alors que son générateur en pose 18 (3 colonnes × 6 rangées). Une commande
+# de 250 feuilles ne sortait que 112 pages. Les 187 autres jeux ont été
+# éprouvés un par un : leur compte est juste.
 """
 MANAPRINT — Application Flask
 Relie : contrôle d'accès (Pacific Ink / international), génération PDF, espace gestion.
@@ -706,7 +709,7 @@ _enregistrer_paire("kai_classic", "KAI CLASSIC", "🍽️", 12, kai_classic.gene
 _enregistrer_paire("sun_classic", "SUN CLASSIC", "☀️", 12, sun_classic.generer_pdf)
 _enregistrer_paire("wiz_classic", "WIZ CLASSIC", "🧙", 12, wiz_classic.generer_pdf)
 _enregistrer_paire("rai_classic", "RAI CLASSIC", "🌈", 12, rai_classic.generer_pdf)
-_enregistrer_paire("tahaa_classic", "TAHAA CLASSIC", "🥥", 8, tahaa_classic.generer_pdf)
+_enregistrer_paire("tahaa_classic", "TAHAA CLASSIC", "🥥", 18, tahaa_classic.generer_pdf)
 _enregistrer_paire("ani",           "TEAHUPOO",        "🌊", 8, ani.generer_pdf)
 _enregistrer_paire("brown14",       "BROWN 14 boules", "🟤", 8, brown14.generer_pdf)
 _enregistrer_paire("ino8",          "INO 8 boules", "🎐", 12, ino8.generer_pdf)
