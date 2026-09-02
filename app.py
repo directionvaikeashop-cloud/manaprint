@@ -2475,6 +2475,17 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
 # code) : texte libre, ex. « Banque XXX — 2KEA & Associé — n° 12345 67890 … ».
 RIB_VIREMENT = os.environ.get("MANAPRINT_RIB", "").strip()
 
+# ══ 💳 LES MODES DE PAIEMENT OUVERTS (sceau Maeva 02/09) ══════════════════
+# ⚠️⚠️ LA CARTE EST LE SEUL MOYEN ACCEPTÉ. « boutique » et « virement » ont
+# été FERMÉS : trop de commandes enregistrées n'étaient jamais honorées.
+# ⭐ POUR EN ROUVRIR UN : ajoute son nom ici, et remets son bouton dans
+#    templates/index.html (les deux lignes y sont en commentaire).
+#    Exemple :  _MODES_PAIEMENT = {"stripe", "virement"}
+_MODES_PAIEMENT = {"stripe"}
+_MSG_CARTE_SEULE = ("\U0001f4b3 Le paiement se fait par CARTE uniquement. "
+                    "Un souci pour payer ? Appelle le 89 22 23 05.")
+
+
 # ── 💳 STRIPE (paiement par carte, comme sur Ticket Bingo) ────────────────────
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "").strip()
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip()
@@ -2602,24 +2613,21 @@ def commander():
     if "acces" not in session:
         return jsonify({"ok": False, "message": "Accès non autorisé"}), 403
     data = request.get_json(force=True)
-    mode_paiement = data.get("mode_paiement", "manuel")  # 'stripe' | 'manuel'
+    # 💳 la carte est le seul mode ouvert : tout le reste est refusé d'entrée
+    mode_paiement = data.get("mode_paiement", "stripe")
+    if mode_paiement == "manuel":          # compat ancien front
+        mode_paiement = "boutique"
+    if mode_paiement not in _MODES_PAIEMENT:
+        return jsonify({"ok": False, "message": _MSG_CARTE_SEULE}), 400
     err, res = _valider_creer_commande(data, mode_paiement=mode_paiement)
     if err:
         return err
     commande_id, montant = res["commande_id"], res["montant"]
 
-    # Mode manuel : la commande est en attente de validation par 2KEA
-    if mode_paiement == "manuel":
-        return jsonify({
-            "ok": True, "commande_id": commande_id, "montant": montant,
-            "mode": "manuel",
-            "message": f"Commande enregistrée ({montant} XPF). Elle sera générée après validation du paiement par 2KEA & Associé.",
-        })
-
     # 💳 Mode stripe : mini-panier d'une seule commande -> paiement carte
     if not STRIPE_SECRET_KEY:
         return jsonify({"ok": False,
-                        "message": "Le paiement par carte n'est pas encore activé. Choisis le paiement en boutique."}), 400
+                        "message": "\U0001f4b3 Le paiement par carte est momentanément indisponible. Appelle le 89 22 23 05."}), 400
     try:
         panier_id = db.creer_panier(session.get("identifiant"))
         with db.get_db() as conn:
@@ -2628,7 +2636,7 @@ def commander():
         return jsonify({"ok": True, "mode": "stripe", "url": url, "montant": total})
     except Exception as e:
         print(f"[STRIPE ERREUR] commander : {e}")
-        return jsonify({"ok": False, "message": "Paiement carte momentanément indisponible. Choisis le paiement en boutique."}), 502
+        return jsonify({"ok": False, "message": "\U0001f4b3 Paiement par carte momentanément indisponible. Réessaie dans un instant ou appelle le 89 22 23 05."}), 502
 
 
 @app.route("/api/panier/checkout", methods=["POST"])
@@ -2643,8 +2651,9 @@ def panier_checkout():
     mode_paiement = data.get("mode_paiement", "stripe")
     if mode_paiement == "manuel":  # compat ancien front : manuel = boutique
         mode_paiement = "boutique"
-    if mode_paiement not in ("stripe", "boutique", "virement"):
-        return jsonify({"ok": False, "message": "Mode de paiement inconnu."}), 400
+    # 💳 la carte est le seul mode ouvert (voir _MODES_PAIEMENT plus haut)
+    if mode_paiement not in _MODES_PAIEMENT:
+        return jsonify({"ok": False, "message": _MSG_CARTE_SEULE}), 400
     if not isinstance(items, list) or not (1 <= len(items) <= 10):
         return jsonify({"ok": False, "message": "Le panier doit contenir entre 1 et 10 articles."}), 400
 
@@ -2677,13 +2686,13 @@ def panier_checkout():
 
     if not STRIPE_SECRET_KEY:
         return jsonify({"ok": False,
-                        "message": "Le paiement par carte n'est pas encore activé. Choisis le paiement en boutique."}), 400
+                        "message": "\U0001f4b3 Le paiement par carte est momentanément indisponible. Appelle le 89 22 23 05."}), 400
     try:
         url, total = _session_stripe_panier(panier_id, mana_utilises=_mana_demandes())
         return jsonify({"ok": True, "mode": "stripe", "url": url, "montant": total, "panier_id": panier_id})
     except Exception as e:
         print(f"[STRIPE ERREUR] checkout : {e}")
-        return jsonify({"ok": False, "message": "Paiement carte momentanément indisponible. Choisis le paiement en boutique."}), 502
+        return jsonify({"ok": False, "message": "\U0001f4b3 Paiement par carte momentanément indisponible. Réessaie dans un instant ou appelle le 89 22 23 05."}), 502
 
 
 @app.route("/webhook/stripe", methods=["GET"])
