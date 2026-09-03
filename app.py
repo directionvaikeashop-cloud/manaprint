@@ -597,36 +597,45 @@ NOUVEAUX_JEUX = {
 # Les prix fixés par un partenaire et le tarif international restent souverains.
 TARIF_NB_150 = {
     "igo",            # IGO 5 boules
-    "boules40",       # 40 BOULES
-    "fan90",          # FAN 90
     "lunes75",        # LUNES 75
-    "rubis75",        # RUBIS 75
     "lettre_u",       # LETTRE U
-    "boules60",       # 60 BOULES
     "lettre_l",       # LETTRE L
-    "champagne",      # CHAMPAGNE
     "topday",         # TOP DAY
     "bo75",           # BO 75
-    "diamant",        # DIAMANT
     "yes",            # YES
-    "fleche",         # FLÈCHE
     "p6_marathon",    # P6 MARATHON
-    "quatre_coin",    # 4 COIN
     "bg75",           # BG 75
     "funday",         # FUNDAY
     "bn75",           # BN 75
     "ohana90_24b",    # OHANA 90 · 24 boules
-    "huahine",        # HUAHINE
     "ohana90_12b",    # OHANA 90 · 12 boules
     "bi90",           # BI 90
     "bn90",           # BN 90
     "bgo5",           # BGO 5 boules
     "bno",            # BNO 8 boules (la normale)
-    "moorea",         # MOOREA
     "ino",            # INO 5 boules (la normale)
     "rubis90",        # RUBIS 90
 }
 PRIX_NB_AUTRES = 7.4   # 185 F les 25 feuilles
+
+# ⚠️⚠️ 02/09 — DIX JEUX ONT QUITTÉ `TARIF_NB_150`. Maeva a regardé les
+# cartons un par un et a tranché :
+#   • 40 BOULES · 60 BOULES · DIAMANT · FAN 90 · RUBIS 75 · TAHITI(fleche)
+#     → vrais cartons illustrés (le dessin couvre 53 à 82 % de la feuille),
+#       ils passent au tarif image : 225 F les 25 en N&B.
+#   • 4 COIN · CHAMPAGNE · HUAHINE · MOOREA
+#     → presque que des chiffres (image de 19 à 55 %, souvent de simples
+#       cadres de couleur), ils vont au tarif ordinaire : 185 F les 25.
+#       Ils sont listés juste en dessous pour échapper au tarif image.
+# ⚠️ 02/09 (complément Maeva) : ces quatre-là échappent au tarif image
+#    DANS LES DEUX SENS — 185 F en N&B ET 250 F en couleur, comme un jeu
+#    sans dessin. Leur image est trop légère pour justifier le supplément.
+IMAGE_TARIF_NB_ORDINAIRE = {
+    "quatre_coin",   # 4 COIN — des cadres de couleur autour des chiffres
+    "champagne",     # CHAMPAGNE — une flûte au milieu, 35 % de la feuille
+    "huahine",       # HUAHINE — un petit cœur en filigrane, 19 %
+    "moorea",        # MOOREA — la carte de l'île, 55 %
+}
 
 # 💵 LES JEUX À BILLETS (décision Maeva 13/08) : 250 F les 25 feuilles,
 # en noir & blanc comme en couleur. Ce sont les plus travaillés du
@@ -637,13 +646,28 @@ TARIF_BILLETS_250 = {
     "francs1000",   # 1000 FRANCS
     "francs5000",   # 5000 FRANCS
 }
-PRIX_BILLETS = 10.0            # 250 F les 25 feuilles, en noir & blanc
+PRIX_BILLETS = 8.0             # 200 F les 25 feuilles, en noir & blanc
+                               # (baissé de 250 à 200 F — sceau Maeva 02/09)
 # 🎨 EN COULEUR, LES BILLETS SONT À PART (décision Maeva 13/08) : 375 F les
 # 25 feuilles, au lieu des 250 F de tous les autres jeux. ⚠️ POURQUOI CE
 # SUPPLÉMENT : sur les autres jeux, la couleur ne teinte que les chiffres ;
 # ici, c'est LE BILLET LUI-MÊME qui sera imprimé dans les couleurs de
 # l'original — bien plus d'encre, et un rendu de vraie monnaie.
 PRIX_BILLETS_COULEUR = 15.0    # 375 F les 25 feuilles
+
+# ══ 🖼️ LA GRILLE DES JEUX À IMAGE (sceau Maeva 02/09) ══════════════════
+# Un carton qui porte un dessin coûte plus cher à imprimer qu'un carton nu.
+#     • NOIR & BLANC : 225 F les 25 feuilles (9 F la feuille)
+#     • COULEUR      : 375 F les 25 feuilles (15 F la feuille)
+# ⚠️ DEUX EXCEPTIONS, dans cet ordre :
+#   ① LES BILLETS gardent leur tarif à eux : 200 F en N&B, 375 F en couleur.
+#   ② LES JEUX DE `TARIF_NB_150` GARDENT LEURS 150 F EN NOIR & BLANC, même
+#      s'ils portent un dessin (40 BOULES, DIAMANT, FAN 90, CHAMPAGNE,
+#      TAHITI, HUAHINE, MOOREA, 4 COIN, RUBIS 75, 60 BOULES). Maeva a
+#      voulu que ces dix-là ne bougent pas.
+# En COULEUR, les jeux SANS image restent au tarif de base : 250 F les 25.
+PRIX_IMAGE_NB = 9.0            # 225 F les 25 feuilles
+PRIX_IMAGE_COULEUR = 15.0      # 375 F les 25 feuilles
 
 # 🎨 LES DEUX OFFRES EN COULEUR (décision Maeva, 05/08 — nouvelles machines
 # attendues en novembre) :
@@ -2471,11 +2495,30 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
     # 💵 LES JEUX À BILLETS : 250 F les 25, en N&B comme en couleur.
     # ⚠️ Ce test vient AVANT celui du noir & blanc, sinon ils retomberaient
     # à 185 F. Les prix partenaires et l'international restent souverains.
+    # 💵 ① LES BILLETS d'abord — ils ont leur tarif à eux (200 F N&B / 375 F
+    #    couleur). Ce test vient EN PREMIER, sinon ils retomberaient ailleurs.
     if (prix_special is None
             and session.get("acces") != "international"
             and db._gamme_du_programme(programme) == "eco"
             and _base_jeu(programme) in TARIF_BILLETS_250):
         prix_special = PRIX_BILLETS_COULEUR if couleur else PRIX_BILLETS
+    # 🖼️ ② LES JEUX À IMAGE : 225 F en N&B, 375 F en couleur.
+    #    ⚠️ EN NOIR & BLANC, les dix jeux de TARIF_NB_150 sont épargnés :
+    #    ils gardent leurs 150 F, c'est la volonté de Maeva.
+    if (prix_special is None
+            and session.get("acces") != "international"
+            and db._gamme_du_programme(programme) == "eco"
+            and _base_jeu(programme) in JEUX_AVEC_IMAGE):
+        if _base_jeu(programme) in IMAGE_TARIF_NB_ORDINAIRE:
+            # ces quatre-là paient comme un jeu sans dessin, des deux côtés :
+            # 185 F en N&B ; en couleur on laisse le tarif de base (250 F).
+            if not couleur:
+                prix_special = PRIX_NB_AUTRES      # 185 F les 25
+        elif couleur:
+            prix_special = PRIX_IMAGE_COULEUR      # 375 F les 25
+        elif _base_jeu(programme) not in TARIF_NB_150:
+            prix_special = PRIX_IMAGE_NB           # 225 F les 25
+    # ⚫ ③ LE NOIR & BLANC ORDINAIRE : 185 F, sauf les 150 F historiques.
     if (prix_special is None and not couleur
             and session.get("acces") != "international"
             and db._gamme_du_programme(programme) == "eco"
