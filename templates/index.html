@@ -261,7 +261,7 @@
         </label>
         <label style="display:block;cursor:pointer">
           <input type="radio" name="offre-c" value="impression" onchange="majOffreCouleur()">
-          <b>🖨️ L'impression par nos soins — 250 F les 25 feuilles</b>
+          <b>🖨️ L'impression par nos soins — 250 F les 25 feuilles (375 F pour les jeux AVEC IMAGE)</b>
           <div style="font-size:.8rem;color:var(--muted);margin-left:1.5rem">Nous vérifions si nos machines peuvent imprimer en couleur et nous te répondons. <b>Tu ne paies qu'après notre accord.</b></div>
         </label>
       </div>
@@ -525,10 +525,24 @@ const PALETTE = ["#2D6E63","#D4663D","#1A4A42","#8B5A2B","#7C3AED","#0EA5E9","#D
 const NOUVEAUX_JEUX = ["gambier","parata","katiu","ok","feu","vision","taptap","joie","caller","valider","chance","opoa","francs","tesla","salute","pietra","triple_bo90","triple_bg90","triple_bn90","triple_bi90","triple_bg75","triple_bn75","triple_bi75","rubis75"];
 // 💰 GRILLE DU 05/08 : couleur 250 F les 25 pour tous ; en N&B, 150 F pour
 // les jeux ci-dessous et 185 F (7,4 F la feuille) pour tous les autres.
-const TARIF_NB_150 = ["igo","boules40","fan90","lunes75","rubis75","lettre_u","boules60",
-  "lettre_l","champagne","topday","bo75","diamant","yes","fleche","p6_marathon","quatre_coin",
-  "bg75","funday","bn75","ohana90_24b","huahine","ohana90_12b","bi90","bn90","bgo5","bno",
-  "moorea","ino","rubis90"];
+const TARIF_NB_150 = ["bg75","bgo5","bi90","bn75","bn90","bno","bo75","funday","igo","ino",
+  "lettre_l","lettre_u","lunes75","ohana90_12b","ohana90_24b","p6_marathon","rubis90","topday",
+  "yes"];
+// ══ 🖼️ GRILLE DES JEUX À IMAGE (sceau Maeva 02/09) — MÊME ORDRE QU'app.py
+//   ① billets : 200 F les 25 en N&B · 375 F en couleur
+//   ② à image : 225 F les 25 en N&B · 375 F en couleur
+//      ⚠️ sauf les jeux de TARIF_NB_150 qui GARDENT leurs 150 F en N&B
+//   ③ sans image : 185 F en N&B (150 F pour la liste) · 250 F en couleur
+const IMAGE_TARIF_NB_ORDINAIRE = ["champagne","huahine","moorea","quatre_coin"];
+const TARIF_BILLETS = ["dollar1","francs500","francs1000","francs5000"];
+const JEUX_AVEC_IMAGE = ["aloha75","ani","australes","baam","bin6","bingo_ball","boules40",
+  "boules60","brown8","bubulle","caller","cerf_volant","champagne","corsica","cristal",
+  "diamant","dollar1","dual_dab","echec_et_mat","fan90","fleche","francs","francs1000",
+  "francs500","francs5000","gambier","hakari","havai","henua_enana","hoanui","huahine","hunter",
+  "italia_villes","kai","lagoon","losange","maia","moon","moorea","ok","opoa","papeari","perle",
+  "pietra","pietra_smo","poe_parau","pol","pomare","pow9","quatre_coin","rai","rubis75",
+  "salute","salute_smo","sicile","societe","sun","tahaa","tahaa90","talon","tesla","tiare",
+  "tiki","trio75","trio90","tuamotu","tureia_atoll","unite","vanille","win","wiz","wow4","wow6"];
 const TARIFS = {
   pacific_ink:   { eco:{c:10, nb:6},  p15:{c:14, nb:10} },  // tout compris PDF + impression (Accès ECO LASER)
   polynesien:    { eco:{c:10, nb:6},  p15:{c:14, nb:10} },  // tout compris PDF + impression chez un partenaire
@@ -796,10 +810,22 @@ function prixFeuilleCourant(partId){
   const prof=TARIFS[origineAcces]||TARIFS.pacific_ink;
   const tar=prof[gamme]||prof.eco;
   let prix = couleur?tar.c:tar.nb;
-  // 💰 GRILLE DU 05/08 : la couleur reste à 10 F (250 F les 25) ; en N&B,
-  // 6 F pour les jeux de la liste, 7,4 F (185 F les 25) pour les autres.
-  if(origineAcces!=='international' && gamme==='eco' && !couleur
-     && TARIF_NB_150.indexOf(baseJeu)<0){ prix = 7.4; }
+  // 💰 LA GRILLE — dans le MÊME ORDRE que le moteur (app.py), sinon le prix
+  // affiché ne serait pas celui facturé.
+  if(origineAcces!=='international' && gamme==='eco'){
+    if(TARIF_BILLETS.indexOf(baseJeu)>=0){            // ① les billets
+      prix = couleur ? 15 : 8;
+    } else if(JEUX_AVEC_IMAGE.indexOf(baseJeu)>=0){   // ② les jeux à image
+      if(IMAGE_TARIF_NB_ORDINAIRE.indexOf(baseJeu)>=0){
+        // dessin trop léger : tarif ordinaire des DEUX côtés (185 / 250 F)
+        if(!couleur){ prix = 7.4; }
+      }
+      else if(couleur){ prix = 15; }
+      else if(TARIF_NB_150.indexOf(baseJeu)<0){ prix = 9; }
+    } else if(!couleur && TARIF_NB_150.indexOf(baseJeu)<0){  // ③ N&B ordinaire
+      prix = 7.4;
+    }
+  }
   // 🎨 en couleur, la formule « PDF seul » vaut 3,5 F la feuille
   if(origineAcces!=='international' && couleur && offreCouleurChoisie()==='pdf'){ prix = 3.5; }
   // 🖼️💰 supplément motif (+2 F) : jeux décorables, tarif standard seulement
