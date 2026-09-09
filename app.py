@@ -162,6 +162,7 @@ from generators import hoanui
 from generators import cristal
 from generators import sicile
 from generators import tifai
+from generators import ranihei
 from generators import lunes75
 from generators import miss75
 from generators import bien_sur
@@ -480,6 +481,7 @@ def _variante(fn, couleur_force, style_force="eco"):
 # ⚠️ Elle ne sert QU'À NOMMER. La facturation des jeux à image reste réglée
 #    par JEUX_HABILLES, qui est une autre liste, plus courte, et volontaire.
 JEUX_AVEC_IMAGE = {
+    "ranihei",
     "tifai",
     "sicile",
     "aloha75", "ani", "australes", "baam", "bin6", "bingo_ball",
@@ -789,6 +791,7 @@ _enregistrer_paire("hoanui",        "HOANUI",     "\U0001f932", 8,  hoanui.gener
 _enregistrer_paire("cristal",       "LES 7 BOULES DE CRISTAL", "\U0001f52e", 14, cristal.generer_pdf)
 _enregistrer_paire("sicile",        "SICILE",     "\U0001f451", 8,  sicile.generer_pdf)
 _enregistrer_paire("tifai",         "TIFAI",      "\U0001f422", 8,  tifai.generer_pdf)
+_enregistrer_paire("ranihei",       "RANIHEI",    "\U0001f33a", 6,  ranihei.generer_pdf)
 _enregistrer_paire("ing_casino",    "ING CASINO","🎰", 12, ing.generer_pdf_casino)
 _enregistrer_paire("lunes75",       "LUNES 75",   "🌜", 12, lunes75.generer_pdf)
 _enregistrer_paire("miss75",        "MISS 75",    "👑", 4,  miss75.generer_pdf)
@@ -1648,6 +1651,7 @@ _PLAGES_CALLER = {
     "cristal": (1, 90),
     "sicile": (1, 75),
     "tifai": (1, 75),
+    "ranihei": (1, 90),
     "ing_casino": (16, 60),
     "lunes75": (1, 75),
     "miss75": (1, 75),
@@ -3154,6 +3158,19 @@ def lancer_fabrication(commande_id, seulement_rapport=False):
             # 🗄️ AU COFFRE-FORT d'abord : le PDF est sauvé sur le disque —
             # même si l'email échoue, il reste téléchargeable pour toujours.
             lien_cartons = _ranger_au_coffre(commande_id, "cartons", pdf)
+            # ⚡⚡ 03/09 — LE BOUTON ⬇️ S'ALLUME ICI, PAS APRÈS LES EMAILS.
+            # Avant, la commande n'était marquée « générée » qu'une fois les
+            # deux emails partis, PIÈCES JOINTES COMPRISES (plusieurs Mo par
+            # SMTP). Le partenaire attendait donc Gmail, pas la fabrication —
+            # d'où l'impression que le téléchargement traînait. Le PDF est
+            # DÉJÀ au coffre à cette ligne : on l'annonce tout de suite, et
+            # les emails partent ensuite, tranquillement.
+            try:
+                db.marquer_commande_generee(commande_id)
+                print(f"[COFFRE] commande {commande_id} — cartons rangés, "
+                      f"bouton \u2b07\ufe0f disponible immédiatement")
+            except Exception as _e:
+                print(f"[COFFRE] marquage {commande_id} : {_e}")
             pdf.seek(0, 2); taille_pdf = pdf.tell(); pdf.seek(0)
             piece_cartons = pdf if taille_pdf <= LIMITE_PIECE_JOINTE else None
             note_taille = ("" if piece_cartons is not None else
@@ -3235,10 +3252,8 @@ def lancer_fabrication(commande_id, seulement_rapport=False):
                                           copie=SMTP_USER or None,
                                           pdf2_io=rapport,
                                           nom2_fichier=f"CONFIDENTIEL_couleurs_cmd{commande_id}.pdf")
-            # 🗄️ MODE SANS FACTEUR : les PDF sont DÉJÀ au coffre-fort — la
-            # commande est donc RÉUSSIE même si Gmail dort (boîte bloquée...).
-            # Les emails sont un bonus, jamais une condition.
-            db.marquer_commande_generee(commande_id)
+            # 🗄️ (la commande est DÉJÀ marquée « générée » plus haut, dès le
+            # rangement au coffre — on ne le refait pas ici.)
             # 🧾 LA FACTURE DU DÛ 2KEA (1,5 F/feuille) : TOUJOURS fabriquée et
             # rangée au coffre ; l'email part si le facteur veut bien.
             # 📦 ...sauf le ravitaillement boutique : commande interne 2KEA, pas de facture.
