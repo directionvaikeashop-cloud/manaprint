@@ -167,6 +167,7 @@ from generators import mabuhai
 from generators import raromatai90
 from generators import raromatai75
 from generators import alalia
+from generators import speed90
 from generators import lunes75
 from generators import miss75
 from generators import bien_sur
@@ -485,6 +486,7 @@ def _variante(fn, couleur_force, style_force="eco"):
 # ⚠️ Elle ne sert QU'À NOMMER. La facturation des jeux à image reste réglée
 #    par JEUX_HABILLES, qui est une autre liste, plus courte, et volontaire.
 JEUX_AVEC_IMAGE = {
+    "speed90",
     "alalia",
     "raromatai75",
     "raromatai90",
@@ -804,6 +806,7 @@ _enregistrer_paire("mabuhai",       "MABUHA\u00cf",   "\U0001f64f", 6,  mabuhai.
 _enregistrer_paire("raromatai90",   "RAROMATAI 90", "\U0001f334", 2,  raromatai90.generer_pdf)
 _enregistrer_paire("raromatai75",   "RAROMATAI 75", "\U0001f334", 2,  raromatai75.generer_pdf)
 _enregistrer_paire("alalia",        "VIN CORSE ALALIA", "\U0001f347", 12, alalia.generer_pdf)
+_enregistrer_paire("speed90",       "SPEED 90",   "\u26a1", 8,  speed90.generer_pdf)
 _enregistrer_paire("ing_casino",    "ING CASINO","🎰", 12, ing.generer_pdf_casino)
 _enregistrer_paire("lunes75",       "LUNES 75",   "🌜", 12, lunes75.generer_pdf)
 _enregistrer_paire("miss75",        "MISS 75",    "👑", 4,  miss75.generer_pdf)
@@ -1668,6 +1671,7 @@ _PLAGES_CALLER = {
     "raromatai90": (1, 90),
     "raromatai75": (1, 75),
     "alalia": (1, 75),
+    "speed90": (1, 90),
     "ing_casino": (16, 60),
     "lunes75": (1, 75),
     "miss75": (1, 75),
