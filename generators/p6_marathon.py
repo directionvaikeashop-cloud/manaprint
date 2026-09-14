@@ -13,6 +13,39 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 
+# ══ ✒️ LA CALLIGRAPHIE DE LA CASE CENTRALE (sceau Maeva 11/09) ══════
+# La case du milieu est libre par nature : quand le client donne une
+# personnalisation, son NOM s'y écrit EN CALLIGRAPHIE. TeX Gyre Chorus est
+# la seule vraie anglaise installée ; à défaut on retombe sur l'italique.
+import os as _os6
+from reportlab.pdfbase import pdfmetrics as _pm6
+from reportlab.pdfbase.ttfonts import TTFont as _TF6
+from reportlab.pdfbase.pdfmetrics import stringWidth as _sw6
+# ⚠️ TeX Gyre Chorus est livré en OTF, que ReportLab ne sait pas lire : une
+#    copie convertie en TTF est rangée à côté de ce fichier (Chorus.ttf).
+#    Si elle manque, on retombe sur l'italique serif, puis sur Times-Italic.
+_POLICE_SCRIPT = "Times-Italic"
+for _nom6, _ch6 in (
+        ("CHORUS", _os6.path.join(_os6.path.dirname(_os6.path.abspath(__file__)), "Chorus.ttf")),
+        ("FSERIT", "/usr/share/fonts/truetype/freefont/FreeSerifItalic.ttf")):
+    try:
+        _pm6.registerFont(_TF6(_nom6, _ch6)); _POLICE_SCRIPT = _nom6; break
+    except Exception:
+        pass
+
+
+def _lignes_centre(texte):
+    """✒️ Le NOM sur la 1re ligne (calligraphié, en gros), le reste dessous."""
+    mots = [m for m in str(texte).replace("\n", " ").split(" ") if m]
+    if not mots:
+        return []
+    if len(mots) == 1:
+        return [mots[0]]
+    if len(mots) >= 3:
+        return [mots[0], " ".join(mots[1:-1]), mots[-1]]
+    return [mots[0], " ".join(mots[1:])]
+
+
 # SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne : si le module securite
 # est absent, les cartons sortent normalement, simplement sans microtexte.
 try:
@@ -184,7 +217,7 @@ def _carte_jeu(c, cx, cy, val, col, gris_ch):
     _enseigne(c, cx, cy - 4.6 * mm, 1.35 * mm, val % 4, gris_ch)
 
 
-def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", titre_jeu="", style="eco", evenement_id="", cartes=False):
+def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", titre_jeu="", style="eco", evenement_id="", cartes=False, nom_centre=""):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
     cell_w = CARD_W / GRID_N
@@ -223,7 +256,26 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
             cy = y0 + FOOT_H + (GRID_N - 1 - ri) * cell_h + cell_h * 0.30
             # case centrale (colonne N=2, ligne du milieu ri=2) = MARATHON
             if ci == 2 and ri == 2:
-                pass  # case libre : elle accueille le QR de sécurité (dessiné plus bas)
+                # ✒️ case libre : le NOM DU CLIENT s'y écrit EN CALLIGRAPHIE.
+                #    Sans personnalisation elle reste vide (et reçoit le QR).
+                if nom_centre:
+                    _lg = _lignes_centre(nom_centre)
+                    _larg = cell_w * 0.88
+                    _t = 16.0
+                    while _t > 4.0 and _sw6(_lg[0], _POLICE_SCRIPT, _t) > _larg:
+                        _t -= 0.25
+                    _tp = max(3.2, _t * 0.40)
+                    while _tp > 3.0 and len(_lg) > 1 and max(
+                            _sw6(_l, "Helvetica-Bold", _tp) for _l in _lg[1:]) > _larg:
+                        _tp -= 0.25
+                    _haut = _t * 0.72 + (len(_lg) - 1) * _tp * 1.40
+                    _y0c = cy + _haut / 2 - _t * 0.60
+                    c.setFillColor(gris_ch)
+                    c.setFont(_POLICE_SCRIPT, _t)
+                    c.drawCentredString(cx, _y0c, _lg[0])
+                    c.setFont("Helvetica-Bold", _tp)
+                    for _k, _l in enumerate(_lg[1:], 1):
+                        c.drawCentredString(cx, _y0c - _t * 0.26 - _k * _tp * 1.40, _l)
             elif cartes and nums[ri] <= 13:
                 # 🃏 jumeau CASINO : le numéro 1-13 vit dans sa carte à jouer
                 _carte_jeu(c, cx, cy + 5, nums[ri], col, gris_ch)
@@ -264,6 +316,7 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
 
 def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
+                nom_centre=None,
                 style="eco", evenement_id="", cartes=False, page_start=1):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
@@ -299,7 +352,8 @@ def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
                 carte = bandes[col_i][row]
                 coul = (couleur_perso if (couleur and couleur_perso)
                         else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#999999")
-                _dessiner_carte(c, x0, y0, carte, coul, serie, encre, telephone, titre_jeu, style=style, evenement_id=evenement_id, cartes=cartes)
+                _dessiner_carte(c, x0, y0, carte, coul, serie, encre, telephone, titre_jeu, style=style, evenement_id=evenement_id, cartes=cartes,
+                                nom_centre=(nom_centre if nom_centre is not None else nom_evenement))
                 serie += 1
 
         c.showPage()
