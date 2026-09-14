@@ -20,6 +20,37 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
+# ══ ✒️ LA CALLIGRAPHIE DE LA CASE CENTRALE (sceau Maeva 11/09) ══════
+# Même travail que sur P6 MARATHON : le NOM DE LA SALLE s'écrit en
+# calligraphie au milieu du carton, le reste (adresse, téléphone) dessous
+# en petites capitales. TeX Gyre Chorus, converti en TTF, est rangé à côté
+# de ce fichier ; s'il manque on retombe sur l'italique serif.
+import os as _os75
+from reportlab.pdfbase import pdfmetrics as _pm75
+from reportlab.pdfbase.ttfonts import TTFont as _TF75
+from reportlab.pdfbase.pdfmetrics import stringWidth as _sw75
+_POLICE_SCRIPT = "Times-Italic"
+for _n75, _c75 in (
+        ("CHORUS", _os75.path.join(_os75.path.dirname(_os75.path.abspath(__file__)), "Chorus.ttf")),
+        ("FSERIT", "/usr/share/fonts/truetype/freefont/FreeSerifItalic.ttf")):
+    try:
+        _pm75.registerFont(_TF75(_n75, _c75)); _POLICE_SCRIPT = _n75; break
+    except Exception:
+        pass
+
+
+def _lignes_centre(texte):
+    """✒️ Le NOM sur la 1re ligne (calligraphié), le reste dessous."""
+    mots = [m for m in str(texte).replace("\n", " ").split(" ") if m]
+    if not mots:
+        return []
+    if len(mots) == 1:
+        return [mots[0]]
+    if len(mots) >= 3:
+        return [mots[0], " ".join(mots[1:-1]), mots[-1]]
+    return [mots[0], " ".join(mots[1:])]
+
+
 # SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne : si le module securite
 # est absent, les cartons sortent normalement, simplement sans microtexte.
 try:
@@ -155,15 +186,34 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
                 # ⚠️ le texte se rétrécit tout seul s'il est long : une salle
                 # peut avoir un nom de trente lettres, il ne doit pas déborder
                 # sur les cases voisines.
-                _libre = (nom_evenement or "").strip() or "FREE SPACE"
-                _tl = 6.5
-                while _tl > 3.2 and _lgo(_libre, POLICE, _tl) > cell_w - 2.4 * mm:
-                    _tl -= 0.2
-                # ⚠️ 12/08 : VRAIMENT au centre de la case. L'ancien calcul
-                # (cy + row_h/2 - 3,4 mm) datait du temps où le QR occupait
-                # le bas de la case : le texte était collé en haut.
-                c.setFillColor(col); c.setFont(POLICE, _tl)
-                c.drawCentredString(cell_x + cell_w / 2, cy - _tl * 0.36, _libre)
+                # ✒️ 11/09 : le NOM est CALLIGRAPHIÉ, le reste dessous en
+                #    petites capitales. Sans personnalisation : « FREE SPACE ».
+                _libre = (nom_evenement or "").strip()
+                _larg = cell_w - 2.4 * mm
+                if not _libre:
+                    _tl = 6.5
+                    while _tl > 3.2 and _lgo("FREE SPACE", POLICE, _tl) > _larg:
+                        _tl -= 0.2
+                    c.setFillColor(col); c.setFont(POLICE, _tl)
+                    c.drawCentredString(cell_x + cell_w / 2, cy - _tl * 0.36, "FREE SPACE")
+                else:
+                    _lg = _lignes_centre(_libre)
+                    _t = 11.0
+                    while _t > 4.0 and _sw75(_lg[0], _POLICE_SCRIPT, _t) > _larg:
+                        _t -= 0.25
+                    _tp = max(3.0, _t * 0.44)
+                    while _tp > 2.8 and len(_lg) > 1 and max(
+                            _sw75(_l, POLICE, _tp) for _l in _lg[1:]) > _larg:
+                        _tp -= 0.2
+                    _haut = _t * 0.72 + (len(_lg) - 1) * _tp * 1.35
+                    _y0c = cy + _haut / 2 - _t * 0.60
+                    c.setFillColor(col)
+                    c.setFont(_POLICE_SCRIPT, _t)
+                    c.drawCentredString(cell_x + cell_w / 2, _y0c, _lg[0])
+                    c.setFont(POLICE, _tp)
+                    for _k, _l in enumerate(_lg[1:], 1):
+                        c.drawCentredString(cell_x + cell_w / 2,
+                                            _y0c - _t * 0.26 - _k * _tp * 1.35, _l)
                 if _sec and evenement_id:
                     try:
                         _q = 13.0 * mm
