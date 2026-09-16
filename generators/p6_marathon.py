@@ -36,7 +36,13 @@ for _nom6, _ch6 in (
 
 def _lignes_centre(texte):
     """✒️ Le NOM sur la 1re ligne (calligraphié, en gros), le reste dessous."""
-    mots = [m for m in str(texte).replace("\n", " ").split(" ") if m]
+    # ⭐ 11/09 : ON PEUT IMPOSER LA COUPURE avec « | » ou un retour à la
+    #    ligne — « SAINT ANNE | HIVA OA » donne deux lignes propres au lieu
+    #    d'un découpage automatique qui séparerait SAINT de ANNE.
+    brut = str(texte).replace("\n", "|")
+    if "|" in brut:
+        return [l.strip() for l in brut.split("|") if l.strip()][:3]
+    mots = [m for m in brut.split(" ") if m]
     if not mots:
         return []
     if len(mots) == 1:
@@ -332,15 +338,39 @@ def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
 
     for _ in range(nb_pages):
         if nom_evenement:
-            c.setFillColor(NOIR); c.setFont("Helvetica-Bold", 11)
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 5 * mm, nom_evenement)
-        titre_aff = titre_jeu if titre_jeu else ("PJOKER" if cartes else "P6 MARATHON")
+            # ⭐⭐ 11/09 (sceau Maeva : « que ça se voie à l'impression ») :
+            #    le nom de la cliente passe de 11 à 17 pt. La marge du haut
+            #    fait 11 mm et la 1re carte commence à 31 pt : mesuré, il y
+            #    a la place. La taille redescend toute seule si le nom est
+            #    trop long pour la largeur de la feuille.
+            #    ⚠️ MESURÉ : la 1re carte commence à 31 pt du haut et une
+            #    imprimante ne tire pas dans les 4 premiers millimètres. Le
+            #    nom tient donc entre 11 et 24 pt du bord — d'où 14 pt et
+            #    une ligne de base à 7,5 mm.
+            _nomh = nom_evenement.replace("|", " ").replace("  ", " ").strip()
+            _tnom = 14.0
+            while _tnom > 8.0 and _sw6(_nomh, "Helvetica-Bold", _tnom) > PAGE_W - 40 * mm:
+                _tnom -= 0.5
+            c.setFillColor(NOIR); c.setFont("Helvetica-Bold", _tnom)
+            c.drawCentredString(PAGE_W / 2, PAGE_H - 7.5 * mm, _nomh)
+        # ⭐ 11/09 (sceau Maeva) : QUAND LE CLIENT DONNE SON NOM, C'EST LUI
+        #    QUI OCCUPE LE HAUT DE LA FEUILLE — « P6 MARATHON » s'efface au
+        #    lieu de se répéter sous la personnalisation. La 2e ligne ne
+        #    garde alors que la date et le numéro de page.
+        #    Sans personnalisation, le titre du jeu revient comme avant.
+        titre_aff = titre_jeu if titre_jeu else (
+            "" if nom_evenement else ("PJOKER" if cartes else "P6 MARATHON"))
         ligne2 = titre_aff
-        if date_lieu: ligne2 += "  ·  " + date_lieu
-        ligne2 += f"  ·  Page {no_page}"
+        if date_lieu:
+            ligne2 = (ligne2 + "  ·  " + date_lieu) if ligne2 else date_lieu
+        ligne2 = (ligne2 + f"  ·  Page {no_page}") if ligne2 else f"Page {no_page}"
         c.setFillColor(GREY); c.setFont("Helvetica", 7)
-        y2 = (PAGE_H - 8.5 * mm) if nom_evenement else (PAGE_H - 6 * mm)
-        c.drawCentredString(PAGE_W / 2, y2, ligne2)
+        if nom_evenement:
+            # ⭐ avec une personnalisation, la page et la date filent à
+            #    DROITE sur la même ligne : le nom garde tout le centre.
+            c.drawRightString(PAGE_W - 6 * mm, PAGE_H - 7.5 * mm, ligne2)
+        else:
+            c.drawCentredString(PAGE_W / 2, PAGE_H - 6 * mm, ligne2)
 
         # 🏃 une bande par COLONNE de la feuille : 3 grilles empilées qui
         # portent ensemble toute la quinzaine de chaque colonne B·I·N·G·O
