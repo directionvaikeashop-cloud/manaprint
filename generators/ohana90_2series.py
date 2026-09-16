@@ -86,9 +86,26 @@ try:
     _POLICE_ECO = "DJLECO"
 except Exception:
     _POLICE_ECO = "Helvetica"
-_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
+_GRIS_ECO = colors.Color(0.35, 0.35, 0.35)
 _POLICE_P15 = "Helvetica-Bold"
-_GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
+_GRIS_P15 = colors.Color(0.35, 0.35, 0.35)
+# ⭐⭐ 11/09 (sceau Maeva) : L'ÉCRITURE LATIN MODERN ROMAN dans les deux
+#    gammes, gris 0,35, cercles à 0,5.
+#    ⚠️ MESURÉ : cette écriture consomme 61 % de moins que l'ancienne
+#    grasse à taille égale. Et LE MICROTEXTE EST GARDÉ : contre-intuitif
+#    mais mesuré, il CREUSE le chiffre au lieu d'ajouter de l'encre —
+#    sans lui on consomme 22 % de plus. Ne jamais le retirer « pour faire
+#    plus net » : on paierait plus cher ET on perdrait l'anti-photocopie.
+#    ⚠️ LatinModern.ttf est rangé à côté de ce fichier. S'il manque, on
+#    garde l'ancienne écriture sans planter.
+import os as _os90
+try:
+    _pm.registerFont(_TF("LMROMAN", _os90.path.join(
+        _os90.path.dirname(_os90.path.abspath(__file__)), "LatinModern.ttf")))
+    _POLICE_ECO = "LMROMAN"
+    _POLICE_P15 = "LMROMAN"
+except Exception:
+    pass
 
 def _style_chiffres(style):
     """Retourne (police, gris) des chiffres selon la gamme choisie."""
@@ -186,7 +203,23 @@ def _dessiner_carte(c, x0, y0, cols_paires, couleur_hex, serie, titre_jeu="", te
 
     # Les cases : cercle + petit numéro (colonne N : la case centrale = FREE SPACE)
     rayon = min(cell_w, cell_h) * 0.325  # bulle plafonnée : elle affleure le pointillé sans le franchir
-    t_cercle, t_petit = 42, 36   # chiffres au calibre du OHANA 75 · 2 séries
+    # ⚠️⚠️ 11/09 : LA TAILLE DU CHIFFRE S'ADAPTE AU CERCLE. Elle était en
+    #    dur à 42 pt, calibrée pour l'ancienne écriture ; avec Latin Modern
+    #    les nombres à deux chiffres (« 22 », « 44 ») débordaient de la
+    #    bulle. Le rayon, lui, ne peut pas grandir — il affleure déjà le
+    #    pointillé. On réduit donc la taille jusqu'à ce que la DIAGONALE du
+    #    chiffre tienne dans le cercle, quelle que soit l'écriture.
+    t_cercle, t_petit = 42, 36
+    while t_cercle > 10:
+        _l = _sw92("88", police_ch, t_cercle)
+        _h = t_cercle * 0.72
+        if ((_l / 2) ** 2 + (_h / 2) ** 2) ** 0.5 <= rayon * 0.92:
+            break
+        t_cercle -= 0.5
+    # ⚠️ le PETIT NUMÉRO suit la même réduction : il gardait 36 pt en dur
+    #    et se retrouvait plus gros que celui de la bulle. On conserve le
+    #    rapport d'origine (36/42) quelle que soit la taille retenue.
+    t_petit = t_cercle * (36.0 / 42.0)
     for ci, paires in enumerate(cols_paires):
         idx = 0
         for ri in range(5):
@@ -239,20 +272,31 @@ def _dessiner_carte(c, x0, y0, cols_paires, couleur_hex, serie, titre_jeu="", te
                         pass
                 continue
             n_cercle, n_petit = paires[idx]; idx += 1
-            ccx = case_x + cell_w * 0.34         # la bulle et son chiffre À GAUCHE (décision Maeva)
-            ccy = case_y + cell_h * 0.68
-            c.setStrokeColor(col if False else GRIS); c.setLineWidth(0.7)
+            # ⭐ 11/09 (sceau Maeva : « centre-les bien dans chaque carré ») :
+            #    L'ENSEMBLE BULLE + PETIT NUMÉRO EST CENTRÉ. La bulle était
+            #    posée à 0,34 de la case et le petit à 0,755, des fractions
+            #    en dur : le bloc était décalé. On mesure maintenant la
+            #    largeur réellement occupée et on la centre.
+            _lp0 = _sw92("88", police_ch, t_petit)
+            _larg_bloc = 2 * rayon + _lp0 * 1.08
+            ccx = case_x + max(rayon + 0.4 * mm, (cell_w - _larg_bloc) / 2 + rayon)
+            _px_petit = ccx + rayon + _lp0 * 0.58
+            _haut_bloc = 2 * rayon + t_petit * 0.82
+            _marge_v = max(0.4 * mm, (cell_h - _haut_bloc) / 2)
+            ccy = case_y + min(cell_h - rayon - 0.4 * mm, cell_h - _marge_v - rayon)
+            _py_petit = max(case_y + cell_h * 0.05, ccy - rayon - t_petit * 0.62)
+            # ⭐ le cercle passe de 0,7 à 0,5 : 2e poste de toner après les chiffres
+            c.setStrokeColor(col if False else GRIS); c.setLineWidth(0.5)
             c.setStrokeColor(col)
             c.circle(ccx, ccy, rayon, stroke=1, fill=0)
             if _sec:  # chiffres "billet de banque" remplis de microtexte
                 _sec.chiffre_micro(c, n_cercle, ccx, ccy - t_cercle * 0.36, t_cercle, gris_ch, police_ch)
-                _sec.chiffre_micro(c, n_petit, case_x + cell_w * 0.755,
-                                   case_y + cell_h * 0.05, t_petit, gris_ch, police_ch)
+                _sec.chiffre_micro(c, n_petit, _px_petit, _py_petit, t_petit, gris_ch, police_ch)
             else:
                 c.setFillColor(gris_ch); c.setFont(police_ch, t_cercle)
                 c.drawCentredString(ccx, ccy - t_cercle * 0.36, str(n_cercle))
                 c.setFont(police_ch, t_petit)
-                c.drawCentredString(case_x + cell_w * 0.755, case_y + cell_h * 0.05, str(n_petit))
+                c.drawCentredString(_px_petit, _py_petit, str(n_petit))
 
 
 def generer_pdf(nb_cartes=2, serie_start=1, theme="", couleur=True,
