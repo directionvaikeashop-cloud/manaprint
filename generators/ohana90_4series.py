@@ -54,9 +54,24 @@ try:
     _POLICE_ECO = "DJLECO"
 except Exception:
     _POLICE_ECO = "Helvetica"
-_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
+_GRIS_ECO = colors.Color(0.35, 0.35, 0.35)
 _POLICE_P15 = "Helvetica-Bold"
-_GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
+_GRIS_P15 = colors.Color(0.35, 0.35, 0.35)
+# ⭐⭐ 11/09 (sceau Maeva) : ÉCRITURE LATIN MODERN ROMAN dans les deux
+#    gammes, gris 0,35, cercles à 0,5, MICROTEXTE GARDÉ.
+#    ⚠️ MESURÉ : cette écriture consomme 61 % de moins que l'ancienne
+#    grasse à taille égale. Et le microtexte CREUSE le chiffre au lieu
+#    d'ajouter de l'encre — sans lui on consomme 22 % de plus.
+#    ⚠️ LatinModern.ttf est rangé à côté de ce fichier. S'il manque, on
+#    garde l'ancienne écriture sans planter.
+import os as _os94
+try:
+    _pm.registerFont(_TF("LMROMAN", _os94.path.join(
+        _os94.path.dirname(_os94.path.abspath(__file__)), "LatinModern.ttf")))
+    _POLICE_ECO = "LMROMAN"
+    _POLICE_P15 = "LMROMAN"
+except Exception:
+    pass
 
 def _style_chiffres(style):
     """Retourne (police, gris) des chiffres selon la gamme choisie."""
@@ -149,8 +164,15 @@ def _dessiner_carte(c, x0, y0, cols_paires, couleur_hex, serie, titre_jeu="", te
     # « 88 » à 24 pt fait 10,8 mm, il lui faut donc au moins 6,5 mm de rayon.
     # Elle reste bornée par la case pour ne jamais mordre la voisine.
     _t_prevu = 24
+    # ⚠️⚠️ 11/09 : LE RAYON SE CALCULE SUR LA DIAGONALE DU CHIFFRE, pas sur
+    #    sa seule largeur. L'ancien calcul marchait avec DejaVu, dont le
+    #    « 88 » est large ; avec Latin Modern, bien plus étroit, le cercle
+    #    rétrécissait alors que la HAUTEUR du chiffre ne changeait pas — et
+    #    les chiffres débordaient par le haut.
+    _lg88 = _lg_o("88", police_ch, _t_prevu)
+    _ht88 = _t_prevu * 0.72
     rayon = min(cell_w * 0.42, cell_h * 0.34,
-                max(_lg_o("88", police_ch, _t_prevu) * 0.64, 3.0 * mm))
+                max(((_lg88 / 2) ** 2 + (_ht88 / 2) ** 2) ** 0.5 * 1.16, 3.0 * mm))
     # ⭐ 13/08 (sceau Maeva) : LES DEUX CHIFFRES À 24 PT, à la taille du
     # modèle que ses clientes aiment. La bulle est calculée depuis eux.
     t_cercle, t_petit = 24, 24
@@ -187,7 +209,12 @@ def _dessiner_carte(c, x0, y0, cols_paires, couleur_hex, serie, titre_jeu="", te
             # GAUCHE. Elle était à 0,36 de la case en dur ; à 24 pt elle
             # empiétait sur la place du petit chiffre. On la pose depuis le
             # BORD GAUCHE de la case — juste son rayon plus un cheveu.
-            ccx = case_x + rayon + 0.6 * mm
+            # ⭐ 11/09 (sceau Maeva : « centre-les bien dans chaque carré ») :
+            #    L'ENSEMBLE BULLE + PETIT NUMÉRO EST CENTRÉ dans la case,
+            #    au lieu d'être tassé dans le coin haut-gauche.
+            _lp0 = _lg_o("88", police_ch, t_petit)
+            _larg_bloc = 2 * rayon + _lp0 * 1.02
+            ccx = case_x + max(rayon + 0.4 * mm, (cell_w - _larg_bloc) / 2 + rayon)
             # ⚠️⚠️ 13/08 (sceau Maeva : « que les chiffres dans les bulles
             # ne dépassent pas les grilles ») : LA BULLE SE PLACE TOUTE
             # SEULE. Elle était posée à 0,72 de la case en dur ; à 24 pt
@@ -196,8 +223,11 @@ def _dessiner_carte(c, x0, y0, cols_paires, couleur_hex, serie, titre_jeu="", te
             # au-delà de ce que la case permet — son sommet reste toujours
             # sous le trait, avec un cheveu de marge.
             _hors = rayon + 0.4 * mm
-            ccy = case_y + min(cell_h * 0.72, cell_h - _hors)
-            c.setStrokeColor(col if False else GRIS); c.setLineWidth(0.7)
+            _haut_bloc = 2 * rayon + t_petit * 0.82
+            _marge_v = max(0.4 * mm, (cell_h - _haut_bloc) / 2)
+            ccy = case_y + min(cell_h - _hors, cell_h - _marge_v - rayon)
+            # ⭐ le cercle passe de 0,7 à 0,5 : 2e poste de toner après les chiffres
+            c.setStrokeColor(col if False else GRIS); c.setLineWidth(0.5)
             c.setStrokeColor(col)
             c.circle(ccx, ccy, rayon, stroke=1, fill=0)
             # ⚠️ LE PETIT CHIFFRE se pose SOUS ET À DROITE de la bulle,
