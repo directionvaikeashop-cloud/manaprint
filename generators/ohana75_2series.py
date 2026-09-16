@@ -85,19 +85,37 @@ GRIS_CLAIR = colors.Color(0.80, 0.80, 0.80)
 
 
 
-# ══ DEUX GAMMES COMMERCIALES (vision Maeva) ══════════════════════════
-# ÉCO      : écriture fine DejaVu ExtraLight, gris 0,50 — économie de toner
-# PREMIUM  : écriture grasse Helvetica-Bold, gris 0,55 — style P15
+# ══ L'ÉCRITURE DES CHIFFRES (sceau Maeva 11/09) ══════════════════════
+# ⭐⭐ Maeva a choisi LATIN MODERN ROMAN, une serif fine et contrastée —
+#    déliés minces, terminaisons rondes. Elle a EN MÊME TEMPS demandé de
+#    RETIRER L'ÉCONOMIE DE TONER, et les deux vont ensemble : des déliés
+#    aussi fins imprimés en gris 0,50 disparaissent sur du papier
+#    ordinaire. Les chiffres passent donc en NOIR PRESQUE FRANC (0,12).
+# ⚠️ Le fichier LatinModern.ttf est rangé à côté de ce générateur (la
+#    version d'origine est en OTF, que ReportLab ne sait pas lire). S'il
+#    manque, on retombe sur l'ancienne écriture sans planter.
+import os as _osL
 from reportlab.pdfbase import pdfmetrics as _pm
 from reportlab.pdfbase.ttfonts import TTFont as _TF
+_POLICE_ECO = "Helvetica"
 try:
     _pm.registerFont(_TF("DJLECO", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
     _POLICE_ECO = "DJLECO"
 except Exception:
-    _POLICE_ECO = "Helvetica"
-_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
-_POLICE_P15 = "Helvetica-Bold"
-_GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
+    pass
+try:
+    _pm.registerFont(_TF("LMROMAN", _osL.path.join(
+        _osL.path.dirname(_osL.path.abspath(__file__)), "LatinModern.ttf")))
+    _POLICE_ECO = "LMROMAN"
+except Exception:
+    pass
+# ⚠️ plus d'économie de toner : les deux gammes écrivent en noir presque franc
+# ⭐ 11/09 (sceau Maeva) : GRIS 0,35 — mesuré, c'est 20 % de toner en moins
+#    que le noir franc, et les chiffres restent noirs à l'œil. Au-delà
+#    (0,45 · 0,55) ça commence à se voir sur le papier.
+_GRIS_ECO = colors.Color(0.35, 0.35, 0.35)
+_POLICE_P15 = _POLICE_ECO
+_GRIS_P15 = colors.Color(0.14, 0.14, 0.14)   # objet distinct : sert à reconnaître la gamme
 
 def _style_chiffres(style):
     """Retourne (police, gris) des chiffres selon la gamme choisie."""
@@ -235,9 +253,17 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
             n1, n2 = paire[0], paire[1]
 
             # Gros numéro entouré
-            c.setStrokeColor(col); c.setLineWidth(1.0)
+            # ⭐ 11/09 : LE CERCLE PASSE DE 1,0 À 0,5 (sceau Maeva). Mesuré à
+            #    600 dpi : 9 % de toner en moins à lui seul, et le cercle
+            #    reste parfaitement net — il y en a cinquante par feuille,
+            #    c'est le deuxième poste après les chiffres.
+            c.setStrokeColor(col); c.setLineWidth(0.5)
             c.circle(cxc, cy, r_cercle, stroke=1, fill=0)
-            if _sec:  # chiffres "billet de banque" remplis de microtexte
+            # ⚠️ 11/09 : le MICROTEXTE (sécurité anti-photocopie) creuse les
+            #    chiffres et les éclaircit. Avec l'écriture fine de Maeva, ça
+            #    les rendait pâles. Il est donc réservé à la gamme PREMIUM ;
+            #    la gamme ordinaire écrit des chiffres PLEINS ET NOIRS.
+            if _sec and gris_ch is _GRIS_P15:  # PREMIUM : "billet de banque"
                 _sec.chiffre_micro(c, n1, cxc, cy - 14, 42, gris_ch, police_ch)
                 _sec.chiffre_micro(c, n2, cx2, cy - 12, 36, gris_ch, police_ch)
             else:
