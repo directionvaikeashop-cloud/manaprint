@@ -54,9 +54,25 @@ try:
     _POLICE_ECO = "DJLECO"
 except Exception:
     _POLICE_ECO = "Helvetica"
-_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
+_GRIS_ECO = colors.Color(0.35, 0.35, 0.35)
 _POLICE_P15 = "Helvetica-Bold"
-_GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
+_GRIS_P15 = colors.Color(0.35, 0.35, 0.35)
+# ⭐⭐ 11/09 (sceau Maeva) : L'ÉCRITURE LATIN MODERN ROMAN dans les deux
+#    gammes, et le gris passe de 0,50/0,55 à 0,35.
+#    ⚠️ MESURÉ À TAILLE ÉGALE : cette écriture consomme 61 % de moins que
+#    l'ancienne grasse — c'est elle, la vraie économie de toner, bien plus
+#    que la nuance de gris. Ne jamais la remplacer par une grasse « pour
+#    que ça se voie » : on paierait trois fois plus d'encre pour rien.
+#    ⚠️ LatinModern.ttf est rangé à côté de ce fichier (l'original est en
+#    OTF, illisible par ReportLab). S'il manque, on garde l'ancienne.
+import os as _osM
+try:
+    _pm.registerFont(_TF("LMROMAN", _osM.path.join(
+        _osM.path.dirname(_osM.path.abspath(__file__)), "LatinModern.ttf")))
+    _POLICE_ECO = "LMROMAN"
+    _POLICE_P15 = "LMROMAN"
+except Exception:
+    pass
 
 def _style_chiffres(style):
     """Retourne (police, gris) des chiffres selon la gamme choisie.
