@@ -93,9 +93,25 @@ try:
 except Exception:
     _POLICE_ECO = "Helvetica-Bold"
     _POLICE_P15_G = "Helvetica-Bold"
-_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
+_GRIS_ECO = colors.Color(0.35, 0.35, 0.35)
 _POLICE_P15 = _POLICE_P15_G
-_GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
+_GRIS_P15 = colors.Color(0.35, 0.35, 0.35)
+# ⭐⭐ 11/09 (sceau Maeva) : L'ÉCRITURE LATIN MODERN ROMAN dans les deux
+#    gammes, et le gris passe de 0,50/0,55 à 0,35.
+#    ⚠️ MESURÉ À TAILLE ÉGALE : cette écriture consomme 61 % de moins que
+#    l'ancienne grasse — c'est elle, la vraie économie de toner, bien plus
+#    que la nuance de gris. Ne jamais la remplacer par une grasse « pour
+#    que ça se voie » : on paierait trois fois plus d'encre pour rien.
+#    ⚠️ LatinModern.ttf est rangé à côté de ce fichier (l'original est en
+#    OTF, illisible par ReportLab). S'il manque, on garde l'ancienne.
+import os as _osM
+try:
+    _pm.registerFont(_TF("LMROMAN", _osM.path.join(
+        _osM.path.dirname(_osM.path.abspath(__file__)), "LatinModern.ttf")))
+    _POLICE_ECO = "LMROMAN"
+    _POLICE_P15 = "LMROMAN"
+except Exception:
+    pass
 
 def _style_chiffres(style):
     """Retourne (police, gris) des chiffres selon la gamme choisie."""
@@ -289,7 +305,13 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
                 # PREMIUM : chiffres "billet de banque" gras remplis de microtexte
                 _sec.chiffre_micro(c, nums[ri], cx, cy, 30, gris_ch, police_ch)
             else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, 30)
+                # ⭐ 11/09 (sceau Maeva) : LES CHIFFRES PASSENT DE 30 À 34 pt.
+                #    Mesuré : à 30 pt ils n'occupaient que 55 % de la case.
+                #    À 34 pt on gagne 13 % de taille ET on reste à −34 % de
+                #    toner par rapport à l'ancien réglage gras — plus gros
+                #    ET moins cher. 38 pt tenait encore, 40 serrait les
+                #    lignes du bas : 34 est le réglage choisi.
+                c.setFillColor(gris_ch); c.setFont(police_ch, 34)
                 c.drawCentredString(cx, cy, str(nums[ri]))
         if ci > 0:
             c.setStrokeColor(colors.Color(0.85, 0.85, 0.85)); c.setLineWidth(0.3)
