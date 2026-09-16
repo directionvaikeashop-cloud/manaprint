@@ -188,14 +188,33 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
     grid_bot = y0 + 6 * mm
     grid_h = grid_top - grid_bot
     row_h = grid_h / 5
+    # ⚠️⚠️ 11/09 : LE RAYON RESTE BORNÉ PAR LA CASE — c'est LA TAILLE DU
+    #    CHIFFRE qui s'adapte à lui, jamais l'inverse. Un premier essai
+    #    faisait grandir le rayon pour loger le « 88 » : les cercles
+    #    débordaient des cases et mordaient les traits.
     r_cercle = min(cell_w, row_h) * 0.42
+    # la taille du gros chiffre descend jusqu'à ce que sa DIAGONALE tienne
+    # dans le rond, quelle que soit l'écriture chargée.
+    _t_gros = 42.0
+    while _t_gros > 12:
+        _l = _lgo("88", police_ch, _t_gros); _h = _t_gros * 0.72
+        if ((_l / 2) ** 2 + (_h / 2) ** 2) ** 0.5 <= r_cercle * 0.92:
+            break
+        _t_gros -= 0.5
+    _t_petit = _t_gros * (36.0 / 42.0)   # le petit garde le rapport d'origine
 
     for j in range(5):          # rangées (0 = haut)
         cy = grid_top - (j + 0.5) * row_h
         for i, (lettre, a, b) in enumerate(PLAGES):
             cell_x = x0 + i * cell_w
-            cxc = cell_x + cell_w * 0.30   # centre du rond (gros numéro)
-            cx2 = cell_x + cell_w * 0.79   # petit numéro
+            # ⭐ 11/09 (sceau Maeva : « centre-les bien dans chaque carré ») :
+            #    l'ensemble ROND + PETIT NUMÉRO est centré dans la case, au
+            #    lieu des fractions en dur 0,30 et 0,79 qui le décalaient.
+            _lp2 = _lgo("88", police_ch, _t_petit)
+            _larg_bloc = 2 * r_cercle + _lp2 * 1.06
+            cxc = cell_x + max(r_cercle + 0.4 * mm,
+                               (cell_w - _larg_bloc) / 2 + r_cercle)
+            cx2 = cxc + r_cercle + _lp2 * 0.56
 
             # séparateurs de colonnes
             if i > 0:
@@ -259,19 +278,22 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
             #    c'est le deuxième poste après les chiffres.
             c.setStrokeColor(col); c.setLineWidth(0.5)
             c.circle(cxc, cy, r_cercle, stroke=1, fill=0)
-            # ⚠️ 11/09 : le MICROTEXTE (sécurité anti-photocopie) creuse les
-            #    chiffres et les éclaircit. Avec l'écriture fine de Maeva, ça
-            #    les rendait pâles. Il est donc réservé à la gamme PREMIUM ;
-            #    la gamme ordinaire écrit des chiffres PLEINS ET NOIRS.
-            if _sec and gris_ch is _GRIS_P15:  # PREMIUM : "billet de banque"
-                _sec.chiffre_micro(c, n1, cxc, cy - 14, 42, gris_ch, police_ch)
-                _sec.chiffre_micro(c, n2, cx2, cy - 12, 36, gris_ch, police_ch)
+            # ⚠️⚠️ LE MICROTEXTE EST GARDÉ DANS LES DEUX GAMMES (11/09,
+            #    après essai dans les deux sens).
+            #    ⚠️ CONTRE-INTUITIF MAIS MESURÉ : il NE RAJOUTE PAS d'encre,
+            #    il CREUSE le chiffre — l'intérieur devient des lettres
+            #    minuscules séparées de blanc au lieu d'une surface pleine.
+            #    Sans lui on consomme 22 % DE PLUS, et on perd la
+            #    protection anti-photocopie sur chaque chiffre.
+            if _sec:  # chiffres "billet de banque" remplis de microtexte
+                _sec.chiffre_micro(c, n1, cxc, cy - _t_gros * 0.33, _t_gros, gris_ch, police_ch)
+                _sec.chiffre_micro(c, n2, cx2, cy - _t_petit * 0.33, _t_petit, gris_ch, police_ch)
             else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, 42)
-                c.drawCentredString(cxc, cy - 14, str(n1))
+                c.setFillColor(gris_ch); c.setFont(police_ch, _t_gros)
+                c.drawCentredString(cxc, cy - _t_gros * 0.33, str(n1))
                 # Petit numéro
-                c.setFillColor(gris_ch); c.setFont(police_ch, 36)
-                c.drawCentredString(cx2, cy - 12, str(n2))
+                c.setFillColor(gris_ch); c.setFont(police_ch, _t_petit)
+                c.drawCentredString(cx2, cy - _t_petit * 0.33, str(n2))
 
         # séparateur de rangée
         if j > 0:
