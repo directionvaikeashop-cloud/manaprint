@@ -41,7 +41,13 @@ for _n75, _c75 in (
 
 def _lignes_centre(texte):
     """✒️ Le NOM sur la 1re ligne (calligraphié), le reste dessous."""
-    mots = [m for m in str(texte).replace("\n", " ").split(" ") if m]
+    # ⭐ 11/09 : ON PEUT IMPOSER LA COUPURE avec « | » ou un retour à la
+    #    ligne — « SAINT ANNE | HIVA OA » donne deux lignes propres au lieu
+    #    d'un découpage automatique qui séparerait SAINT de ANNE.
+    brut = str(texte).replace("\n", "|")
+    if "|" in brut:
+        return [l.strip() for l in brut.split("|") if l.strip()][:3]
+    mots = [m for m in brut.split(" ") if m]
     if not mots:
         return []
     if len(mots) == 1:
@@ -284,7 +290,7 @@ def generer_pdf(nb_cartes=2, serie_start=1, theme="", couleur=True,
         # En-tête de page (événement)
         if nom_evenement:
             c.setFillColor(NOIR); c.setFont(POLICE, 11)
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 6 * mm, nom_evenement)
+            c.drawCentredString(PAGE_W / 2, PAGE_H - 6 * mm, nom_evenement.replace("|", " ").replace("  ", " ").strip())
         ligne2 = (titre_jeu or "OHANA 75 — 2 séries")
         if date_lieu:
             ligne2 += "  ·  " + date_lieu
