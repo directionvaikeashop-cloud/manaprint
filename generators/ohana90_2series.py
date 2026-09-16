@@ -20,6 +20,39 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
+# ══ ✒️ LA CALLIGRAPHIE DU FREE SPACE (sceau Maeva 11/09) ════════════
+# Même travail que sur P6 MARATHON et les OHANA 75 : le NOM DE LA SALLE
+# remplace « FREE / SPACE » et s'écrit en calligraphie ; le NUMÉRO DE CARTE
+# reste au milieu, il ne disparaît jamais.
+# ⭐ On peut imposer la coupure des lignes avec « | » — « SAINT ANNE |
+#    HIVA OA » donne deux lignes propres. La barre ne s'affiche jamais.
+import os as _os92
+from reportlab.pdfbase import pdfmetrics as _pm92
+from reportlab.pdfbase.ttfonts import TTFont as _TF92
+from reportlab.pdfbase.pdfmetrics import stringWidth as _sw92
+_POLICE_SCRIPT = "Times-Italic"
+for _n92, _c92 in (
+        ("CHORUS", _os92.path.join(_os92.path.dirname(_os92.path.abspath(__file__)), "Chorus.ttf")),
+        ("FSERIT", "/usr/share/fonts/truetype/freefont/FreeSerifItalic.ttf")):
+    try:
+        _pm92.registerFont(_TF92(_n92, _c92)); _POLICE_SCRIPT = _n92; break
+    except Exception:
+        pass
+
+
+def _lignes_centre(texte):
+    """✒️ Le NOM sur la 1re ligne (calligraphié), le reste dessous."""
+    brut = str(texte).replace("\n", "|")
+    if "|" in brut:
+        return [l.strip() for l in brut.split("|") if l.strip()][:2]
+    mots = [m for m in brut.split(" ") if m]
+    if not mots:
+        return []
+    if len(mots) == 1:
+        return [mots[0]]
+    return [mots[0], " ".join(mots[1:])]
+
+
 # SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne : si le module securite
 # est absent, les cartons sortent normalement, simplement sans microtexte.
 try:
@@ -92,7 +125,7 @@ def _gen_carte(rng):
     return cols
 
 
-def _dessiner_carte(c, x0, y0, cols_paires, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
+def _dessiner_carte(c, x0, y0, cols_paires, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id="", nom_centre=""):
     police_ch, gris_ch = _style_chiffres(style)
     # ⭐⭐ 14/08 (sceau Maeva : « peut-on alléger la couleur sur OHANA 90
     # 2 séries ») : LA COULEUR DEVIENT PASTEL.
@@ -166,13 +199,37 @@ def _dessiner_carte(c, x0, y0, cols_paires, couleur_hex, serie, titre_jeu="", te
                 c.setStrokeColor(col); c.setLineWidth(0.6)
                 c.roundRect(case_x + 1.5 * mm, case_y + 1.2 * mm,
                             2 * cell_w - 3 * mm, cell_h - 2.4 * mm, 1.5 * mm, stroke=1, fill=0)
-                fx = case_x + cell_w * 0.62
-                c.setFillColor(col); c.setFont(POLICE, 5.5)
-                c.drawCentredString(fx, case_y + cell_h * 0.68, "FREE")
-                c.setFont(POLICE, 6.5)
-                c.drawCentredString(fx, case_y + cell_h * 0.44, "%06d" % serie)
-                c.setFont(POLICE, 5.5)
-                c.drawCentredString(fx, case_y + cell_h * 0.18, "SPACE")
+                # ✒️ 11/09 : avec une personnalisation, le NOM remplace
+                #    « FREE / SPACE » et le numéro de carte reste au milieu.
+                #    ⚠️ SANS QR le texte est VRAIMENT CENTRÉ dans le grand
+                #    rectangle ; avec QR il se recale à gauche pour lui
+                #    laisser la place.
+                _perso = (nom_centre or "").strip()
+                fx = case_x + (cell_w * 0.62 if evenement_id else cell_w)
+                c.setFillColor(col)
+                if _perso:
+                    _lg = _lignes_centre(_perso)
+                    _larg = (2 * cell_w - 6 * mm) * (0.52 if evenement_id else 0.88)
+                    _th = 10.0
+                    while _th > 3.4 and _sw92(_lg[0], _POLICE_SCRIPT, _th) > _larg:
+                        _th -= 0.25
+                    c.setFont(_POLICE_SCRIPT, _th)
+                    c.drawCentredString(fx, case_y + cell_h * 0.66, _lg[0])
+                    c.setFont(POLICE, 6.5)
+                    c.drawCentredString(fx, case_y + cell_h * 0.42, "%06d" % serie)
+                    if len(_lg) > 1:
+                        _tb9 = 5.5
+                        while _tb9 > 3.0 and _sw92(_lg[1], POLICE, _tb9) > _larg:
+                            _tb9 -= 0.25
+                        c.setFont(POLICE, _tb9)
+                        c.drawCentredString(fx, case_y + cell_h * 0.17, _lg[1])
+                else:
+                    c.setFont(POLICE, 5.5)
+                    c.drawCentredString(fx, case_y + cell_h * 0.68, "FREE")
+                    c.setFont(POLICE, 6.5)
+                    c.drawCentredString(fx, case_y + cell_h * 0.44, "%06d" % serie)
+                    c.setFont(POLICE, 5.5)
+                    c.drawCentredString(fx, case_y + cell_h * 0.18, "SPACE")
                 if _sec and evenement_id:
                     try:
                         _q = min(cell_h - 3.5 * mm, 13.0 * mm)
@@ -218,7 +275,8 @@ def generer_pdf(nb_cartes=2, serie_start=1, theme="", couleur=True,
         # en-tête de page + traits de découpe pointillés (fidèle au modèle)
         if nom_evenement:
             c.setFillColor(colors.black); c.setFont(POLICE, 8)
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 4 * mm, nom_evenement)
+            c.drawCentredString(PAGE_W / 2, PAGE_H - 4 * mm,
+                                nom_evenement.replace("|", " ").replace("  ", " ").strip())
         c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 6)
         c.drawCentredString(PAGE_W / 2, PAGE_H - 6.4 * mm, "%03d" % no_page)
         c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.4)
@@ -237,6 +295,7 @@ def generer_pdf(nb_cartes=2, serie_start=1, theme="", couleur=True,
                 coul = (couleur_perso if (couleur and couleur_perso)
                         else SERIES_2[pos] if couleur else "#9A9A9A")
                 _dessiner_carte(c, x0, y0, cols_paires, coul, serie, titre_jeu, telephone,
+                                nom_centre=nom_evenement,
                                 style=style, evenement_id=evenement_id)
                 serie += 1
                 faites += 1
