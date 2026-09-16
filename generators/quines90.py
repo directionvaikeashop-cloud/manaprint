@@ -54,7 +54,9 @@ try:
     _POLICE_ECO = "DJLECO"
 except Exception:
     _POLICE_ECO = "Helvetica"
-_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
+# ⭐ 11/09 (sceau Maeva) : GRIS 0,35 au lieu de 0,50 — mesuré sur OHANA 75,
+#    c'est du toner en moins et les chiffres restent noirs à l'œil.
+_GRIS_ECO = colors.Color(0.35, 0.35, 0.35)
 # P15 : LA MÊME ÉCRITURE que l'ÉCO (DejaVu), simplement en GRAS
 # (décision Maeva 30/07 : « pour les chiffres du P15 la même écriture et gras »)
 try:
@@ -65,7 +67,22 @@ try:
     _POLICE_P15 = "DJBOLDC"
 except Exception:
     _POLICE_P15 = "Helvetica-Bold"
-_GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
+_GRIS_P15 = colors.Color(0.35, 0.35, 0.35)
+# ⭐⭐ 11/09 : L'ÉCRITURE DE MAEVA — Latin Modern Roman, serif fine et
+#    contrastée. ⚠️ ELLE NE TRAHIT PAS la décision du 30/07 (« grossis les
+#    chiffres au maximum ») : au contraire, ses chiffres sont PLUS ÉTROITS
+#    que le condensé-gras, donc ils tiennent PLUS GROS dans le carré —
+#    mesuré 23,8 pt contre 19,0 pt. On gagne sur les deux tableaux.
+#    ⚠️ LatinModern.ttf est rangé à côté de ce générateur (l'original est en
+#    OTF, illisible par ReportLab). S'il manque, on garde l'ancienne.
+import os as _osQ
+try:
+    _pm.registerFont(_TF("LMROMAN", _osQ.path.join(
+        _osQ.path.dirname(_osQ.path.abspath(__file__)), "LatinModern.ttf")))
+    _POLICE_ECO = "LMROMAN"
+    _POLICE_P15 = "LMROMAN"
+except Exception:
+    pass
 
 def _style_chiffres(style):
     """Les chiffres du QUINES 90 sont TOUJOURS GRAS, style P15
@@ -202,7 +219,10 @@ def _dessiner_ticket(c, x0, y0, cases, couleur_hex, serie, style="eco", evenemen
             cx = x0 + ci * CELL_W + CELL_W / 2
             if n is None:
                 continue
-            if _sec:  # chiffres "billet de banque" remplis de microtexte
+            # ⚠️ 11/09 : le MICROTEXTE creuse les chiffres et les éclaircit.
+            #    Avec l'écriture fine de Maeva ils devenaient pâles : il est
+            #    donc réservé au PREMIUM, la gamme ordinaire écrit PLEIN.
+            if _sec and gris_ch is _GRIS_P15:  # PREMIUM : "billet de banque"
                 _sec.chiffre_micro(c, n, cx, cy + CELL_H / 2 - t_num * 0.36, t_num, gris_ch, police_ch)
             else:
                 c.setFillColor(gris_ch); c.setFont(police_ch, t_num)
