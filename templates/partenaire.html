@@ -68,6 +68,28 @@
     </div>
     <p class="sous" id="bord-zone"></p>
 
+    <!-- 📢 L'ANNONCE DE 2KEA — n'apparaît que si le serveur en envoie une -->
+    <div id="bord-annonce" style="display:none;margin:14px 0;padding:14px 16px;
+         border-left:5px solid var(--or,#e8b4a0);border-radius:10px;
+         background:rgba(232,180,160,.12);text-align:left;">
+      <b id="annonce-titre" style="display:block;margin-bottom:6px;font-size:1.02em"></b>
+      <span id="annonce-texte" style="font-size:.93em;line-height:1.5"></span>
+    </div>
+
+    <!-- ©️ MES DROITS — les commandes d'autres enseignes sur MES dessins.
+         N'apparaît que si le partenaire possède des jeux et qu'il y a
+         quelque chose en attente. C'est LUI qui encaisse et qui débloque. -->
+    <div id="bord-droits" style="display:none;margin:14px 0;padding:14px 16px;
+         border-left:5px solid #2e7d32;border-radius:10px;
+         background:rgba(46,125,50,.10);text-align:left;">
+      <b style="display:block;margin-bottom:4px">\u00a9\ufe0f Mes droits \u2014 <span id="droits-total"></span></b>
+      <p style="margin:0 0 10px;font-size:.9em;color:var(--muted)">
+        Ces enseignes ont fabriqu\u00e9 vos jeux. Leur PDF est bloqu\u00e9 :
+        d\u00e8s qu'elles vous ont r\u00e9gl\u00e9, confirmez ici et leur fichier part.
+      </p>
+      <div id="droits-liste"></div>
+    </div>
+
     <div class="puces">
       <div class="puce"><b id="st-nb">0</b><span>commandes</span></div>
       <div class="puce"><b id="st-feuilles">0</b><span>feuilles</span></div>
@@ -182,10 +204,58 @@ async function connexion(ev){
     document.getElementById('zone-bord').style.display='';
     document.getElementById('bord-nom').textContent = '\ud83c\udfea ' + (d.nom || 'Ma boutique');
     document.getElementById('bord-zone').textContent = d.zone || '';
+    afficherAnnonce(d);
+    chargerDroits();
     chargerJeuxFabrique();          // la fabrique ne depend plus du tableau
     charger().then(ok => { if(!ok) expliquerVide(); });
   }catch(e){ msg.style.color='var(--coral)'; msg.textContent='\u274c Erreur r\u00e9seau \u2014 r\u00e9essayez'; }
   finally{ if(btn){ btn.disabled = false; btn.textContent = 'Entrer dans ma boutique'; } }
+}
+
+// 📢 Le bandeau d'annonce : affiché seulement si 2KEA en a laissé une.
+function afficherAnnonce(d){
+  const box = document.getElementById('bord-annonce');
+  if(!box) return;
+  if(d && d.annonce_texte){
+    document.getElementById('annonce-titre').textContent = d.annonce_titre || '';
+    document.getElementById('annonce-texte').textContent = d.annonce_texte;
+    box.style.display = '';
+  } else { box.style.display = 'none'; }
+}
+
+// ©️ Mes droits : ce que les autres enseignes me doivent sur mes dessins.
+async function chargerDroits(){
+  const box = document.getElementById('bord-droits');
+  if(!box) return;
+  try{
+    const r = await fetch('/api/partenaire/droits');
+    const d = await r.json();
+    if(!d.ok || !d.droits || !d.droits.length){ box.style.display='none'; return; }
+    document.getElementById('droits-total').textContent =
+      d.droits.length + ' en attente \u00b7 ' + fmtF(d.total);
+    document.getElementById('droits-liste').innerHTML = d.droits.map(x =>
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;'
+      + 'padding:8px 0;border-top:1px solid rgba(0,0,0,.08)">'
+      + '<span style="font-size:.9em"><b>' + (x.enseigne||'?') + '</b><br>'
+      + x.jeu + ' \u00b7 ' + x.nb_feuilles + ' feuilles \u00b7 <b>' + fmtF(x.montant) + '</b>'
+      + '<br><span style="color:var(--muted);font-size:.85em">' + (x.date||'') + '</span></span>'
+      + '<button onclick="validerDroit(' + x.id + ')" style="white-space:nowrap;'
+      + 'padding:8px 12px;border:0;border-radius:8px;background:#2e7d32;color:#fff;'
+      + 'font-weight:600;cursor:pointer">\u2705 R\u00e9gl\u00e9</button></div>').join('');
+    box.style.display='';
+  }catch(e){ box.style.display='none'; }
+}
+
+// ©️ Confirmer qu'une enseigne m'a payé : son PDF part aussitôt.
+async function validerDroit(id){
+  if(!confirm('Confirmez-vous avoir \u00e9t\u00e9 r\u00e9gl\u00e9 pour cette commande ?\n\n'
+            + 'Le PDF partira imm\u00e9diatement \u00e0 l\u0027enseigne.')) return;
+  try{
+    const r = await fetch('/api/partenaire/droits/' + id + '/valider', {method:'POST'});
+    const d = await r.json();
+    alert(d.message || (d.ok ? 'Confirm\u00e9.' : 'Impossible.'));
+    chargerDroits();
+  }catch(e){ alert('Erreur r\u00e9seau \u2014 r\u00e9essayez.'); }
 }
 
 async function deconnexion(){
