@@ -277,8 +277,68 @@ JEUX_PROPRIETAIRE = {
     # 👑 les dessins de 2KEA & Associé
     "tifai": "2kea_papeete", "sicile": "2kea_papeete",
     "alalia": "2kea_papeete",
+    # ⚠️⚠️ 17/09 (sceau Maeva) : TOUTE CRÉATION OU MODIFICATION DE 2KEA
+    #    SORT DE LA GRATUITÉ. Ces huit jeux ont été retravaillés ce
+    #    jour-là — nouvelle écriture, économie de toner, recentrage — et
+    #    passent donc en propriété 2KEA : les partenaires les paient dès
+    #    la première feuille, sans forfait.
+    #    ⚠️ Ce sont les jeux qu'ils fabriquent le plus : la bascule change
+    #       leur quotidien. Ils en sont avertis par le bandeau de leur
+    #       espace (ANNONCES_PARTENAIRE ci-dessus).
+    #    ⭐ RÈGLE POUR LA SUITE : chaque nouveau jeu de 2KEA, et chaque
+    #       ancien qu'on retouche, s'ajoute ici le jour même.
+    "p6_marathon": "2kea_papeete", "p12_marathon": "2kea_papeete",
+    "p15_marathon": "2kea_papeete",
+    # ⚠️ ATTENTION AUX NOMS : le registre abrège les « 2 séries » en
+    #    « _2s » mais garde « _4series » en entier. On met les DEUX formes,
+    #    comme ça un renommage futur ne rouvre pas le jeu par accident.
+    "ohana75_2s": "2kea_papeete", "ohana75_2series": "2kea_papeete",
+    "ohana75_4s": "2kea_papeete", "ohana75_4series": "2kea_papeete",
+    "ohana90_2s": "2kea_papeete", "ohana90_2series": "2kea_papeete",
+    "ohana90_4s": "2kea_papeete", "ohana90_4series": "2kea_papeete",
+    "quines90": "2kea_papeete",
 }
 PRIX_FEUILLE_DROIT = 1.5     # ce que doit une enseigne sur le jeu d'une autre
+
+
+# ═══ 📢 LES ANNONCES DE L'ESPACE PARTENAIRE (sceau Maeva 17/09) ══════
+# Un bandeau qui s'affiche à la connexion, dans le tableau de bord de
+# l'enseigne. {slug: (titre, texte)} — laisser vide pour ne rien montrer.
+# ⚠️ C'est un message de 2KEA à SON partenaire : il se lit tel quel, il
+#    n'est pas traduit ni reformulé. Pour le retirer, effacer sa ligne.
+_AVIS_2KEA = (
+    "\U0001f4b3 Ces jeux passent au paiement",
+    "\u00c0 partir d'aujourd'hui, les jeux cr\u00e9\u00e9s ou retravaill\u00e9s par "
+    "2KEA & Associ\u00e9 ne sont plus fabricables gratuitement : P6, P12 et P15 "
+    "MARATHON, OHANA 75 et OHANA 90 (2 et 4 s\u00e9ries), QUINES 90, ainsi que "
+    "TIFAI, SICILE et ALALIA. Chaque feuille vous est compt\u00e9e \u00e0 1,5 F d\u00e8s "
+    "la premi\u00e8re, et votre PDF reste bloqu\u00e9 jusqu'\u00e0 ce que 2KEA ait "
+    "valid\u00e9 votre r\u00e8glement. Les autres jeux du catalogue gardent leur "
+    "cr\u00e9dit de 3 000 feuilles offertes, une fois pour toutes. "
+    "Renseignements : 89 22 23 05.")
+
+ANNONCES_PARTENAIRE = {
+    "fun_and_co": _AVIS_2KEA,
+    "cocotie_mer": _AVIS_2KEA,
+    "ranihei": (
+        "\u00a9\ufe0f Vos cr\u00e9ations sont d\u00e9sormais prot\u00e9g\u00e9es",
+        "\u00c0 partir d'aujourd'hui, les autres enseignes partenaires n'acc\u00e8dent "
+        "plus gratuitement \u00e0 vos jeux. Quinze dessins sont enregistr\u00e9s \u00e0 "
+        "votre nom \u2014 RANIHEI, MABUHA\u00cf, JOKER, VANIRA, SPEED 90, SANGOGO, "
+        "RAROMATAI 75 et 90, HUNTER, \u00c9CHEC ET MAT, POMARE, UNIT\u00c9, TALON, "
+        "HOANUI et CRISTAL. D\u00e8s qu'une autre enseigne en fabrique une feuille, "
+        "elle lui est compt\u00e9e \u00e0 1,5 F et SON PDF RESTE BLOQU\u00c9 TANT QUE "
+        "VOUS N'AVEZ PAS CONFIRM\u00c9 LE R\u00c8GLEMENT \u2014 c'est vous qui "
+        "encaissez, et c'est vous qui d\u00e9bloquez, depuis l'encadr\u00e9 "
+        "\u00ab Mes droits \u00bb ci-dessous. Vous, vous continuez \u00e0 fabriquer "
+        "vos jeux librement.\n\n"
+        "\U0001f4b3 En sens inverse : les jeux cr\u00e9\u00e9s ou retravaill\u00e9s par "
+        "2KEA & Associ\u00e9 passent eux aussi au paiement \u2014 P6, P12 et P15 "
+        "MARATHON, OHANA 75 et OHANA 90 (2 et 4 s\u00e9ries), QUINES 90, TIFAI, "
+        "SICILE et ALALIA \u2014 \u00e0 1,5 F la feuille d\u00e8s la premi\u00e8re. Les "
+        "autres jeux du catalogue gardent leur cr\u00e9dit de 3 000 feuilles "
+        "offertes, une fois pour toutes. Pour toute question : 89 22 23 05."),
+}
 
 
 def _jeu_d_une_autre(slug, programme):
@@ -316,6 +376,13 @@ PRIX_FEUILLE_HABILLEE = 1.5      # ce que coûte la feuille au-delà du quota
 #    fabriqué avant ce jour ne pèse pas sur le compteur — Maeva a voulu
 #    repartir propre. Ne jamais reculer cette date sans le lui demander :
 #    ça rouvrirait d'un coup des milliers de feuilles déjà tirées.
+# ⚠️⚠️ LA GRATUITÉ EST DÉFINITIVE, PAS MENSUELLE (sceau Maeva 17/09).
+#    Ces 3 000 feuilles sont un crédit UNIQUE, valable une fois pour
+#    toutes sur chaque jeu. Elles NE SE RENOUVELLENT PAS au mois, ni au
+#    trimestre, ni à l'année, et ce qui n'est pas utilisé ne se reporte
+#    nulle part. Une fois épuisé sur un jeu, il l'est pour de bon.
+#    ⚠️ NE JAMAIS ajouter de remise à zéro périodique ici : ce serait
+#       transformer un crédit de lancement en abonnement gratuit.
 QUOTA_PAR_JEU = 3000
 QUOTA_DEPART = "2026-09-17"      # AAAA-MM-JJ — le compteur ignore l'avant
 PRIX_FEUILLE_QUOTA = 1.5         # ce que coûte la feuille au-delà des 3 000
@@ -3887,10 +3954,82 @@ def api_partenaire_login():
         if code == _normaliser_code(part.get("code", "")):
             session.permanent = True          # la connexion tient 30 jours
             session["partenaire_slug"] = slug
-            return jsonify({"ok": True, "nom": part["nom"], "zone": part.get("zone", "")})
+            _ann = ANNONCES_PARTENAIRE.get(slug)
+            return jsonify({"ok": True, "nom": part["nom"], "zone": part.get("zone", ""),
+                            "annonce_titre": (_ann[0] if _ann else ""),
+                            "annonce_texte": (_ann[1] if _ann else "")})
     return jsonify({"ok": False, "message":
                     "Code partenaire inconnu \u2014 v\u00e9rifiez lettres et chiffres "
                     "(les tirets et espaces n'ont pas d'importance)."})
+
+
+@app.route("/api/partenaire/droits", methods=["GET"])
+def api_partenaire_droits():
+    """©️ LES DROITS QUI M'ATTENDENT : les commandes d'autres enseignes sur
+    MES dessins, encore en attente de règlement.
+    ⚠️ On ne montre QUE les jeux dont ce partenaire est propriétaire —
+       jamais ceux d'une autre enseigne."""
+    slug = session.get("partenaire_slug")
+    if not slug:
+        return jsonify({"ok": False, "message": "Connectez-vous."}), 403
+    mes_jeux = {j for j, pro in JEUX_PROPRIETAIRE.items() if pro == slug}
+    if not mes_jeux:
+        return jsonify({"ok": True, "droits": [], "total": 0})
+    import json as _json
+    out, total = [], 0
+    try:
+        with db.get_db() as conn:
+            rows = conn.execute(
+                "SELECT id, programme, nb_feuilles, montant, cree_le, params_perso, statut "
+                "FROM commandes WHERE mode_paiement = 'fabrique_droit' "
+                "  AND statut = 'en_attente' ORDER BY id DESC").fetchall()
+        for r in rows:
+            if _base_jeu(str(r["programme"] or "")) not in mes_jeux:
+                continue
+            try:
+                perso = _json.loads(r["params_perso"] or "{}")
+            except Exception:
+                perso = {}
+            demandeur = perso.get("partenaire", "")
+            out.append({
+                "id": r["id"],
+                "date": (r["cree_le"] or "")[:16].replace("T", " "),
+                "jeu": REGISTRE_JEUX.get(r["programme"], {}).get("nom", r["programme"]),
+                "enseigne": (PARTENAIRES.get(demandeur, {}) or {}).get("nom", demandeur),
+                "nb_feuilles": r["nb_feuilles"], "montant": r["montant"] or 0,
+            })
+            total += r["montant"] or 0
+    except Exception as e:
+        print("[DROITS] lecture impossible :", e)
+        return jsonify({"ok": False, "message": "Lecture impossible."}), 500
+    return jsonify({"ok": True, "droits": out, "total": total})
+
+
+@app.route("/api/partenaire/droits/<int:commande_id>/valider", methods=["POST"])
+def api_partenaire_valider_droit(commande_id):
+    """©️ LE PROPRIÉTAIRE ENCAISSE ET DÉBLOQUE. Il confirme avoir été réglé :
+    le PDF part alors à l'enseigne qui l'a demandé.
+    ⚠️⚠️ TROIS VERROUS, tous côté serveur :
+        ① il faut être connecté comme partenaire ;
+        ② la commande doit être un DROIT en attente ;
+        ③ le jeu doit lui appartenir À LUI — sinon 403.
+       Sans ce troisième verrou, une enseigne pourrait débloquer les
+       commandes d'une autre et se servir dans ses recettes."""
+    slug = session.get("partenaire_slug")
+    if not slug:
+        return jsonify({"ok": False, "message": "Connectez-vous."}), 403
+    cmd = db.get_commande(commande_id)
+    if not cmd:
+        return jsonify({"ok": False, "message": "Commande introuvable."}), 404
+    if cmd.get("mode_paiement") != "fabrique_droit" or cmd.get("statut") != "en_attente":
+        return jsonify({"ok": False, "message": "Cette commande n'attend pas de r\u00e8glement."}), 400
+    if JEUX_PROPRIETAIRE.get(_base_jeu(str(cmd.get("programme") or ""))) != slug:
+        return jsonify({"ok": False, "message": "Ce jeu ne vous appartient pas."}), 403
+    db.marquer_commande_payee(commande_id)
+    nom_part = lancer_fabrication(commande_id)
+    return jsonify({"ok": True, "message":
+                    ("\u2705 R\u00e8glement confirm\u00e9 \u2014 le PDF part \u00e0 "
+                     + (nom_part or "l'enseigne") + ".")})
 
 
 @app.route("/api/partenaire/logout", methods=["POST"])
@@ -4158,11 +4297,13 @@ def api_partenaire_generer():
     if _mode == "fabrique_droit":
         _nom_pro = {"ranihei": "RANIHEI SISTERS & SHOP",
                     "2kea_papeete": "2KEA & Associ\u00e9"}.get(_proprio, _proprio)
+        _tel_pro = (PARTENAIRES.get(_proprio, {}) or {}).get("tel", "")
         _sup = (f" \u2014 \u00a9\ufe0f Ce jeu appartient \u00e0 {_nom_pro} : "
                 f"{nb_feuilles} feuilles \u00e0 {PRIX_FEUILLE_DROIT} F = "
                 f"{round(nb_feuilles * PRIX_FEUILLE_DROIT)} F de droits. "
-                f"VOTRE PDF EST EN ATTENTE : il vous sera envoy\u00e9 d\u00e8s que "
-                f"2KEA aura valid\u00e9 le r\u00e8glement. T\u00e9l. 89 22 23 05.")
+                f"VOTRE PDF EST EN ATTENTE : r\u00e9glez {_nom_pro}"
+                + (f" ({_tel_pro})" if _tel_pro else "")
+                + ", c'est cette enseigne qui d\u00e9bloquera votre PDF.")
     elif _payant:
         _sup = (f" \u2014 \U0001f510 {nb_feuilles} feuilles au-del\u00e0 de votre forfait "
                 f"= {round(nb_feuilles * _prix)} F. VOTRE PDF EST EN ATTENTE : il vous "
