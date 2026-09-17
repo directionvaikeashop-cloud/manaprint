@@ -306,38 +306,40 @@ PRIX_FEUILLE_DROIT = 1.5     # ce que doit une enseigne sur le jeu d'une autre
 # l'enseigne. {slug: (titre, texte)} — laisser vide pour ne rien montrer.
 # ⚠️ C'est un message de 2KEA à SON partenaire : il se lit tel quel, il
 #    n'est pas traduit ni reformulé. Pour le retirer, effacer sa ligne.
-_AVIS_2KEA = (
-    "\U0001f4b3 Ces jeux passent au paiement",
-    "\u00c0 partir d'aujourd'hui, les jeux cr\u00e9\u00e9s ou retravaill\u00e9s par "
-    "2KEA & Associ\u00e9 ne sont plus fabricables gratuitement : P6, P12 et P15 "
-    "MARATHON, OHANA 75 et OHANA 90 (2 et 4 s\u00e9ries), QUINES 90, ainsi que "
-    "TIFAI, SICILE et ALALIA. Chaque feuille vous est compt\u00e9e \u00e0 1,5 F d\u00e8s "
-    "la premi\u00e8re, et votre PDF reste bloqu\u00e9 jusqu'\u00e0 ce que 2KEA ait "
-    "valid\u00e9 votre r\u00e8glement. Les autres jeux du catalogue gardent leur "
-    "cr\u00e9dit de 3 000 feuilles offertes, une fois pour toutes. "
-    "Renseignements : 89 22 23 05.")
+# ═══ 📢 L'ANNONCE DU 17/09 — LA MÊME POUR TOUT LE MONDE ══════════════
+# ⚠️ Maeva l'a voulue identique pour les quatre enseignes : une seule
+#    règle, dite une seule fois, de la même façon à chacune. Personne ne
+#    reçoit une version adoucie ou durcie de son côté.
+# ⚠️ Elle dit LES DEUX SENS : le crédit offert, et les droits d'auteur —
+#    ceux de RANIHEI comme ceux de 2KEA. Ne jamais la scinder par
+#    enseigne : c'est ce qui rendrait le message suspect.
+_ANNONCE_COMMUNE = (
+    "\U0001f381 3 000 feuilles offertes sur chaque jeu",
+    "\u00c0 partir d'aujourd'hui, chaque enseigne partenaire re\u00e7oit "
+    "3 000 FEUILLES OFFERTES SUR CHAQUE JEU du catalogue \u2014 un cr\u00e9dit "
+    "par jeu, pas un total : 3 000 feuilles de P6 MARATHON n'entament pas "
+    "votre cr\u00e9dit d'OHANA 75. C'est un geste unique, valable une fois "
+    "pour toutes, qui ne se renouvelle pas chaque mois. Vous n'avez rien "
+    "\u00e0 faire : votre PDF part comme d'habitude tant que le cr\u00e9dit dure. "
+    "Au-del\u00e0, la feuille est \u00e0 1,5 F.\n\n"
+    "\u00a9\ufe0f LES DESSINS APPARTIENNENT \u00c0 QUI LES A CR\u00c9\u00c9S. Trente jeux "
+    "sont enregistr\u00e9s au nom d'une enseigne : quinze \u00e0 RANIHEI SISTERS "
+    "& SHOP (RANIHEI, MABUHA\u00cf, JOKER, VANIRA, SPEED 90, SANGOGO, "
+    "RAROMATAI 75 et 90, HUNTER, \u00c9CHEC ET MAT, POMARE, UNIT\u00c9, TALON, "
+    "HOANUI, CRISTAL) et quinze \u00e0 2KEA & ASSOCI\u00c9 (P6, P12 et P15 "
+    "MARATHON, OHANA 75 et OHANA 90 en 2 et 4 s\u00e9ries, QUINES 90, TIFAI, "
+    "SICILE, ALALIA). Chacune fabrique LES SIENS librement. Sur le jeu "
+    "d'une autre, la feuille est due \u00e0 1,5 F d\u00e8s la premi\u00e8re, et le PDF "
+    "attend que la cr\u00e9atrice ait confirm\u00e9 le r\u00e8glement \u2014 elle le fait "
+    "depuis l'encadr\u00e9 \u00ab Mes droits \u00bb de son espace.\n\n"
+    "Tous les autres jeux du catalogue gardent leur cr\u00e9dit de 3 000 "
+    "feuilles. Renseignements : 2KEA & Associ\u00e9, 89 22 23 05.")
 
 ANNONCES_PARTENAIRE = {
-    "fun_and_co": _AVIS_2KEA,
-    "cocotie_mer": _AVIS_2KEA,
-    "ranihei": (
-        "\u00a9\ufe0f Vos cr\u00e9ations sont d\u00e9sormais prot\u00e9g\u00e9es",
-        "\u00c0 partir d'aujourd'hui, les autres enseignes partenaires n'acc\u00e8dent "
-        "plus gratuitement \u00e0 vos jeux. Quinze dessins sont enregistr\u00e9s \u00e0 "
-        "votre nom \u2014 RANIHEI, MABUHA\u00cf, JOKER, VANIRA, SPEED 90, SANGOGO, "
-        "RAROMATAI 75 et 90, HUNTER, \u00c9CHEC ET MAT, POMARE, UNIT\u00c9, TALON, "
-        "HOANUI et CRISTAL. D\u00e8s qu'une autre enseigne en fabrique une feuille, "
-        "elle lui est compt\u00e9e \u00e0 1,5 F et SON PDF RESTE BLOQU\u00c9 TANT QUE "
-        "VOUS N'AVEZ PAS CONFIRM\u00c9 LE R\u00c8GLEMENT \u2014 c'est vous qui "
-        "encaissez, et c'est vous qui d\u00e9bloquez, depuis l'encadr\u00e9 "
-        "\u00ab Mes droits \u00bb ci-dessous. Vous, vous continuez \u00e0 fabriquer "
-        "vos jeux librement.\n\n"
-        "\U0001f4b3 En sens inverse : les jeux cr\u00e9\u00e9s ou retravaill\u00e9s par "
-        "2KEA & Associ\u00e9 passent eux aussi au paiement \u2014 P6, P12 et P15 "
-        "MARATHON, OHANA 75 et OHANA 90 (2 et 4 s\u00e9ries), QUINES 90, TIFAI, "
-        "SICILE et ALALIA \u2014 \u00e0 1,5 F la feuille d\u00e8s la premi\u00e8re. Les "
-        "autres jeux du catalogue gardent leur cr\u00e9dit de 3 000 feuilles "
-        "offertes, une fois pour toutes. Pour toute question : 89 22 23 05."),
+    "ranihei": _ANNONCE_COMMUNE,
+    "fun_and_co": _ANNONCE_COMMUNE,
+    "cocotie_mer": _ANNONCE_COMMUNE,
+    "2kea_papeete": _ANNONCE_COMMUNE,
 }
 
 
