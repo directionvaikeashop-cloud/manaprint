@@ -256,6 +256,37 @@ JEUX_INTERDITS = {}
 JEUX_EXCLUSIFS = {}
 
 
+# ═══ ©️ À QUI APPARTIENT CHAQUE JEU (sceau Maeva 17/09) ═══════════════
+# Certains dessins ont été payés et signés par une enseigne : son nom et
+# son téléphone sont IMPRIMÉS DANS L'IMAGE. Une autre enseigne qui les
+# fabrique distribue donc des cartons à l'en-tête d'un concurrent — et
+# surtout elle exploite un dessin qui n'est pas le sien.
+# ⚠️ Le jeu n'est PAS fermé : l'autre enseigne peut le fabriquer, mais
+#    les feuilles lui sont DUES, et son PDF attend la validation de 2KEA
+#    (qui reverse le droit au propriétaire).
+# ⚠️ LE PROPRIÉTAIRE, LUI, FABRIQUE LIBREMENT chez lui : c'est son dessin.
+#   {slug du jeu: slug de l'enseigne propriétaire}
+JEUX_PROPRIETAIRE = {
+    # 🌺 les quatorze dessins de RANIHEI SISTERS & SHOP
+    "ranihei": "ranihei", "mabuhai": "ranihei", "joker": "ranihei",
+    "vanira": "ranihei", "speed90": "ranihei", "sangogo": "ranihei",
+    "raromatai75": "ranihei", "raromatai90": "ranihei",
+    "hunter": "ranihei", "echec_et_mat": "ranihei", "pomare": "ranihei",
+    "unite": "ranihei", "talon": "ranihei", "hoanui": "ranihei",
+    "cristal": "ranihei",
+    # 👑 les dessins de 2KEA & Associé
+    "tifai": "2kea_papeete", "sicile": "2kea_papeete",
+    "alalia": "2kea_papeete",
+}
+PRIX_FEUILLE_DROIT = 1.5     # ce que doit une enseigne sur le jeu d'une autre
+
+
+def _jeu_d_une_autre(slug, programme):
+    """©️ Ce jeu appartient-il à QUELQU'UN D'AUTRE que cette enseigne ?"""
+    proprio = JEUX_PROPRIETAIRE.get(_base_jeu(programme or ""))
+    return bool(proprio) and (slug or "") != proprio
+
+
 def _jeu_exclusif_refuse(slug, programme):
     """⭐ Vrai si ce jeu appartient à quelqu'un d'autre."""
     proprios = JEUX_EXCLUSIFS.get(_base_jeu(programme or ""))
@@ -264,10 +295,57 @@ def _jeu_exclusif_refuse(slug, programme):
 
 # 🎁 LE QUOTA DES JEUX À IMAGE, partenaire par partenaire.
 #    {slug: nombre de feuilles offertes}
+# ⚠️ 17/09 : L'ANCIEN CRÉDIT DE RANIHEI (500 feuilles) A ÉTÉ RETIRÉ — les
+#    3 000 feuilles par jeu le remplacent et le dépassent largement.
+#    Ce qui reste ici est un PLAFOND PLUS SERRÉ, réservé aux JEUX À IMAGE
+#    des enseignes qui en ont un : elles épuisent CE crédit-là d'abord,
+#    parce qu'un jeu habillé coûte plus cher à produire.
 QUOTA_HABILLES = {
-    "ranihei": 500,
+    "2kea_papeete": 1500,
 }
 PRIX_FEUILLE_HABILLEE = 1.5      # ce que coûte la feuille au-delà du quota
+
+
+# ═══ 🚦 LE QUOTA PAR JEU (sceau Maeva 17/09) ═══════════════════════════
+# Chaque enseigne partenaire fabrique GRATUITEMENT jusqu'à 3 000 feuilles
+# SUR CHAQUE JEU. Au-delà, le jeu n'est pas fermé : les feuilles suivantes
+# lui sont dues, et la plateforme les lui compte.
+# ⚠️ CE QUOTA EST PAR JEU ET PAR ENSEIGNE, pas global : 3 000 feuilles de
+#    P6 MARATHON n'entament pas le crédit d'OHANA 75.
+# ⚠️ IL COMPTE À PARTIR DU 17/09/2026 SEULEMENT. Tout ce qui a été
+#    fabriqué avant ce jour ne pèse pas sur le compteur — Maeva a voulu
+#    repartir propre. Ne jamais reculer cette date sans le lui demander :
+#    ça rouvrirait d'un coup des milliers de feuilles déjà tirées.
+QUOTA_PAR_JEU = 3000
+QUOTA_DEPART = "2026-09-17"      # AAAA-MM-JJ — le compteur ignore l'avant
+PRIX_FEUILLE_QUOTA = 1.5         # ce que coûte la feuille au-delà des 3 000
+
+
+def _feuilles_faites_sur_jeu(slug, programme):
+    """🚦 Combien de feuilles CE partenaire a-t-il fabriquées SUR CE JEU
+    depuis QUOTA_DEPART ? On compte les quatre gammes d'un même jeu
+    ensemble (couleur, N&B, premium) : c'est bien le même jeu."""
+    if not slug or not programme:
+        return 0
+    base = _base_jeu(programme)
+    motifs = ('%"partenaire": "' + str(slug) + '"%',
+              '%"partenaire":"' + str(slug) + '"%')
+    total = 0
+    try:
+        with db.get_db() as conn:
+            rows = conn.execute(
+                "SELECT programme, nb_feuilles FROM commandes "
+                "WHERE (params_perso LIKE ? OR params_perso LIKE ?) "
+                "  AND mode_paiement IN ('fabrique_partenaire', 'fabrique_habillee', "
+                "                        'fabrique_quota', 'fabrique_droit') "
+                "  AND date(cree_le) >= date(?)",
+                (motifs[0], motifs[1], QUOTA_DEPART)).fetchall()
+        for r in rows:
+            if _base_jeu(str(r["programme"] or "")) == base:
+                total += int(r["nb_feuilles"] or 0)
+    except Exception as e:
+        print("[QUOTA-JEU] lecture impossible :", e)
+    return total
 
 
 def _feuilles_habillees_faites(slug):
@@ -287,7 +365,12 @@ def _feuilles_habillees_faites(slug):
                 "  AND mode_paiement IN ('fabrique_partenaire', 'fabrique_habillee')",
                 motifs).fetchall()
         for r in rows:
-            if _base_jeu(str(r["programme"] or "")) in JEUX_HABILLES:
+            # ⚠️ 17/09 : on compte sur JEUX_AVEC_IMAGE, la VRAIE liste des
+            #    jeux à image (celle des tarifs, tenue à jour). L'ancienne
+            #    JEUX_HABILLES était figée à 29 jeux et ignorait tous les
+            #    nouveaux — SICILE, TIFAI, MABUHAÏ, VANIRA… — si bien que
+            #    le plafond ne se déclenchait jamais sur eux.
+            if _base_jeu(str(r["programme"] or "")) in JEUX_AVEC_IMAGE:
                 total += int(r["nb_feuilles"] or 0)
     except Exception as e:
         print("[QUOTA] lecture impossible :", e)
@@ -3981,8 +4064,38 @@ def api_partenaire_generer():
     # C'est plus honnête que de lui faire perdre son solde.
     _mode = "fabrique_partenaire"      # gratuit par défaut
     _prix = 0
+
+    # ═══ 🚦 LE QUOTA PAR JEU : 3 000 feuilles offertes sur CHAQUE jeu ═══
+    # ⚠️ Comme pour le quota des jeux à image, on REFUSE une commande à
+    #    cheval sur les deux côtés : l'enseigne prend d'abord ce qui lui
+    #    reste d'offert, puis repasse commande pour le payant. C'est plus
+    #    honnête que de lui faire perdre son solde.
+    # ═══ ©️ LE JEU D'UNE AUTRE ENSEIGNE : dû dès la première feuille ═══
+    # Pas de forfait ici : le dessin n'est pas le sien, chaque feuille est
+    # due au propriétaire et le PDF attend la validation de 2KEA.
+    _proprio = JEUX_PROPRIETAIRE.get(_base_jeu(programme))
+    if _jeu_d_une_autre(slug, programme):
+        _mode = "fabrique_droit"
+        _prix = PRIX_FEUILLE_DROIT
+
+    _faits_jeu = _feuilles_faites_sur_jeu(slug, programme)
+    _reste_jeu = max(0, QUOTA_PAR_JEU - _faits_jeu)
+    _nom_jeu = REGISTRE_JEUX.get(programme, {}).get("nom", programme)
+    if _mode == "fabrique_droit":
+        pass                      # déjà payant : le quota ne s'applique pas
+    elif nb_feuilles > _reste_jeu:
+        if _reste_jeu == 0:
+            _mode = "fabrique_quota"
+            _prix = PRIX_FEUILLE_QUOTA
+        else:
+            return jsonify({"ok": False, "message":
+                (f"\U0001f6a6 Il vous reste {_reste_jeu} feuille(s) offerte(s) sur "
+                 f"{_nom_jeu} (sur {QUOTA_PAR_JEU}). Prenez {_reste_jeu} feuilles "
+                 f"pour finir votre cr\u00e9dit, puis les suivantes vous seront "
+                 f"compt\u00e9es \u00e0 {PRIX_FEUILLE_QUOTA} F la feuille.")}), 400
+
     _quota = QUOTA_HABILLES.get(slug)
-    if _quota is not None and _base_jeu(programme) in JEUX_HABILLES:
+    if _quota is not None and _base_jeu(programme) in JEUX_AVEC_IMAGE:
         _faites = _feuilles_habillees_faites(slug)
         _reste = max(0, int(_quota) - _faites)
         if nb_feuilles <= _reste:
@@ -4011,11 +4124,29 @@ def api_partenaire_generer():
         nb_feuilles=nb_feuilles, mode_paiement=_mode,
         params_perso=perso, prix_feuille=_prix,
     )
-    db.marquer_commande_payee(commande_id)
-    lancer_fabrication(commande_id)
+    # ═══ 🔐 LE DÉPASSEMENT ATTEND LA VALIDATION DE 2KEA (sceau Maeva 17/09)
+    # Dans son forfait, rien ne change : la commande est payée d'office et
+    # le PDF part tout de suite.
+    # DÈS QU'ELLE DÉPASSE, LE PDF N'EST PAS FABRIQUÉ : la commande reste en
+    # attente, et Maeva la valide depuis l'admin (« Valider la commande »),
+    # ce qui déclenche alors la fabrication et l'envoi.
+    # ⚠️⚠️ NE JAMAIS appeler lancer_fabrication() ici pour un dépassement :
+    #    ce serait livrer le PDF avant d'avoir été payée.
+    _payant = _mode in ("fabrique_quota", "fabrique_habillee", "fabrique_droit")
+    if _payant:
+        try:
+            with db.get_db() as conn:
+                conn.execute("UPDATE commandes SET statut = 'en_attente' WHERE id = ?",
+                             (commande_id,))
+                conn.commit()
+        except Exception as e:
+            print("[QUOTA] mise en attente impossible :", e)
+    else:
+        db.marquer_commande_payee(commande_id)
+        lancer_fabrication(commande_id)
     jeu = REGISTRE_JEUX.get(programme, {})
     _sup = ""
-    if _quota is not None and _base_jeu(programme) in JEUX_HABILLES:
+    if _quota is not None and _base_jeu(programme) in JEUX_AVEC_IMAGE:
         _apres = _feuilles_habillees_faites(slug)
         if _mode == "fabrique_habillee":
             _sup = (f" \u2014 \U0001f4b0 {nb_feuilles} feuilles \u00e0 "
@@ -4024,6 +4155,19 @@ def api_partenaire_generer():
         else:
             _sup = (f" \u2014 \U0001f381 offert : il vous reste "
                     f"{max(0, int(_quota) - _apres)} feuille(s) sur {int(_quota)}.")
+    if _mode == "fabrique_droit":
+        _nom_pro = {"ranihei": "RANIHEI SISTERS & SHOP",
+                    "2kea_papeete": "2KEA & Associ\u00e9"}.get(_proprio, _proprio)
+        _sup = (f" \u2014 \u00a9\ufe0f Ce jeu appartient \u00e0 {_nom_pro} : "
+                f"{nb_feuilles} feuilles \u00e0 {PRIX_FEUILLE_DROIT} F = "
+                f"{round(nb_feuilles * PRIX_FEUILLE_DROIT)} F de droits. "
+                f"VOTRE PDF EST EN ATTENTE : il vous sera envoy\u00e9 d\u00e8s que "
+                f"2KEA aura valid\u00e9 le r\u00e8glement. T\u00e9l. 89 22 23 05.")
+    elif _payant:
+        _sup = (f" \u2014 \U0001f510 {nb_feuilles} feuilles au-del\u00e0 de votre forfait "
+                f"= {round(nb_feuilles * _prix)} F. VOTRE PDF EST EN ATTENTE : il vous "
+                f"sera envoy\u00e9 d\u00e8s que 2KEA aura valid\u00e9 le r\u00e8glement. "
+                f"T\u00e9l. 89 22 23 05.")
     return jsonify({"ok": True, "commande_id": commande_id, "supplement": _sup,
                     "message": (f"\U0001f5a8\ufe0f Fabrique #{commande_id} lanc\u00e9e : {nb_feuilles} feuilles de "
                                 f"{jeu.get('emoji','')} {jeu.get('nom', programme)} \u00e0 l'enseigne \u00ab {enseigne} \u00bb \u2014 "
