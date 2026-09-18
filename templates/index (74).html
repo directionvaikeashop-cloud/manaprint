@@ -535,7 +535,7 @@ const TARIF_NB_150 = ["bg75","bgo5","bi90","bn75","bn90","bno","bo75","funday","
 //   ③ sans image : 185 F en N&B (150 F pour la liste) · 250 F en couleur
 const IMAGE_TARIF_NB_ORDINAIRE = ["champagne","huahine","moorea","quatre_coin"];
 const TARIF_BILLETS = ["dollar1","francs500","francs1000","francs5000"];
-const JEUX_AVEC_IMAGE = ["sangogo","vanira","joker","speed90","alalia","raromatai75","raromatai90","mabuhai","ranihei","tifai","aloha75","ani","australes","baam","bin6","bingo_ball","boules40",
+const JEUX_AVEC_IMAGE = ["vanira","joker","speed90","alalia","raromatai75","raromatai90","mabuhai","ranihei","tifai","aloha75","ani","australes","baam","bin6","bingo_ball","boules40",
   "boules60","brown8","bubulle","caller","cerf_volant","champagne","corsica","cristal",
   "diamant","dollar1","dual_dab","echec_et_mat","fan90","fleche","francs","francs1000",
   "francs500","francs5000","gambier","hakari","havai","henua_enana","hoanui","huahine","hunter",
@@ -769,7 +769,7 @@ async function chargerJeux(){
   if(!PROGRAMMES.length){
     try{
       const r=await fetch('/api/jeux'); const d=await r.json();
-      PROGRAMMES=(d.jeux||[]).map(function(j,i){ return {id:j.id,nom:j.nom,emoji:j.emoji||"",cpf:j.cartes_par_feuille||10,couleur:j.couleur,teinte:PALETTE[i%PALETTE.length]}; });
+      PROGRAMMES=(d.jeux||[]).map(function(j,i){ return {id:j.id,nom:j.nom,emoji:j.emoji||"",cpf:j.cartes_par_feuille||10,couleur:j.couleur,teinte:PALETTE[i%PALETTE.length],vendu_par:j.vendu_par||null}; });
     }catch(e){ PROGRAMMES=[]; }
     if(!progChoisi && PROGRAMMES.length) progChoisi=PROGRAMMES[0].id;
   }
@@ -783,10 +783,47 @@ function rendreProgrammes(){
     const desc=p.cpf+(LANG==='en'?" cards / sheet":" cartes / feuille");
     b.style.cssText="display:flex;align-items:center;gap:.6rem;padding:.65rem .85rem;border-radius:4px;text-align:left;width:100%;border:1px solid "+(on?p.teinte:'var(--line)')+";background:"+(on?p.teinte+'12':'#fff');
     b.innerHTML='<img src="/apercu/'+p.id+'.png" alt="" loading="lazy" onerror="this.style.display=&quot;none&quot;" style="width:46px;height:64px;object-fit:cover;object-position:top;border-radius:3px;border:1px solid var(--line);background:#fff;flex-shrink:0"><div style="width:8px;height:8px;border-radius:50%;background:'+p.teinte+';flex-shrink:0"></div><div><div style="font-weight:600;font-size:.85rem">'+(p.emoji?p.emoji+" ":"")+p.nom+'</div><div style="font-size:.7rem;color:var(--muted)">'+desc+'</div></div>';
+    // 🔗 17/09 : un jeu dessiné par une AUTRE enseigne ne s'achète pas ici.
+    //    On le montre quand même — la cliente voit le jeu, apprend qui l'a
+    //    créé — et le clic ouvre ses coordonnées au lieu du panier.
+    if(p.vendu_par){
+      b.style.opacity='.92';
+      b.innerHTML += '<div style="margin-left:auto;flex-shrink:0;font-size:.62rem;'
+        + 'padding:3px 7px;border-radius:999px;background:#5c0d1e;color:#fff;'
+        + 'white-space:nowrap">\u00a9\ufe0f ' + p.vendu_par.enseigne.split(' ')[0] + '</div>';
+      b.onclick=function(){ ouvrirVendeur(p); };
+    } else
     b.onclick=function(){ progChoisi=p.id; rendreProgrammes(); majOffreCouleur(); };
     cont.appendChild(b);
   });
 }
+// 🔗 Les coordonnées de la créatrice, pour les jeux qu'on ne vend pas ici.
+function ouvrirVendeur(p){
+  var v = p.vendu_par || {};
+  var anc = document.getElementById('boite-vendeur');
+  if(anc) anc.remove();
+  var tel = (v.tel||'').replace(/\s/g,'');
+  var html = '<div id="boite-vendeur" style="position:fixed;inset:0;z-index:9999;'
+    + 'background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:18px"'
+    + ' onclick="if(event.target===this)this.remove()">'
+    + '<div style="background:#fff;border-radius:14px;max-width:420px;width:100%;padding:22px;text-align:center">'
+    + '<div style="font-size:2rem">' + (p.emoji||'\u00a9\ufe0f') + '</div>'
+    + '<h3 style="margin:.4rem 0 .2rem">' + p.nom + '</h3>'
+    + '<p style="margin:.2rem 0 1rem;color:#666;font-size:.9rem">' + (v.mot||'') + '</p>'
+    + '<div style="font-weight:700;margin-bottom:.8rem">' + (v.enseigne||'') + '</div>';
+  if(tel) html += '<a href="tel:' + tel + '" style="display:block;margin-bottom:8px;padding:12px;'
+    + 'border-radius:10px;background:#2e7d32;color:#fff;text-decoration:none;font-weight:600">'
+    + '\u260e\ufe0f ' + v.tel + '</a>';
+  if(v.facebook) html += '<a href="' + v.facebook + '" target="_blank" rel="noopener" '
+    + 'style="display:block;margin-bottom:8px;padding:12px;border-radius:10px;'
+    + 'background:#1877f2;color:#fff;text-decoration:none;font-weight:600">'
+    + '\ud83d\udcd8 ' + (v.facebook_libelle || 'Leur page Facebook') + '</a>';
+  html += '<button onclick="document.getElementById(&quot;boite-vendeur&quot;).remove()" '
+    + 'style="width:100%;padding:11px;border:0;border-radius:10px;background:#eee;'
+    + 'cursor:pointer;font-weight:600">Fermer</button></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
 function prixFeuilleCourant(partId){
   // 🖼️💰 le supplément motif : +2 F chez 2KEA (tarif standard), +0,5 F chez les partenaires
   const JEUX_MOTIF=['pow','pow6','ino','ino8','bgo5','bio5','boules40','boules60'];
