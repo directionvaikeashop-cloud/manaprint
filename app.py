@@ -385,6 +385,17 @@ PRIX_FEUILLE_HABILLEE = 1.5      # ce que coûte la feuille au-delà du quota
 #    nulle part. Une fois épuisé sur un jeu, il l'est pour de bon.
 #    ⚠️ NE JAMAIS ajouter de remise à zéro périodique ici : ce serait
 #       transformer un crédit de lancement en abonnement gratuit.
+# ═══ 🏠 LA MAISON NE SE FACTURE PAS ELLE-MÊME (sceau Maeva 17/09) ════
+# 2KEA & Associé — Papeete est l'enseigne qui TIENT la plateforme. Elle
+# fabrique ce qu'elle veut pour son propre stock de boutique : ni quota
+# de 3 000, ni plafond sur les jeux à image, ni règlement.
+# ⚠️ CE QUE CETTE EXONÉRATION NE COUVRE PAS : les droits dus à une AUTRE
+#    enseigne sur SES dessins. Quand 2KEA fabrique un jeu de RANIHEI, elle
+#    le paie comme tout le monde — sinon elle reprendrait d'une main ce
+#    qu'elle vient d'accorder, et la protection des créations ne vaudrait
+#    plus rien.
+ENSEIGNE_MAISON = "2kea_papeete"
+
 QUOTA_PAR_JEU = 3000
 QUOTA_DEPART = "2026-09-17"      # AAAA-MM-JJ — le compteur ignore l'avant
 PRIX_FEUILLE_QUOTA = 1.5         # ce que coûte la feuille au-delà des 3 000
@@ -4219,8 +4230,10 @@ def api_partenaire_generer():
         _mode = "fabrique_droit"
         _prix = PRIX_FEUILLE_DROIT
 
-    _faits_jeu = _feuilles_faites_sur_jeu(slug, programme)
-    _reste_jeu = max(0, QUOTA_PAR_JEU - _faits_jeu)
+    # 🏠 la maison n'a ni quota ni plafond sur ses propres fabrications
+    _maison = (slug == ENSEIGNE_MAISON)
+    _faits_jeu = 0 if _maison else _feuilles_faites_sur_jeu(slug, programme)
+    _reste_jeu = 10 ** 9 if _maison else max(0, QUOTA_PAR_JEU - _faits_jeu)
     _nom_jeu = REGISTRE_JEUX.get(programme, {}).get("nom", programme)
     if _mode == "fabrique_droit":
         pass                      # déjà payant : le quota ne s'applique pas
@@ -4235,7 +4248,7 @@ def api_partenaire_generer():
                  f"pour finir votre cr\u00e9dit, puis les suivantes vous seront "
                  f"compt\u00e9es \u00e0 {PRIX_FEUILLE_QUOTA} F la feuille.")}), 400
 
-    _quota = QUOTA_HABILLES.get(slug)
+    _quota = None if _maison else QUOTA_HABILLES.get(slug)
     if _quota is not None and _base_jeu(programme) in JEUX_AVEC_IMAGE:
         _faites = _feuilles_habillees_faites(slug)
         _reste = max(0, int(_quota) - _faites)
