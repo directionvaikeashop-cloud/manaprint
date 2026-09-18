@@ -396,6 +396,45 @@ PRIX_FEUILLE_HABILLEE = 1.5      # ce que coûte la feuille au-delà du quota
 #    plus rien.
 ENSEIGNE_MAISON = "2kea_papeete"
 
+
+# ═══ 🔗 OÙ ENVOYER LE CLIENT POUR LES JEUX D'UNE AUTRE ENSEIGNE ══════
+# (sceau Maeva 17/09) Ces jeux ne se vendent pas ici, mais on ne laisse
+# pas la cliente dans le vide : la vitrine les montre quand même, avec un
+# bandeau « vendu par… » et le moyen de les joindre.
+# ⚠️ POUR AJOUTER LA PAGE FACEBOOK : remplacer la chaîne vide ci-dessous
+#    par l'adresse complète (https://www.facebook.com/...). Tant qu'elle
+#    est vide, le bouton Facebook ne s'affiche pas — rien ne casse.
+VITRINE_AUTRES = {
+    "ranihei": {
+        "nom": "RANIHEI SISTERS & SHOP",
+        "tel": "87 77 39 19",
+        # ⚠️ 17/09 : leur page n'est pas indexée publiquement, donc son
+        #    adresse directe est inconnue. Plutôt qu'inventer un lien qui
+        #    tomberait dans le vide, on ouvre une RECHERCHE Facebook sur
+        #    leur nom exact : elle les trouve à tous les coups.
+        #    ⭐ Le jour où RANIHEI donne l'adresse de sa page, la remplacer
+        #       ici par le lien direct (https://www.facebook.com/...).
+        "facebook": "https://www.facebook.com/search/top?q=Ranihei%20Sisters%20%26%20Shop",
+        "facebook_libelle": "Ranihei Sisters & Shop",
+        "mot": "Ces jeux sont des cr\u00e9ations de RANIHEI SISTERS & SHOP. "
+               "Contactez-les directement pour les commander.",
+    },
+}
+
+
+def _vitrine_autre(programme):
+    """🔗 Si ce jeu appartient à une autre enseigne, où envoyer la cliente."""
+    pro = JEUX_PROPRIETAIRE.get(_base_jeu(programme or ""))
+    if not pro or pro == ENSEIGNE_MAISON:
+        return None
+    fiche = VITRINE_AUTRES.get(pro)
+    if not fiche:
+        return None
+    return {"enseigne": fiche.get("nom", pro), "tel": fiche.get("tel", ""),
+            "facebook": fiche.get("facebook", ""),
+            "facebook_libelle": fiche.get("facebook_libelle", "Leur page Facebook"),
+            "mot": fiche.get("mot", "")}
+
 QUOTA_PAR_JEU = 3000
 QUOTA_DEPART = "2026-09-17"      # AAAA-MM-JJ — le compteur ignore l'avant
 PRIX_FEUILLE_QUOTA = 1.5         # ce que coûte la feuille au-delà des 3 000
@@ -2495,13 +2534,36 @@ def api_jeux():
     # 🔒 un partenaire connecté ne voit pas les jeux qui lui sont réservés
     _slug = session.get("partenaire_slug") or ""
     _interdits = JEUX_INTERDITS.get(_slug, ())
-    return jsonify({"ok": True, "jeux": [
-        {"id": jid, "nom": j["nom"], "emoji": j["emoji"],
-         "cartes_par_feuille": j["cartes_par_feuille"], "couleur": j["couleur"]}
-        for jid, j in REGISTRE_JEUX.items()
-        if "_p15" not in jid                      # 🌙 PREMIUM en veilleuse
-        and _base_jeu(jid) not in _interdits      # 🔒 réservés à leur enseigne
-    ]})
+
+    # ═══ 🏪 LA VITRINE PUBLIQUE NE MONTRE QUE LES JEUX DE LA MAISON ═══
+    # (sceau Maeva 17/09) Un visiteur de manaprint.app est chez 2KEA &
+    # Associé : il n'y voit pas les jeux dessinés par une autre enseigne.
+    # RANIHEI vend les siens dans SA propre boutique, pas dans celle-ci.
+    # ⚠️ CE FILTRE NE VAUT QUE POUR LE PUBLIC. Une enseigne CONNECTÉE voit
+    #    tout le catalogue, y compris les jeux des autres : elle peut les
+    #    fabriquer en payant les droits, c'est tout l'objet de
+    #    JEUX_PROPRIETAIRE. Ne jamais étendre ce filtre aux partenaires.
+    # ⭐ 17/09 : les jeux d'une AUTRE enseigne RESTENT VISIBLES au public,
+    #    mais porteurs d'un « vendu_par » : la page affiche alors les
+    #    coordonn\u00e9es de la cr\u00e9atrice au lieu du bouton d'achat.
+    #    C'est mieux que de les cacher : la cliente voit le jeu, apprend
+    #    qui l'a dessin\u00e9, et sait o\u00f9 le trouver.
+    _public = not _slug
+    _jeux = []
+    for jid, j in REGISTRE_JEUX.items():
+        if "_p15" in jid:                         # 🌙 PREMIUM en veilleuse
+            continue
+        if _base_jeu(jid) in _interdits:          # 🔒 réservés à leur enseigne
+            continue
+        fiche = {"id": jid, "nom": j["nom"], "emoji": j["emoji"],
+                 "cartes_par_feuille": j["cartes_par_feuille"],
+                 "couleur": j["couleur"]}
+        if _public:
+            ailleurs = _vitrine_autre(jid)
+            if ailleurs:
+                fiche["vendu_par"] = ailleurs
+        _jeux.append(fiche)
+    return jsonify({"ok": True, "jeux": _jeux})
 
 
 # ══ APERÇUS VISUELS DES JEUX (vision Maeva) ═══════════════════════════
@@ -2608,6 +2670,19 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
     # 🌙 PREMIUM en veilleuse : seule la gamme ÉCO est en vente pour l'instant
     if "_p15" in str(programme):
         return (jsonify({"ok": False, "message": "La gamme PREMIUM est momentanément en pause — choisis la version ÉCO du jeu."}), 400), None
+    # ═══ 🏪 LE VERROU DE LA VITRINE, CÔTÉ SERVEUR (sceau Maeva 17/09) ═══
+    # Le filtre de /api/jeux cache les jeux d'une autre enseigne, mais un
+    # client pourrait encore forcer l'adresse avec leur identifiant. Ici
+    # on refuse pour de bon : la boutique de 2KEA ne vend QUE les jeux de
+    # 2KEA et ceux qui n'appartiennent à personne.
+    # ⚠️ Cette fonction ne sert QUE la vente publique — les partenaires
+    #    passent par /api/partenaire/generer, qui a ses propres règles.
+    _pro_jeu = JEUX_PROPRIETAIRE.get(_base_jeu(str(programme)))
+    if _pro_jeu not in (None, ENSEIGNE_MAISON):
+        _nom_pro = (PARTENAIRES.get(_pro_jeu, {}) or {}).get("nom", _pro_jeu)
+        return (jsonify({"ok": False, "message":
+                "Ce jeu est vendu par " + _nom_pro + ", dans sa propre boutique."}), 403), None
+
     couleur = REGISTRE_JEUX.get(programme, {}).get("couleur", True)
     nb_feuilles = int(data.get("nb_feuilles", 25))
     # 📦 Vente par PAQUETS DE 25 feuilles (25, 50, 75… jusqu'à 250)
