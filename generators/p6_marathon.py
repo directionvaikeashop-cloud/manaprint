@@ -282,7 +282,13 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
                 #    Sans personnalisation elle reste vide (et reçoit le QR).
                 if nom_centre:
                     _lg = _lignes_centre(nom_centre)
-                    _larg = cell_w * 0.88
+                    # ⚠️ 11/09 : 0,78 et non 0,88 — une CALLIGRAPHIE déborde
+                    #    de sa largeur mesurée (les jambages du B, du Y, du
+                    #    N dépassent la boîte). Avec 0,88 le nom mordait la
+                    #    colonne voisine. Les lignes du dessous, en
+                    #    Helvetica, gardent 0,88 : elles ne débordent pas.
+                    _larg = cell_w * 0.78
+                    _larg_bas = cell_w * 0.88
                     _t = 16.0
                     while _t > 4.0 and _sw6(_lg[0], _POLICE_SCRIPT, _t) > _larg:
                         _t -= 0.25
@@ -374,7 +380,16 @@ def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
             while _tnom > 8.0 and _sw6(_nomh, "Helvetica-Bold", _tnom) > PAGE_W - 40 * mm:
                 _tnom -= 0.5
             c.setFillColor(NOIR); c.setFont("Helvetica-Bold", _tnom)
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 7.5 * mm, _nomh)
+            # ⭐⭐ 18/09 (sceau Maeva : « la personnalisation du haut, bien la
+            #    rapprocher de la grille ») : LE NOM DESCEND À 8,9 mm.
+            #    ⚠️ MESURÉ sur la feuille : à 7,5 mm le bloc du nom finissait
+            #    à 25,6 pt du bord et la 1re carte commençait à 31,2 pt —
+            #    5,6 pt de blanc entre les deux. À 8,9 mm il n'en reste que
+            #    1,6 pt : le nom touche presque la grille, c'est le maximum
+            #    sans mordre dessus. NE PAS DESCENDRE PLUS BAS.
+            #    ⭐ Au passage le nom s'éloigne du bord (2,2 → 3,6 mm), donc
+            #      il risque moins d'être rogné à l'impression.
+            c.drawCentredString(PAGE_W / 2, PAGE_H - 8.9 * mm, _nomh)
         # ⭐ 11/09 (sceau Maeva) : QUAND LE CLIENT DONNE SON NOM, C'EST LUI
         #    QUI OCCUPE LE HAUT DE LA FEUILLE — « P6 MARATHON » s'efface au
         #    lieu de se répéter sous la personnalisation. La 2e ligne ne
@@ -390,7 +405,7 @@ def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
         if nom_evenement:
             # ⭐ avec une personnalisation, la page et la date filent à
             #    DROITE sur la même ligne : le nom garde tout le centre.
-            c.drawRightString(PAGE_W - 6 * mm, PAGE_H - 7.5 * mm, ligne2)
+            c.drawRightString(PAGE_W - 6 * mm, PAGE_H - 8.9 * mm, ligne2)
         else:
             c.drawCentredString(PAGE_W / 2, PAGE_H - 6 * mm, ligne2)
 
