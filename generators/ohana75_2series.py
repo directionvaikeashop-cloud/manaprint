@@ -338,13 +338,21 @@ def generer_pdf(nb_cartes=2, serie_start=1, theme="", couleur=True,
         # En-tête de page (événement)
         if nom_evenement:
             c.setFillColor(NOIR); c.setFont(POLICE, 11)
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 6 * mm, nom_evenement.replace("|", " ").replace("  ", " ").strip())
+            # ⭐⭐ 18/09 (sceau Maeva : « la personnalisation du haut, bien la
+            #    rapprocher de la grille ») : LE NOM DESCEND CONTRE LA GRILLE.
+            #    ⚠️ MESURÉ : 5,9 pt de blanc restaient sous le nom ; il n'en
+            #    reste plus que 2. NE PAS DESCENDRE PLUS BAS.
+            c.drawCentredString(PAGE_W / 2, PAGE_H - 7.4 * mm, nom_evenement.replace("|", " ").replace("  ", " ").strip())
         ligne2 = (titre_jeu or "OHANA 75 — 2 séries")
         if date_lieu:
             ligne2 += "  ·  " + date_lieu
         c.setFillColor(GRIS); c.setFont(POLICE, 6.5)
         if nom_evenement:
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 9 * mm, ligne2)
+            # ⭐ LE SOUS-TITRE FILE À GAUCHE, sur la ligne du nom. Il était
+            #   centré juste dessous, à 9 mm — c'est-à-dire PILE sur le bord
+            #   supérieur du premier carton, qu'il chevauchait. À gauche il
+            #   ne gêne plus rien et le nom garde tout le centre.
+            c.drawString(MARGIN_X, PAGE_H - 7.4 * mm, ligne2)
 
         for slot in range(par_page):
             if faites >= nb_cartes:
