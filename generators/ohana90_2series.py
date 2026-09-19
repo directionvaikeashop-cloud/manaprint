@@ -319,10 +319,23 @@ def generer_pdf(nb_cartes=2, serie_start=1, theme="", couleur=True,
         # en-tête de page + traits de découpe pointillés (fidèle au modèle)
         if nom_evenement:
             c.setFillColor(colors.black); c.setFont(POLICE, 8)
+            # ⚠️⚠️ 18/09 : ICI LE NOM NE PEUT PAS DESCENDRE (sceau Maeva :
+            #    « rapprocher la personnalisation de la grille » — fait sur
+            #    les six autres jeux, impossible sur celui-ci).
+            #    LA RAISON : ce carton porte SA PROPRE LIGNE D'IDENTITÉ
+            #    (« OHANA 90 · 2 séries — Carte N° … ») juste au-dessus de
+            #    son cadre, centrée comme le nom. Le nom est déjà à moins
+            #    d'un point d'elle : le descendre le ferait passer PAR-DESSUS.
+            #    ⭐ En revanche le NUMÉRO DE PAGE file à droite : il était
+            #      centré et tombait en plein milieu de cette ligne
+            #      d'identité, qu'il rendait illisible. Ça, c'est corrigé.
             c.drawCentredString(PAGE_W / 2, PAGE_H - 4 * mm,
                                 nom_evenement.replace("|", " ").replace("  ", " ").strip())
         c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 6)
-        c.drawCentredString(PAGE_W / 2, PAGE_H - 6.4 * mm, "%03d" % no_page)
+        if nom_evenement:
+            c.drawRightString(PAGE_W - 6 * mm, PAGE_H - 4 * mm, "%03d" % no_page)
+        else:
+            c.drawCentredString(PAGE_W / 2, PAGE_H - 6.4 * mm, "%03d" % no_page)
         c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.4)
         c.setDash(3, 3)
         c.line(3 * mm, PAGE_H / 2, PAGE_W - 3 * mm, PAGE_H / 2)
