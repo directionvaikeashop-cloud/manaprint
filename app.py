@@ -24,6 +24,7 @@ from generators import brown8
 from generators import flash_quines_allonge
 from generators import quines90
 from generators import lundi_pair74
+from generators import mardi_pair90
 from generators import kai
 from generators import ohana75_8boules
 from generators import ohana75_10boules
@@ -299,6 +300,7 @@ JEUX_PROPRIETAIRE = {
     "ohana90_4s": "2kea_papeete", "ohana90_4series": "2kea_papeete",
     "quines90": "2kea_papeete",
     "lundi_pair74": "2kea_papeete",   # 🌙 création 2KEA du 18/09
+    "mardi_pair90": "2kea_papeete",   # ☀️ création 2KEA du 18/09
 }
 PRIX_FEUILLE_DROIT = 1.5     # ce que doit une enseigne sur le jeu d'une autre
 
@@ -751,6 +753,7 @@ _enregistrer_paire("brown8",        "BROWN 8 boules",     "🟤", 8,  brown8.gen
 _enregistrer_paire("flash_quines",  "FLASH QUINES allongé","⚡", 9,  flash_quines_allonge.generer_pdf)
 _enregistrer_paire("quines90",      "QUINES 90","🎟️", 18, quines90.generer_pdf)
 _enregistrer_paire("lundi_pair74",  "LUNDI PAIR 74","🌙", 12, lundi_pair74.generer_pdf)
+_enregistrer_paire("mardi_pair90",  "MARDI PAIR 90","☀️", 12, mardi_pair90.generer_pdf)
 _enregistrer_paire("kai",           "KAI 7 boules",       "🍽️", 12, kai.generer_pdf)
 _enregistrer_paire("ohana75_8b",    "OHANA 75 · 8 boules","🌺", 9,  ohana75_8boules.generer_pdf)
 _enregistrer_paire("ohana75_8b_smo","OHANA 75 · 8 boules SMORFIA","🎴", 9,  ohana75_8boules.generer_pdf_smorfia)
@@ -1739,6 +1742,7 @@ _PLAGES_CALLER = {
     "triple": (1, 75), "bingo_ball": (1, 75), "quatre_coin": (1, 75),
     "kai": (1, 29), "flash90": (1, 90), "quines90": (1, 90),
     "lundi_pair74": (2, 74),      # 🌙 LUNDI PAIR 74 — que des PAIRS (liste exacte plus bas)
+    "mardi_pair90": (2, 90),      # ☀️ MARDI PAIR 90 — que des PAIRS (liste exacte plus bas)
     "pol": (30, 60),
     "sun": (1, 24),
     "sun_casino": (1, 24),
@@ -2006,6 +2010,7 @@ _BOULES_CALLER = {
     "triple_bn75": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(61, 76)],  # TRIPLE BN75 — B, N et 75
     "triple_bi75": [n for n in range(1, 16)] + [n for n in range(16, 31)] + [n for n in range(61, 76)],  # TRIPLE BI75 — B, I et 75
     "lundi_pair74": [n for n in range(2, 75, 2)],  # 🌙 LUNDI PAIR 74 — 37 boules, QUE DES PAIRS de 2 à 74
+    "mardi_pair90": [n for n in range(2, 91, 2)],  # ☀️ MARDI PAIR 90 — 45 boules, QUE DES PAIRS de 2 à 90
 }
 
 
