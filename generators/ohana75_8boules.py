@@ -52,19 +52,38 @@ GRIS_CLAIR = colors.Color(0.78, 0.78, 0.78)
 
 
 
-# ══ DEUX GAMMES COMMERCIALES (vision Maeva) ══════════════════════════
-# ÉCO      : écriture fine DejaVu ExtraLight, gris 0,50 — économie de toner
-# PREMIUM  : écriture grasse Helvetica-Bold, gris 0,55 — style P15
+# ══ L'ÉCRITURE DES CHIFFRES (sceau Maeva 18/09) ══════════════════════
+# ⭐⭐ MÊME TRAVAIL QUE SUR LE OHANA 75 · 2 SÉRIES ET SES FRÈRES :
+#    LATIN MODERN ROMAN, la serif fine et contrastée choisie par Maeva —
+#    déliés minces, terminaisons rondes. Elle remplace DejaVu ExtraLight
+#    (éco) ET Helvetica-Bold (premium) : mesuré à taille égale, Latin
+#    Modern consomme 61 % de toner en moins que le gras DejaVu condensé.
+# ⭐ GRIS 0,35 : mesuré, c'est 20 % de toner en moins que le noir franc,
+#    et les chiffres restent noirs à l'œil. Au-delà (0,45 · 0,55) ça
+#    commence à se voir sur le papier ordinaire.
+# ⚠️ Le fichier LatinModern.ttf est rangé À CÔTÉ de ce générateur (la
+#    version d'origine est en OTF, que ReportLab ne sait pas lire). S'il
+#    manque, on retombe sur l'ancienne écriture sans planter.
+# ⚠️ LE MICROTEXTE RESTE EN POSTE : il CREUSE les chiffres, donc il
+#    consomme MOINS d'encre qu'un chiffre plein (2,87 % contre 3,49 %).
+import os as _osL
 from reportlab.pdfbase import pdfmetrics as _pm
 from reportlab.pdfbase.ttfonts import TTFont as _TF
+_POLICE_ECO = "Helvetica"
 try:
     _pm.registerFont(_TF("DJLECO", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
     _POLICE_ECO = "DJLECO"
 except Exception:
-    _POLICE_ECO = "Helvetica"
-_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
-_POLICE_P15 = "Helvetica-Bold"
-_GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
+    pass
+try:
+    _pm.registerFont(_TF("LMROMAN", _osL.path.join(
+        _osL.path.dirname(_osL.path.abspath(__file__)), "LatinModern.ttf")))
+    _POLICE_ECO = "LMROMAN"
+except Exception:
+    pass
+_GRIS_ECO = colors.Color(0.35, 0.35, 0.35)
+_POLICE_P15 = _POLICE_ECO
+_GRIS_P15 = colors.Color(0.14, 0.14, 0.14)   # objet distinct : sert à reconnaître la gamme
 
 def _style_chiffres(style):
     """Retourne (police, gris) des chiffres selon la gamme choisie."""
@@ -72,6 +91,20 @@ def _style_chiffres(style):
         return _POLICE_P15, _GRIS_P15
     return _POLICE_ECO, _GRIS_ECO
 # ═════════════════════════════════════════════════════════════════════
+# ⭐⭐ 18/09 : LA TAILLE DU CHIFFRE CERCLÉ S'ADAPTE AU ROND, jamais l'inverse.
+#    ⚠️ Avec l'ancienne écriture le « 30 » en dur faisait déjà sortir les
+#    deux-chiffres du rond pointillé ; Latin Modern est plus étroit, mais
+#    à 30 pt le « 88 » touchait encore le pointillé. On descend donc
+#    jusqu'à ce que la DIAGONALE du chiffre tienne dans le rond, quelle que
+#    soit l'écriture réellement chargée (le repli DejaVu compris).
+#    ⚠️ LE ROND NE GRANDIT PAS : c'est lui qui commande.
+_R_ROND = 6.6 * mm
+_T_ROND = 30.0
+while _T_ROND > 12:
+    _l = _pm.stringWidth("88", _POLICE_ECO, _T_ROND); _h = _T_ROND * 0.72
+    if ((_l / 2) ** 2 + (_h / 2) ** 2) ** 0.5 <= _R_ROND * 0.92:
+        break
+    _T_ROND -= 0.5
 
 PAGE_W, PAGE_H = A4
 RANGES = [(1, 15), (16, 30), (46, 60), (61, 75)]
@@ -196,10 +229,10 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
             c.circle(x, cy, 6.6 * mm, stroke=1, fill=0)
             c.setDash([])
             if _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, val, x, cy - 10.8, 30, gris_ch, police_ch)
+                _sec.chiffre_micro(c, val, x, cy - _T_ROND * 0.36, _T_ROND, gris_ch, police_ch)
             else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, 30)
-                c.drawCentredString(x, cy - 10.8, str(val))
+                c.setFillColor(gris_ch); c.setFont(police_ch, _T_ROND)
+                c.drawCentredString(x, cy - _T_ROND * 0.36, str(val))
         else:
             # gros chiffre
             if _sec:
