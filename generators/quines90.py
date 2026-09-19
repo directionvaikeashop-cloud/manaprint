@@ -262,9 +262,18 @@ def generer_pdf(nb_cartes=18, serie_start=1, theme="", couleur=True,
         if telephone:
             ident += "  \u00b7  " + telephone
         c.setFillColor(GRIS); c.setFont(POLICE, 6.5)
-        c.drawString(MARGIN_X, PAGE_H - 5.2 * mm, ident[:110])
+        # ⭐⭐ 18/09 (sceau Maeva : « la personnalisation du haut, bien la
+        #    rapprocher de la grille ») : LA LIGNE DESCEND CONTRE LA GRILLE.
+        #    ⚠️ MESURÉ : 6,4 pt de blanc restaient entre le bas du texte et
+        #    le haut de la première bande ; il n'en reste plus que 1,8.
+        #    NE PAS DESCENDRE PLUS BAS.
+        #    ⚠️ Sur ce jeu le nom du client n'est pas un titre à lui : il
+        #      s'ajoute à la ligne d'identification, en petit, à gauche.
+        c.drawString(MARGIN_X, PAGE_H - 6.8 * mm, ident[:110])
         c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 6)
-        c.drawCentredString(PAGE_W / 2, PAGE_H - 5.2 * mm, "%03d" % no_page)
+        # ⭐ le NUMÉRO DE PAGE file à DROITE : centré, il tombait au milieu
+        #   de la ligne d'identification dès qu'un nom la rallongeait.
+        c.drawRightString(PAGE_W - MARGIN_X, PAGE_H - 6.8 * mm, "%03d" % no_page)
 
         for col_i in range(COLS_PAGE):
             if faites >= nb_cartes:
