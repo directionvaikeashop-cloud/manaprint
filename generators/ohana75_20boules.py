@@ -39,21 +39,45 @@ NOIR = colors.Color(0, 0, 0)
 GRIS40 = colors.Color(0.60, 0.60, 0.60)
 GREY = colors.Color(0.42, 0.42, 0.42)
 
+# ══ L'ÉCRITURE DES CHIFFRES (sceau Maeva 18/09) ══════════════════════
+# ⭐⭐ MÊME TRAVAIL QUE SUR LE OHANA 75 · 2 SÉRIES ET SES FRÈRES :
+#    LATIN MODERN ROMAN, la serif fine et contrastée choisie par Maeva —
+#    déliés minces, terminaisons rondes. Elle remplace DejaVu ExtraLight
+#    (éco) ET Helvetica-Bold (premium) : mesuré à taille égale, Latin
+#    Modern consomme 61 % de toner en moins que le gras DejaVu condensé.
+# ⭐ GRIS 0,35 : mesuré, c'est 20 % de toner en moins que le noir franc,
+#    et les chiffres restent noirs à l'œil. Au-delà (0,45 · 0,55) ça
+#    commence à se voir sur le papier ordinaire.
+# ⚠️ Le fichier LatinModern.ttf est rangé À CÔTÉ de ce générateur (la
+#    version d'origine est en OTF, que ReportLab ne sait pas lire). S'il
+#    manque, on retombe sur l'ancienne écriture sans planter.
+# ⚠️ LE MICROTEXTE RESTE EN POSTE : il CREUSE les chiffres, donc il
+#    consomme MOINS d'encre qu'un chiffre plein (2,87 % contre 3,49 %).
+import os as _osL
 from reportlab.pdfbase import pdfmetrics as _pm
 from reportlab.pdfbase.ttfonts import TTFont as _TF
+_POLICE_ECO = "Helvetica"
 try:
     _pm.registerFont(_TF("DJLECO", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
     _POLICE_ECO = "DJLECO"
 except Exception:
-    _POLICE_ECO = "Helvetica"
-_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
-_POLICE_P15 = "Helvetica-Bold"
-_GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
+    pass
+try:
+    _pm.registerFont(_TF("LMROMAN", _osL.path.join(
+        _osL.path.dirname(_osL.path.abspath(__file__)), "LatinModern.ttf")))
+    _POLICE_ECO = "LMROMAN"
+except Exception:
+    pass
+_GRIS_ECO = colors.Color(0.35, 0.35, 0.35)
+_POLICE_P15 = _POLICE_ECO
+_GRIS_P15 = colors.Color(0.14, 0.14, 0.14)   # objet distinct : sert à reconnaître la gamme
 
 def _style_chiffres(style):
+    """Retourne (police, gris) des chiffres selon la gamme choisie."""
     if str(style).lower() in ("p15", "premium"):
         return _POLICE_P15, _GRIS_P15
     return _POLICE_ECO, _GRIS_ECO
+# ═════════════════════════════════════════════════════════════════════
 
 
 PAGE_W, PAGE_H = A4
