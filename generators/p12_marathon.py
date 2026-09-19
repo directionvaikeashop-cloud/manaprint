@@ -218,9 +218,21 @@ def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
         # en-tête de page
         if nom_evenement:
             c.setFillColor(colors.black); c.setFont(POLICE, 8)
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 4.2 * mm, nom_evenement)
+            # ⭐⭐ 18/09 (sceau Maeva : « la personnalisation du haut, bien la
+            #    rapprocher de la grille ») : LE NOM DESCEND CONTRE LA GRILLE.
+            #    ⚠️ MESURÉ sur la feuille : il restait 8,8 pt de blanc entre le bas du
+            #    nom et le haut du premier carton ; il n'en reste plus que 2, c'est
+            #    le maximum sans mordre dessus. NE PAS DESCENDRE PLUS BAS.
+            #    ⭐ Le NUMÉRO DE PAGE file à DROITE sur la même ligne : il était
+            #      centré juste dessous, coincé entre le nom et la grille, et il
+            #      chevauchait le texte. Sans personnalisation il reprend sa place
+            #      centrale, exactement comme avant.
+            c.drawCentredString(PAGE_W / 2, PAGE_H - 6.6 * mm, nom_evenement)
         c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 6)
-        c.drawCentredString(PAGE_W / 2, PAGE_H - 6.4 * mm, "%03d" % no_page)
+        if nom_evenement:
+            c.drawRightString(PAGE_W - 6 * mm, PAGE_H - 6.6 * mm, "%03d" % no_page)
+        else:
+            c.drawCentredString(PAGE_W / 2, PAGE_H - 6.4 * mm, "%03d" % no_page)
 
         for row in range(ROWS_PAGE):
             for col_i in range(COLS_PAGE):
