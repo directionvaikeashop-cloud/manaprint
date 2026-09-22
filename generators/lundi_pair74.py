@@ -321,4 +321,10 @@ def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
 
     c.save()
     buf.seek(0)
-    return buf.read()
+    # ⚠️⚠️ ON RENVOIE LE TAMPON, PAS LES OCTETS (leçon du 22/09).
+    #    Toute la plateforme fait .read() sur ce que rend un
+    #    générateur — l'email, la vignette, le découpage des grosses
+    #    commandes. Un « return buf.read() » renvoie des octets, qui
+    #    n'ont pas de .read() : la fabrication plantait et le jeu
+    #    semblait cassé. TOUS les générateurs de la maison rendent buf.
+    return buf
