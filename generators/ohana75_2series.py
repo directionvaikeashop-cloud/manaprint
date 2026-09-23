@@ -167,8 +167,32 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
         bandeau += "  —  " + titre_jeu
     c.setFillColor(GRIS); c.setFont(POLICE, 6)
     c.drawString(x0 + 4 * mm, y0 + CARD_H - 5 * mm, bandeau[:60])
-    c.drawRightString(x0 + CARD_W - 4 * mm, y0 + CARD_H - 5 * mm,
-                      "Page %d  ·  Carte N° %05d" % (no_page, serie))
+    _droite = "Page %d  ·  Carte N° %05d" % (no_page, serie)
+    c.drawRightString(x0 + CARD_W - 4 * mm, y0 + CARD_H - 5 * mm, _droite)
+
+    # ⭐⭐ 23/09 (sceau Maeva : « la personnalisation du haut de feuille à
+    #    mettre dans l'encadrement où il y a BINGO ») : LE NOM DU CLIENT
+    #    ENTRE DANS LE CARTON, sur la ligne du bandeau, entre « OHANA 75 »
+    #    à gauche et « Carte N° » à droite.
+    #    ⚠️⚠️ POURQUOI : avant, il était imprimé EN HAUT DE LA FEUILLE, au-
+    #    dessus des cartons. Dès qu'on découpe, il part à la poubelle avec
+    #    la chute — le carton en main ne portait plus le nom que dans la
+    #    case du milieu. Maintenant il est DANS le cadre : il survit à la
+    #    découpe. NE PAS LE REMETTRE EN HAUT DE FEUILLE.
+    #    ⚠️ Le texte se rétrécit tout seul pour tenir entre les deux textes
+    #    gris, et il est plafonné à 9 pt : au-delà il mordrait sur
+    #    « MARATHON » qui est juste en dessous.
+    _evt = (nom_evenement or "").replace("|", "  ·  ").replace("\n", "  ·  ")
+    _evt = " ".join(_evt.split())
+    if _evt:
+        _libre = (CARD_W - 8 * mm
+                  - _lgo(bandeau[:60], POLICE, 6)
+                  - _lgo(_droite, POLICE, 6) - 8 * mm)
+        _te = 9.0
+        while _te > 4.0 and _lgo(_evt, POLICE, _te) > _libre:
+            _te -= 0.25
+        c.setFillColor(NOIR); c.setFont(POLICE, _te)
+        c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 4.8 * mm, _evt)
 
     # En-tête des colonnes B I N G O
     hdr_base = y0 + CARD_H - 14 * mm
@@ -336,23 +360,18 @@ def generer_pdf(nb_cartes=2, serie_start=1, theme="", couleur=True,
 
     for _ in range(nb_pages):
         # En-tête de page (événement)
-        if nom_evenement:
-            c.setFillColor(NOIR); c.setFont(POLICE, 11)
-            # ⭐⭐ 18/09 (sceau Maeva : « la personnalisation du haut, bien la
-            #    rapprocher de la grille ») : LE NOM DESCEND CONTRE LA GRILLE.
-            #    ⚠️ MESURÉ : 5,9 pt de blanc restaient sous le nom ; il n'en
-            #    reste plus que 2. NE PAS DESCENDRE PLUS BAS.
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 7.4 * mm, nom_evenement.replace("|", " ").replace("  ", " ").strip())
+        # ⭐⭐ 23/09 (sceau Maeva : « la personnalisation du haut de feuille à
+        #    mettre dans l'encadrement où il y a BINGO ») : PLUS RIEN ICI.
+        #    Le nom du client est maintenant imprimé DANS le bandeau de chaque
+        #    carton (voir _dessiner_carte). Il ne part plus à la découpe.
+        #    ⚠️ NE PAS RÉTABLIR la ligne du haut : on aurait le nom deux fois.
         ligne2 = (titre_jeu or "OHANA 75 — 2 séries")
         if date_lieu:
             ligne2 += "  ·  " + date_lieu
         c.setFillColor(GRIS); c.setFont(POLICE, 6.5)
-        if nom_evenement:
-            # ⭐ LE SOUS-TITRE FILE À GAUCHE, sur la ligne du nom. Il était
-            #   centré juste dessous, à 9 mm — c'est-à-dire PILE sur le bord
-            #   supérieur du premier carton, qu'il chevauchait. À gauche il
-            #   ne gêne plus rien et le nom garde tout le centre.
-            c.drawString(MARGIN_X, PAGE_H - 7.4 * mm, ligne2)
+        # ⭐ 23/09 : le nom du client étant descendu dans les cartons, la
+        #   ligne du haut n'a plus à s'écarter — elle reprend le centre.
+        c.drawCentredString(PAGE_W / 2, PAGE_H - 7.4 * mm, ligne2)
 
         for slot in range(par_page):
             if faites >= nb_cartes:
