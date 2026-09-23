@@ -787,50 +787,85 @@ function rendreProgrammes(){
     cont.appendChild(b);
   });
 }
-function prixFeuilleCourant(partId){
-  // 🖼️💰 le supplément motif : +2 F chez 2KEA (tarif standard), +0,5 F chez les partenaires
+// ⭐⭐ 23/09 (retour client : « 6 750 F annoncés au panier, 8 985 F au
+//    moment d'insérer la carte ») : LA GRILLE DES PRIX EST ÉCRITE ICI,
+//    UNE SEULE FOIS, ET PERSONNE D'AUTRE NE LA RECOPIE.
+//    ⚠⚠ CE QUI S'ÉTAIT PASSé : l'écran du générateur calculait avec la
+//    vraie grille (jeux à image 225 F les 25, billets, 185 F ordinaire…)
+//    pendant que LE PANIER facturait tout au tarif de base, 150 F les 25.
+//    Le serveur, lui, applique la vraie grille : le client découvrait la
+//    différence sur la page de paiement. Une commande de 45 paquets est
+//    passée de 6 750 F à 8 985 F sous ses yeux.
+//    ⚠ RÈGLE : `prixFeuilleDe` est la SEULE à connaître les tarifs.
+//    `prixFeuilleCourant` (écran) et `prixArticle` (panier) l'appellent.
+//    NE JAMAIS REMETTRE UN CALCUL DE PRIX AILLEURS.
+//    ⚠ L'ordre des tests suit app.py — billets, puis image, puis N&B.
+function prixFeuilleDe(prog, couleur, origine, partId, motifVal){
   const JEUX_MOTIF=['pow','pow6','ino','ino8','bgo5','bio5','boules40','boules60'];
-  const selM=document.getElementById('gen-motif');
-  const baseJeu=(progChoisi||'').replace(/_(couleur|nb)$/,'');
-  const motifChoisi = !!(selM && selM.value && JEUX_MOTIF.indexOf(baseJeu)>=0);
-  const p=PARTENAIRES_LIST.find(function(x){ return x.id===partId; });
-  // 💰 le partenaire a fixé SES prix clients : ils priment sur tout
-  if(p && p.prix_client){
-    const jeuC=PROGRAMMES.find(function(x){ return x.id===progChoisi; });
-    const couleurC = jeuC ? jeuC.couleur : true;
-    const gammeC = (progChoisi||"").indexOf("_p15")>=0 ? "p15" : "eco";
-    const v = p.prix_client[gammeC + (couleurC ? "_couleur" : "_nb")];
-    if(v) return v + (motifChoisi ? 0.5 : 0);
-  }
-  // 💡 partenaire à tarif spécial (ex. RANIHEI : PDF seul à 1,5 F)
-  if(p && p.prix_pdf_seul) return p.prix_pdf_seul + (motifChoisi ? 0.5 : 0);
-  const jeu=PROGRAMMES.find(function(x){ return x.id===progChoisi; });
-  const couleur = jeu ? jeu.couleur : true;
-  const gamme = (progChoisi||"").indexOf("_p15")>=0 ? "p15" : "eco";
-  const prof=TARIFS[origineAcces]||TARIFS.pacific_ink;
+  const baseJeu=(prog||'').replace(/_(couleur|nb)$/,'');
+  const motifChoisi = !!(motifVal && JEUX_MOTIF.indexOf(baseJeu)>=0);
+  const gamme = (prog||"").indexOf("_p15")>=0 ? "p15" : "eco";
+  const prof=TARIFS[origine]||TARIFS.pacific_ink;
   const tar=prof[gamme]||prof.eco;
-  let prix = couleur?tar.c:tar.nb;
-  // 💰 LA GRILLE — dans le MÊME ORDRE que le moteur (app.py), sinon le prix
-  // affiché ne serait pas celui facturé.
-  if(origineAcces!=='international' && gamme==='eco'){
-    if(TARIF_BILLETS.indexOf(baseJeu)>=0){            // ① les billets
+  const base = couleur?tar.c:tar.nb;
+  const p=PARTENAIRES_LIST.find(function(x){ return x.id===partId; });
+  // \u2460 tarif sp\u00e9cial partenaire (ex. RANIHEI : PDF seul \u00e0 1,5 F),
+  //    puis \u2461 les prix clients que le partenaire a fix\u00e9s : ils priment.
+  let special = null;
+  if(p && p.prix_pdf_seul) special = p.prix_pdf_seul;
+  if(p && p.prix_client){
+    const v = p.prix_client[gamme + (couleur ? "_couleur" : "_nb")];
+    if(v) special = v;
+  }
+  // \u2462 LE MOTIF \u2014 et il COUPE LA GRILLE.
+  //    \u26a0\u26a0 C'EST CONTRE-INTUITIF ET C'EST VOULU (app.py) : chez 2KEA,
+  //    un PDF avec motif se facture TARIF DE BASE + 2 F, pas grille + 2 F.
+  //    Un jeu \u00e0 image en couleur avec motif co\u00fbte donc 12 F (10+2) et non
+  //    17 F (15+2). L'\u00e9cran affichait 17 F \u2014 c'\u00e9tait faux dans l'autre
+  //    sens, au d\u00e9triment du client. NE PAS \u00ab CORRIGER \u00bb EN REMETTANT
+  //    LA GRILLE ICI SANS CHANGER app.py EN M\u00caME TEMPS.
+  if(motifChoisi){
+    return special===null ? base + 2 : special + 0.5;
+  }
+  if(special!==null) return special;
+  // \u2463 LA GRILLE \u2014 m\u00eame ordre que app.py : billets, image, N&B.
+  let prix = base;
+  if(origine!=='international' && gamme==='eco'){
+    if(TARIF_BILLETS.indexOf(baseJeu)>=0){            // \u2460 les billets
       prix = couleur ? 15 : 8;
-    } else if(JEUX_AVEC_IMAGE.indexOf(baseJeu)>=0){   // ② les jeux à image
+    } else if(JEUX_AVEC_IMAGE.indexOf(baseJeu)>=0){   // \u2461 les jeux \u00e0 image
       if(IMAGE_TARIF_NB_ORDINAIRE.indexOf(baseJeu)>=0){
-        // dessin trop léger : tarif ordinaire des DEUX côtés (185 / 250 F)
+        // dessin trop l\u00e9ger : tarif ordinaire des DEUX c\u00f4t\u00e9s (185 / 250 F)
         if(!couleur){ prix = 7.4; }
       }
       else if(couleur){ prix = 15; }
       else if(TARIF_NB_150.indexOf(baseJeu)<0){ prix = 9; }
-    } else if(!couleur && TARIF_NB_150.indexOf(baseJeu)<0){  // ③ N&B ordinaire
+    } else if(!couleur && TARIF_NB_150.indexOf(baseJeu)<0){  // \u2462 N&B ordinaire
       prix = 7.4;
     }
   }
-  // 🎨 en couleur, la formule « PDF seul » vaut 3,5 F la feuille
-  if(origineAcces!=='international' && couleur && offreCouleurChoisie()==='pdf'){ prix = 3.5; }
-  // 🖼️💰 supplément motif (+2 F) : jeux décorables, tarif standard seulement
-  if(motifChoisi){ prix += 2; }
   return prix;
+}
+function prixFeuilleCourant(partId){
+  // \u2b50 23/09 : cette fonction ne fait plus que LIRE L'\u00c9CRAN. Le calcul
+  //    est dans `prixFeuilleDe`, partag\u00e9 avec le panier et align\u00e9 sur app.py.
+  const selM=document.getElementById('gen-motif');
+  const jeu=PROGRAMMES.find(function(x){ return x.id===progChoisi; });
+  const couleur = jeu ? jeu.couleur : true;
+  return prixFeuilleDe(progChoisi, couleur, origineAcces, partId,
+                       selM ? selM.value : '');
+  // \u26a0\u26a0 23/09 \u2014 CE QUI A \u00c9T\u00c9 RETIR\u00c9 ICI, ET POURQUOI :
+  //    il y avait  \u00ab if(couleur && offreCouleurChoisie()==='pdf') prix = 3.5; \u00bb
+  //    L'\u00e9cran annon\u00e7ait donc 3,5 F la feuille sur les jeux en couleur.
+  //    MAIS le choix de l'offre n'est envoy\u00e9 AU SERVEUR NI par la commande
+  //    directe NI par le panier : app.py ne le voit jamais, enregistre la
+  //    commande en \u00ab impression \u00bb et facture 10 F (ou 15 F sur un jeu \u00e0
+  //    image). Le client voyait 3,5 F et payait 10 F.
+  //    Le prix affich\u00e9 est maintenant CELUI QUI SERA FACTUR\u00c9.
+  //    \u2192 D\u00c9CISION MAEVA : veux-tu que le 3,5 F devienne VRAI (on envoie
+  //      l'offre, le client paie 3,5 F et re\u00e7oit le PDF SEUL, sans
+  //      impression), ou qu'on retire la mention \u00ab PDF seul 3,5 F \u00bb de
+  //      l'\u00e9cran ? NE PAS REMETTRE LE 3,5 F SANS TRANCHER \u00c7A.
 }
 function majPrix(){
   const nb=parseInt(document.getElementById('gen-nb-feuilles').value)||0;
@@ -917,11 +952,17 @@ function majBadgePanier(){
   if(b){ b.textContent=n; b.style.display=n>0?'block':'none'; }
 }
 function prixArticle(a){
-  const p=PARTENAIRES_LIST.find(function(x){ return x.id===a.partenaire; });
-  if(p && p.prix_pdf_seul) return Math.ceil(p.prix_pdf_seul*a.nb_feuilles);
-  const gamme=(a.programme||"").indexOf("_p15")>=0?"p15":"eco";
-  const prof=TARIFS[a.origine]||TARIFS.pacific_ink; const tar=prof[gamme]||prof.eco;
-  return (a.couleur?tar.c:tar.nb)*a.nb_feuilles;
+  // ⭐⭐ 23/09 (retour client) : LE PANIER UTILISE LA MÊME GRILLE QUE LE
+  //    SERVEUR. Avant, il facturait tout au tarif de base — 150 F le
+  //    paquet de 25 en N&B — en ignorant les jeux à image (225 F), les
+  //    billets (200 F), le N&B ordinaire (185 F) et le supplément motif.
+  //    Résultat : total annoncé 6 750 F, total Stripe 8 985 F.
+  //    ⚠ `Math.ceil` comme le serveur : 7,4 F la feuille ne tombe pas
+  //      juste, et le franc pacifique n'a pas de centimes.
+  //    ⚠ NE PAS RECOPIER LA GRILLE ICI. Tout est dans `prixFeuilleDe`.
+  const prix = prixFeuilleDe(a.programme, !!a.couleur, a.origine,
+                             a.partenaire, a.motif || '');
+  return Math.ceil(prix * a.nb_feuilles);
 }
 function ajouterPanier(){
   const msg=document.getElementById('gen-cmd-msg');
