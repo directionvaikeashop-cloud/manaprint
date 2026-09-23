@@ -39,6 +39,30 @@ for _n74, _c74 in (
         pass
 
 
+def _lignes_centre74(texte):
+    """✒️ 23/09 (sceau Maeva — échantillon KAIMIKILANIE) : LA CASE CENTRALE
+    COUPE SUR « | » COMME LE 2 SÉRIES.
+
+    ⚠️⚠️ NE PAS SUPPRIMER. Avant, le 4 séries faisait un bête
+    « premier mot en haut, tout le reste en bas » : la barre « | » se
+    retrouvait IMPRIMÉE sur la carte (« | KOHUHEILANIE | 11 NOVEMBRE
+    2026 ») et la ligne était illisible. Le 2 séries, lui, coupait déjà
+    proprement. Les deux jeux doivent se comporter PAREIL, sinon une
+    même commande sort avec deux mises en page différentes.
+    """
+    brut = str(texte).replace("\n", "|")
+    if "|" in brut:
+        return [l.strip() for l in brut.split("|") if l.strip()][:3]
+    mots = [m for m in brut.split(" ") if m]
+    if not mots:
+        return []
+    if len(mots) == 1:
+        return [mots[0]]
+    if len(mots) >= 3:
+        return [mots[0], " ".join(mots[1:-1]), mots[-1]]
+    return [mots[0], " ".join(mots[1:])]
+
+
 # SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne : si le module securite
 # est absent, les cartons sortent normalement, simplement sans microtexte.
 try:
@@ -105,13 +129,27 @@ PLAGES = [(1, 15), (16, 30), (31, 45), (46, 60), (61, 75)]
 COLS_PAGE = 2
 ROWS_PAGE = 2
 MARGIN_X = 8 * mm
-MARGIN_TOP = 8 * mm
-MARGIN_BOT = 8 * mm
-GUTTER = 7 * mm
+# ⭐⭐ 23/09 (sceau Maeva : « la personnalisation du haut de feuille à mettre
+#    dans l'encadrement où il y a BINGO ») : LES MARGES HAUT ET BAS PASSENT
+#    DE 8 À 5 mm. On récupère 3 mm par carton, et ces 3 mm vont TOUS dans le
+#    bandeau (HDR_H : 9 → 12 mm) pour y loger le nom du client.
+#    ⚠️⚠️ LA GRILLE NE BOUGE PAS D'UN POIL : le carton grandit de 3 mm ET le
+#    bandeau grandit de 3 mm, donc grid_h = CARD_H − HDR_H est identique.
+#    Les cases, les cercles et les chiffres font exactement la même taille
+#    qu'avant. NE PAS « SIMPLIFIER » en ne changeant qu'un des deux.
+#    ⚠️ 5 mm est le plancher : en dessous, certaines imprimantes laser
+#    refusent d'imprimer la bordure du carton.
+MARGIN_TOP = 5 * mm
+MARGIN_BOT = 5 * mm
+GUTTER = 6 * mm
 
 CARD_W = (PAGE_W - 2 * MARGIN_X - GUTTER) / COLS_PAGE
 CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - GUTTER) / ROWS_PAGE
-HDR_H = 9 * mm
+HDR_H = 12.5 * mm
+# ⚠️ HAUTEUR D'ORIGINE DU BANDEAU BINGO. Les cases B I N G O gardent
+#    EXACTEMENT cette hauteur ; les 3,5 mm gagnés font une bande à part
+#    AU-DESSUS, réservée au nom du client. NE PAS FUSIONNER LES DEUX.
+HDR_BINGO = 9 * mm
 
 
 def _gen_carte(rng):
@@ -131,14 +169,16 @@ def _dessiner_carte(c, x0, y0, cols_paires, couleur_hex, serie, titre_jeu="", te
     col = colors.HexColor(couleur_hex)
     cell_w = CARD_W / 5
 
-    # Ligne d'identité au-dessus de la carte — le nom du jeu apparaît TOUJOURS
-    ident = "OHANA 75 \u00b7 4 s\u00e9ries  \u2014  Carte N\u00b0 %06d" % serie
+    # Ligne d'identité — le nom du jeu apparaît TOUJOURS.
+    # ⭐⭐ 23/09 (sceau Maeva) : ELLE EST DESCENDUE DANS LE CARTON. Elle
+    #    était imprimée AU-DESSUS de la bordure : à la découpe elle partait
+    #    à la poubelle. Elle tient maintenant la gauche de la bande du nom.
+    ident = "OHANA 75 \u00b7 4 s\u00e9ries \u2014 N\u00b0 %06d" % serie
     if titre_jeu and "OHANA" not in titre_jeu.strip().upper():
         ident += "  \u00b7  " + titre_jeu.strip()
     if telephone:
         ident += "  \u00b7  " + telephone
-    c.setFillColor(col); c.setFont(POLICE, 5.5)
-    c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H + 1.6 * mm, ident[:90])
+    ident = ident[:90]
 
     # Bordure carte
     c.setStrokeColor(col); c.setLineWidth(0.9)
@@ -148,21 +188,52 @@ def _dessiner_carte(c, x0, y0, cols_paires, couleur_hex, serie, titre_jeu="", te
 
     # En-tête B I N G O + MARATHON au-dessus du G (fidèle au modèle)
     hdr_bas = y0 + CARD_H - HDR_H
+    hdr_haut = hdr_bas + HDR_BINGO     # ⚠️ le haut des CASES B I N G O
     c.setStrokeColor(col); c.setLineWidth(0.6)
     c.line(x0, hdr_bas, x0 + CARD_W, hdr_bas)
+    # ⭐ 23/09 : les cases B I N G O sont refermées par un trait à leur
+    #    sommet. Avant, c'était la bordure du carton qui les fermait ; la
+    #    bordure est maintenant 3,5 mm plus haut (bande du nom du client),
+    #    donc sans ce trait les cases resteraient ouvertes. Dessin identique.
+    c.line(x0, hdr_haut, x0 + CARD_W, hdr_haut)
     for i in range(1, 5):
-        c.line(x0 + i * cell_w, hdr_bas, x0 + i * cell_w, y0 + CARD_H)
+        c.line(x0 + i * cell_w, hdr_bas, x0 + i * cell_w, hdr_haut)
     c.setFillColor(col)
     for i, lettre in enumerate(LETTRES):
         cx = x0 + (i + 0.5) * cell_w
         if i == 3:  # G — MARATHON au-dessus
             c.setFont(POLICE, 4.5)
-            c.drawCentredString(cx, y0 + CARD_H - 3.0 * mm, "MARATHON")
+            # ⚠️ calé sur le HAUT DES CASES (hdr_haut), plus sur le bord du
+            #    carton : il reste exactement où il était dans la maquette.
+            c.drawCentredString(cx, hdr_haut - 3.0 * mm, "MARATHON")
             c.setFont(POLICE, 10)
             c.drawCentredString(cx, hdr_bas + 1.6 * mm, lettre)
         else:
             c.setFont(POLICE, 13)
             c.drawCentredString(cx, hdr_bas + 2.2 * mm, lettre)
+
+    # ⭐⭐ 23/09 (sceau Maeva : « la personnalisation du haut de feuille à
+    #    mettre dans l'encadrement où il y a BINGO ») : LA BANDE DU NOM.
+    #    Elle occupe les 3,5 mm gagnés sur les marges, entre le haut des
+    #    cases B I N G O et la bordure du carton :
+    #       à gauche  → OHANA 75 · 4 séries · N° du carton
+    #       au centre → LE NOM DU CLIENT ET SA DATE, en noir
+    #    ⚠️⚠️ AVANT, le nom était en haut de la FEUILLE : on le découpait et
+    #    on le jetait. Maintenant il reste sur le carton. NE PAS LE REMONTER.
+    #    ⚠️ Le texte se rétrécit tout seul ; plafonné à 7,5 pt sinon il monte
+    #    dans le cadre de microtexte (1 mm à l'intérieur de la bordure).
+    _bande_y = hdr_haut + 1.05 * mm
+    c.setFillColor(col); c.setFont(POLICE, 5.0)
+    c.drawString(x0 + 2.2 * mm, _bande_y, ident)
+    _evt4 = (nom_centre or "").replace("|", "  ·  ").replace("\n", "  ·  ")
+    _evt4 = " ".join(_evt4.split())
+    if _evt4:
+        _libre4 = CARD_W - 2 * (2.2 * mm + _sw74(ident, POLICE, 5.0) + 3 * mm)
+        _te4 = 7.5
+        while _te4 > 3.6 and _sw74(_evt4, POLICE, _te4) > _libre4:
+            _te4 -= 0.25
+        c.setFillColor(colors.black); c.setFont(POLICE, _te4)
+        c.drawCentredString(x0 + CARD_W / 2, _bande_y, _evt4)
 
     # Grille 5×5 : séparateurs pointillés discrets (fidèle au modèle)
     grid_h = hdr_bas - (y0 + 2.2 * mm)   # petit pied : la dernière rangée ne touche JAMAIS le trait de fond
@@ -213,23 +284,32 @@ def _dessiner_carte(c, x0, y0, cols_paires, couleur_hex, serie, titre_jeu="", te
                 #    sans personnalisation on garde « FREE / SPACE ».
                 _perso = (nom_centre or "").strip()
                 if _perso:
-                    _mots = [m for m in _perso.replace("\n", " ").split(" ") if m]
-                    _haut = _mots[0]
-                    _bas = " ".join(_mots[1:]) if len(_mots) > 1 else ""
-                    _larg = cell_w * (0.56 if evenement_id else 0.86)
+                    # ✒️ 23/09 : MÊME RENDU QUE LE 2 SÉRIES — le nom
+                    #    calligraphié en haut, les lignes suivantes en
+                    #    petites capitales, le numéro de carte tout en bas.
+                    #    Le bloc est CENTRÉ dans la case : on mesure sa
+                    #    hauteur totale avant de poser la première ligne,
+                    #    sinon avec trois lignes le texte sort de la case.
+                    _lg4 = _lignes_centre74(_perso)
+                    _larg = cell_w * (0.56 if evenement_id else 0.90)
                     _th = 8.0
-                    while _th > 3.4 and _sw74(_haut, _POLICE_SCRIPT, _th) > _larg:
+                    while _th > 3.4 and _sw74(_lg4[0], _POLICE_SCRIPT, _th) > _larg:
                         _th -= 0.25
+                    _tp4 = max(3.0, _th * 0.52)
+                    while _tp4 > 2.6 and len(_lg4) > 1 and max(
+                            _sw74(_l, POLICE, _tp4) for _l in _lg4[1:]) > _larg:
+                        _tp4 -= 0.15
+                    _ts4 = 5.5
+                    _htot = _th * 0.72 + (len(_lg4) - 1) * _tp4 * 1.30 + _ts4 * 1.45
+                    _yc4 = case_y + cell_h / 2 + _htot / 2 - _th * 0.62
                     c.setFont(_POLICE_SCRIPT, _th)
-                    c.drawCentredString(fx, case_y + cell_h * 0.68, _haut)
-                    c.setFont(POLICE, 6.5)
-                    c.drawCentredString(fx, case_y + cell_h * 0.42, "%06d" % serie)
-                    if _bas:
-                        _tb4 = 5.5
-                        while _tb4 > 3.0 and _sw74(_bas, POLICE, _tb4) > _larg:
-                            _tb4 -= 0.25
-                        c.setFont(POLICE, _tb4)
-                        c.drawCentredString(fx, case_y + cell_h * 0.15, _bas)
+                    c.drawCentredString(fx, _yc4, _lg4[0])
+                    c.setFont(POLICE, _tp4)
+                    for _k4, _l4 in enumerate(_lg4[1:], 1):
+                        c.drawCentredString(fx, _yc4 - _th * 0.24 - _k4 * _tp4 * 1.30, _l4)
+                    _ys4 = _yc4 - _th * 0.24 - (len(_lg4) - 1) * _tp4 * 1.30 - _ts4 * 1.45
+                    c.setFont(POLICE, _ts4)
+                    c.drawCentredString(fx, _ys4, "%06d" % serie)
                 else:
                     c.setFont(POLICE, 5.5)
                     c.drawCentredString(fx, case_y + cell_h * 0.70, "FREE")
@@ -322,23 +402,16 @@ def generer_pdf(nb_cartes=4, serie_start=1, theme="", couleur=True,
 
     for _ in range(nb_pages):
         # en-tête de page + traits de découpe pointillés (fidèle au modèle)
-        if nom_evenement:
-            c.setFillColor(colors.black); c.setFont(POLICE, 8)
-            # ⭐⭐ 18/09 (sceau Maeva : « la personnalisation du haut, bien la
-            #    rapprocher de la grille ») : LE NOM DESCEND CONTRE LA GRILLE.
-            #    ⚠️ MESURÉ sur la feuille : il restait 9,4 pt de blanc entre le bas du
-            #    nom et le haut du premier carton ; il n'en reste plus que 2, c'est
-            #    le maximum sans mordre dessus. NE PAS DESCENDRE PLUS BAS.
-            #    ⭐ Le NUMÉRO DE PAGE file à DROITE sur la même ligne : il était
-            #      centré juste dessous, coincé entre le nom et la grille, et il
-            #      chevauchait le texte. Sans personnalisation il reprend sa place
-            #      centrale, exactement comme avant.
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 6.6 * mm, nom_evenement.replace("|", " ").replace("  ", " ").strip())
-        c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 6)
-        if nom_evenement:
-            c.drawRightString(PAGE_W - 6 * mm, PAGE_H - 6.6 * mm, "%03d" % no_page)
-        else:
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 6.4 * mm, "%03d" % no_page)
+        # ⭐⭐ 23/09 (sceau Maeva : « la personnalisation du haut de feuille à
+        #    mettre dans l'encadrement où il y a BINGO ») : PLUS DE NOM ICI.
+        #    Il est imprimé dans la bande du nom de CHAQUE carton, à
+        #    l'intérieur de la bordure (voir _dessiner_carte).
+        #    ⚠️⚠️ IL N'Y A PLUS LA PLACE DE TOUTE FAÇON : la marge du haut est
+        #    passée de 8 à 5 mm pour agrandir le bandeau des cartons. Écrire
+        #    à 6,6 mm mordrait maintenant sur le premier carton.
+        #    ⚠️ NE PAS RÉTABLIR : on aurait le nom deux fois.
+        c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 5.5)
+        c.drawRightString(PAGE_W - 6 * mm, PAGE_H - 3.4 * mm, "%03d" % no_page)
         c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.4)
         c.setDash(3, 3)
         c.line(PAGE_W / 2, 3 * mm, PAGE_W / 2, PAGE_H - 3 * mm)
