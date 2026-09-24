@@ -81,7 +81,24 @@ try:
     _POLICE_ECO = "LMROMAN"
 except Exception:
     pass
-_GRIS_ECO = colors.Color(0.35, 0.35, 0.35)
+_GRIS_ECO = colors.Color(0.26, 0.26, 0.26)
+# ⭐⭐ 23/09 (sceau Maeva : « renforce le gras, on ne change pas
+#    l'écriture ») : LE TRAIT DU CHIFFRE S'ÉPAISSIT, LA POLICE NE BOUGE PAS.
+#    Latin Modern reste Latin Modern ; c'est le CONTOUR du chiffre qui
+#    passe de 0,010 à 0,026 de sa taille. Le trait étant centré sur le
+#    dessin de la lettre, il l'épaissit des deux côtés : on obtient un
+#    gras sans changer d'écriture. Le gris passe de 0,35 à 0,26 en même
+#    temps, sinon le trait plus large reste pâle.
+#    ⚠⚠ ÇA COÛTE DU TONER : environ DEUX FOIS PLUS d'encre sur les
+#    chiffres qu'avant (mesuré à 600 dpi). C'est le prix du gras.
+#    Pour revenir en arrière ou aller plus loin, UNE SEULE VALEUR à
+#    changer ici, et la même dans les cinq jeux OHANA 75 :
+#       0,010 + gris 0,35 = l'ancien   ·  0,018 + 0,30 = un cran
+#       0,026 + gris 0,26 = ACTUEL     ·  0,034 + 0,22 = très gras
+#       0,044 + gris 0,18 = au maximum
+#    ⚠ NE PAS remplacer par une police grasse : Maeva a explicitement
+#      demandé de GARDER l'écriture.
+_GRAS_TRAIT = 0.026
 _POLICE_P15 = _POLICE_ECO
 _GRIS_P15 = colors.Color(0.14, 0.14, 0.14)   # objet distinct : sert à reconnaître la gamme
 
@@ -229,14 +246,16 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
             c.circle(x, cy, 6.6 * mm, stroke=1, fill=0)
             c.setDash([])
             if _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, val, x, cy - _T_ROND * 0.36, _T_ROND, gris_ch, police_ch)
+                _sec.chiffre_micro(c, val, x, cy - _T_ROND * 0.36, _T_ROND, gris_ch, police_ch,
+                                   epaisseur=_GRAS_TRAIT)
             else:
                 c.setFillColor(gris_ch); c.setFont(police_ch, _T_ROND)
                 c.drawCentredString(x, cy - _T_ROND * 0.36, str(val))
         else:
             # gros chiffre
             if _sec:
-                _sec.chiffre_micro(c, val, x, cy - 12.5, 35, gris_ch, police_ch)
+                _sec.chiffre_micro(c, val, x, cy - 12.5, 35, gris_ch, police_ch,
+                                   epaisseur=_GRAS_TRAIT)
             else:
                 c.setFillColor(gris_ch); c.setFont(police_ch, 35)
                 c.drawCentredString(x, cy - 12.5, str(val))
