@@ -74,7 +74,24 @@ try:
     _POLICE_ECO = "LMROMAN"
 except Exception:
     pass
-_GRIS_ECO = colors.Color(0.35, 0.35, 0.35)
+_GRIS_ECO = colors.Color(0.26, 0.26, 0.26)
+# ⭐⭐ 23/09 (sceau Maeva : « renforce le gras, on ne change pas
+#    l'écriture ») : LE TRAIT DU CHIFFRE S'ÉPAISSIT, LA POLICE NE BOUGE PAS.
+#    Latin Modern reste Latin Modern ; c'est le CONTOUR du chiffre qui
+#    passe de 0,010 à 0,026 de sa taille. Le trait étant centré sur le
+#    dessin de la lettre, il l'épaissit des deux côtés : on obtient un
+#    gras sans changer d'écriture. Le gris passe de 0,35 à 0,26 en même
+#    temps, sinon le trait plus large reste pâle.
+#    ⚠⚠ ÇA COÛTE DU TONER : environ DEUX FOIS PLUS d'encre sur les
+#    chiffres qu'avant (mesuré à 600 dpi). C'est le prix du gras.
+#    Pour revenir en arrière ou aller plus loin, UNE SEULE VALEUR à
+#    changer ici, et la même dans les cinq jeux OHANA 75 :
+#       0,010 + gris 0,35 = l'ancien   ·  0,018 + 0,30 = un cran
+#       0,026 + gris 0,26 = ACTUEL     ·  0,034 + 0,22 = très gras
+#       0,044 + gris 0,18 = au maximum
+#    ⚠ NE PAS remplacer par une police grasse : Maeva a explicitement
+#      demandé de GARDER l'écriture.
+_GRAS_TRAIT = 0.026
 _POLICE_P15 = _POLICE_ECO
 _GRIS_P15 = colors.Color(0.14, 0.14, 0.14)   # objet distinct : sert à reconnaître la gamme
 
@@ -126,6 +143,14 @@ RONDS_X = [204.2, 361.2, 529.2, 701.7, 869.8]
 GROS_X = [129.1, 286.1, 454.1, 626.5, 794.6]
 LIGNE_Y = 640.5                      # la hauteur de la ligne des numéros
 R_ROND = 38.0                        # le rayon des ronds, en millièmes
+MICRO_PT = 0.9                       # taille du microtexte (voir plus bas)
+# ⚠️⚠️ 19/09 : L'INTERRUPTEUR DU MICROTEXTE DANS LES CHIFFRES.
+#    Mesuré sur une feuille : AVEC microtexte, l'imprimante doit avaler
+#    1 102 ordres de tracé et près de 400 000 lettres minuscules ; SANS,
+#    elle n'en a que 119. C'est ça, et rien d'autre, qui fait traîner les
+#    grosses impressions. Le reste de la sécurité (n° de série unique,
+#    dessin au trait, QR quand il y en a un) ne bouge pas.
+CHIFFRES_MICRO = True
 # La boîte du n° de série et l'emplacement de la personnalisation
 SERIE_X, SERIE_Y = 59.0, 202.5
 PIED_X, PIED_Y, PIED_LARG = 870.7, 253.2, 135.6
@@ -711,8 +736,16 @@ def _tracer_decor(c, x0, y0):
     def Y(v):
         return y0 + CARD_H - v / 1000.0 * CARD_H
 
+    # ⚠️⚠️ 19/09 (sceau Maeva : « toujours long ») : TOUT LE DÉCOR EN UN
+    #    SEUL TRACÉ. Les pointillés des ronds et la bordure festonnée font
+    #    565 morceaux : dessinés séparément, ça faisait 5 000 ordres de
+    #    remplissage par feuille et les imprimantes s'étranglaient dessus.
+    #    ⭐ La règle PAIR-IMPAIR sait gérer les trous toute seule : un point
+    #      pris dans 1 contour est encré, dans 2 il est creux, dans 3 encré.
+    #      Un seul remplissage donne donc EXACTEMENT le même dessin.
+    #    ⚠️ NE PAS revenir à un tracé par morceau.
+    p = c.beginPath()
     for groupe in _DECOR.split("#"):
-        p = c.beginPath()
         for contour in groupe.split("|"):
             i = 0
             while i < len(contour):
@@ -730,7 +763,7 @@ def _tracer_decor(c, x0, y0):
                 else:
                     p.curveTo(X(v[0]), Y(v[1]), X(v[2]), Y(v[3]), X(v[4]), Y(v[5]))
             p.close()
-        c.drawPath(p, stroke=0, fill=1, fillMode=FILL_EVEN_ODD)
+    c.drawPath(p, stroke=0, fill=1, fillMode=FILL_EVEN_ODD)
 
 
 def _forme_decor(c, couleur_hex):
@@ -868,9 +901,24 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
             _montant_rectangle(c, (bx + sx) / 2, cy, 22 * mm, 14.5 * mm,
                                myst_mnt[myst_pos.index(p)], col, gris_ch)
             continue
-        if _sec:   # chiffres « billet de banque » remplis de microtexte
-            _sec.chiffre_micro(c, big_val, bx, cy - _T_GROS * 0.36, _T_GROS, gris_ch, police_ch)
-            _sec.chiffre_micro(c, small_val, sx, cy - _T_ROND * 0.36, _T_ROND, gris_ch, police_ch)
+        if _sec and CHIFFRES_MICRO:   # chiffres « billet de banque »
+            # ⚠️⚠️ 19/09 (sceau Maeva : « quand je lance l'impression c'est
+            #    long ») : LE MICROTEXTE EST ÉCRIT EN 0,9 pt, PAS EN 0,5.
+            #    Mesuré : c'est L'IMPRESSION qui traînait, pas le fichier —
+            #    le microtexte par défaut (0,51 pt à cette taille de chiffre)
+            #    fait 82 lignes par chiffre, soit plus d'un million de
+            #    minuscules lettres à graver par feuille.
+            #    ⭐ À 0,9 pt : 2 fois moins de travail pour l'imprimante,
+            #      EXACTEMENT le même toner (mesuré 8,71 % contre 8,70 %),
+            #      la sécurité intacte — et même MIEUX lisible à la loupe.
+            #    ⚠️ Ne pas monter au-dessus de 1 pt : à 1,3 pt on voit la
+            #      trame du texte à l'œil nu dans les chiffres.
+            _sec.chiffre_micro(c, big_val, bx, cy - _T_GROS * 0.36, _T_GROS,
+                               gris_ch, police_ch, taille_micro=MICRO_PT,
+                               epaisseur=_GRAS_TRAIT)
+            _sec.chiffre_micro(c, small_val, sx, cy - _T_ROND * 0.36, _T_ROND,
+                               gris_ch, police_ch, taille_micro=MICRO_PT,
+                               epaisseur=_GRAS_TRAIT)
         else:
             c.setFillColor(gris_ch)
             c.setFont(police_ch, _T_GROS)
