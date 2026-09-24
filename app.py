@@ -2700,9 +2700,12 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
 
     couleur = REGISTRE_JEUX.get(programme, {}).get("couleur", True)
     nb_feuilles = int(data.get("nb_feuilles", 25))
-    # 📦 Vente par PAQUETS DE 25 feuilles (25, 50, 75… jusqu'à 250)
+    # 📦 Vente par PAQUETS DE 25 feuilles (25, 50, 75… jusqu'à 500)
+    # ⚠ 23/09 : le code acceptait DÉJÀ 500 mais le message d'erreur disait
+    #   encore 250 — un client à qui on refusait 512 feuilles lisait qu'il ne
+    #   pouvait pas dépasser 250. Les deux disent maintenant la même chose.
     if nb_feuilles < 25 or nb_feuilles > 500 or nb_feuilles % 25 != 0:  # 1 à 20 paquets de 25 (27/07)
-        return (jsonify({"ok": False, "message": "Les feuilles se commandent par paquets de 25 (25, 50, 75… jusqu'à 250)."}), 400), None
+        return (jsonify({"ok": False, "message": "Les feuilles se commandent par paquets de 25 (25, 50, 75… jusqu'à 500)."}), 400), None
 
     # Personnalisation OBLIGATOIRE (sécurité)
     nom_evenement = data.get("nom_evenement", "").strip()
@@ -4295,8 +4298,17 @@ def api_partenaire_generer():
         nb_feuilles = int(data.get("nb_feuilles") or 0)
     except Exception:
         nb_feuilles = 0
-    if nb_feuilles < 25 or nb_feuilles > 250 or nb_feuilles % 25:
-        return jsonify({"ok": False, "message": "Choisissez de 25 \u00e0 250 feuilles, par paquets de 25."}), 400
+    # ⭐⭐ 23/09 (sceau Maeva : « dans mon espace partenaire je veux pouvoir
+    #    générer 500 feuilles au lieu de 250 ») : LE PLAFOND PASSE À 500.
+    #    Soit 20 paquets de 25 au lieu de 10, en une seule fabrication.
+    #    ⚠ Les quotas ne bougent PAS : les 3 000 feuilles offertes par jeu et
+    #    le cadeau sur les jeux à image s'appliquent exactement pareil, et une
+    #    commande à cheval sur l'offert et le payant est toujours refusée.
+    #    Le partenaire consomme simplement son crédit deux fois plus vite.
+    #    ⚠ La liste déroulante de templates/partenaire.html doit monter
+    #    jusqu'à 500 elle aussi, sinon le choix n'apparaît pas à l'écran.
+    if nb_feuilles < 25 or nb_feuilles > 500 or nb_feuilles % 25:
+        return jsonify({"ok": False, "message": "Choisissez de 25 \u00e0 500 feuilles, par paquets de 25."}), 400
 
     # ═══ 🎁 LE QUOTA DES JEUX À IMAGE (sceau Maeva 15/08) ═══
     # Le partenaire reçoit un nombre de feuilles OFFERTES sur les jeux
