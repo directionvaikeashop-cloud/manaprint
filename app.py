@@ -26,6 +26,10 @@ from generators import quines90
 from generators import lundi_pair74
 from generators import mardi_pair90
 from generators import roma6
+from generators import ahe          # 🦪 AHE — création RANIHEI du 23/09
+from generators import blossom_pearl  # 🌸 BLOSSOM PEARL — création RANIHEI du 23/09
+from generators import makemo       # 🏝️ MAKEMO — création RANIHEI du 23/09
+from generators import tureia_ranihei  # 🐢 TUREIA · RANIHEI — création RANIHEI du 23/09
 from generators import kai
 from generators import ohana75_8boules
 from generators import ohana75_10boules
@@ -303,6 +307,12 @@ JEUX_PROPRIETAIRE = {
     "lundi_pair74": "2kea_papeete",   # 🌙 création 2KEA du 18/09
     "mardi_pair90": "2kea_papeete",   # ☀️ création 2KEA du 18/09
     "roma6": "2kea_papeete",          # 🏛️ création 2KEA du 19/09
+    # 🦪 AHE appartient à RANIHEI : c'est SA maquette, tracee trait pour
+    #    trait. Toute autre enseigne qui le fabrique doit la feuille.
+    "ahe": "ranihei",                 # 🦪 création RANIHEI du 23/09
+    "blossom_pearl": "ranihei",       # 🌸 création RANIHEI du 23/09
+    "makemo": "ranihei",              # 🏝️ création RANIHEI du 23/09
+    "tureia_ranihei": "ranihei",      # 🐢 création RANIHEI du 23/09
 }
 PRIX_FEUILLE_DROIT = 1.5     # ce que doit une enseigne sur le jeu d'une autre
 
@@ -757,6 +767,23 @@ _enregistrer_paire("quines90",      "QUINES 90","🎟️", 18, quines90.generer_
 _enregistrer_paire("lundi_pair74",  "LUNDI PAIR 74","🌙", 12, lundi_pair74.generer_pdf)
 _enregistrer_paire("mardi_pair90",  "MARDI PAIR 90","☀️", 12, mardi_pair90.generer_pdf)
 _enregistrer_paire("roma6",         "ROMA · 6 boules","🏛️", 8, roma6.generer_pdf)
+# ⚠ 6 cartons par feuille, A4 portrait : c'est la planche que RANIHEI a
+#   fournie le 23/09 au soir (carton presque carre, 2 colonnes x 3 rangees).
+#   Ce chiffre doit TOUJOURS suivre COLS_PAGE x ROWS_PAGE dans
+#   generators/ahe.py, sinon la plateforme se trompe dans ses comptes de
+#   feuilles et facture de travers.
+_enregistrer_paire("ahe",           "AHE","🦪", 6,  ahe.generer_pdf)
+# ⚠ 6 cartons par feuille : la planche de RANIHEI, 2 colonnes x 3 rangees.
+#   Doit suivre COLS_PAGE x ROWS_PAGE dans generators/blossom_pearl.py.
+_enregistrer_paire("blossom_pearl", "BLOSSOM PEARL","🌸", 6,  blossom_pearl.generer_pdf)
+# ⚠ 6 cartons par feuille A4 PAYSAGE : la planche de RANIHEI, 2 colonnes
+#   x 3 rangees. Doit suivre COLS_PAGE x ROWS_PAGE dans generators/makemo.py.
+_enregistrer_paire("makemo",        "MAKEMO","🏝️", 6,  makemo.generer_pdf)
+# ⚠ 6 cartons par feuille A4 PAYSAGE : la planche de RANIHEI, 2 colonnes
+#   x 3 rangees. Doit suivre COLS_PAGE x ROWS_PAGE dans tureia_ranihei.py.
+# ⚠⚠ NE PAS CONFONDRE avec "tureia" (TUREIA 🔶), un AUTRE jeu du
+#    catalogue, inscrit plus haut et qui tourne sur generators/tureia.py.
+_enregistrer_paire("tureia_ranihei", "TUREIA \u00b7 RANIHEI","\U0001f422", 6,  tureia_ranihei.generer_pdf)
 _enregistrer_paire("kai",           "KAI 7 boules",       "🍽️", 12, kai.generer_pdf)
 _enregistrer_paire("ohana75_8b",    "OHANA 75 · 8 boules","🌺", 9,  ohana75_8boules.generer_pdf)
 _enregistrer_paire("ohana75_8b_smo","OHANA 75 · 8 boules SMORFIA","🎴", 9,  ohana75_8boules.generer_pdf_smorfia)
@@ -1747,6 +1774,23 @@ _PLAGES_CALLER = {
     "lundi_pair74": (2, 74),      # 🌙 LUNDI PAIR 74 — que des PAIRS (liste exacte plus bas)
     "mardi_pair90": (2, 90),      # ☀️ MARDI PAIR 90 — que des PAIRS (liste exacte plus bas)
     "roma6": (2, 90),             # 🏛️ ROMA · 6 boules — que des PAIRS (liste exacte plus bas)
+    # 🦪 AHE : trois perles, trois plages — B (1-15), I (16-30) et 76-90.
+    #    Le tireur ne sort donc JAMAIS un numero entre 31 et 75 : la liste
+    #    exacte des 45 boules est plus bas, dans _BOULES_CALLER.
+    "ahe": (1, 90),
+    # 🌸 BLOSSOM PEARL : quatre groupes, quatre plages — B (1-15),
+    #    I (16-30), N (31-45) et les perles du tour G (46-60). Le tireur
+    #    ne sort donc JAMAIS au-dessus de 60.
+    "blossom_pearl": (1, 60),
+    # 🏝️ MAKEMO : trois groupes — les 2 boules de gauche sur le I (16-30),
+    #    les 2 du milieu sur le N (31-45), celle de droite sur 76-90. Le
+    #    tireur ne sort donc JAMAIS un numero entre 1 et 15, ni entre 46
+    #    et 75 : la liste exacte des 45 boules est plus bas, dans
+    #    _BOULES_CALLER.
+    "makemo": (16, 90),
+    # 🐢 TUREIA · RANIHEI : cinq colonnes de 2 — B, I, N, G et le O
+    #    etendu jusqu a 90. Univers complet, 1 a 90.
+    "tureia_ranihei": (1, 90),
     "pol": (30, 60),
     "sun": (1, 24),
     "sun_casino": (1, 24),
@@ -2016,6 +2060,15 @@ _BOULES_CALLER = {
     "lundi_pair74": [n for n in range(2, 75, 2)],  # 🌙 LUNDI PAIR 74 — 37 boules, QUE DES PAIRS de 2 à 74
     "mardi_pair90": [n for n in range(2, 91, 2)],  # ☀️ MARDI PAIR 90 — 45 boules, QUE DES PAIRS de 2 à 90
     "roma6": [n for n in range(2, 91, 2)],  # 🏛️ ROMA · 6 boules — 45 boules, QUE DES PAIRS de 2 à 90
+    # 🦪 AHE — 45 boules : B 1-15, I 16-30, puis 76-90. Rien entre 31 et 75.
+    "ahe": [n for n in range(1, 31)] + [n for n in range(76, 91)],
+    # 🌸 BLOSSOM PEARL — 60 boules, de 1 a 60, sans trou.
+    "blossom_pearl": [n for n in range(1, 61)],
+    # 🏝️ MAKEMO — 45 boules : I 16-30, N 31-45, puis 76-90. Rien en
+    #    dessous de 16, rien entre 46 et 75.
+    "makemo": [n for n in range(16, 46)] + [n for n in range(76, 91)],
+    # 🐢 TUREIA · RANIHEI — 90 boules, de 1 a 90, sans trou.
+    "tureia_ranihei": [n for n in range(1, 91)],
 }
 
 
