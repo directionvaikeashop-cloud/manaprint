@@ -220,7 +220,6 @@ def _form_chiffre(c, ch, police, taille, taille_micro, couleur, epaisseur=None):
     gardent exactement le rendu d'avant.
     """
     epais = (0.016 if "Bold" in police else 0.010) if epaisseur is None else float(epaisseur)
-    
     nom = "mtx_%s_%s_%d_%s_%d" % (ch, police, int(taille * 10),
                                   _cle_couleur(couleur), int(round(epais * 10000)))
     formes = getattr(c, "_formes_micro", None)
@@ -278,7 +277,36 @@ def chiffre_micro(c, texte, x_centre, y_bas, taille, couleur, police, taille_mic
         c.saveState()
         c.setFillColor(couleur)
         c.setFont(police, taille)
-        c.drawCentredString(x_centre, y_bas, str(texte))
+        # ⭐⭐ 23/09 (sceau Maeva : « le gras ne se voit pas sur les PDF de mon
+        #    espace partenaire ») : LE GRAS S'APPLIQUE AUSSI EN MODE RAPIDE.
+        #    ⚠️⚠️ POURQUOI ÇA MANQUAIT : l'espace partenaire fabrique en
+        #    « impression rapide » PAR DÉFAUT (api_partenaire_generer :
+        #    impression_rapide=True). Ce mode saute tout le bloc microtexte
+        #    et trace le chiffre PLEIN d'un simple drawCentredString —
+        #    l'épaisseur demandée n'était donc jamais lue. Le gras marchait
+        #    partout SAUF là où Maeva l'a essayé.
+        #    ⚠️ Ici le chiffre est déjà plein : on ne peut pas l'épaissir par
+        #    l'intérieur. On le REMPLIT ET ON LE CONTOURE à la fois (mode de
+        #    rendu 2). Le trait étant centré sur le bord de la lettre, un
+        #    trait d'épaisseur e élargit chaque jambage de e — exactement
+        #    comme dans le mode microtexte. On passe donc `epaisseur` TELLE
+        #    QUELLE : un premier essai la divisait par deux « par prudence »
+        #    et le gras ne se voyait presque pas. NE PAS LA DIVISER.
+        #    ⚠️ Ça reste UNE SEULE opération de dessin : le mode rapide ne
+        #    perd rien de sa vitesse, c'est tout l'intérêt de ce mode.
+        if epaisseur:
+            t = c.beginText(0, 0)
+            t.setFont(police, taille)
+            t.setTextRenderMode(2)          # remplir ET contourer
+            c.setStrokeColor(couleur)
+            c.setLineWidth(max(0.2, taille * float(epaisseur)))
+            t.setTextOrigin(x_centre - pdfmetrics.stringWidth(str(texte), police, taille) / 2.0,
+                            y_bas)
+            t.textOut(str(texte))
+            c.drawText(t)
+            c._code.append('0 Tr')  # sinon ReportLab laisse le mode de rendu actif
+        else:
+            c.drawCentredString(x_centre, y_bas, str(texte))
         c.restoreState()
         return
     if taille_micro is None:
