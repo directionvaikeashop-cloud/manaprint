@@ -220,7 +220,7 @@ def _form_chiffre(c, ch, police, taille, taille_micro, couleur, epaisseur=None):
     gardent exactement le rendu d'avant.
     """
     epais = (0.016 if "Bold" in police else 0.010) if epaisseur is None else float(epaisseur)
-    nom = "mtx_%s_%s_%d_%s_%d"
+    
     nom = "mtx_%s_%s_%d_%s_%d" % (ch, police, int(taille * 10),
                                   _cle_couleur(couleur), int(round(epais * 10000)))
     formes = getattr(c, "_formes_micro", None)
