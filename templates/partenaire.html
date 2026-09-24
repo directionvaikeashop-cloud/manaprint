@@ -488,7 +488,11 @@ async function chargerJeuxFabrique(){
   }
   const sf = document.getElementById('fab-feuilles');
   if(sf && !sf.options.length){
-    for(let n = 25; n <= 250; n += 25){
+    // ⭐⭐ 23/09 (sceau Maeva : « dans mon espace partenaire je veux pouvoir
+    //    générer 500 feuilles au lieu de 250 ») : la liste monte à 500,
+    //    soit 20 paquets de 25. Le serveur accepte la même chose dans
+    //    /api/partenaire/generer — si tu changes l'un, change l'autre.
+    for(let n = 25; n <= 500; n += 25){
       const o = document.createElement('option');
       o.value = n; o.textContent = n + ' feuilles (' + (n/25) + ' paquet' + (n>25?'s':'') + ' de 25)';
       sf.appendChild(o);
