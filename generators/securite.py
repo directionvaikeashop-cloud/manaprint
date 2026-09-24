@@ -202,79 +202,22 @@ def _encre_remplissage(couleur):
         return ENCRE_REMPLISSAGE
 
 
-def _form_chiffre(c, ch, police, taille, taille_micro, couleur):
+def _form_chiffre(c, ch, police, taille, taille_micro, couleur, epaisseur=None):
     """Crée (une seule fois par document) le 'tampon' PDF d'un chiffre rempli
-    de microtexte, avec contour net pour la lisibilité en salle."""
-    nom = "mtx_%s_%s_%d_%s" % (ch, police, int(taille * 10), _cle_couleur(couleur))
-    formes = getattr(c, "_formes_micro", None)
-    if formes is None:
-        formes = set()
-        c._formes_micro = formes
-    if nom in formes:
-        return nom
-    largeur = pdfmetrics.stringWidth(ch, police, taille)
-    c.beginForm(nom, lowerx=-4, lowery=-taille * 0.30,
-                upperx=largeur + 4, uppery=taille * 1.10)
-    # 1) contour net du chiffre (lisibilité, façon billet)
-    c.setStrokeColor(couleur)
-    # contour un peu plus épais pour les polices grasses (Bold)
-    epais = 0.016 if "Bold" in police else 0.010
-    c.setLineWidth(max(0.3, taille * epais))
-    t = c.beginText(0, 0)
-    t.setFont(police, taille)
-    t.setTextRenderMode(1)   # contour seulement
-    t.textOut(ch)
-    c.drawText(t)
-    # 2) le chiffre devient un masque de découpe (mode de rendu 7)
-    t = c.beginText(0, 0)
-    t.setFont(police, taille)
-    t.setTextRenderMode(7)
-    t.textOut(ch)
-    c.drawText(t)
-    c._code.append('0 Tr')  # IMPORTANT : ReportLab laisse sinon le texte en mode invisible
-    # 3) remplir le masque de lignes de microtexte
-    l_base = pdfmetrics.stringWidth(MICRO_GENERIQUE, POLICE_MICRO, taille_micro)
-    ligne = MICRO_GENERIQUE * (int(largeur * 1.6 / max(l_base, 0.1)) + 2)
-    c.setFont(POLICE_MICRO, taille_micro)
-    c.setFillColor(_encre_remplissage(couleur))
-    interligne = taille_micro * 1.05
-    yy = -taille * 0.25
-    decal = 0.0
-    while yy < taille * 1.05:
-        c.drawString(-3 - (decal % 4), yy, ligne)
-        yy += interligne
-        decal += 1.3
-    c.endForm()
-    formes.add(nom)
-    return nom
+    de microtexte, avec contour net pour la lisibilité en salle.
 
-
-def chiffre_micro(c, texte, x_centre, y_bas, taille, couleur, police, taille_micro=None):
-    """Dessine un nombre centré (équivalent drawCentredString) dont chaque
-    chiffre est rempli de microtexte. taille >= 24 pt recommandé.
-
-    ⚡ GAMME ÉCO (police fine DJLECO) : chiffres simples SANS remplissage
-    microtexte -> PDF ultra-légers, impression RAPIDE (retour terrain).
-    La sécurité ÉCO reste assurée par le cadre microtexte + le QR unique.
-    🏦 GAMME PREMIUM (Bold) : chiffres "billet de banque" complets.
-    🖨️ Mode boutique rapide : chiffres pleins pour TOUTES les gammes."""
-    if police == _POLICE_RAPIDE or mode_rapide_actif():
-        c.saveState()
-        c.setFillColor(couleur)
-        c.setFont(police, taille)
-        c.drawCentredString(x_centre, y_bas, str(texte))
-        c.restoreState()
-        return
-    if taille_micro is None:
-        # taille du microtexte proportionnée au chiffre (0,45 à 0,70 pt)
-        taille_micro = max(0.45, min(0.70, taille * 0.015))
-    texte = str(texte)
-    largeurs = [pdfmetrics.stringWidth(ch, police, taille) for ch in texte]
-    x = x_centre - sum(largeurs) / 2.0
-    for ch, lw in zip(texte, largeurs):
-        nom = _form_chiffre(c, ch, police, taille, taille_micro, couleur)
-        c.saveState()
-        c.translate(x, y_bas)
-        c.doForm(nom)
-        c.restoreState()
-        x += lw
+    ⭐⭐ 23/09 (sceau Maeva : « renforce le gras, on ne change pas
+    l'écriture ») : `epaisseur` permet à un jeu de demander un CONTOUR PLUS
+    ÉPAIS sans toucher à la police. Le trait est centré sur le dessin de la
+    lettre : il l'épaissit vers l'intérieur ET vers l'extérieur, donc on
+    obtient un gras sans déformer Latin Modern. C'est la seule façon de
+    grossir le trait sans changer d'écriture.
+    ⚠️⚠️ L'ÉPAISSEUR ENTRE DANS LE NOM DU TAMPON. Chaque chiffre n'est
+    dessiné qu'UNE fois par document puis réutilisé : sans ça, un jeu à
+    contour fin et un jeu à contour gras se partageraient le même tampon et
+    le second prendrait l'épaisseur du premier. NE PAS RETIRER DU NOM.
+    ⚠️ Valeur par défaut inchangée : tous les jeux qui n'en demandent pas
+    gardent exactement le rendu d'avant.
+    """
+    epais = (0.016 if "Bold" in police else 0.010) if epaisseur is None else float(epaisseur)
+    nom = "mtx_%s_%s_%d_%s_%d"
