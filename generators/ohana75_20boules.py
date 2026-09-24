@@ -68,7 +68,24 @@ try:
     _POLICE_ECO = "LMROMAN"
 except Exception:
     pass
-_GRIS_ECO = colors.Color(0.35, 0.35, 0.35)
+_GRIS_ECO = colors.Color(0.26, 0.26, 0.26)
+# ⭐⭐ 23/09 (sceau Maeva : « renforce le gras, on ne change pas
+#    l'écriture ») : LE TRAIT DU CHIFFRE S'ÉPAISSIT, LA POLICE NE BOUGE PAS.
+#    Latin Modern reste Latin Modern ; c'est le CONTOUR du chiffre qui
+#    passe de 0,010 à 0,026 de sa taille. Le trait étant centré sur le
+#    dessin de la lettre, il l'épaissit des deux côtés : on obtient un
+#    gras sans changer d'écriture. Le gris passe de 0,35 à 0,26 en même
+#    temps, sinon le trait plus large reste pâle.
+#    ⚠⚠ ÇA COÛTE DU TONER : environ DEUX FOIS PLUS d'encre sur les
+#    chiffres qu'avant (mesuré à 600 dpi). C'est le prix du gras.
+#    Pour revenir en arrière ou aller plus loin, UNE SEULE VALEUR à
+#    changer ici, et la même dans les cinq jeux OHANA 75 :
+#       0,010 + gris 0,35 = l'ancien   ·  0,018 + 0,30 = un cran
+#       0,026 + gris 0,26 = ACTUEL     ·  0,034 + 0,22 = très gras
+#       0,044 + gris 0,18 = au maximum
+#    ⚠ NE PAS remplacer par une police grasse : Maeva a explicitement
+#      demandé de GARDER l'écriture.
+_GRAS_TRAIT = 0.026
 _POLICE_P15 = _POLICE_ECO
 _GRIS_P15 = colors.Color(0.14, 0.14, 0.14)   # objet distinct : sert à reconnaître la gamme
 
@@ -209,7 +226,8 @@ def _dessiner_carte(c, x0, y0, rangs, couleur_hex, serie, encre,
             if i % 2 == 0:
                 # GRAND numéro
                 if _sec:
-                    _sec.chiffre_micro(c, n, cx, cy, t_grand, gris_ch, police_ch)
+                    _sec.chiffre_micro(c, n, cx, cy, t_grand, gris_ch, police_ch,
+                                       epaisseur=_GRAS_TRAIT)
                 else:
                     c.setFillColor(gris_ch); c.setFont(police_ch, t_grand)
                     c.drawCentredString(cx, cy, str(n))
@@ -221,7 +239,8 @@ def _dessiner_carte(c, x0, y0, rangs, couleur_hex, serie, encre,
                 c.circle(cx, cyc + t_cercle * 0.36, 7.9 * mm, stroke=1, fill=0)
                 c.setDash()
                 if _sec:
-                    _sec.chiffre_micro(c, n, cx, cyc, t_cercle, gris_ch, police_ch)
+                    _sec.chiffre_micro(c, n, cx, cyc, t_cercle, gris_ch, police_ch,
+                                       epaisseur=_GRAS_TRAIT)
                 else:
                     c.setFillColor(gris_ch); c.setFont(police_ch, t_cercle)
                     c.drawCentredString(cx, cyc, str(n))
