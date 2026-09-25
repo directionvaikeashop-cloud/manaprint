@@ -5163,3 +5163,33 @@ if __name__ == "__main__":
     db.init_machines(4)
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+# ═════════════════════════════════════════════════════════════════════
+# 🐉 DRAGON D'OR  et  🐟 FAFAPITI — inscription du 24/09/2026
+# ⚠️ NE RIEN METTRE APRÈS : ce bloc doit rester le dernier du fichier.
+# ═════════════════════════════════════════════════════════════════════
+from generators import dragon_or      # 🐉 création RANIHEI du 24/09
+from generators import fafapiti       # 🐟 création RANIHEI du 24/09
+
+JEUX_PROPRIETAIRE["dragon_or"] = "ranihei"
+JEUX_PROPRIETAIRE["fafapiti"] = "ranihei"
+
+# ⚠️ INDISPENSABLE : _imposer_gris_maison() a déjà tourné bien plus haut,
+#    AVANT que ces deux jeux ne soient chargés. Sans ce rappel ils
+#    sortiraient plus foncés que tout le reste du catalogue.
+_GRIS_POSES = _imposer_gris_maison()
+
+# ⚠️ 6 cartons par feuille pour les deux : ce chiffre doit TOUJOURS
+#    suivre COLS_PAGE x ROWS_PAGE du générateur.
+_enregistrer_paire("dragon_or", "DRAGON D'OR", "\U0001f409", 6, dragon_or.generer_pdf)
+_enregistrer_paire("fafapiti",  "FAFAPITI",    "\U0001f41f", 6, fafapiti.generer_pdf)
+
+_PLAGES_CALLER["dragon_or"] = (1, 90)
+_PLAGES_CALLER["fafapiti"] = (1, 75)
+
+# 🐉 DRAGON D'OR : 90 boules, de 1 a 90, sans trou.
+# 🐟 FAFAPITI    : 60 boules seulement — 1 a 30 PUIS 46 a 75.
+#    ⚠️ LE N EST MORT : la plage 31-45 ne sort JAMAIS. Ne pas remplacer
+#    par un simple (1, 75).
+_BOULES_CALLER["dragon_or"] = [n for n in range(1, 91)]
+_BOULES_CALLER["fafapiti"] = [n for n in range(1, 31)] + [n for n in range(46, 76)]
+print("[RANIHEI] DRAGON D'OR et FAFAPITI inscrits — %d jeux au catalogue" % len(REGISTRE_JEUX))
