@@ -5193,3 +5193,25 @@ _PLAGES_CALLER["fafapiti"] = (1, 75)
 _BOULES_CALLER["dragon_or"] = [n for n in range(1, 91)]
 _BOULES_CALLER["fafapiti"] = [n for n in range(1, 31)] + [n for n in range(46, 76)]
 print("[RANIHEI] DRAGON D'OR et FAFAPITI inscrits — %d jeux au catalogue" % len(REGISTRE_JEUX))
+# ═════════════════════════════════════════════════════════════════════
+# 🎶 AREAREA — inscription du 24/09/2026 (création RANIHEI)
+# ═════════════════════════════════════════════════════════════════════
+from generators import arearea       # 🎶 création RANIHEI du 24/09
+
+JEUX_PROPRIETAIRE["arearea"] = "ranihei"
+
+# ⚠️ INDISPENSABLE : _imposer_gris_maison() a déjà tourné bien plus haut,
+#    AVANT que ce jeu ne soit chargé. Sans ce rappel il sortirait plus
+#    foncé que tout le reste du catalogue.
+_GRIS_POSES = _imposer_gris_maison()
+
+# ⚠️ 6 cartons par feuille : ce chiffre doit TOUJOURS suivre
+#    COLS_PAGE x ROWS_PAGE dans generators/arearea.py.
+_enregistrer_paire("arearea", "AREAREA", "\U0001f3b6", 6, arearea.generer_pdf)
+
+# 🎶 AREAREA : cinq bulles, une par lettre du BINGO —
+#    B 1-15 · I 16-30 · N 31-45 · G 46-60 · O 61-75.
+#    75 boules, de 1 a 75, sans un trou.
+_PLAGES_CALLER["arearea"] = (1, 75)
+_BOULES_CALLER["arearea"] = [n for n in range(1, 76)]
+print("[RANIHEI] AREAREA inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
