@@ -5215,3 +5215,21 @@ _enregistrer_paire("arearea", "AREAREA", "\U0001f3b6", 6, arearea.generer_pdf)
 _PLAGES_CALLER["arearea"] = (1, 75)
 _BOULES_CALLER["arearea"] = [n for n in range(1, 76)]
 print("[RANIHEI] AREAREA inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+GRIS_PARTICULIERS.update({
+    "ohana75_2series":  0.26,
+    "ohana75_4series":  0.26,
+    "ohana75_8boules":  0.26,
+    "ohana75_10boules": 0.26,
+    "ohana75_20boules": 0.26,
+    "p6_marathon":      0.26,
+    "ahe":              0.26,
+    "blossom_pearl":    0.26,
+    "makemo":           0.26,
+    "tureia_ranihei":   0.26,
+    "dragon_or":        0.26,
+    "fafapiti":         0.26,
+    "arearea":          0.26,
+})
+_GRIS_POSES = _imposer_gris_maison()
+print("[TEINTE 25/09] gris maison %.2f sur %d jeux, dont %d jeux gras gardes a 0,26"
+      % (GRIS_CHIFFRES_ECO, _GRIS_POSES, len(GRIS_PARTICULIERS)))
