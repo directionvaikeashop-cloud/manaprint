@@ -93,7 +93,21 @@ try:
 except Exception:
     _POLICE_ECO = "Helvetica-Bold"
     _POLICE_P15_G = "Helvetica-Bold"
-_GRIS_ECO = colors.Color(0.35, 0.35, 0.35)
+_GRIS_ECO = colors.Color(0.26, 0.26, 0.26)
+# ⭐⭐ 25/09 (sceau Maeva : « la règle de foncer les chiffres comme sur le
+#    OHANA 75 2 séries ») : LE P6 REJOINT LA RÈGLE DU 23/09.
+#    Le TRAIT du chiffre passe de rien à 0,026 de sa taille, et le gris
+#    de 0,35 à 0,26 en même temps — sinon le trait plus large reste pâle.
+#    ⚠️ L'ÉCRITURE NE CHANGE PAS : Latin Modern reste Latin Modern. Le
+#    trait est centré sur le bord de la lettre, donc il l'épaissit des
+#    deux côtés : c'est un gras, pas une autre police.
+#    ⚠️ ÇA COÛTE DU TONER : mesuré, environ deux fois plus d'encre sur
+#    les chiffres. C'est le prix du gras, le même que sur les OHANA.
+#    Pour régler d'une seule valeur, comme dans les cinq OHANA 75 :
+#       0,010 + gris 0,35 = l'ancien   ·  0,018 + 0,30 = un cran
+#       0,026 + gris 0,26 = ACTUEL     ·  0,034 + 0,22 = très gras
+#       0,044 + gris 0,18 = au maximum
+_GRAS_TRAIT = 0.026
 _POLICE_P15 = _POLICE_P15_G
 _GRIS_P15 = colors.Color(0.35, 0.35, 0.35)
 # ⭐⭐ 11/09 (sceau Maeva) : L'ÉCRITURE LATIN MODERN ROMAN dans les deux
@@ -318,7 +332,20 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
                 #    ET moins cher. 38 pt tenait encore, 40 serrait les
                 #    lignes du bas : 34 est le réglage choisi.
                 c.setFillColor(gris_ch); c.setFont(police_ch, 34)
-                c.drawCentredString(cx, cy, str(nums[ri]))
+                if _GRAS_TRAIT:
+                    # remplir ET contourer (mode de rendu 2) : le chiffre
+                    # reste le même, il s'épaissit simplement des deux côtés
+                    _tx = c.beginText(0, 0)
+                    _tx.setFont(police_ch, 34)
+                    _tx.setTextRenderMode(2)
+                    c.setStrokeColor(gris_ch)
+                    c.setLineWidth(max(0.2, 34 * float(_GRAS_TRAIT)))
+                    _tx.setTextOrigin(cx - _sw6(str(nums[ri]), police_ch, 34) / 2.0, cy)
+                    _tx.textOut(str(nums[ri]))
+                    c.drawText(_tx)
+                    c._code.append('0 Tr')   # sinon le mode de rendu reste actif
+                else:
+                    c.drawCentredString(cx, cy, str(nums[ri]))
         if ci > 0:
             c.setStrokeColor(colors.Color(0.85, 0.85, 0.85)); c.setLineWidth(0.3)
             c.line(x0 + ci * cell_w, y0 + FOOT_H, x0 + ci * cell_w, hdr_y)
