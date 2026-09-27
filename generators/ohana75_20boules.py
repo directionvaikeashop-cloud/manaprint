@@ -86,6 +86,9 @@ _GRIS_ECO = colors.Color(0.26, 0.26, 0.26)
 #    ⚠ NE PAS remplacer par une police grasse : Maeva a explicitement
 #      demandé de GARDER l'écriture.
 _GRAS_TRAIT = 0.026
+_T_GRAND = 35.0
+_T_CERCLE = 30.0
+_R_ROND = 7.9
 _POLICE_P15 = _POLICE_ECO
 _GRIS_P15 = colors.Color(0.14, 0.14, 0.14)   # objet distinct : sert à reconnaître la gamme
 
@@ -108,7 +111,41 @@ CARD_W = PAGE_W - 2 * MARGIN_X
 CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
 
 HDR_H = 6 * mm
-ZONE_QR = 22 * mm  # zone droite réservée : la maison du QR
+# ⭐⭐ 26/09 (sceau Maeva : « on va bien grossir les chiffres ») ═══════
+#    LA PLACE DU QR N'EST RÉSERVÉE QUE S'IL Y A UN QR — même correction
+#    que sur le 10 boules. 22 mm étaient gardés à droite sur TOUS les
+#    cartons alors que le QR n'est dessiné que si la commande porte un
+#    évènement. Sans QR, la ligne prend maintenant 188 mm au lieu de 172.
+#    ⚠️ Tailles MESURÉES à 600 dpi, chaque valeur de chaque plage
+#    imprimée dans sa case, pixels de contact comptés :
+#       grand 44 · rond 9,0 mm  ->  0 contact
+#       grand 48 · rond 9,4 mm  ->  0 contact     ← INSTALLÉ
+#       grand 52 · rond 9,8 mm  ->  0 contact (mais les deux rangées
+#                                   commencent à se serrer à l'œil)
+#    Le grand chiffre passe donc de 35 à 48 pt (+37 %) et le chiffre
+#    cerclé de 30 à 39 pt (+30 %).
+#    AVEC un QR, tout reste exactement comme avant.
+#            marge gauche · réserve droite · grand · rayon du rond · cerclé
+_SANS_QR = (4.0, 6.0, 48.0, 9.4, None)     # None = la taille se calcule sur le rond
+_AVEC_QR = (4.0, 22.0, 35.0, 7.9, 30.0)    # l'ancien calibre, à l'identique
+
+
+def _taille_cercle(r_mm):
+    """Le chiffre cerclé s'adapte au rond, jamais l'inverse : on descend
+    jusqu'à ce que la diagonale du « 88 », trait de gras compris, tienne."""
+    R = r_mm * mm
+    t = 44.0
+    while t > 10:
+        l = _pm.stringWidth("88", _POLICE_ECO, t) + t * _GRAS_TRAIT
+        if ((l / 2) ** 2 + ((t * 0.72) / 2) ** 2) ** 0.5 <= R * 0.92:
+            break
+        t -= 0.25
+    return t
+
+
+ZONE_QR_MM = 22.0
+ZONE_QR = ZONE_QR_MM * mm  # zone droite réservée : la maison du QR
+_GAUCHE_MM = 4.0
 
 QUINZAINES = [(1, 15), (16, 30), (31, 45), (46, 60), (61, 75)]
 
@@ -196,11 +233,12 @@ def _dessiner_carte(c, x0, y0, rangs, couleur_hex, serie, encre,
     c.drawCentredString(x0 + CARD_W / 2, hdr_y + 2.2 * mm, titre)
 
     # Les 2 rangées de 10 numéros (grand / cerclé alternés)
-    gauche = x0 + 4 * mm
-    droite = x0 + CARD_W - ZONE_QR
+    _g, _z, _tgd, _rr, _tc = _AVEC_QR if (_sec and evenement_id) else _SANS_QR
+    gauche = x0 + _g * mm
+    droite = x0 + CARD_W - _z * mm
     pas = (droite - gauche) / 10.0
     zone_h = hdr_y - y0
-    t_grand, t_cercle = 35, 30  # 35 hors bulle · 30 dans la bulle (sceau Maeva 30/07)
+    t_grand, t_cercle = _tgd, (_tc if _tc is not None else _taille_cercle(_rr))
 
     for ri, rang in enumerate(rangs):
         cy = y0 + zone_h * (0.66 if ri == 0 else 0.18)
@@ -219,7 +257,7 @@ def _dessiner_carte(c, x0, y0, rangs, couleur_hex, serie, encre,
                     cyc = cy + (t_grand - t_cercle) * 0.35
                     c.setStrokeColor(col); c.setLineWidth(0.5)
                     c.setDash(1.4, 1.6)
-                    c.circle(cx, cyc + t_cercle * 0.36, 7.9 * mm, stroke=1, fill=0)
+                    c.circle(cx, cyc + t_cercle * 0.36, _rr * mm, stroke=1, fill=0)
                     c.setDash()
                     _smor.poser_numero_image(c, n, cx, cyc + t_cercle * 0.36, 11, 9, gris_ch)
                 continue
@@ -236,7 +274,7 @@ def _dessiner_carte(c, x0, y0, rangs, couleur_hex, serie, encre,
                 cyc = cy + (t_grand - t_cercle) * 0.35   # même centre optique que les grands
                 c.setStrokeColor(col); c.setLineWidth(0.5)
                 c.setDash(1.4, 1.6)
-                c.circle(cx, cyc + t_cercle * 0.36, 7.9 * mm, stroke=1, fill=0)
+                c.circle(cx, cyc + t_cercle * 0.36, _rr * mm, stroke=1, fill=0)
                 c.setDash()
                 if _sec:
                     _sec.chiffre_micro(c, n, cx, cyc, t_cercle, gris_ch, police_ch,
