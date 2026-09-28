@@ -5233,3 +5233,18 @@ GRIS_PARTICULIERS.update({
 _GRIS_POSES = _imposer_gris_maison()
 print("[TEINTE 25/09] gris maison %.2f sur %d jeux, dont %d jeux gras gardes a 0,26"
       % (GRIS_CHIFFRES_ECO, _GRIS_POSES, len(GRIS_PARTICULIERS)))
+# ═══════════════════════════════════════════════════════════════════════
+# 🎟️ 28/09 — OHANA 75 · 10 BOULES / 18 GRILLES (maquette Maeva du 28/09)
+#   ⚠️ JEU NEUF. Il NE REMPLACE PAS le OHANA 75 · 10 boules : celui-ci
+#   garde son identifiant "ohana75_10b", ses 9 cartons par feuille et son
+#   dessin. Le nouveau vit sous "ohana75_10b18", 18 cartons par feuille.
+#   Mêmes plages, même crieur : 75 boules de 1 à 75.
+# ═══════════════════════════════════════════════════════════════════════
+from generators import ohana75_10b18
+GRIS_PARTICULIERS.update({"ohana75_10b18": 0.26})
+_GRIS_POSES = _imposer_gris_maison()
+_enregistrer_paire("ohana75_10b18", "OHANA 75 · 10 boules / 18 grilles",
+                   "\U0001f3ab", 18, ohana75_10b18.generer_pdf)
+_PLAGES_CALLER["ohana75_10b18"] = (1, 75)
+_BOULES_CALLER["ohana75_10b18"] = [n for n in range(1, 76)]
+print("[10B18] 10 BOULES / 18 GRILLES inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
