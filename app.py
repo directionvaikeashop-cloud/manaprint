@@ -5737,3 +5737,26 @@ _enregistrer_paire("wiz", "WIZ 4 boules", "\U0001f9d9", 16, wiz.generer_pdf)
 #    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[WIZ] nouvelle planche — 16 cartons par feuille, %d jeux au catalogue" % len(REGISTRE_JEUX))
+# ═════════════════════════════════════════════════════════════════════
+# 🎏 28/09 — LES DEUX INO sur sa nouvelle planche (sceau Maeva)
+#   ⚠️ CE NE SONT PAS DES JEUX NEUFS : memes identifiants, memes plages
+#   (I 16-30 · N 31-45 · O 61-75), memes numeros aux memes places.
+#     INO 5 boules : 5 numeros, QUATRE cases vides, le QR au milieu-gauche
+#     INO 8 boules : 8 numeros tries, la case du CENTRE vide, le QR dedans
+#   Le crieur ne change pas : 16-45 puis 61-75, le 46-60 n'existe pas.
+#   ⚠️⚠️ CE QUI CHANGE : 16 cartons par feuille A4 PAYSAGE au lieu de 12
+#   en portrait, pour les DEUX. Sans cette reinscription, une commande de
+#   500 feuilles n'en sortirait que 375.
+#   ⭐ RIEN A CHANGER D'AUTRE : ni l'un ni l'autre n'est dans
+#   JEUX_AVEC_IMAGE ou JEUX_HABILLES, et tous deux RESTENT dans
+#   JEUX_MOTIF — les clientes gardent le filigrane en fond.
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"ino": 0.40, "ino8": 0.40})
+_GRIS_POSES = _imposer_gris_maison()
+_enregistrer_paire("ino",  "INO 5 boules", "\U0001f38f", 16, ino.generer_pdf)
+_enregistrer_paire("ino8", "INO 8 boules", "\U0001f390", 16, ino8.generer_pdf)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[INO] les deux INO sur la nouvelle planche — 16 cartons par feuille, %d jeux au catalogue"
+      % len(REGISTRE_JEUX))
