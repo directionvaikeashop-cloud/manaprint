@@ -5263,3 +5263,16 @@ _enregistrer_paire("ohana75_8b18", "OHANA 75 · 8 boules / 18 grilles",
 _PLAGES_CALLER["ohana75_8b18"] = (1, 75)
 _BOULES_CALLER["ohana75_8b18"] = [n for n in range(1, 31)] + [n for n in range(46, 76)]
 print("[8B18] 8 BOULES / 18 GRILLES inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+# ═══════════════════════════════════════════════════════════════════════
+# 🌿 28/09 — KEA sur sa nouvelle planche (sceau Maeva : « retire la croix »)
+#   ⚠️ CE N'EST PAS UN JEU NEUF : même identifiant, mêmes plages
+#   (K 35-45 · E 46-56 · A 57-67), mêmes 9 numéros par carton.
+#   Les anciennes commandes se régénèrent à l'identique.
+#   ⚠️⚠️ CE QUI CHANGE : 16 cartons par feuille A4 PAYSAGE au lieu de 12
+#   en portrait. Sans cette réinscription la boutique facturerait 12
+#   cartons par feuille alors qu'il en sort 16.
+# ═══════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"kea": 0.26})
+_GRIS_POSES = _imposer_gris_maison()
+_enregistrer_paire("kea", "KEA", "\U0001f33f", 16, kea.generer_pdf)
+print("[KEA] nouvelle planche — 16 cartons par feuille, %d jeux au catalogue" % len(REGISTRE_JEUX))
