@@ -5715,3 +5715,25 @@ _enregistrer_paire("rai", "RAI", "\U0001f308", 16, rai.generer_pdf)
 #    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[RAI] nouvelle planche — 16 cartons par feuille, %d jeux au catalogue" % len(REGISTRE_JEUX))
+# ═════════════════════════════════════════════════════════════════════
+# 🧙 28/09 — WIZ 4 BOULES sur sa nouvelle planche (sceau Maeva)
+#   ⚠️ CE N'EST PAS UN JEU NEUF : meme identifiant, memes plages
+#   (haut et bas 16-30 · gauche 1-15 · droite 31-45), memes QUATRE
+#   numeros en losange. Le crieur ne change pas (1 a 45).
+#   ⚠️⚠️ CE QUI CHANGE : 16 cartons par feuille A4 PAYSAGE au lieu de 12
+#   en portrait. Sans cette reinscription, une commande de 500 feuilles
+#   n'en sortirait que 375.
+#   ⚠️⚠️ LE DESSIN DU SORCIER DISPARAIT : sa nouvelle planche est au
+#   trait pur, sans aucune image. WIZ sort donc de JEUX_AVEC_IMAGE.
+#   ⚠️⚠️ CE QUE JE NE TOUCHE PAS : WIZ reste dans JEUX_HABILLES, la liste
+#   des jeux RESERVES aux partenaires — comme RAI. C'est un choix
+#   commercial, a elle de le dire.
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"wiz": 0.40})
+_GRIS_POSES = _imposer_gris_maison()
+JEUX_AVEC_IMAGE.discard("wiz")
+_enregistrer_paire("wiz", "WIZ 4 boules", "\U0001f9d9", 16, wiz.generer_pdf)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[WIZ] nouvelle planche — 16 cartons par feuille, %d jeux au catalogue" % len(REGISTRE_JEUX))
