@@ -5789,3 +5789,31 @@ _enregistrer_paire("pow6", "POW 6 boules", "\U0001f4ab", 16, pow6.generer_pdf)
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[POW 6] nouvelle planche et 6 boules — 16 cartons par feuille, %d jeux au catalogue"
       % len(REGISTRE_JEUX))
+# ═════════════════════════════════════════════════════════════════════
+# ⭕ 29/09 — OAOA : nouvelle planche ET nouvelles plages
+#   (sceau Maeva : « changeant la maquette du jeu OAOA », puis elle a
+#    confirme les plages ecrites sur sa planche)
+#   ⚠️⚠️ LA REGLE DU JEU CHANGE :
+#     AVANT : O = 16 a 30 · A = 61 a 75  ->  30 boules
+#     APRES : O = 1 a 30  · A = 31 a 75  ->  LES 75 BOULES
+#     Trois numeros par colonne, tries : ca ne change pas.
+#   ⚠️⚠️ LE CRIEUR CHANGE DONC AUSSI — c'est fait plus bas : il passe de
+#     « 16 a 75 avec un trou de 31 a 60 » a « 1 a 75, toutes les boules ».
+#   ⚠️ LA PARTIE DURE BEAUCOUP PLUS LONGTEMPS : six numeros a sortir
+#     parmi 75 au lieu de 30. A tester une fois en salle.
+#   ⚠️⚠️ 16 cartons par feuille A4 PORTRAIT au lieu de 12. Sans cette
+#     reinscription, 500 feuilles commandees n'en donneraient que 375.
+#   ⚠️ IL N'Y A PLUS DE QR : sa planche n'a pas de bande pour lui.
+#     Microtexte et numero de serie unique conserves.
+#   ⭐ CE QUE CA REPARE : 207 025 -> 57 611 400 cartons differents.
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"oaoa": 0.40})
+_GRIS_POSES = _imposer_gris_maison()
+_enregistrer_paire("oaoa", "OAOA", "\u2b55", 16, oaoa.generer_pdf)
+_PLAGES_CALLER["oaoa"] = (1, 75)
+_BOULES_CALLER["oaoa"] = [n for n in range(1, 76)]
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[OAOA] nouvelle planche · O 1-30 et A 31-75 · crieur %s · 16 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["oaoa"], len(REGISTRE_JEUX)))
