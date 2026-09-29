@@ -14,6 +14,16 @@ chacun dans sa plage. L'ordre vertical reste libre — c'est son modèle.
      K : 35 à 45     E : 46 à 56     A : 57 à 67
 ⚠️ CE QUI CHANGE : 16 cartons par feuille A4 PAYSAGE au lieu de 12 en
 portrait. app.py doit donc réinscrire KEA à 16 (voir le bloc livré).
+
+⭐ 28/09 (sceau Maeva : « la couleur noir est trop forte sur les chiffres
+et les grilles, peut-on alléger ») — NIVEAU B, choisi par elle sur l'image
+des quatre niveaux :
+    le trait de la planche en NOIR ET BLANC : #000000 -> #555555
+    les chiffres : gris 0,26 -> 0,40   et gras 0,026 -> 0,012
+⚠️ Le MODE COULEUR ne bouge pas : la planche y prend la teinte de
+   l'arc-en-ciel, ce n'était pas le noir qui gênait.
+⚠️ app.py doit remettre GRIS_PARTICULIERS à 0,40, sinon le démarrage
+   repose 0,26 sur les chiffres (voir le bloc livré).
 """
 import io
 import random
@@ -58,8 +68,8 @@ except Exception:
         _POLICE_ECO = "DJLECO"
     except Exception:
         _POLICE_ECO = "Helvetica"
-_GRIS_ECO = colors.Color(0.26, 0.26, 0.26)
-_GRAS_TRAIT = 0.026
+_GRIS_ECO = colors.Color(0.40, 0.40, 0.40)
+_GRAS_TRAIT = 0.012
 _POLICE_P15 = _POLICE_ECO
 _GRIS_P15 = colors.Color(0.14, 0.14, 0.14)
 
@@ -291,7 +301,7 @@ def generer_pdf(nb_cartes=16, serie_start=1, theme="", couleur=True,
         cartes = [_tirer(rng, _deja) for _ in range(CARTES_PAGE)]
         series = [serie + k for k in range(CARTES_PAGE)]
         coul = (couleur_perso if (couleur and couleur_perso)
-                else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#000000")
+                else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#555555")
         _dessiner_feuille(c, MARGE_X, MARGE_Y, cartes, series, coul,
                           titre_jeu, telephone, style=style)
         serie += CARTES_PAGE
