@@ -12,6 +12,14 @@ nouveau dessin et on le relève de la même façon.
 NE SORT QU'UNE FOIS. Chaque plage compte 15 numéros et la colonne en prend
 15 (5 rangées × 3) : la colonne porte donc SA QUINZAINE ENTIÈRE, chaque
 numéro une seule fois. Aucun doublon d'une rangée à l'autre.
+
+⭐ 28/09 (sceau Maeva : « la couleur noir est trop forte sur les chiffres
+et les grilles ») — NIVEAU B : le trait de la planche en NOIR ET BLANC
+passe de #000000 à #555555.
+⚠️ Les chiffres du TRIO 75 ne bougent PAS : ils sont déjà à l'encre
+   légère de la maison (gris 0,50, sans trait gras) — plus clairs encore
+   que le niveau B. Les noircir puis les éclaircir n'aurait aucun sens.
+⚠️ Le MODE COULEUR ne bouge pas.
 """
 import io
 import random
@@ -276,7 +284,7 @@ def generer_pdf(nb_cartes=10, serie_start=1, theme="", couleur=True,
             y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
             grilles = _gen_carte(rng)
             coul = (couleur_perso if (couleur and couleur_perso)
-                    else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#000000")
+                    else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#555555")
             _dessiner_carte(c, x0, y0, grilles, coul, serie, titre_jeu, telephone,
                             style=style, evenement_id=evenement_id)
             serie += 1
