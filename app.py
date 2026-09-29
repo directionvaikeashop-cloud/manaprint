@@ -5320,3 +5320,33 @@ print("[FEUILLES] table de fabrication reaccordee au menu : %d entrees corrigees
 for _j in _CORRIGES:
     print("[FEUILLES]    %-28s %s -> %d cartons/feuille"
           % (_j, _AVANT_CPF.get(_j, "absent"), CARTES_PAR_FEUILLE[_j]))
+# ═════════════════════════════════════════════════════════════════════
+# ⚠️ 28/09 — ALLEGER LE NOIR (sceau Maeva : « la couleur noir est trop
+#   forte sur les chiffres et les grilles, peut-on alleger »)
+#   NIVEAU B, choisi par elle sur l'image des quatre niveaux.
+#   Les cinq planches neuves : TRIO 75, 10 boules/18 grilles,
+#   8 boules/18 grilles, KEA, POW 9 boules.
+#   Le trait de la planche et le gras des chiffres sont dans les fichiers
+#   des jeux. ICI on remet seulement la teinte des chiffres, sinon
+#   _imposer_gris_maison() repose 0,26 au demarrage et tout le travail
+#   est annule.
+#   ⚠️ TRIO 75 n'est pas dans la liste : ses chiffres sont deja a
+#      l'encre legere de la maison (0,50), plus clairs que le niveau B.
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({
+    "ohana75_10b18": 0.40,
+    "ohana75_8b18":  0.40,
+    "kea":           0.40,
+    "pow9":          0.40,
+})
+_GRIS_POSES = _imposer_gris_maison()
+# ⭐ LA REGLE DU 28/09 : tout bloc qui touche au catalogue rememorise
+#    la table de fabrication, sinon une commande de 500 feuilles n'en sort
+#    que 375 (le plafond trouve ce soir).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[ALLEGE] niveau B pose sur les 5 planches neuves — chiffres gris 0,40")
+for _j in ("trio75", "ohana75_10b18", "ohana75_8b18", "kea", "pow9"):
+    _m = __import__("sys").modules.get("generators." + _j)
+    if _m is not None:
+        print("[ALLEGE]    %-16s gris %.2f  gras %.3f"
+              % (_j, _m._GRIS_ECO.red, getattr(_m, "_GRAS_TRAIT", 0.0)))
