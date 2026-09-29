@@ -5248,3 +5248,44 @@ _enregistrer_paire("ohana75_10b18", "OHANA 75 · 10 boules / 18 grilles",
 _PLAGES_CALLER["ohana75_10b18"] = (1, 75)
 _BOULES_CALLER["ohana75_10b18"] = [n for n in range(1, 76)]
 print("[10B18] 10 BOULES / 18 GRILLES inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+=====================================================================
+BLOC À COLLER À LA FIN DE app.py          —      28 septembre 2026
+=====================================================================
+
+👉 https://github.com/directionvaikeashop-cloud/manaprint/edit/main/app.py
+   Ctrl+Fin → Entrée après la dernière ligne → coller → Commit
+   ⚠️ PAS de Ctrl+A. Coche « Commit directly to the main branch ».
+   ⚠️ Le générateur D'ABORD, app.py EN DERNIER.
+
+---------------------------------------------------------------------
+(recopie tout ce qui est sous cette ligne)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 🎟️ 28/09 — OHANA 75 · 8 BOULES / 18 GRILLES (maquette Maeva du 28/09)
+#   ⚠️ JEU NEUF. Il NE REMPLACE PAS le OHANA 75 · 8 boules, qui garde son
+#   identifiant "ohana75_8b" et ses 9 cartons par feuille.
+#   ⚠️⚠️ QUATRE plages seulement : le N (31 à 45) N'EXISTE PAS. L'univers
+#   est 1-30 PUIS 46-75, soit 60 boules — comme l'ancien 8 boules.
+# ═══════════════════════════════════════════════════════════════════════
+from generators import ohana75_8b18
+GRIS_PARTICULIERS.update({"ohana75_8b18": 0.26})
+_GRIS_POSES = _imposer_gris_maison()
+_enregistrer_paire("ohana75_8b18", "OHANA 75 · 8 boules / 18 grilles",
+                   "\U0001f3ab", 18, ohana75_8b18.generer_pdf)
+_PLAGES_CALLER["ohana75_8b18"] = (1, 75)
+_BOULES_CALLER["ohana75_8b18"] = [n for n in range(1, 31)] + [n for n in range(46, 76)]
+print("[8B18] 8 BOULES / 18 GRILLES inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+
+
+---------------------------------------------------------------------
+✅ VÉRIFIÉ EN DÉMARRANT TON APPLICATION AVEC CE BLOC
+
+   [8B18] 8 BOULES / 18 GRILLES inscrit — 844 jeux au catalogue
+
+   ohana75_8b18   18 cartons/feuille   crieur 60 boules, 31-45 exclus ✓
+   ohana75_10b18  18 cartons/feuille   (celui d'hier, intact)        ✓
+   ohana75_8b      9 cartons/feuille   (l'ancien, intact)            ✓
+   ohana75_10b     9 cartons/feuille   (l'ancien, intact)            ✓
+
+=====================================================================
