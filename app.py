@@ -5276,3 +5276,22 @@ GRIS_PARTICULIERS.update({"kea": 0.26})
 _GRIS_POSES = _imposer_gris_maison()
 _enregistrer_paire("kea", "KEA", "\U0001f33f", 16, kea.generer_pdf)
 print("[KEA] nouvelle planche — 16 cartons par feuille, %d jeux au catalogue" % len(REGISTRE_JEUX))
+# ═════════════════════════════════════════════════════════════════════
+# 💥 28/09 — POW 9 BOULES sur sa nouvelle planche (sceau Maeva)
+#   ⚠️ CE N'EST PAS UN JEU NEUF : meme identifiant, memes plages
+#   (colonne 1 : 1-9 · colonne 2 : 10-18 · colonne 3 : 19-27), memes
+#   9 numeros par carton, le plus petit en haut. Le crieur ne change pas.
+#   ⚠️⚠️ CE QUI CHANGE : 16 cartons par feuille A4 PAYSAGE au lieu de 12
+#   en portrait. Sans cette reinscription la boutique facturerait 12
+#   cartons par feuille alors qu'il en sort 16.
+#   ⚠️⚠️ LE PANIER TRESSE DISPARAIT : sa nouvelle planche est au trait
+#   pur, sans aucune image. POW 9 sort donc de JEUX_AVEC_IMAGE, sinon le
+#   menu annoncerait « AVEC IMAGE » a des clientes qui recevraient un
+#   carton sans dessin. (JEUX_HABILLES ne contient pas pow9 : rien ne
+#   change a la facturation.)
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"pow9": 0.26})
+_GRIS_POSES = _imposer_gris_maison()
+JEUX_AVEC_IMAGE.discard("pow9")
+_enregistrer_paire("pow9", "POW 9 boules", "\U0001f9fa", 16, pow9gen.generer_pdf)
+print("[POW 9] nouvelle planche — 16 cartons par feuille, %d jeux au catalogue" % len(REGISTRE_JEUX))
