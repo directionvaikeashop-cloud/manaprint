@@ -5289,3 +5289,18 @@ print("[8B18] 8 BOULES / 18 GRILLES inscrit — %d jeux au catalogue" % len(REGI
    ohana75_10b     9 cartons/feuille   (l'ancien, intact)            ✓
 
 =====================================================================
+# ═══════════════════════════════════════════════════════════════════════
+# 🎟️ 28/09 — OHANA 75 · 8 BOULES / 18 GRILLES (maquette Maeva du 28/09)
+#   ⚠️ JEU NEUF. Il NE REMPLACE PAS le OHANA 75 · 8 boules, qui garde son
+#   identifiant "ohana75_8b" et ses 9 cartons par feuille.
+#   ⚠️⚠️ QUATRE plages seulement : le N (31 à 45) N'EXISTE PAS. L'univers
+#   est 1-30 PUIS 46-75, soit 60 boules — comme l'ancien 8 boules.
+# ═══════════════════════════════════════════════════════════════════════
+from generators import ohana75_8b18
+GRIS_PARTICULIERS.update({"ohana75_8b18": 0.26})
+_GRIS_POSES = _imposer_gris_maison()
+_enregistrer_paire("ohana75_8b18", "OHANA 75 · 8 boules / 18 grilles",
+                   "\U0001f3ab", 18, ohana75_8b18.generer_pdf)
+_PLAGES_CALLER["ohana75_8b18"] = (1, 75)
+_BOULES_CALLER["ohana75_8b18"] = [n for n in range(1, 31)] + [n for n in range(46, 76)]
+print("[8B18] 8 BOULES / 18 GRILLES inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
