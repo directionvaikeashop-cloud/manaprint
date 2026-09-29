@@ -229,6 +229,25 @@ _FOND_BANDEAU = None          # None = blanc, rien n'est posé
 _RENTRE_BANDEAU = 0.4 * mm
 
 
+# ⚠️⚠️ 28/09 — DEUX GRILLES IDENTIQUES DANS LA MEME RAME : LE VRAI RISQUE.
+#    Ce jeu ne peut fabriquer que 12 762 815 625 grilles differentes. Dans une rame de
+#    500 feuilles il y a 9 000 grilles : le calcul dit une chance sur 315.
+#    Deux cartons identiques dans une salle, c'est deux gagnants en meme
+#    temps sur le meme tirage.
+#    ⭐ REMEDE : on garde en memoire, PENDANT TOUT LE DOCUMENT, les grilles
+#      deja sorties, et on retire au sort tant qu'on retombe sur une
+#      ancienne. Le document ne peut plus contenir deux grilles pareilles,
+#      quelle que soit sa taille. Cout : quelques tirages de plus, invisible.
+def _tirer(rng, deja):
+    for _ in range(200):
+        g = _gen_grille(rng)
+        cle = tuple(g[0]) + tuple(g[1])
+        if cle not in deja:
+            deja.add(cle)
+            return g
+    return g
+
+
 def _dessiner_feuille(c, x0, y0, grilles, series, couleur_hex, titre_jeu="",
                       telephone="", style="eco"):
     police_ch, gris_ch = _style_chiffres(style)
@@ -299,6 +318,7 @@ def generer_pdf(nb_cartes=18, serie_start=1, theme="", couleur=True,
     rng = random.Random(962000 + int(serie_start))
     serie = int(serie_start)
     no_page = max(1, int(page_start))
+    _deja = set()      # ⚠️ le sac des grilles deja sorties dans CE document
 
     for _ in range(nb_pages):
         if nom_evenement:
@@ -307,7 +327,7 @@ def generer_pdf(nb_cartes=18, serie_start=1, theme="", couleur=True,
         c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 5.5)
         c.drawRightString(PAGE_W - 5 * mm, PAGE_H - 4.2 * mm, "%03d" % no_page)
 
-        grilles = [_gen_grille(rng) for _ in range(CARTES_PAGE)]
+        grilles = [_tirer(rng, _deja) for _ in range(CARTES_PAGE)]
         series = [serie + k for k in range(CARTES_PAGE)]
         coul = (couleur_perso if (couleur and couleur_perso)
                 else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#000000")
