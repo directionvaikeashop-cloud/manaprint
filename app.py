@@ -5295,3 +5295,28 @@ _GRIS_POSES = _imposer_gris_maison()
 JEUX_AVEC_IMAGE.discard("pow9")
 _enregistrer_paire("pow9", "POW 9 boules", "\U0001f9fa", 16, pow9gen.generer_pdf)
 print("[POW 9] nouvelle planche — 16 cartons par feuille, %d jeux au catalogue" % len(REGISTRE_JEUX))
+# ═════════════════════════════════════════════════════════════════════
+# ⚠️⚠️ 28/09 — LE PLAFOND DE 375 FEUILLES (signale par Maeva)
+#   Une commande de 500 feuilles de KEA n'en sortait que 375.
+#   POURQUOI : app.py tient DEUX comptes du nombre de cartons par feuille.
+#     · REGISTRE_JEUX   -> ce que le menu affiche      (mis a jour)
+#     · CARTES_PAR_FEUILLE -> ce qui sert a FABRIQUER  (photo prise a la
+#       ligne 1094, bien avant les blocs ajoutes en fin de fichier)
+#   Les jeux inscrits ou reinscrits APRES la ligne 1094 gardaient donc
+#   l'ancien chiffre, ou rien du tout (et le code retombe alors sur 10).
+#     KEA et POW 9 ........ table 12 au lieu de 16 -> 375 feuilles sur 500
+#     10 b/18 g et 8 b/18 g table absente (=10) au lieu de 18 -> 278 sur 500
+#     AREAREA, DRAGON D'OR, FAFAPITI : absente (=10) au lieu de 6
+#        -> 834 feuilles sortaient pour 500 commandees (papier et toner
+#           donnes, et les numeros de serie depassaient leur tranche)
+#   ON REMET LA TABLE DE FABRICATION D'ACCORD AVEC LE MENU, pour tous.
+#   ⭐ A GARDER : tout bloc ajoute plus bas qui change le nombre de
+#      cartons par feuille doit refaire cette mise a jour APRES lui.
+# ═════════════════════════════════════════════════════════════════════
+_AVANT_CPF = dict(CARTES_PAR_FEUILLE)
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+_CORRIGES = sorted(_j for _j in REGISTRE_JEUX if _AVANT_CPF.get(_j) != CARTES_PAR_FEUILLE[_j])
+print("[FEUILLES] table de fabrication reaccordee au menu : %d entrees corrigees" % len(_CORRIGES))
+for _j in _CORRIGES:
+    print("[FEUILLES]    %-28s %s -> %d cartons/feuille"
+          % (_j, _AVANT_CPF.get(_j, "absent"), CARTES_PAR_FEUILLE[_j]))
