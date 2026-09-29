@@ -5760,3 +5760,32 @@ _enregistrer_paire("ino8", "INO 8 boules", "\U0001f390", 16, ino8.generer_pdf)
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[INO] les deux INO sur la nouvelle planche — 16 cartons par feuille, %d jeux au catalogue"
       % len(REGISTRE_JEUX))
+# ═════════════════════════════════════════════════════════════════════
+# 💫 28/09 — POW 6 BOULES : nouvelle planche ET nouvelle regle
+#   (sceau Maeva : « changeant la maquette du jeu POW 6 boules »,
+#    puis « met 6 boules stp »)
+#   ⚠️⚠️ LA REGLE DU JEU CHANGE, ce n'est pas qu'un habillage :
+#     AVANT : 5 numeros, la case du bas-milieu vide pour le QR
+#     APRES : 6 numeros, DEUX par famille de neuf, la grille est pleine
+#             1-9 (x2) · 10-18 (x2) · 19-27 (x2), ordre libre
+#   ⚠️ LE CRIEUR NE CHANGE PAS : toujours 1 a 27, memes familles.
+#     Mais un carton se remplit plus vite : 6 numeros au lieu de 5.
+#   ⚠️ IL N'Y A PLUS DE QR : sa case porte maintenant une boule.
+#     Le microtexte et le numero de serie unique restent.
+#   ⭐ CE QUE CA REPARE : 46 656 -> 373 248 cartons differents.
+#     L'ancien sortait 659 doublons par rame de 500 feuilles.
+#   ⚠️⚠️ LE NOM CHANGE AU MENU : « POW 5 boules » devient « POW 6
+#     boules ». L'IDENTIFIANT reste pow6 : les anciennes commandes se
+#     retrouvent, mais elles se regenereront avec SIX numeros.
+#   ⚠️⚠️ 16 cartons par feuille A4 PAYSAGE au lieu de 12 en portrait.
+#   ⭐ POW 8, POW 9 et POW CASINO ne bougent pas. POW 6 reste dans
+#     JEUX_MOTIF : les clientes gardent le filigrane.
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"pow6": 0.40})
+_GRIS_POSES = _imposer_gris_maison()
+_enregistrer_paire("pow6", "POW 6 boules", "\U0001f4ab", 16, pow6.generer_pdf)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[POW 6] nouvelle planche et 6 boules — 16 cartons par feuille, %d jeux au catalogue"
+      % len(REGISTRE_JEUX))
