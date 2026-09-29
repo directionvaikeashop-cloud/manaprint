@@ -5689,3 +5689,29 @@ if __name__ == "__main__":
     with open("test_rai.pdf", "wb") as f:
         f.write(pdf.read())
     print("RAI genere")
+# ═════════════════════════════════════════════════════════════════════
+# 🌈 28/09 — RAI sur sa nouvelle planche (sceau Maeva)
+#   ⚠️ CE N'EST PAS UN JEU NEUF : meme identifiant, memes familles de dix
+#   (30-39 x3 · 40-49 x2 · 50-59 x3), memes HUIT boules, case du milieu
+#   toujours vide. Le crieur ne change pas (30 a 59).
+#   ⚠️⚠️ CE QUI CHANGE : 16 cartons par feuille A4 PAYSAGE au lieu de 12
+#   en portrait. Sans cette reinscription la boutique ferait sortir 12
+#   cartons par feuille alors que la planche en porte 16 : une commande
+#   de 500 feuilles n'en donnerait que 375.
+#   ⚠️⚠️ LES NUAGES DISPARAISSENT : sa nouvelle planche est au trait pur,
+#   sans aucune image. RAI sort donc de JEUX_AVEC_IMAGE, sinon le menu
+#   annonce « AVEC IMAGE » et le quota des jeux a image continue de se
+#   declencher sur un carton qui n'a plus de dessin.
+#   ⚠️⚠️ CE QUE JE NE TOUCHE PAS : RAI reste dans JEUX_HABILLES, la liste
+#   des jeux RESERVES aux partenaires. C'est un choix commercial, pas
+#   technique : a toi de dire si RAI doit y rester maintenant qu'il n'a
+#   plus de nuages.
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"rai": 0.40})
+_GRIS_POSES = _imposer_gris_maison()
+JEUX_AVEC_IMAGE.discard("rai")
+_enregistrer_paire("rai", "RAI", "\U0001f308", 16, rai.generer_pdf)
+# 🌈 la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[RAI] nouvelle planche — 16 cartons par feuille, %d jeux au catalogue" % len(REGISTRE_JEUX))
