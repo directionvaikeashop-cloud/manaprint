@@ -5817,3 +5817,34 @@ _BOULES_CALLER["oaoa"] = [n for n in range(1, 76)]
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[OAOA] nouvelle planche · O 1-30 et A 31-75 · crieur %s · 16 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["oaoa"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 🍽️ 29/09 — KAI 7 BOULES : nouvelle planche
+#   (sceau Maeva : « maintenant le jeu KAI »)
+#   ⭐ LA REGLE NE CHANGE PAS : col 1-10 -> 2 numeros, col 11-20 -> 3,
+#     col 21-30 -> 2. Sept numeros, deux cases barrees d'une croix.
+#   ⚠️⚠️ 16 cartons par feuille A4 PAYSAGE au lieu de 12 en portrait.
+#     Sans cette reinscription, 500 feuilles commandees n'en donneraient
+#     que 375.
+#   ⚠️⚠️ LE CRIEUR ETAIT FAUX : il etait regle sur 1 a 29, alors que la
+#     troisieme colonne monte jusqu'a 30. Le 30 ne sortait JAMAIS : un
+#     carton qui l'avait ne pouvait pas gagner. Corrige plus bas.
+#   ⚠️ IL N'Y A PLUS LE PUZZLE AUX DES : sa planche est au trait, donc le
+#     jeu sort de la liste « carton avec dessin » (menu + quota d'images).
+#     Il reste dans les jeux reserves : c'est son choix commercial, a elle
+#     de dire si elle veut l'en sortir.
+#   ⭐ CE QUE CA REPARE : 120 doublons par rame de 500 feuilles.
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"kai": 0.40})
+_GRIS_POSES = _imposer_gris_maison()
+_enregistrer_paire("kai", "KAI 7 boules", "\U0001f37d️", 16, kai.generer_pdf)
+try:
+    JEUX_AVEC_IMAGE.discard("kai")
+except Exception:
+    pass
+_PLAGES_CALLER["kai"] = (1, 30)
+_BOULES_CALLER["kai"] = [n for n in range(1, 31)]
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[KAI] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["kai"], len(REGISTRE_JEUX)))
