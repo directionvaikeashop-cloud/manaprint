@@ -5900,3 +5900,39 @@ except Exception:
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[TEA] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["tea"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 🏆 29/09 — WIN 9 BOULES : nouvelle planche
+#   (sceau Maeva : « on change la maquette du jeu WIN »)
+#   ⭐ LA REGLE NE CHANGE PAS : col 1-15, col 16-30, col 31-45, trois
+#     numeros par colonne, tries. Neuf numeros, grille pleine.
+#     Le crieur reste sur 1-45.
+#   ⚠️⚠️ 16 cartons par feuille A4 PAYSAGE au lieu de 12 en portrait.
+#     Sans cette reinscription, 500 feuilles commandees n'en donneraient
+#     que 375.
+#   ⚠️ IL N'Y A PLUS LE PUZZLE : sa planche est au trait, donc le jeu sort
+#     de la liste « carton avec dessin » (menu + quota d'images). Il reste
+#     dans les jeux reserves : c'est son choix commercial.
+#   ⭐ L'arc-en-ciel est carton par carton, comme avant.
+#   ⚠️ LE WIN CASINO (les des) partage la planche du WIN : il change donc
+#     aussi de maquette, et passe lui aussi a 16 cartons par feuille.
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"win": 0.40})
+_GRIS_POSES = _imposer_gris_maison()
+_enregistrer_paire("win", "WIN 9 boules", "\U0001f3c6", 16, win.generer_pdf)
+# ⚠️⚠️ LE JUMEAU « WIN CASINO » TOURNE SUR LA MEME PLANCHE : lui aussi passe
+#    a 16 cartons par feuille, sinon il tombait a 375 feuilles pour 500.
+GRIS_PARTICULIERS.update({"win_casino": 0.40})
+_enregistrer_paire("win_casino", "WIN CASINO", "\U0001f3b2", 16, win.generer_pdf_casino)
+try:
+    JEUX_AVEC_IMAGE.discard("win_casino")
+except Exception:
+    pass
+try:
+    JEUX_AVEC_IMAGE.discard("win")
+except Exception:
+    pass
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[WIN] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["win"], len(REGISTRE_JEUX)))
