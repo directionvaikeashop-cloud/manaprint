@@ -5965,3 +5965,55 @@ except Exception:
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[POL] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["pol"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 🌊 29/09 — ANI (TEAHUPOO au catalogue) : nouvelle planche
+#   (sceau Maeva : « on change la maquette du jeu ANI l'original »)
+#   ⭐ LA REGLE NE CHANGE PAS : A 61-70, N 71-80, I 81-90, trois numeros
+#     par colonne, tries. Neuf numeros, grille pleine. Crieur : 61-90.
+#   ⚠️⚠️ 16 cartons par feuille A4 PAYSAGE au lieu de 8. Sans cette
+#     reinscription, 500 feuilles commandees n'en donneraient que 250.
+#   ⚠️⚠️ LE NOM : au catalogue ce jeu s'appelle TEAHUPOO depuis le 14/08
+#     (c'est elle qui l'avait rebaptise), mais sa nouvelle planche porte
+#     « ANI ». ON NE TOUCHE PAS AU NOM DU MENU : c'est son choix
+#     commercial. Pour le renommer ANI un jour, il suffira de remplacer
+#     "TEAHUPOO" par "ANI" dans la ligne _enregistrer_paire ci-dessous.
+#   ⚠️ Le TEAHUPOO CLASSIC n'est PAS touche : il garde son ancienne planche.
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"ani": 0.40})
+_GRIS_POSES = _imposer_gris_maison()
+# ⚠️⚠️ L'ORDRE COMPTE : le menu ecrit « AVEC IMAGE » ou « SANS IMAGE » au
+#    MOMENT de l'inscription. On sort donc le jeu de la liste AVANT de
+#    l'inscrire, sinon l'etiquette reste fausse.
+try:
+    JEUX_AVEC_IMAGE.discard("ani")
+except Exception:
+    pass
+_enregistrer_paire("ani", "TEAHUPOO", "\U0001f30a", 16, ani.generer_pdf)
+_PLAGES_CALLER["ani"] = (61, 90)
+
+# ═════════════════════════════════════════════════════════════════════
+# 🏷️ REPARATION D'ETIQUETTES — quatre jeux annoncaient « AVEC IMAGE »
+#    dans le menu alors que leur carton n'a plus aucun dessin en image.
+#    C'est ma faute : dans les blocs precedents j'avais sorti le jeu de la
+#    liste APRES l'avoir inscrit, et l'etiquette etait deja ecrite.
+#    Verifie en fabriquant une carte de chacun : zero image dans le PDF.
+#    Rien d'autre ne change : memes planches, memes regles, memes
+#    cartons par feuille, memes fonctions.
+# ═════════════════════════════════════════════════════════════════════
+for _b, _nom, _emo, _cpf, _fn in (
+        ("kai",        "KAI 7 boules", "\U0001f37d️", 16, kai.generer_pdf),
+        ("win",        "WIN 9 boules", "\U0001f3c6",       16, win.generer_pdf),
+        ("win_casino", "WIN CASINO",   "\U0001f3b2",       16, win.generer_pdf_casino),
+        ("pol",        "POL 6 boules", "\U0001f3b2",       16, pol.generer_pdf),
+        ("trio75",     "TRIO 75",      "\U0001f3ab",        2, trio75.generer_pdf)):
+    try:
+        JEUX_AVEC_IMAGE.discard(_b)
+        _enregistrer_paire(_b, _nom, _emo, _cpf, _fn)
+    except Exception as _e:
+        print("[ETIQUETTE] %s : %s" % (_b, _e))
+
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[ANI] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["ani"], len(REGISTRE_JEUX)))
