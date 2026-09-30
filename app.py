@@ -6054,3 +6054,38 @@ _PLAGES_CALLER["vai"] = (61, 90)
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[VAI] nouvelle planche · 7 boules · crieur %s · 16 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["vai"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 😄 29/09 — LETTRE L : nouvelle planche
+#   (sceau Maeva : « changeant la maquette du jeu LETTRE L »)
+#   ⭐ LA REGLE NE CHANGE PAS :
+#     bras vertical (les 5 cases de gauche, de haut en bas) : 5 numeros
+#       de 1 a 15, tries. La 5e case, tout en bas, est le COIN.
+#     pied (les 4 cases qui partent du coin vers la droite) : un 16-30,
+#       un 31-45, un 46-60, un 61-75.
+#     NEUF numeros. Le crieur reste sur 1-75.
+#   ⚠️⚠️ 16 cartons par feuille A4 PAYSAGE au lieu de 6. Sans cette
+#     reinscription, 500 feuilles commandees n'en donneraient que 187.
+#   ⚠️ IL N'Y A PLUS DE QR : l'ancienne planche le logeait au centre, sa
+#     nouvelle planche y met le personnage. Le numero de serie se pose en
+#     haut a gauche, a un endroit verifie vide sur les SEIZE cartons.
+#   ⭐ SEIZE PERSONNAGES DIFFERENTS sur la feuille — raye, a pois, en
+#     puzzle, en ecailles, en mosaique... c'est sa planche, on n'y touche pas.
+#   ⚠️ Sa planche est au trait, donc le jeu sort de la liste « carton avec
+#     dessin » (menu + quota d'images).
+#   ⚠️ La LETTRE U n'est PAS touchee : elle garde son ancienne planche.
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"lettre_l": 0.40})
+_GRIS_POSES = _imposer_gris_maison()
+# ⚠️ L'ORDRE COMPTE : le menu ecrit « AVEC IMAGE » ou « SANS IMAGE » au
+#    MOMENT de l'inscription. On sort donc le jeu de la liste AVANT.
+try:
+    JEUX_AVEC_IMAGE.discard("lettre_l")
+except Exception:
+    pass
+_enregistrer_paire("lettre_l", "LETTRE L", "\U0001f604", 16, lettre_l.generer_pdf)
+_PLAGES_CALLER["lettre_l"] = (1, 75)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[LETTRE L] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["lettre_l"], len(REGISTRE_JEUX)))
