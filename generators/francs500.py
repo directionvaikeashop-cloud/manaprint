@@ -173,7 +173,14 @@ def _gen_billet(rng):
 
 
 COLS_PAGE = 2
-ROWS_PAGE = 4            # 8 billets par feuille (sceau Maeva 13/08)
+ROWS_PAGE = 5            # 10 billets par feuille (sceau Maeva 29/09)
+# ⚠️⚠️ 29/09 — DE 8 A 10 BILLETS : on ne change QUE le nombre de rangees.
+#    Le billet garde EXACTEMENT sa taille : c'est la LARGEUR de la carte
+#    qui le bride (iw = CARD_W - 1.5 mm), pas la hauteur. Avec 4 rangees
+#    il restait 16,7 mm de blanc perdu sous chaque billet ; avec 5 il en
+#    reste 2,5 mm. Les chiffres, le numero de serie et la zone libre sont
+#    tous calcules sur l'image, donc rien d'autre ne bouge.
+#      billet : 93,5 x 50,3 mm  ·  case : 95,0 x 52,8 mm  (il rentre)
 MARGIN_X = 8 * mm
 MARGIN_TOP = 9 * mm
 MARGIN_BOT = 8 * mm
