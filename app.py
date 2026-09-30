@@ -5874,3 +5874,29 @@ except Exception:
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[BIO] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["bio"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 🍵 29/09 — TEA : nouvelle planche
+#   (sceau Maeva : « on va changer la maquette du jeu TEA »)
+#   ⭐ LA REGLE NE CHANGE PAS : T 35-45, E 46-56, A 57-67, deux numeros
+#     par colonne, tries. Six numeros. Le crieur reste sur 35-67.
+#   ⚠️⚠️ 16 cartons par feuille A4 PAYSAGE au lieu de 12 en portrait.
+#     Sans cette reinscription, 500 feuilles commandees n'en donneraient
+#     que 375.
+#   ⭐ Les faux numeros 580001 a 580016 de sa planche sont effaces : le
+#     vrai numero de serie se pose exactement a leur place.
+#   ⚠️ LE TRAIT N'EST PAS AFFINE : sa planche est deja a 0,379 mm et un
+#     cran cassait son gobelet en miettes. On la garde telle quelle.
+#   ⭐ CE QUE CA REPARE : environ 180 doublons par rame de 500 feuilles.
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"tea": 0.40})
+_GRIS_POSES = _imposer_gris_maison()
+_enregistrer_paire("tea", "TEA", "\U0001f375", 16, tea.generer_pdf)
+try:
+    JEUX_AVEC_IMAGE.discard("tea")
+except Exception:
+    pass
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[TEA] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["tea"], len(REGISTRE_JEUX)))
