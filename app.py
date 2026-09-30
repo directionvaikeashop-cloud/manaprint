@@ -5936,3 +5936,32 @@ except Exception:
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[WIN] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["win"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 🎲 29/09 — POL 6 BOULES : nouvelle planche
+#   (sceau Maeva : « travaillant sur la maquette du jeu POL »)
+#   ⭐ LES PLAGES NE CHANGENT PAS : col 30-40, col 41-50, col 51-60, deux
+#     numeros par colonne, tries. Six numeros. Le crieur reste sur 30-60.
+#   ⚠️ LE DESSIN DU JEU CHANGE, c'est sa planche qui le dit : six cases au
+#     lieu d'une grille 3x3, plus de cases barrees d'un X, et le numero de
+#     serie descend dans le pied au lieu d'occuper la case du milieu.
+#     Pour la joueuse et la crieuse, la partie se joue pareil.
+#   ⚠️⚠️ 16 cartons par feuille A4 PAYSAGE au lieu de 8. Sans cette
+#     reinscription, 500 feuilles commandees n'en donneraient que 250.
+#   ⚠️ Sa planche est au trait, donc le jeu sort de la liste « carton avec
+#     dessin » (menu + quota d'images). Il reste dans les jeux reserves :
+#     c'est son choix commercial.
+#   ⚠️ Le POL CLASSIC n'est PAS touche : il garde son ancienne planche.
+#   ⭐ CE QUE CA REPARE : pres de 300 doublons par rame de 500 feuilles.
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"pol": 0.40})
+_GRIS_POSES = _imposer_gris_maison()
+_enregistrer_paire("pol", "POL 6 boules", "\U0001f3b2", 16, pol.generer_pdf)
+try:
+    JEUX_AVEC_IMAGE.discard("pol")
+except Exception:
+    pass
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[POL] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["pol"], len(REGISTRE_JEUX)))
