@@ -6145,3 +6145,39 @@ _BOULES_CALLER["teahupoo"] = [n for n in range(61, 91)]
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[ANI/TEAHUPOO] deux jeux separes · ANI 16 cartons/feuille · TEAHUPOO 8 · %d jeux"
       % len(REGISTRE_JEUX))
+# ═════════════════════════════════════════════════════════════════════
+# ☀️ 30/09 — SUN 8 BOULES : nouvelle planche
+#   (sceau Maeva : « on va changer la maquette du jeu SUN »)
+#   ⭐ LA REGLE NE CHANGE PAS : col 1 = 1-8 (trois numeros), col 2 = 9-16
+#     (deux numeros), col 3 = 17-24 (trois numeros). Huit numeros par
+#     carton, tries du plus petit en haut au plus grand en bas. La case
+#     VIDE est toujours celle du bas-milieu. Crieur : 1-24.
+#   ⭐ SA PLANCHE ET LA REGLE DISENT LA MEME CHOSE : son soleil est dessine
+#     exactement dans la case du bas-milieu, celle qui doit rester vide.
+#   ⚠️ LE DESSIN DU JEU CHANGE : avant, les huit numeros se lisaient EN
+#     COURONNE autour d'une plaque au soleil ; ils se lisent maintenant
+#     dans une GRILLE 3x3, comme sa planche le demande. Les huit numeros
+#     et leurs plages sont identiques : la partie se joue pareil.
+#   ⚠️⚠️ 16 cartons par feuille A4 PAYSAGE au lieu de 12 en portrait. Sans
+#     cette reinscription, 500 feuilles commandees n'en donneraient que
+#     375.
+#   ⚠️ Sa planche est au trait : le jeu n'embarque plus d'image. Il sort
+#     donc de la liste « carton avec dessin » (etiquette du menu ET
+#     supplement image). Il RESTE dans les jeux reserves : JEUX_HABILLES
+#     n'est pas touche, c'est son choix commercial.
+#   ⭐ CE QUE CA REPARE : le garde-fou anti-doublon. 56 x 28 x 56 = 87 808
+#     cartons differents ; une rame de 500 feuilles en contient 8 000, et
+#     sans garde-fou le calcul donne plus de 350 doublons par rame.
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"sun": 0.40})
+_GRIS_POSES = _imposer_gris_maison()
+try:
+    JEUX_AVEC_IMAGE.discard("sun")
+except Exception:
+    pass
+_enregistrer_paire("sun", "SUN 8 boules", "☀️", 16, sun.generer_pdf)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[SUN] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["sun"], len(REGISTRE_JEUX)))
