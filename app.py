@@ -5848,3 +5848,29 @@ _BOULES_CALLER["kai"] = [n for n in range(1, 31)]
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[KAI] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["kai"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 🌱 29/09 — BIO 8 BOULES : nouvelle planche
+#   (sceau Maeva : « changeant la maquette du jeu BIO 8 boules »)
+#   ⭐ LA REGLE NE CHANGE PAS : B 1-15 -> 3 numeros, I 16-30 -> 2 (la case
+#     du milieu reste vide), O 61-75 -> 3. Huit numeros, tries.
+#     Le crieur ne bouge pas non plus : il saute toujours le 31-60.
+#   ⚠️⚠️ 16 cartons par feuille A4 PAYSAGE au lieu de 12 en portrait.
+#     Sans cette reinscription, 500 feuilles commandees n'en donneraient
+#     que 375.
+#   ⚠️ IL N'Y A PLUS DE QR : l'ancienne planche logeait le QR dans la case
+#     vide du centre. Sa nouvelle planche y dessine une case ordinaire, la
+#     case reste donc vide. Microtexte et numero de serie conserves.
+#   ⚠️ Le BIO 5 boules n'est PAS touche : il garde son ancienne planche.
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"bio": 0.40})
+_GRIS_POSES = _imposer_gris_maison()
+_enregistrer_paire("bio", "BIO 8 boules", "\U0001f331", 16, bio.generer_pdf)
+try:
+    JEUX_AVEC_IMAGE.discard("bio")
+except Exception:
+    pass
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[BIO] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["bio"], len(REGISTRE_JEUX)))
