@@ -35,6 +35,11 @@ L'ARC-EN-CIEL EST CARTON PAR CARTON : la planche n'est gravée qu'une fois,
 
 SA PLANCHE EST DESSINÉE EN NOIR PUR. On la repose au gris #555555, celui
    qu'elle a choisi le 28/09. Une seule valeur (TRAIT_NB) pour y revenir.
+LES CHIFFRES SONT AUSSI GROS QUE SA PLANCHE LE PERMET : 35 pt sur les
+   deux rangées du haut, 29 pt sur celle du bas — parce qu'elle a dessiné
+   la rangée du bas plus basse que les deux autres (8,8 mm contre 10,4).
+   Pour du 38 pt partout comme le POW, il faudrait trois rangées égales.
+
 LE TRAIT N'EST PAS AFFINÉ, ET C'EST VOULU. Il mesure déjà 0,378 mm — aussi
    fin que les planches KAI et BIO APRÈS affinage. Un cran d'affinage
    faisait passer le dessin de 632 morceaux à 2 008 : son soleil, ses
@@ -199,7 +204,18 @@ CARTES = [
      [991.39, 987.32]),
 ]
 
-_T_CASE = 26.0
+# ⭐ 30/09 (sceau Maeva : « j'aime trop les chiffres dans le POW ») :
+#    LES CHIFFRES SONT AUSSI GROS QUE SA PLANCHE LE PERMET, RANGÉE PAR
+#    RANGÉE. Ses trois rangées ne font pas la même hauteur :
+#        rangée du haut   10,4 mm  ->  35 pt
+#        rangée du milieu 10,3 mm  ->  35 pt
+#        rangée du bas     8,8 mm  ->  29 pt   (c'est celle du soleil)
+#    MESURÉ sur les 128 cases d'une feuille : il reste 0,44 mm de blanc
+#    avant son trait au plus serré. Mettre 35 pt aussi en bas ferait
+#    toucher les chiffres. Pour avoir 38 pt partout comme le POW, il
+#    faudrait que ses trois rangées fassent 11,5 mm chacune.
+_T_RANGEES = [35.0, 35.0, 29.0]
+_T_CASE = max(_T_RANGEES)
 _T_SERIE = 10.5
 
 
@@ -299,18 +315,21 @@ def _dessiner_feuille(c, x0, y0, grilles, series, couleurs, titre_jeu="",
     for gi, (bord, cadre, colx, rowy, serie) in enumerate(CARTES):
         grille = grilles[gi]
         for ri in range(LIGNES):
-            cy = MY((rowy[ri] + rowy[ri + 1]) / 2.0) - _T_CASE * 0.329
+            # ⚠️ 0,36 et pas 0,329 : c'est ce qui centre vraiment le chiffre
+            #    dans sa case, et c'est ce qui permet de le grossir.
+            taille = _T_RANGEES[ri]
+            cy = MY((rowy[ri] + rowy[ri + 1]) / 2.0) - taille * 0.36
             for ci in range(3):
                 val = grille[ri][ci]
                 if val is None:
                     continue
                 cx = MX((colx[ci] + colx[ci + 1]) / 2.0)
                 if _sec:
-                    _sec.chiffre_micro(c, val, cx, cy, _T_CASE, gris_ch, police_ch,
+                    _sec.chiffre_micro(c, val, cx, cy, taille, gris_ch, police_ch,
                                        epaisseur=_GRAS_TRAIT)
                 else:
                     c.setFillColor(gris_ch)
-                    c.setFont(police_ch, _T_CASE)
+                    c.setFont(police_ch, taille)
                     c.drawCentredString(cx, cy, str(val))
         # le numéro de série reprend EXACTEMENT la place de son faux numéro
         c.setFillColor(GRIS)
