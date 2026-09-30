@@ -181,8 +181,8 @@ _T_ROND = 30.0
 _T_SERIE = 10.0
 
 
-def _poser_decor(c, x0, y0):
-    """Grave la planche UNE FOIS par document, puis la tamponne.
+def _graver_planche(c):
+    """Grave la planche UNE FOIS par document. Renvoie son nom.
     ⚠️ La marque est posée SUR LE CANEVAS, jamais dans un dictionnaire
     indexé par id() : Python réutilise les id() libérés."""
     nom = "TEA_DECOR"
@@ -211,10 +211,30 @@ def _poser_decor(c, x0, y0):
         c.drawPath(p, stroke=0, fill=1)
         c.endForm()
         c._tea_forme_faite = True
-    c.saveState()
-    c.translate(x0, y0)
-    c.doForm(nom)
-    c.restoreState()
+    return nom
+
+
+def _poser_decor(c, x0, y0, couleurs):
+    """Tamponne la planche UNE FOIS PAR CARTON, chacun dans SA couleur.
+    ⭐ Le dessin n'est grave qu'une seule fois dans le document ; on le
+    repose seize fois en ne laissant voir, a chaque fois, que le carton
+    concerne. C'est ce qui rend l'arc-en-ciel carton par carton, comme
+    sur l'ancienne version."""
+    nom = _graver_planche(c)
+    marge = 0.3 * mm
+    for gi, (bord, cadre, _ronds, _serie) in enumerate(CARTES):
+        gx = x0 + bord[0] / 1000.0 * FEUILLE_W - marge
+        gl = (bord[1] - bord[0]) / 1000.0 * FEUILLE_W + 2 * marge
+        gy = y0 + FEUILLE_H - cadre[1] / 1000.0 * FEUILLE_H - marge
+        gh = (cadre[1] - cadre[0]) / 1000.0 * FEUILLE_H + 2 * marge
+        c.saveState()
+        fen = c.beginPath()
+        fen.rect(gx, gy, gl, gh)
+        c.clipPath(fen, stroke=0, fill=0)
+        c.setFillColor(couleurs[gi])
+        c.translate(x0, y0)
+        c.doForm(nom)
+        c.restoreState()
 
 
 def _gen_grille(rng):
@@ -241,12 +261,10 @@ def _tirer(rng, deja):
     return g
 
 
-def _dessiner_feuille(c, x0, y0, grilles, series, couleur_hex, titre_jeu="",
+def _dessiner_feuille(c, x0, y0, grilles, series, couleurs, titre_jeu="",
                       telephone="", style="eco"):
     police_ch, gris_ch = _style_chiffres(style)
-    col = colors.HexColor(couleur_hex)
-    c.setFillColor(col)
-    _poser_decor(c, x0, y0)
+    _poser_decor(c, x0, y0, couleurs)
 
     def MX(v):
         return x0 + v / 1000.0 * FEUILLE_W
@@ -308,9 +326,13 @@ def generer_pdf(nb_cartes=16, serie_start=1, theme="", couleur=True,
 
         grilles = [_tirer(rng, _deja) for _k in range(CARTES_PAGE)]
         series = [serie + k for k in range(CARTES_PAGE)]
-        coul = (couleur_perso if (couleur and couleur_perso)
-                else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else TRAIT_NB)
-        _dessiner_feuille(c, MARGE_X, MARGE_Y, grilles, series, coul,
+        # ⭐ UNE COULEUR PAR CARTON, comme sur l'ancienne version : le numero
+        #    de serie avance d'un carton a l'autre, donc l'arc-en-ciel aussi.
+        couleurs = [colors.HexColor(
+            couleur_perso if (couleur and couleur_perso)
+            else RAINBOW[(s - 1) % len(RAINBOW)] if couleur else TRAIT_NB)
+            for s in series]
+        _dessiner_feuille(c, MARGE_X, MARGE_Y, grilles, series, couleurs,
                           titre_jeu, telephone, style=style)
         serie += CARTES_PAGE
         c.showPage()
