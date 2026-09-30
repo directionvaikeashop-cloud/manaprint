@@ -6017,3 +6017,40 @@ for _b, _nom, _emo, _cpf, _fn in (
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[ANI] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["ani"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 💧 29/09 — VAI : nouvelle planche ET nouvelle regle
+#   (sceau Maeva : « on mettra que 7 boules, 3 a droite, 1 au milieu et
+#    3 a gauche », et elle a confirme les plages du VAI)
+#   ⚠️⚠️ LA REGLE DU JEU CHANGE :
+#     AVANT : NEUF numeros, un par goutte.
+#     APRES : SEPT numeros —
+#        gauche 61-70 : 3 numeros · milieu 71-80 : 1 · droite 81-90 : 3
+#     Le numero du milieu se pose EN HAUT : sa goutte occupe la case du
+#     centre ET celle du bas de cette colonne (mesure sur sa planche).
+#   ⚠️ LE CRIEUR NE CHANGE PAS : toujours les 30 boules de 61 a 90.
+#   ⚠️ LA PARTIE EST PLUS LONGUE : sept numeros a sortir au lieu de neuf.
+#     A tester une fois en salle avant une grosse rame.
+#   ⚠️⚠️ 16 cartons par feuille A4 PAYSAGE au lieu de 8. Sans cette
+#     reinscription, 500 feuilles commandees n'en donneraient que 250.
+#   ⭐ Le nom passe de « VAI 9 boules » a « VAI 7 boules » : c'est ce que
+#     le carton fait maintenant.
+#   ⭐ CE QUE CA REPARE : plus de 200 doublons par rame de 500 feuilles.
+#   ⚠️⚠️ COMBIEN DE CARTONS DIFFERENTS : 120 x 10 x 120 = 144 000. Au-dela
+#     de 9 000 feuilles le jeu est epuise. A savoir avant une tres grosse
+#     commande.
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"vai": 0.40})
+_GRIS_POSES = _imposer_gris_maison()
+# ⚠️ L'ORDRE COMPTE : le menu ecrit « AVEC IMAGE » ou « SANS IMAGE » au
+#    MOMENT de l'inscription. On sort donc le jeu de la liste AVANT.
+try:
+    JEUX_AVEC_IMAGE.discard("vai")
+except Exception:
+    pass
+_enregistrer_paire("vai", "VAI 7 boules", "\U0001f4a7", 16, vai.generer_pdf)
+_PLAGES_CALLER["vai"] = (61, 90)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[VAI] nouvelle planche · 7 boules · crieur %s · 16 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["vai"], len(REGISTRE_JEUX)))
