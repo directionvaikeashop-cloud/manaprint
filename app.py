@@ -6089,3 +6089,59 @@ _PLAGES_CALLER["lettre_l"] = (1, 75)
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[LETTRE L] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["lettre_l"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 🌊 30/09 — ON SEPARE TEAHUPOO ET ANI : DEUX JEUX DISTINCTS
+#   (sceau Maeva : « je veux que l'on differencie TEAHUPOO et ANI »)
+#
+#   CE QUI S'ETAIT PASSE : le 14/08 elle avait rebaptise le ANI en
+#   TEAHUPOO et l'avait habille de la surfeuse dans la vague. Le 29/09
+#   elle a pose une planche toute neuve, au trait, portant « ANI » — qui
+#   a donc REMPLACE la surfeuse dans le meme fichier. Depuis, le
+#   TEAHUPOO a la surfeuse n'etait plus fabricable.
+#
+#   CE QUE FAIT CE BLOC :
+#     · ANI      = sa planche du 29/09, au trait, 16 cartons/feuille.
+#                  Le menu disait encore TEAHUPOO : il dira ANI.
+#     · TEAHUPOO = la surfeuse, remise en jeu A PART, 8 cartons/feuille,
+#                  reprise A L'IDENTIQUE de la version du 25/08.
+#
+#   ⚠️ LES DEUX JEUX ONT LES MEMES NUMEROS : 61-70 / 71-80 / 81-90, neuf
+#     par carton. Le crieur sort les memes 30 boules pour les deux. Ce
+#     sont deux habillages du meme jeu, pas deux regles differentes.
+#     A NE PAS MELANGER DANS UNE MEME PARTIE : un carton ANI et un carton
+#     TEAHUPOO se valent, ils peuvent gagner ensemble.
+#
+#   ⚠️ TEAHUPOO CLASSIC (le carton sobre, sans dessin) ne bouge pas : il
+#     reste le jumeau sans image, avec les memes numeros.
+#   ⚠️ La surfeuse est une IMAGE, pas un trace : elle ne se laisse ni
+#     affiner ni recolorier comme les planches au trait. Elle entre donc
+#     dans la liste « carton avec dessin » (menu + quota d'images).
+# ═════════════════════════════════════════════════════════════════════
+from generators import teahupoo
+
+# ── 1. ANI reprend son nom ───────────────────────────────────────────
+# ⚠️ L'ORDRE COMPTE : le menu ecrit « AVEC IMAGE » ou « SANS IMAGE » au
+#    MOMENT de l'inscription. On regle la liste AVANT d'inscrire.
+try:
+    JEUX_AVEC_IMAGE.discard("ani")
+except Exception:
+    pass
+_enregistrer_paire("ani", "ANI", "\U0001f30a", 16, ani.generer_pdf)
+_PLAGES_CALLER["ani"] = (61, 90)
+
+# ── 2. TEAHUPOO revient, avec sa surfeuse ────────────────────────────
+GRIS_PARTICULIERS.update({"teahupoo": 0.40})
+_GRIS_POSES = _imposer_gris_maison()
+try:
+    JEUX_AVEC_IMAGE.add("teahupoo")
+except Exception:
+    pass
+_enregistrer_paire("teahupoo", "TEAHUPOO", "\U0001f3c4", 8, teahupoo.generer_pdf)
+_PLAGES_CALLER["teahupoo"] = (61, 90)
+_BOULES_CALLER["teahupoo"] = [n for n in range(61, 91)]
+
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[ANI/TEAHUPOO] deux jeux separes · ANI 16 cartons/feuille · TEAHUPOO 8 · %d jeux"
+      % len(REGISTRE_JEUX))
