@@ -102,6 +102,17 @@ PIED_H = 1.6 * mm          # respiration : la dernière rangée ne touche pas le
 
 SANCTUAIRE = 16.0 * mm     # la case royale MARATHON/QR : jamais un chiffre touché
 
+# ⭐ 30/09 — GRILLE ENTIEREMENT REGULIERE (sceau Maeva) :
+#    « il n'y a plus de grille [speciale au centre], je veux que tous les
+#     colonnes soit de la meme taille ». La case centrale reste LIBRE, mais
+#     elle a EXACTEMENT la taille des autres ; chiffres tous egaux, et le QR
+#     se cale sur cette case normale.
+# ⭐ TAILLE MESUREE SUR LA VRAIE POLICE : dans une case reguliere de
+#    13,55 x 10,81 mm, a 35 pt le plus gros chiffre imprime fait
+#    11,60 x 8,55 mm, soit 0,98 mm de blanc de chaque cote et 1,13 mm en
+#    haut et en bas. C'est le maximum confortable.
+_TAILLE_CASES = 35.0
+
 
 def _gen_carte(rng):
     """Grille BINGO : 5 numéros distincts par colonne (4 au centre N),
@@ -117,8 +128,8 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
     # Colonnes en croix : la colonne N (centre) élargie pour le sanctuaire
-    _cw = (CARD_W - SANCTUAIRE) / 4
-    LARGEURS = [_cw, _cw, SANCTUAIRE, _cw, _cw]
+    _cw = CARD_W / 5                      # ⭐ 30/09 : toutes les colonnes egales
+    LARGEURS = [_cw, _cw, _cw, _cw, _cw]
     X_COL = [x0 + sum(LARGEURS[:i]) for i in range(6)]
 
     # Bordure carte arrondie et colorée (fidèle au modèle)
@@ -150,8 +161,8 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     # La grille 5×5 en croix : rangée centrale rehaussée pour le sanctuaire
     z_top = hdr_bas
     z_bot = y0 + PIED_H
-    _rh = (z_top - z_bot - SANCTUAIRE) / 4
-    HAUTEURS = [_rh, _rh, SANCTUAIRE, _rh, _rh]
+    _rh = (z_top - z_bot) / 5           # ⭐ 30/09 : toutes les rangees egales
+    HAUTEURS = [_rh, _rh, _rh, _rh, _rh]
     Y_ROW = [z_top - sum(HAUTEURS[:i]) for i in range(6)]   # plafonds des rangées
     c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.3)
     for i in range(1, 5):
@@ -159,7 +170,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
         c.line(x0, Y_ROW[i], x0 + CARD_W, Y_ROW[i])
 
     # Les 24 numéros — ordre libre (fidèle au modèle)
-    taille = 24
+    taille = _TAILLE_CASES
     for ci, nums in enumerate(cols_nums):
         cx = (X_COL[ci] + X_COL[ci + 1]) / 2
         rangees = (0, 1, 3, 4) if ci == 2 else (0, 1, 2, 3, 4)
@@ -171,22 +182,15 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
                 c.setFillColor(gris_ch); c.setFont(police_ch, taille)
                 c.drawCentredString(cx, cyc - taille * 0.36, str(val))
 
-    # Le SANCTUAIRE central : le QR y loge ENTIER (sans code texte : le scan
-    # dit tout) — ou le mot MARATHON du modèle quand il n'y a pas d'événement
+    # ⭐ 30/09 (sceau Maeva : « pas de QR sur ces jeux ») : plus de QR. La
+    #    case centrale reste LIBRE et garde seulement le mot MARATHON du
+    #    modele. Le QR demandait 12 mm pour rester scannable et ne tenait
+    #    plus dans une case devenue reguliere.
     cx_c = (X_COL[2] + X_COL[3]) / 2
     cy_c = (Y_ROW[2] + Y_ROW[3]) / 2
-    qr_ok = False
-    if _sec and evenement_id:
-        try:
-            _q = 12.0 * mm
-            qr_ok = _sec.carton_qr(c, cx_c - _q / 2, cy_c - _q / 2, _q, evenement_id, serie,
-                                   avec_code=False)
-        except Exception:
-            qr_ok = False
-    if not qr_ok:
-        c.setFillColor(GRIS); c.setFont(POLICE, 7.5)
-        c.drawCentredString(cx_c, cy_c + 0.8 * mm, "MARA")
-        c.drawCentredString(cx_c, cy_c - 3.4 * mm, "THON")
+    c.setFillColor(GRIS); c.setFont(POLICE, 7.5)
+    c.drawCentredString(cx_c, cy_c + 0.8 * mm, "MARA")
+    c.drawCentredString(cx_c, cy_c - 3.4 * mm, "THON")
 
     # Signature discrète sous la carte (marque + titre client + téléphone)
     signature = "P12"
