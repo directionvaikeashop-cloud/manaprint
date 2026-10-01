@@ -6281,3 +6281,35 @@ _enregistrer_paire("francs500", "500 FRANCS", "\U0001f4b5", 10, francs500.genere
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[BILLETS] 5000 F et 500 F a 10 billets/feuille · %d jeux"
       % len(REGISTRE_JEUX))
+# ═════════════════════════════════════════════════════════════════════
+# 🌿 30/09 — BIO 6 BOULES : nouvelle planche (ex BIO 5, passe a 6 boules)
+#   (sceau Maeva : « on va changer la maquette du jeu BIO 5 boules » puis
+#    « 6 boules »)
+#   ⭐ LA REGLE : B 1-15 (deux numeros), I 16-30 (deux), O 61-75 (deux).
+#     SIX numeros par carton — les six cases de la grille 3x2 sont
+#     occupees. Tries du plus petit en haut. Crieur : 1-30 et 61-75 (il
+#     saute le 31-60, comme avant).
+#   ⚠️ CE QUI CHANGE : avant une grille 3x3 avec le QR au coeur et CINQ
+#     numeros ; maintenant une grille 3x2 toute simple et SIX numeros (le
+#     I passe de un a deux). C'est son choix du 30/09.
+#   ⚠️ PLUS DE QR : sa planche n'a plus de case centrale pour le loger.
+#   ⚠️⚠️ 16 cartons par feuille A4 PAYSAGE au lieu de 12. Sans cette
+#     reinscription, 500 feuilles commandees n'en donneraient que 375.
+#   ⚠️ Sa planche est au trait : si le jeu portait une image, il en sort
+#     (etiquette du menu + supplement). JEUX_HABILLES et JEUX_MOTIF ne
+#     sont PAS touches, c'est son choix commercial.
+#   ⭐ 105 x 105 x 105 = plus d'un million de cartons differents : le jeu
+#     ne s'epuise pas. Le garde-fou evite les doublons dans une meme rame.
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"bio5": 0.40})
+_GRIS_POSES = _imposer_gris_maison()
+try:
+    JEUX_AVEC_IMAGE.discard("bio5")
+except Exception:
+    pass
+_enregistrer_paire("bio5", "BIO 6 boules", "\U0001f33f", 16, bio5.generer_pdf)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[BIO 6] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["bio5"], len(REGISTRE_JEUX)))
