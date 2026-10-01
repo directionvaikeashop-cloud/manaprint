@@ -125,12 +125,27 @@ def _dessiner_coco(c, cx, cy, r):
 
 SANCTUAIRE = 16.4 * mm    # la case royale du QR : jamais un chiffre touché
 
+# ⭐ 30/09 — GRILLE ENTIEREMENT REGULIERE (sceau Maeva) :
+#    « il n'y a plus de grille [speciale au centre], je veux que tous les
+#     colonnes soit de la meme taille ». La case centrale reste LIBRE (case
+#     du bingo), mais elle a EXACTEMENT la taille des autres. Du coup les
+#     chiffres ont tous la meme taille, et le QR se cale sur cette case
+#     normale au lieu de l'ancienne case royale de 16 mm.
+#    SANCTUAIRE n'est donc plus utilise pour la geometrie ; on le garde
+#    defini au cas ou, mais la grille est reguliere.
+# ⭐ TAILLE MESUREE SUR LA VRAIE POLICE (pas a l'estime) : dans une case
+#    reguliere de 12,53 x 9,30 mm, a 30 pt le plus gros chiffre imprime
+#    fait 9,99 x 7,28 mm, soit 1,27 mm de blanc de chaque cote et 1,01 mm
+#    en haut et en bas. C'est le maximum confortable ; a 32 pt la hauteur
+#    commence a serrer.
+_TAILLE_CASES = 30.0
+
 def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
     # Colonnes en croix : la colonne N (centre) élargie pour le sanctuaire
-    _cw = (CARD_W - SANCTUAIRE) / 4
-    LARGEURS = [_cw, _cw, SANCTUAIRE, _cw, _cw]
+    _cw = CARD_W / 5                      # ⭐ 30/09 : toutes les colonnes egales
+    LARGEURS = [_cw, _cw, _cw, _cw, _cw]
     X_COL = [x0 + sum(LARGEURS[:i]) for i in range(6)]
 
     # Bordure carte
@@ -165,8 +180,8 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     # La grille 5×5 en croix : rangée centrale rehaussée pour le sanctuaire
     z_top = hdr_bas
     z_bot = pied_haut
-    _rh = (z_top - z_bot - SANCTUAIRE) / 4
-    HAUTEURS = [_rh, _rh, SANCTUAIRE, _rh, _rh]
+    _rh = (z_top - z_bot) / 5           # ⭐ 30/09 : toutes les rangees egales
+    HAUTEURS = [_rh, _rh, _rh, _rh, _rh]
     Y_ROW = [z_top - sum(HAUTEURS[:i]) for i in range(6)]   # plafonds des rangées
     c.setStrokeColor(col); c.setLineWidth(0.3)
     for i in range(1, 5):
@@ -175,36 +190,25 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
 
     # Les 24 numéros — ordre libre (fidèle au modèle)
     # La 3e ligne (rangée royale du sanctuaire) porte des chiffres GROSSIS
-    taille = 20
-    TAILLE_ROYALE = 23    # les 4 chiffres de la rangée centrale (décision Maeva)
+    # ⭐ 30/09 (sceau Maeva : « que tous les colonnes soit de la meme taille ») :
+    #    plus de rangee centrale grossie — TOUS les chiffres a la meme taille.
+    taille = _TAILLE_CASES
     for ci, nums in enumerate(cols_nums):
         cx = (X_COL[ci] + X_COL[ci + 1]) / 2
         rangees = (0, 1, 3, 4) if ci == 2 else (0, 1, 2, 3, 4)
         for val, ri in zip(nums, rangees):
             cyc = (Y_ROW[ri] + Y_ROW[ri + 1]) / 2
-            t = TAILLE_ROYALE if ri == 2 else taille
+            t = taille
             if _sec:  # chiffres "billet de banque" remplis de microtexte
                 _sec.chiffre_micro(c, val, cx, cyc - t * 0.36, t, gris_ch, police_ch)
             else:
                 c.setFillColor(gris_ch); c.setFont(police_ch, t)
                 c.drawCentredString(cx, cyc - t * 0.36, str(val))
 
-    # Le SANCTUAIRE central : le QR y loge ENTIER (sans code texte : le scan
-    # dit tout) — ou le coco 🥥 traditionnel quand il n'y a pas d'événement
-    cx_c = (X_COL[2] + X_COL[3]) / 2
-    cy_c = (Y_ROW[2] + Y_ROW[3]) / 2
-    qr_ok = False
-    if _sec and evenement_id:
-        try:
-            _q = 12.0 * mm
-            qr_ok = _sec.carton_qr(c, cx_c - _q / 2, cy_c - _q / 2, _q, evenement_id, serie,
-                                   avec_code=False)
-        except Exception:
-            qr_ok = False
-    # ⚠️ 13/08 (sceau Maeva : « retire le coco sur les grilles ») : quand il
-    # n'y a pas d'événement, la case centrale reste LIBRE. Le coco y était
-    # dessiné par défaut ; `_dessiner_coco` reste dans le fichier, prête si
-    # elle revient un jour, mais plus personne ne l'appelle.
+    # ⭐ 30/09 (sceau Maeva : « pas de QR sur ces jeux ») : la case centrale
+    #    reste LIBRE, point. Plus de QR : il demandait 12 mm pour rester
+    #    scannable et ne tenait plus dans une case devenue reguliere. Le P15
+    #    est un jeu de boutique, comme les tirages maison.
 
 
 def generer_pdf(nb_cartes=15, serie_start=1, theme="", couleur=True,
