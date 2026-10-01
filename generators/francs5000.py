@@ -179,7 +179,17 @@ def _gen_billet(rng):
     return coins, montant
 
 COLS_PAGE = 2
-ROWS_PAGE = 4            # 8 billets par feuille (sceau Maeva 13/08)
+ROWS_PAGE = 5            # 10 billets par feuille (sceau Maeva 30/09)
+# ⚠️⚠️ DEUX BILLETS DE PLUS, ET CE QUE ÇA COÛTE :
+#   À 8 billets, la case faisait 95 × 67 mm et le billet, qui garde
+#   toujours ses proportions, remplissait la largeur : 93,5 × 54,3 mm.
+#   Il restait 12,7 mm de vide en haut et en bas de chaque case.
+#   À 10 billets, la case tombe à 95 × 52,8 mm : c'est la HAUTEUR qui
+#   commande maintenant, et le billet descend à 88,3 × 51,3 mm.
+#   SOIT 5,6 % DE MOINS, en largeur comme en hauteur. Le dessin n'est
+#   PAS déformé — il est simplement posé un peu plus petit.
+#   Les marges de la feuille ne bougent pas : 8 mm sur les côtés,
+#   9 mm en haut, 8 mm en bas, 4 mm entre les billets.
 MARGIN_X = 8 * mm
 MARGIN_TOP = 9 * mm
 MARGIN_BOT = 8 * mm
