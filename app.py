@@ -6343,3 +6343,34 @@ _enregistrer_paire("diamant", "DIAMANT", "\U0001f48e", 16, diamant.generer_pdf)
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[DIAMANT] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["diamant"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 🌙 30/09 — MOON : nouvelle planche
+#   (sceau Maeva : « on change la maquette du jeu MOON »)
+#   ⭐ LA REGLE NE CHANGE PAS : M 1-15, O 16-30, O 46-60, N 61-75. Huit
+#     numeros par carton, deux par lettre, le petit en haut le grand en
+#     bas. LE 31-45 N'EXISTE PAS : le crieur sort 1-30 et 46-75, comme
+#     avant.
+#   ⚠️ LE DESSIN DU JEU CHANGE : avant les huit numeros etaient une image,
+#     maintenant la planche porte le titre MOON, son croissant de lune,
+#     ses etoiles et HUIT cases carrees. Les huit numeros et leurs plages
+#     sont identiques : la partie se joue pareil.
+#   ⚠️⚠️ 16 cartons par feuille A4 PAYSAGE au lieu de 8. Sans cette
+#     reinscription, 500 feuilles commandees n'en donneraient que 250.
+#   ⚠️ Sa planche est au trait : le jeu n'embarque plus d'image. Il sort
+#     de la liste « carton avec dessin » (etiquette du menu + supplement).
+#     Il RESTE dans les jeux reserves : JEUX_HABILLES n'est pas touche.
+#   ⚠️ Le MOON CLASSIC n'est PAS touche : il garde son ancienne planche.
+#   ⭐ 105^4 = plus de 121 millions de cartons differents.
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"moon": 0.40})
+_GRIS_POSES = _imposer_gris_maison()
+try:
+    JEUX_AVEC_IMAGE.discard("moon")
+except Exception:
+    pass
+_enregistrer_paire("moon", "MOON", "\U0001f319", 16, moon.generer_pdf)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[MOON] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["moon"], len(REGISTRE_JEUX)))
