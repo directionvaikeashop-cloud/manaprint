@@ -6313,3 +6313,33 @@ _enregistrer_paire("bio5", "BIO 6 boules", "\U0001f33f", 16, bio5.generer_pdf)
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[BIO 6] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["bio5"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 💎 30/09 — DIAMANT : nouvelle planche
+#   (sceau Maeva : « changeant la maquette du jeu DIAMANT »)
+#   ⭐ LA REGLE NE CHANGE PAS : B 1-15, I 16-30, N 31-45, G 46-60,
+#     O 61-75. Dix numeros par carton, deux par lettre, le petit en haut
+#     le grand en bas, chacun dans la table de son diamant. Crieur 1-75.
+#   ⚠️ LE DESSIN DU JEU CHANGE : avant les dix diamants etaient une image,
+#     maintenant ils sont dessines au trait avec les lettres B·I·N·G·O en
+#     hexagones. Les dix numeros et leurs plages sont identiques : la
+#     partie se joue pareil.
+#   ⚠️⚠️ 16 cartons par feuille A4 PAYSAGE au lieu de 8. Sans cette
+#     reinscription, 500 feuilles commandees n'en donneraient que 250.
+#   ⚠️ Sa planche est au trait : le jeu n'embarque plus d'image. Il sort
+#     de la liste « carton avec dessin » (etiquette du menu + supplement).
+#     Il RESTE dans les jeux reserves : JEUX_HABILLES n'est pas touche.
+#   ⭐ 105^5 = plus de 12 milliards de cartons differents : le jeu ne
+#     s'epuise pas. Le garde-fou evite les doublons dans une meme rame.
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"diamant": 0.40})
+_GRIS_POSES = _imposer_gris_maison()
+try:
+    JEUX_AVEC_IMAGE.discard("diamant")
+except Exception:
+    pass
+_enregistrer_paire("diamant", "DIAMANT", "\U0001f48e", 16, diamant.generer_pdf)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[DIAMANT] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["diamant"], len(REGISTRE_JEUX)))
