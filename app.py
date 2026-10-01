@@ -6247,3 +6247,37 @@ _enregistrer_paire("brown8", "BROWN 8 boules", "\U0001f7e4", 16, brown8.generer_
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[BROWN 8] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["brown8"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 💎 30/09 — 5000 FRANCS : DEUX BILLETS DE PLUS PAR FEUILLE
+#   (sceau Maeva : « je veux que l'on rajoute encore 2 grille sur le jeu
+#    5000 francs »)
+#   ⭐ 10 billets par feuille A4 au lieu de 8, en 2 colonnes x 5 rangees.
+#   ⭐ LA REGLE NE CHANGE PAS : quatre numeros aux coins, le montant au
+#     centre, les quatre fleches. Le crieur reste sur 1-65.
+#   ⚠️ CE QUE CA COUTE : le billet garde ses proportions, il n'est PAS
+#     deforme, mais il descend de 93,5 x 54,3 mm a 88,3 x 51,3 mm,
+#     soit 5,6 % de moins. A 8 billets la case etait haute et il restait
+#     12,7 mm de vide en haut et en bas ; a 10 billets c'est la hauteur
+#     qui commande.
+#   ⚠️ Les marges de la feuille ne bougent pas : 8 mm sur les cotes,
+#     9 mm en haut, 8 mm en bas, 4 mm entre les billets.
+#   ⚠️⚠️ Sans cette reinscription, 500 feuilles commandees n'en
+#     donneraient que 400.
+#   ⭐ CE QUE CA RAPPORTE : 25 % de billets en plus par feuille, donc
+#     20 % de papier en moins pour la meme commande.
+# ═════════════════════════════════════════════════════════════════════
+_enregistrer_paire("francs5000", "5000 FRANCS", "\U0001f48e", 10, francs5000.generer_pdf)
+# ═════════════════════════════════════════════════════════════════════
+# 💵 ET LA MEME REPARATION POUR LE 500 FRANCS — un defaut trouve ce soir
+#   Le fichier francs500.py est passe a 10 billets par feuille le 29/09
+#   et il est bien en ligne, MAIS app.py en comptait toujours 8. Resultat
+#   mesure : une commande de 500 feuilles ne sortait que 400 feuilles.
+#   Elle en perdait 100 par rame. On le reinscrit a 10, comme le fichier.
+#   La regle du 500 F ne change pas, son billet ne change pas non plus.
+# ═════════════════════════════════════════════════════════════════════
+_enregistrer_paire("francs500", "500 FRANCS", "\U0001f4b5", 10, francs500.generer_pdf)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[BILLETS] 5000 F et 500 F a 10 billets/feuille · %d jeux"
+      % len(REGISTRE_JEUX))
