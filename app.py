@@ -6405,3 +6405,32 @@ _enregistrer_paire("lagoon", "LAGOON 5 boules", "\U0001f3dd️", 16, lagoon.gene
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[LAGOON] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["lagoon"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 🎱 01/10 — IGO : nouvelle planche
+#   (sceau Maeva : « changeant la maquette du jeu IGO »)
+#   ⭐ LA REGLE NE CHANGE PAS : cinq numeros. Rangee du haut I 16-30,
+#     G 46-60, O 61-75 ; dessous deux bulles G 46-60. Les trois G sont
+#     distincts. Crieur : 16-30 et 46-75 (il saute 1-15 et 31-45).
+#   ⚠️ LE DESSIN DU JEU CHANGE : sa nouvelle planche dessine les cinq
+#     bulles au trait avec les lettres I · G · O. Les cinq numeros et
+#     leurs plages sont identiques : la partie se joue pareil.
+#   ⚠️⚠️ 16 cartons par feuille A4 PAYSAGE au lieu de 12. Sans cette
+#     reinscription, 500 feuilles commandees n'en donneraient que 375.
+#   ⚠️ Sa planche est au trait : le jeu n'embarque plus d'image. Il sort
+#     de la liste « carton avec dessin » (etiquette du menu + supplement).
+#     Son tarif special (TARIF_NB_150) et le reste ne sont PAS touches.
+#   ⭐ 15 x 15 x (15x14x13) = 614 250 cartons differents. Le garde-fou
+#     evite les doublons dans une meme rame.
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"igo": 0.40})
+_GRIS_POSES = _imposer_gris_maison()
+try:
+    JEUX_AVEC_IMAGE.discard("igo")
+except Exception:
+    pass
+_enregistrer_paire("igo", "IGO", "\U0001f3b1", 16, igo.generer_pdf)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[IGO] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["igo"], len(REGISTRE_JEUX)))
