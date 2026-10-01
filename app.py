@@ -6211,3 +6211,39 @@ _enregistrer_paire("champagne", "CHAMPAGNE", "\U0001f942", 9, champagne.generer_
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[CHAMPAGNE] nouvelle planche · crieur %s · 9 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["champagne"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 🟤 30/09 — BROWN 8 BOULES : nouvelle planche
+#   (sceau Maeva : « travaillant sur le changement de la maquette du
+#    BROWN 8 boules »)
+#   ⭐ LA REGLE NE CHANGE PAS : B 1-15 (deux numeros), I 16-30 (un),
+#     N 31-45 (deux), G 46-60 (un), O 61-75 (deux). Huit numeros par
+#     carton, tries du plus petit en haut. Crieur : 1-75.
+#   ⭐ SA PLANCHE ET LA REGLE DISENT LA MEME CHOSE : elle a dessine deux
+#     cases sous B, N et O, et une seule sous I et G. Huit cases, huit
+#     numeros.
+#   ⚠️ LE DESSIN DU JEU CHANGE : avant, les huit numeros se lisaient dans
+#     un BOUQUET DE HUIT FLEURS, chacune portant sa lettre sur un fanion.
+#     Ils se lisent maintenant dans les cases de sa planche. Les huit
+#     numeros et leurs plages sont identiques : la partie se joue pareil.
+#   ⚠️⚠️ 16 cartons par feuille A4 PAYSAGE au lieu de 8. Sans cette
+#     reinscription, 500 feuilles commandees n'en donneraient que 250.
+#   ⚠️ Sa planche est au trait : le jeu n'embarque plus d'image. Il sort
+#     donc de la liste « carton avec dessin » (etiquette du menu ET
+#     supplement image). Il RESTE dans les jeux reserves : JEUX_HABILLES
+#     n'est pas touche, c'est son choix commercial.
+#   ⚠️ Le BROWN 8 CLASSIC n'est PAS touche : il garde son ancienne planche
+#     et ses 8 cartons par feuille.
+#   ⭐ 260 465 625 cartons differents : le jeu ne s'epuise pas.
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"brown8": 0.40})
+_GRIS_POSES = _imposer_gris_maison()
+try:
+    JEUX_AVEC_IMAGE.discard("brown8")
+except Exception:
+    pass
+_enregistrer_paire("brown8", "BROWN 8 boules", "\U0001f7e4", 16, brown8.generer_pdf)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[BROWN 8] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["brown8"], len(REGISTRE_JEUX)))
