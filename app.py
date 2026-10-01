@@ -6374,3 +6374,34 @@ _enregistrer_paire("moon", "MOON", "\U0001f319", 16, moon.generer_pdf)
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[MOON] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["moon"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 🏝️ 01/10 — LAGOON 5 BOULES : nouvelle planche
+#   (sceau Maeva : « on change la maquette du jeu LAGOON »)
+#   ⭐ LA REGLE NE CHANGE PAS : cinq numeros en croix dans le cercle.
+#     En haut 1-10, au milieu 11-20 · 21-30 · 31-40 (gauche a droite),
+#     en bas 41-50. Un numero par plage. Crieur 1-50.
+#   ⚠️ LE DESSIN DU JEU CHANGE : avant le cercle et ses cases etaient une
+#     image, maintenant ils sont dessines au trait, avec le cocotier,
+#     l'ilot et les oiseaux. Les cinq numeros et leurs plages sont
+#     identiques : la partie se joue pareil.
+#   ⚠️⚠️ 16 cartons par feuille A4 PAYSAGE au lieu de 12. Sans cette
+#     reinscription, 500 feuilles commandees n'en donneraient que 375.
+#   ⚠️ Sa planche est au trait : le jeu n'embarque plus d'image. Il sort
+#     de la liste « carton avec dessin » (etiquette du menu + supplement).
+#     Il RESTE dans les jeux reserves : JEUX_HABILLES n'est pas touche.
+#   ⚠️ Le LAGOON CLASSIC n'est PAS touche : il garde son ancienne planche.
+#   ⭐ 10^5 = 100 000 cartons differents. Le garde-fou evite les doublons
+#     dans une meme rame.
+# ═════════════════════════════════════════════════════════════════════
+GRIS_PARTICULIERS.update({"lagoon": 0.40})
+_GRIS_POSES = _imposer_gris_maison()
+try:
+    JEUX_AVEC_IMAGE.discard("lagoon")
+except Exception:
+    pass
+_enregistrer_paire("lagoon", "LAGOON 5 boules", "\U0001f3dd️", 16, lagoon.generer_pdf)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[LAGOON] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["lagoon"], len(REGISTRE_JEUX)))
