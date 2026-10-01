@@ -6434,3 +6434,30 @@ _enregistrer_paire("igo", "IGO", "\U0001f3b1", 16, igo.generer_pdf)
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[IGO] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["igo"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 🦪 01/10 — POE : nouvelle planche, celle aux six cases carrees
+#   (sceau Maeva : « on change la maquette du jeu POE »)
+#   ⚠️ POE et POE PARAU restent DEUX JEUX DIFFERENTS. Ce bloc ne touche
+#     QUE le POE. Le POE PARAU garde sa planche et ses medaillons.
+#   ⭐ LA REGLE NE CHANGE PAS : six numeros, DEUX par plage — 45-60,
+#     61-75, 76-90, tries. Dans ses six cases (2 rangees x 3 colonnes),
+#     une colonne par plage, le petit en haut et le grand en bas. Le
+#     crieur reste sur 45-90.
+#   ⚠️ LE DESSIN DU JEU CHANGE : avant, chaque numero vivait dans SON
+#     medaillon ovale avec sa perle (six medaillons). Il se lit
+#     maintenant dans les cases carrees de sa planche. Les six numeros
+#     et leurs plages sont identiques : pour la joueuse et la crieuse,
+#     la partie se joue exactement pareil.
+#   ⚠️⚠️ 16 cartons par feuille A4 PAYSAGE au lieu de 12. Sans cette
+#     reinscription, 500 feuilles commandees n'en donneraient que 375.
+#   ⚠️ Sa planche est au trait : le jeu reste « SANS IMAGE » (il l'etait
+#     deja), rien n'est touche cote tarif ni cote jeux reserves.
+#   ⭐ 120 x 105 x 105 = 1 323 000 cartons differents : le jeu ne
+#     s'epuise pas (une rame de 500 feuilles en fait 8 000).
+# ═════════════════════════════════════════════════════════════════════
+_enregistrer_paire("poe", "POE 6 boules", "⚪", 16, poegen.generer_pdf)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[POE] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["poe"], len(REGISTRE_JEUX)))
