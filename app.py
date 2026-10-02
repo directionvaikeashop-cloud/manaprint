@@ -6461,3 +6461,33 @@ _enregistrer_paire("poe", "POE 6 boules", "⚪", 16, poegen.generer_pdf)
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[POE] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["poe"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 🎯 01/10 — BIN 6 boules : nouvelle planche, celle au tableau de 6 cases
+#   (sceau Maeva : « on change la maquette du jeu BIN 6 boules »)
+#   ⭐ LA REGLE NE CHANGE PAS : six numeros, DEUX par colonne — B 1-12,
+#     I 13-24, N 25-36, en ordre vertical LIBRE (non trie). Le crieur
+#     reste sur 1-36.
+#   ⚠️ LE DESSIN DU JEU CHANGE : avant, chaque numero se logeait dans une
+#     NOIX DE COCO. Il se lit maintenant dans les cases de son tableau.
+#     Les six numeros et leurs plages sont identiques : pour la joueuse
+#     et la crieuse, la partie se joue exactement pareil.
+#   ⚠️⚠️ 16 cartons par feuille A4 PAYSAGE au lieu de 12. Sans cette
+#     reinscription, 500 feuilles commandees n'en donneraient que 375.
+#   ⚠️ Sa planche est au trait : le carton ne porte plus d'image (le coco).
+#     Le jeu sort de la liste « AVEC IMAGE » (etiquette du menu). Son tarif
+#     et ses jeux reserves ne sont pas touches.
+#   ⚠️ Le BIN 8 boules n'est PAS touche : il garde sa planche et ses 12
+#     cartons par feuille.
+#   ⭐ 132^3 = 2 299 968 cartons differents : le jeu ne s'epuise pas (une
+#     rame de 500 feuilles en fait 8 000).
+# ═════════════════════════════════════════════════════════════════════
+try:
+    JEUX_AVEC_IMAGE.discard("bin6")
+except Exception:
+    pass
+_enregistrer_paire("bin6", "BIN 6 boules", "\U0001f3af", 16, bin6.generer_pdf)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[BIN 6] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["bin6"], len(REGISTRE_JEUX)))
