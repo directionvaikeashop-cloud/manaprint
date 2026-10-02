@@ -6558,3 +6558,24 @@ _enregistrer_paire("star", "STAR", "\U00002b50", 12, stargen.generer_pdf)
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[STAR] nouveau jeu · crieur %s · 12 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["star"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 💛 02/10 — LOVE : NOUVEAU JEU (maquette de Maeva)
+#   (sceau Maeva : « jeu LOVE, voici les plages 1-15, 16-30, 31-45,
+#    46-60 »)
+#   ⭐ LA REGLE : DOUZE numeros, TROIS par colonne — une colonne par plage :
+#        colonne 1 : 1-15  ·  colonne 2 : 16-30
+#        colonne 3 : 31-45 ·  colonne 4 : 46-60
+#     Dans chaque colonne, tries du plus petit en haut. Crieur 1-60.
+#   ⭐ 12 cartons par feuille A4 PORTRAIT (3 colonnes × 4 rangees), comme
+#     sa planche. Jeu au trait, « SANS IMAGE », tarif ordinaire.
+#   ⭐ C(15,3)^4 = 455^4 = 42 859 950 625 cartons differents (garde-fou
+#     dans love.py).
+# ═════════════════════════════════════════════════════════════════════
+from generators import love as lovegen
+_PLAGES_CALLER["love"] = (1, 60)
+_enregistrer_paire("love", "LOVE", "\U0001f49b", 12, lovegen.generer_pdf)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[LOVE] nouveau jeu · crieur %s · 12 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["love"], len(REGISTRE_JEUX)))
