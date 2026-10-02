@@ -6533,3 +6533,28 @@ _enregistrer_paire("king", "KING 40", "\U0001f451", 12, kinggen.generer_pdf)
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[KING 40] nouveau jeu · crieur %s · 12 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["king"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# ⭐ 02/10 — STAR : NOUVEAU JEU (maquette de Maeva)
+#   (sceau Maeva : « jeu STAR, voici les plages 30-49, 50-60, 61-79,
+#    80-90 »)
+#   ⭐ LA REGLE : HUIT numeros. Les quatre coins portent une croix (×,
+#     decor fixe) ; le numero se pose dans les cases VIDES. Une plage par
+#     colonne :
+#        colonne 1 : 30-49 -> 1 numero (au milieu)
+#        colonne 2 : 50-60 -> 3 numeros (tries)
+#        colonne 3 : 61-79 -> 3 numeros (tries)
+#        colonne 4 : 80-90 -> 1 numero (au milieu)
+#     Crieur 30-90.
+#   ⭐ 12 cartons par feuille A4 PORTRAIT (3 colonnes × 4 rangees), comme
+#     sa planche. Jeu au trait, « SANS IMAGE », tarif ordinaire.
+#   ⭐ 20 × C(11,3) × C(19,3) × 11 = 35 174 700 cartons differents
+#     (garde-fou dans star.py).
+# ═════════════════════════════════════════════════════════════════════
+from generators import star as stargen
+_PLAGES_CALLER["star"] = (30, 90)
+_enregistrer_paire("star", "STAR", "\U00002b50", 12, stargen.generer_pdf)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[STAR] nouveau jeu · crieur %s · 12 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["star"], len(REGISTRE_JEUX)))
