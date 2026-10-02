@@ -6512,3 +6512,24 @@ _enregistrer_paire("olive", "OLIVE 5 boules", "\U0001fad2", 16, olivegen.generer
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[OLIVE] nouveau jeu · crieur %s · 16 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["olive"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 👑 02/10 — KING 40 : NOUVEAU JEU (maquette de Maeva)
+#   (sceau Maeva : « nouveau jeu KING 40, voici les plages 1-10, 11-20,
+#    21-30, 31-40 »)
+#   ⭐ LA REGLE : DOUZE numeros, TROIS par colonne — une colonne par plage :
+#        colonne 1 : 1-10  ·  colonne 2 : 11-20
+#        colonne 3 : 21-30 ·  colonne 4 : 31-40
+#     Dans chaque colonne, tries du plus petit en haut. Crieur 1-40.
+#   ⭐ 12 cartons par feuille A4 PORTRAIT (3 colonnes × 4 rangees), comme
+#     sa planche. Jeu au trait, « SANS IMAGE », tarif ordinaire.
+#   ⭐ C(10,3)^4 = 120^4 = 207 360 000 cartons differents : le jeu ne
+#     s'epuise pas (garde-fou dans king.py).
+# ═════════════════════════════════════════════════════════════════════
+from generators import king as kinggen
+_PLAGES_CALLER["king"] = (1, 40)
+_enregistrer_paire("king", "KING 40", "\U0001f451", 12, kinggen.generer_pdf)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[KING 40] nouveau jeu · crieur %s · 12 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["king"], len(REGISTRE_JEUX)))
