@@ -6491,3 +6491,24 @@ _enregistrer_paire("bin6", "BIN 6 boules", "\U0001f3af", 16, bin6.generer_pdf)
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[BIN 6] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["bin6"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 🫒 02/10 — OLIVE : NOUVEAU JEU (maquette de Maeva)
+#   (sceau Maeva : « créant un nouveau jeu OLIVE, voici les plages du
+#    BINGO »)
+#   ⭐ LA REGLE : CINQ numeros, UN par colonne — les plages du BINGO :
+#        O 1-15 · L 16-30 · I 31-45 · V 46-60 · E 61-75. Crieur 1-75.
+#   ⭐ Dans chaque colonne, une case porte une croix (×, decor fixe de sa
+#     planche) et l'autre est vide : le numero se pose dans la case VIDE.
+#   ⭐ 16 cartons par feuille A4 PAYSAGE. Sa planche est au trait (pas
+#     d'image a facturer) : le jeu est « SANS IMAGE », tarif ordinaire.
+#   ⭐ 15^5 = 759 375 cartons differents : une rame de 500 feuilles en
+#     fait 8 000, tous differents (garde-fou dans olive.py).
+# ═════════════════════════════════════════════════════════════════════
+from generators import olive as olivegen
+_PLAGES_CALLER["olive"] = (1, 75)
+_enregistrer_paire("olive", "OLIVE 5 boules", "\U0001fad2", 16, olivegen.generer_pdf)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[OLIVE] nouveau jeu · crieur %s · 16 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["olive"], len(REGISTRE_JEUX)))
