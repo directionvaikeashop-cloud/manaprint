@@ -6588,3 +6588,30 @@ _enregistrer_paire("love", "LOVE", "\U0001f49b", 12, lovegen.generer_pdf)
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[LOVE] nouveau jeu · crieur %s · 12 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["love"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 🌺 02/10 — TIARE : nouvelle planche, celle a la fleur de tiare
+#   (sceau Maeva : « changeant la maquette du jeu TIARE »)
+#   ⭐ LA REGLE NE CHANGE PAS : cinq numeros tires de 50 a 90, tries du
+#     plus petit au plus grand. Le crieur reste sur 50-90.
+#   ⚠️ LE DESSIN DU JEU CHANGE : avant, le carton portait une IMAGE de
+#     tiare. La fleur est maintenant au trait sur sa planche, avec cinq
+#     cases (deux a gauche, deux a droite, une large en bas). Les cinq
+#     numeros et leur plage sont identiques : la partie se joue pareil.
+#   ⚠️⚠️ 16 cartons par feuille A4 PAYSAGE au lieu de 12. Sans cette
+#     reinscription, 500 feuilles commandees n'en donneraient que 375.
+#   ⚠️ Sa planche est au trait : le carton ne porte plus d'image. Le jeu
+#     sort de la liste « AVEC IMAGE » (etiquette du menu). Son tarif et ses
+#     jeux reserves ne sont pas touches.
+#   ⭐ C(41,5) = 749 398 cartons differents : le jeu ne s'epuise pas (une
+#     rame de 500 feuilles en fait 8 000).
+# ═════════════════════════════════════════════════════════════════════
+try:
+    JEUX_AVEC_IMAGE.discard("tiare")
+except Exception:
+    pass
+_enregistrer_paire("tiare", "TIARE 50-90", "\U0001f33c", 16, tiaregen.generer_pdf)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[TIARE] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["tiare"], len(REGISTRE_JEUX)))
