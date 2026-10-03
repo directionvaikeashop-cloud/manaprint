@@ -6638,3 +6638,23 @@ _enregistrer_paire("jeu4", "4", "\U00000034\U0000fe0f\U000020e3", 20, jeu4gen.ge
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[4] nouveau jeu · crieur %s (B.I.G.O, sans N) · 20 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["jeu4"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 5️⃣ 02/10 — « 5 » : NOUVEAU JEU (maquette de Maeva)
+#   (sceau Maeva : « nouveau jeu 5, les plages sont ceux du BINGO »)
+#   ⭐ LA REGLE : CINQ numeros, UN par colonne, aux plages du BINGO complet :
+#        case 1 : B 1-15  ·  case 2 : I 16-30  ·  case 3 : N 31-45
+#        case 4 : G 46-60 ·  case 5 : O 61-75
+#     Le crieur sort 1-75 (toutes les boules, le N est inclus).
+#   ⭐ 20 cartons par feuille A4 PAYSAGE (4 colonnes × 5 rangees), comme sa
+#     planche. Chiffres a 32 pt. Jeu au trait, « SANS IMAGE ».
+#   ⭐ 15^5 = 759 375 cartons differents (garde-fou dans jeu5.py).
+# ═════════════════════════════════════════════════════════════════════
+from generators import jeu5 as jeu5gen
+_PLAGES_CALLER["jeu5"] = (1, 75)
+_BOULES_CALLER["jeu5"] = [n for n in range(1, 76)]
+_enregistrer_paire("jeu5", "5", "\U00000035\U0000fe0f\U000020e3", 20, jeu5gen.generer_pdf)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[5] nouveau jeu · crieur %s (B.I.N.G.O complet) · 20 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["jeu5"], len(REGISTRE_JEUX)))
