@@ -6615,3 +6615,26 @@ _enregistrer_paire("tiare", "TIARE 50-90", "\U0001f33c", 16, tiaregen.generer_pd
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[TIARE] nouvelle planche · crieur %s · 16 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["tiare"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 4️⃣ 02/10 — « 4 » : NOUVEAU JEU (maquette de Maeva, planche agrandie)
+#   (sceau Maeva : « nouveau jeu 4, les plages sont celle du bingo B I G O »
+#    puis « je veux 30 pt » -> planche 3 cases plus larges, 20 cartons)
+#   ⭐ LA REGLE : QUATRE numeros, UN par colonne, aux plages du bingo
+#     B·I·G·O :
+#        case 1 : B 1-15  ·  case 2 : I 16-30
+#        case 3 : G 46-60 ·  case 4 : O 61-75
+#     On saute le N (31-45) : le crieur sort 1-30 et 46-75 (comme le
+#     FAFAPITI).
+#   ⭐ 20 cartons par feuille A4 PAYSAGE (4 colonnes × 5 rangees), comme sa
+#     nouvelle planche. Chiffres a 30 pt. Jeu au trait, « SANS IMAGE ».
+#   ⭐ 15^4 = 50 625 cartons differents (garde-fou dans jeu4.py).
+# ═════════════════════════════════════════════════════════════════════
+from generators import jeu4 as jeu4gen
+_PLAGES_CALLER["jeu4"] = (1, 75)
+_BOULES_CALLER["jeu4"] = [n for n in range(1, 31)] + [n for n in range(46, 76)]
+_enregistrer_paire("jeu4", "4", "\U00000034\U0000fe0f\U000020e3", 20, jeu4gen.generer_pdf)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[4] nouveau jeu · crieur %s (B.I.G.O, sans N) · 20 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["jeu4"], len(REGISTRE_JEUX)))
