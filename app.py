@@ -6658,3 +6658,25 @@ _enregistrer_paire("jeu5", "5", "\U00000035\U0000fe0f\U000020e3", 20, jeu5gen.ge
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[5] nouveau jeu · crieur %s (B.I.N.G.O complet) · 20 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["jeu5"], len(REGISTRE_JEUX)))
+# ═════════════════════════════════════════════════════════════════════
+# 6️⃣ 02/10 — « 6 » : NOUVEAU JEU (maquette de Maeva)
+#   (sceau Maeva : « nouveau jeu 6, ces plages sont celle du BINGO et 90
+#    soit 76-90 »)
+#   ⭐ LA REGLE : SIX numeros, UN par colonne, aux plages du BINGO + une
+#     6e colonne :
+#        case 1 : B 1-15  ·  case 2 : I 16-30 ·  case 3 : N 31-45
+#        case 4 : G 46-60 ·  case 5 : O 61-75 ·  case 6 : 76-90
+#     Le crieur sort 1-90 (toutes les boules).
+#   ⭐ 15 cartons par feuille A4 PAYSAGE (3 colonnes × 5 rangees), comme sa
+#     planche. Chiffres a 32 pt. Jeu au trait, « SANS IMAGE ».
+#   ⭐ 15^6 = 11 390 625 cartons differents (garde-fou dans jeu6.py).
+# ═════════════════════════════════════════════════════════════════════
+from generators import jeu6 as jeu6gen
+_PLAGES_CALLER["jeu6"] = (1, 90)
+_BOULES_CALLER["jeu6"] = [n for n in range(1, 91)]
+_enregistrer_paire("jeu6", "6", "\U00000036\U0000fe0f\U000020e3", 15, jeu6gen.generer_pdf)
+# ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
+#    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
+CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+print("[6] nouveau jeu · crieur %s (B.I.N.G.O + 76-90) · 15 cartons/feuille · %d jeux"
+      % (_PLAGES_CALLER["jeu6"], len(REGISTRE_JEUX)))
