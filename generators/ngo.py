@@ -18,6 +18,7 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase.pdfmetrics import stringWidth as _lgv
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+import os as _os
 
 # SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne
 try:
@@ -259,7 +260,7 @@ def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telepho
     c.drawRightString(x0 + CARD_W - 2 * mm, y0 + 1.5 * mm, "%06d" % serie)
 
 
-def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
+def _generer_old(nb_cartes=12, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
                 style="eco", evenement_id="", jetons=False, page_start=1):
     buf = io.BytesIO()
@@ -307,12 +308,204 @@ def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
 def generer_pdf_casino(**kw):
     """🎰 Le jumeau CASINO : chaque numéro vit dans un pion de casino."""
     kw["jetons"] = True
-    return generer_pdf(**kw)
+    return _generer_old(**kw)
+
+
+# ══════════════════════════════════════════════════════════════════════
+# ⭐ NOUVELLE MAQUETTE NGO (04/10) — releve au trait sur la maquette de
+#    Maeva : double cadre arrondi, en-tete « N G O » et tableau de SIX
+#    cases (2 rangees x 3 colonnes). SIX numeros, DEUX par colonne :
+#    N 31-45 · G 46-60 · O 61-75.  16 cartons par feuille A4 PAYSAGE.
+#    NE PAS « ameliorer » le decor. La planche est posee une fois puis
+#    recopiee seize fois, chaque fois dans la couleur de son carton
+#    (gris #555555 en N&B). SEULE generer_pdf change ; le jumeau CASINO
+#    (generer_pdf_casino -> _generer_old) garde son ancienne planche.
+# ══════════════════════════════════════════════════════════════════════
+from reportlab.lib.pagesizes import landscape as _landscape
+
+_NG_PAGE_W, _NG_PAGE_H = _landscape(A4)
+_NG_ASPECT = 363.0 / 238.0
+_NG_COLS = 4
+_NG_ROWS = 4
+_NG_PAR_PAGE = _NG_COLS * _NG_ROWS
+_NG_MARGE_X = 6 * mm
+_NG_GUTTER_X = 3 * mm
+_NG_GUTTER_Y = 3 * mm
+_NG_CARD_W = (_NG_PAGE_W - 2 * _NG_MARGE_X - (_NG_COLS - 1) * _NG_GUTTER_X) / _NG_COLS
+_NG_CARD_H = _NG_CARD_W / _NG_ASPECT
+_NG_BLOC_H = _NG_ROWS * _NG_CARD_H + (_NG_ROWS - 1) * _NG_GUTTER_Y
+_NG_MARGE_TOP = 7 * mm
+_NG_MARGE_BOT = _NG_PAGE_H - _NG_MARGE_TOP - _NG_BLOC_H
+
+try:
+    pdfmetrics.registerFont(TTFont("LMROMANNGO", _os.path.join(
+        _os.path.dirname(_os.path.abspath(__file__)), "LatinModern.ttf")))
+    _NG_POLICE_ECO = "LMROMANNGO"
+except Exception:
+    _NG_POLICE_ECO = _POLICE_ECO
+_NG_GRIS_ECO = colors.Color(0.40, 0.40, 0.40)
+_NG_GRAS_TRAIT = 0.012
+_NG_GRIS_P15 = colors.Color(0.14, 0.14, 0.14)
+_NG_TRAIT_NB = "#555555"
+
+_NG_CELLULES = [
+    (0.178, 0.410), (0.498, 0.410), (0.818, 0.410),
+    (0.178, 0.788), (0.498, 0.788), (0.818, 0.788),
+]
+_NG_TAILLE = 40.0
+_NG_TSERIE = 5.0
+
+
+def _ng_style(style):
+    if str(style).lower() in ("p15", "premium"):
+        return _NG_POLICE_ECO, _NG_GRIS_P15
+    return _NG_POLICE_ECO, _NG_GRIS_ECO
+
+
+def _ng_graver_planche(c):
+    nom = "NGO6_DECOR"
+    if not getattr(c, "_ngo6_forme_faite", False):
+        c.beginForm(nom, lowerx=0, lowery=0, upperx=_NG_CARD_W, uppery=_NG_CARD_H)
+        p = c.beginPath()
+        for contour in _NG_DECOR.split("|"):
+            i = 0
+            n = len(contour)
+            while i < n:
+                cmd = contour[i]
+                j = i + 1
+                while j < n and contour[j] not in "mlc":
+                    j += 1
+                v = [float(x) for x in contour[i + 1:j].split(",")]
+                if cmd == "m":
+                    p.moveTo(v[0] / 1000.0 * _NG_CARD_W, _NG_CARD_H - v[1] / 1000.0 * _NG_CARD_H)
+                elif cmd == "l":
+                    p.lineTo(v[0] / 1000.0 * _NG_CARD_W, _NG_CARD_H - v[1] / 1000.0 * _NG_CARD_H)
+                else:
+                    p.curveTo(v[0] / 1000.0 * _NG_CARD_W, _NG_CARD_H - v[1] / 1000.0 * _NG_CARD_H,
+                              v[2] / 1000.0 * _NG_CARD_W, _NG_CARD_H - v[3] / 1000.0 * _NG_CARD_H,
+                              v[4] / 1000.0 * _NG_CARD_W, _NG_CARD_H - v[5] / 1000.0 * _NG_CARD_H)
+                i = j
+            p.close()
+        c.drawPath(p, stroke=0, fill=1)
+        c.endForm()
+        c._ngo6_forme_faite = True
+    return nom
+
+
+def _ng_poser(c, x0, y0, couleur):
+    nom = _ng_graver_planche(c)
+    c.saveState()
+    c.setFillColor(couleur)
+    c.translate(x0, y0)
+    c.doForm(nom)
+    c.restoreState()
+
+
+def _ng_gen_grille(rng):
+    duos = [sorted(rng.sample(range(lo, hi + 1), 2)) for lo, hi in PLAGES]
+    return [duos[0][0], duos[1][0], duos[2][0],
+            duos[0][1], duos[1][1], duos[2][1]]
+
+
+def _ng_tirer(rng, deja):
+    for _ in range(400):
+        g = _ng_gen_grille(rng)
+        cle = tuple(g)
+        if cle not in deja:
+            deja.add(cle)
+            return g
+    return g
+
+
+def _ng_dessiner(c, x0, y0, grille, serie, couleur, style="eco"):
+    police_ch, gris_ch = _ng_style(style)
+    _ng_poser(c, x0, y0, couleur)
+    taille = _NG_TAILLE
+    for k, (fx, fy) in enumerate(_NG_CELLULES):
+        cx = x0 + _NG_CARD_W * fx
+        cy = y0 + _NG_CARD_H * (1.0 - fy) - taille * 0.36
+        val = grille[k]
+        if _sec:
+            _sec.chiffre_micro(c, val, cx, cy, taille, gris_ch, police_ch, epaisseur=_NG_GRAS_TRAIT)
+        else:
+            c.setFillColor(gris_ch); c.setFont(police_ch, taille)
+            c.drawCentredString(cx, cy, str(val))
+    c.setFillColor(GRIS); c.setFont(POLICE, _NG_TSERIE)
+    c.drawRightString(x0 + _NG_CARD_W - 2.0 * mm, y0 + 1.4 * mm, "N° %06d" % serie)
+    if _sec:
+        try:
+            _sec.cadre_micro(c, x0, y0, _NG_CARD_W, _NG_CARD_H, serie, retrait=0.9 * mm)
+        except Exception:
+            pass
+
+
+def generer_pdf(nb_cartes=16, serie_start=1, theme="", couleur=True,
+                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="",
+                telephone="", style="eco", evenement_id="", motif="",
+                page_start=1, **_):
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=_landscape(A4), pageCompression=1)
+    nb_cartes = max(1, min(int(nb_cartes), 10000))
+    nb_pages = (nb_cartes + _NG_PAR_PAGE - 1) // _NG_PAR_PAGE
+    rng = random.Random(640000 + int(serie_start))
+    serie = int(serie_start)
+    no_page = max(1, int(page_start))
+    faits = 0
+    _deja = set()
+    for _p in range(nb_pages):
+        if nom_evenement:
+            c.setFillColor(colors.black); c.setFont(POLICE, 8)
+            c.drawCentredString(_NG_PAGE_W / 2, _NG_PAGE_H - 4.4 * mm, nom_evenement)
+        c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 5.5)
+        c.drawRightString(_NG_PAGE_W - _NG_MARGE_X, _NG_PAGE_H - 4.4 * mm, "%03d" % no_page)
+        for row in range(_NG_ROWS):
+            for col_i in range(_NG_COLS):
+                if faits >= nb_cartes:
+                    break
+                x0 = _NG_MARGE_X + col_i * (_NG_CARD_W + _NG_GUTTER_X)
+                y0 = _NG_MARGE_BOT + (_NG_ROWS - 1 - row) * (_NG_CARD_H + _NG_GUTTER_Y)
+                grille = _ng_tirer(rng, _deja)
+                coul = colors.HexColor(
+                    couleur_perso if (couleur and couleur_perso)
+                    else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else _NG_TRAIT_NB)
+                _ng_dessiner(c, x0, y0, grille, serie, coul, style=style)
+                serie += 1
+                faits += 1
+        c.showPage()
+        no_page += 1
+    c.save()
+    buf.seek(0)
+    return buf
+
 
 if __name__ == "__main__":
-    pdf = generer_pdf(nb_cartes=12, couleur=True,
-                      nom_evenement="ASSOCIATION TE MANU", titre_jeu="NGO 8 boules",
-                      telephone="87048221")
-    with open("test_bno.pdf", "wb") as f:
-        f.write(pdf.read())
-    print("NGO 8 boules généré")
+    with open("test_ngo.pdf", "wb") as f:
+        f.write(generer_pdf(nb_cartes=16, couleur=True).read())
+    print("NGO (nouvelle maquette) genere")
+
+
+# == LE DESSIN DE SA PLANCHE, RELEVE AU TRAIT (un carton, millièmes) ==
+_NG_DECOR = (
+    "m22.8,993.8c17.9,990.5,11.4,981.6,8.3,974c2.9,960.3,2.8,953.9,2.8,502.9c2.8,-1.8,1.6,29.6,20.1,12.4c28.8,4.4,37.6,4.2,500,4.2c962.1,4.2,971.2,4.4,979.9,12.4c984.7,16.9,990.9,25.8,993.7,32.2c998.4,43.1"
+    ",998.7,68.3,999.4,495.6c1000.3,1007,1001.5,976.9,979.7,991.9c968.7,999.5,952,999.8,500,999.7c104,999.7,30.3,998.8,22.8,993.8|m975.3,981c979.7,977.6,984.6,971.1,986.1,966.6c990.7,953.6,992,60.6,987.4,4"
+    "3.3c979.9,14.7,1017.2,16.6,497.1,17.8l27.1,18.9l19.1,32.6l11,46.4l11,501.6l11,956.8l16.9,968.3c20.1,974.6,25.4,981.3,28.6,983.3c31.8,985.2,244.3,987,500.8,987.1c911.7,987.4,968.2,986.6,975.3,981|m178."
+    "7,966.4c43.7,964.4,36.1,963.9,30.6,956.3c24.9,948.4,24.8,945.7,24.8,781.8c24.8,636,25.3,614.1,29.2,605.7c33.2,596.9,33.2,595.5,29.2,588.7c25.3,582.1,24.8,561.3,24.9,411.4c25,228.5,24.7,231.5,39.7,222."
+    "9c44.5,220,96.8,218.5,186.8,218.5c302.7,218.5,327.7,219.6,334,224.6c340.6,229.8,342.6,229.8,349.2,224.6c360.6,215.5,634.1,215.6,645.5,224.7c652.4,230.2,654.3,230.2,661.2,224.7c667.9,219.4,691.1,218.5,"
+    "812.1,218.5c959.5,218.5,969.7,219.5,975.3,235.5c976.9,240.1,978,309.4,978,410.6c978,555.3,977.4,579.2,973.7,587.3c969.8,595.8,969.8,597.5,973.7,606c977.4,614,978,637.7,978,779.8c978,939.8,977.8,944.5,"
+    "972.3,955.3l966.5,966.4l814.8,966.4c677.4,966.4,662.5,965.7,657.9,959.4c653.2,953,652.5,953,647.9,959.4c643.3,965.7,628.8,966.4,496.7,966.4c369.6,966.4,350.1,965.6,347.1,960c344.6,955.5,342.6,954.9,34"
+    "0.1,958.1c332.6,967.6,316.4,968.4,178.7,966.4|m333.3,949.6c338.7,941.5,338.8,935.6,338.8,780.2c338.8,649.7,338.1,617.7,335,611.3c331.4,603.6,325.7,603.4,184.2,604.2c50,605,36.9,605.7,33.7,612.2c31.1,6"
+    "17.5,30.3,658,30.3,780.2c30.3,935.6,30.5,941.5,35.8,949.6c41.2,957.8,45,958,184.6,958c324.2,958,328,957.8,333.3,949.6|m644.6,949.6c649.9,941.5,650.1,935.6,650.1,780.2c650.1,652.3,649.4,617.7,646.4,611"
+    ".5c642.9,604.2,635.5,603.9,498.6,604.5c397.7,605,353.4,606.6,350.8,609.8c347.8,613.6,347.1,647.3,347.1,781.8c347.1,936.8,347.5,949.5,351.9,953.4c355,956.2,407.2,957.8,497.9,957.9c635.5,958,639.3,957.8"
+    ",644.6,949.6|m963.6,951.4l969.7,944.9l969.7,780c969.7,657.4,968.9,613.8,966.4,610.1c961.6,602.8,666.5,602.8,661.7,610.1c659.2,613.8,658.4,657.8,658.4,782.1c658.4,936.8,658.8,949.5,663.2,953.4c666.3,95"
+    "6.2,719.6,957.8,812.7,957.9c939.3,958,958.2,957.2,963.6,951.4|m345.1,602.5c346,601.1,346,597.3,345.2,594c344.1,589.4,342.8,589.2,339.9,592.8c337.8,595.4,336.8,599.3,337.7,601.3c339.4,605.6,342.7,606.2"
+    ",345.1,602.5|m656.4,602.5c657.3,601.1,657.3,597.3,656.5,594c655.4,589.4,654.1,589.2,651.2,592.8c649.1,595.4,648.1,599.3,649,601.3c650.7,605.6,654,606.2,656.4,602.5|m334.5,585.8c338.3,580.1,338.8,558.5"
+    ",338.8,413.3c338.8,306.9,337.8,244.4,336,239.2c333.2,231.3,328.7,231.1,186,231.1l38.9,231.1l34.6,240.4c28.1,254.5,28.1,569.1,34.6,583.1l38.9,592.4l184.5,592.4c313.3,592.4,330.7,591.7,334.5,585.8|m645."
+    "1,585.5c649.8,579,650.1,568,650.1,412.9c650.1,306.8,649.1,244.4,647.3,239.2c644.5,231.3,640,231.1,499.1,231.1c389.7,231.1,352.9,232.3,350.4,236.1c345.7,243.4,345.7,580.1,350.4,587.4c352.9,591.2,389.2,"
+    "592.4,496.9,592.4c626.2,592.4,640.5,591.8,645.1,585.5|m964.4,588.1c969.5,583.9,969.7,577.5,969.7,412.5c969.7,284.8,968.9,239.9,966.4,236.1c961.6,228.9,666.5,228.9,661.7,236.1c657,243.4,657,580.1,661.7"
+    ",587.4c666.1,594,956.3,594.7,964.4,588.1|m209.4,124.3c209.4,46,210.4,45.6,244,110.2l268.6,157.3l269.4,110.2c270,72.1,270.9,63,274.2,63c277.6,63,278.2,73.2,278.2,123.9c278.2,175,277.6,184.9,274.2,184.9"
+    "c271.9,184.9,259.3,164.1,246.1,138.7c232.9,113.2,221.4,92.4,220.5,92.4c219.7,92.4,219,112.7,219,137.5c219,177.1,218.4,182.8,214.2,184.1c209.8,185.4,209.4,180.3,209.4,124.3|m485.6,178.9c471.3,169,465.1"
+    ",149.8,466.2,118.8c467,96.7,468.4,90.6,475.2,79.8c491,54.7,520.2,53.3,535.6,76.8c543.2,88.4,543.5,89.8,538.8,92.3c535.4,94.1,531.5,91.8,527.3,85.3c522.7,78.4,517.7,75.6,509.6,75.6c488,75.6,476.6,92.8,"
+    "476.6,125.3c476.6,143.7,482.1,157.3,493.1,166c503.3,174,509.6,173.9,523.4,165.5c532.7,159.8,534.4,156.9,534.4,146.6c534.4,135,533.9,134.5,522,134.5c512.9,134.5,509.6,132.8,509.6,128.2c509.6,123.2,513."
+    "5,121.8,527.7,121.8l545.7,121.8l544.9,143.5c544.2,161.4,542.8,166.6,536.5,173.7c526.7,184.9,498.4,187.7,485.6,178.9|m741.8,178c715.8,158.4,714.8,93.8,740,68.6c750.2,58.4,775.9,58.4,786.1,68.6c803.8,86"
+    ".3,809.5,123.9,799,155.1c789.8,182.6,762.5,193.5,741.8,178|m779,163.8c804.6,140,794.6,76,765.3,75.7c744.6,75.5,732.8,93.1,732.8,124c732.8,143.6,736.6,154,747.4,164.1c758.6,174.5,767.6,174.4,779,163.8"
+)
