@@ -966,7 +966,7 @@ _enregistrer_paire("maia",          "MAIA \u00b7 Ma\u00efa", "🍌", 12, maiagen
 _enregistrer_paire("corsica",       "CORSICA \u00b7 l'\u00eele de la beaut\u00e9", "\u2b50", 8, corsicagen.generer_pdf)
 _enregistrer_paire("bno",           "BNO 8 boules","🎯", 12, bno.generer_pdf)
 _enregistrer_paire("bno_casino",    "BNO CASINO","🎰", 12, bno.generer_pdf_casino)
-_enregistrer_paire("ngo",           "NGO 8 boules","🎳", 12, ngo.generer_pdf)
+_enregistrer_paire("ngo",           "NGO","🎳", 16, ngo.generer_pdf)
 _enregistrer_paire("ngo_casino",    "NGO CASINO","🎰", 12, ngo.generer_pdf_casino)
 _enregistrer_paire("diamant",       "DIAMANT","💎", 8,  diamant.generer_pdf)
 _enregistrer_paire("rui",           "RUI","🎴", 12, rui.generer_pdf)
