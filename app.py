@@ -1067,7 +1067,7 @@ _enregistrer_paire("fleche",        "TAHITI",     "🌺", 8,  fleche.generer_pdf
 _enregistrer_paire("yes",           "YES",        "👍", 15, yes.generer_pdf)
 _enregistrer_paire("bio",           "BIO 8 boules", "🌱", 12, bio.generer_pdf)
 _enregistrer_paire("bio5",          "BIO 5 boules", "🌿", 12, bio5.generer_pdf)
-_enregistrer_paire("zin",           "ZIN",        "⚡", 12, zin.generer_pdf)
+_enregistrer_paire("zin",           "ZIN",        "⚡", 16, zin.generer_pdf)
 _enregistrer_paire("rai",           "RAI",        "🌈", 12, rai.generer_pdf)
 _enregistrer_paire("bin6",          "BIN 6 boules", "\U0001f3af", 12, bin6.generer_pdf)
 _enregistrer_paire("bin8",          "BIN 8 boules", "🎯", 12, bin8.generer_pdf)
