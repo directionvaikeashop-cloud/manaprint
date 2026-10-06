@@ -44,6 +44,7 @@ from generators import poe_parau as poeparaugen
 from generators import poe as poegen
 from generators import bng as bnggen
 from generators import hakari as hakarigen
+from generators import hakari_halloween as hakarihwgen
 from generators import henua_enana as henuaenanagen
 from generators import tiare as tiaregen
 from generators import tuamotu as tuamotugen
@@ -805,6 +806,7 @@ _enregistrer_paire("poe_parau",     "POE PARAU 6 boules", "🦪", 12, poeparauge
 _enregistrer_paire("poe",           "POE 6 boules", "⚪", 12, poegen.generer_pdf)
 _enregistrer_paire("bng",           "BNG 5 boules", "🟢", 12, bnggen.generer_pdf)
 _enregistrer_paire("hakari",        "HAKARI 6 boules", "🥥", 20, hakarigen.generer_pdf)
+_enregistrer_paire("hakari_halloween", "HAKARI HALLOWEEN", "🎃", 20, hakarihwgen.generer_pdf)
 _enregistrer_paire("henua_enana",   "HENUA ENANA 7 boules", "🗺️", 12, henuaenanagen.generer_pdf)
 _enregistrer_paire("tiare",         "TIARE 50-90", "🌼", 12, tiaregen.generer_pdf)
 _enregistrer_paire("tuamotu",       "TUAMOTU", "🏝️", 12, tuamotugen.generer_pdf)
@@ -2052,7 +2054,8 @@ _BOULES_CALLER = {
     "chance": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(76, 91)],  # CHANCE — trèfles 1-15 · 31-45 · 76-90
     "opoa": [n for n in range(1, 76)],  # OPOA — 6 numeros B 1-15 · I 16-30 · N 31-45 · G 46-60 · O 61-75 (le 76-90 n'existe pas)
     "australes": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(61, 76)],  # AUSTRALES — 5 numeros B 1-15 · N 31-45 · O 61-75 (le 16-30 et 46-60 n'existent pas)
-    "hakari": [n for n in range(1, 46)] + [n for n in range(61, 76)],  # HAKARI — B 1-15 · I 16-30 · N 31-45 · O 61-75 (le 46-60 et 76-90 n'existent pas)
+    "hakari": [n for n in range(1, 46)] + [n for n in range(61, 76)],  # HAKARI — B 1-15 · I 16-30 · N 31-45 · O 61-75
+    "hakari_halloween": [n for n in range(1, 46)] + [n for n in range(61, 76)],  # HAKARI HALLOWEEN — meme regle
     "tesla": [n for n in range(1, 31)] + [n for n in range(46, 61)],  # TESLA — la voiture roule sur 1-30 et 46-60
     "salute": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # SALUTE — le X couvre 1-30 et 46-75
     "pietra": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # PIETRA — la couronne couvre 1-30 et 46-75
