@@ -1,12 +1,21 @@
 # -*- coding: utf-8 -*-
-"""
-MANAPRINT — Générateur POE PARAU 6 boules (format A4)
-12 cartes/page — coquillage en éventail original, 6 numéros en boules.
-Numéros tirés dans 1-75 · QR de sécurité · série · microtexte · Tèl par défaut 89 22 23 05.
-Dessins vectoriels originaux MANAPRINT.
+"""MANAPRINT - Generateur POE PARAU / PERLE 90 (A4 portrait, 16 cartons/feuille).
+
+REGLE ABSOLUE : le decor plus bas EST la planche de Maeva, relevee au trait
+   sur sa nouvelle maquette PERLE 90 (le cadre, << N deg ___ >>, le titre
+   << PERLE 90 >> avec ses bulles, la fleur de tiare, les colonnes
+   B . I . N . G . O avec leurs plages, le COQUILLAGE a perle au centre,
+   les SIX bulles et << La chance en toute joie ! >>). RIEN n'a ete
+   redessine : on ECRIT seulement les numeros.
+
+LA REGLE DU JEU : CINQ numeros tires, un par colonne -
+   B 1-18 . I 19-36 . N 37-54 . G 55-72 . O 73-90 (tire dans 73-89 pour ne
+   pas doubler la perle). La GRANDE BULLE DU BAS porte TOUJOURS << 90 >>
+   (la perle fixe). Le crieur sort 1-90.
+
+L'ARC-EN-CIEL EST CARTON PAR CARTON. En N&B au gris #555555.
 """
 import io
-import math
 import random
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -24,282 +33,570 @@ except Exception:
         _sec = None
 
 try:
-    pdfmetrics.registerFont(TTFont("DJL", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    POLICE = "DJL"
+    pdfmetrics.registerFont(TTFont("DJLPRL", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
+    POLICE = "DJLPRL"
 except Exception:
     POLICE = "Helvetica"
 
-RAINBOW = ["#E53935", "#FB8C00", "#F9A825", "#43A047", "#00ACC1",
-           "#1E88E5", "#3949AB", "#8E24AA", "#D81B60", "#6D4C41"]
+RAINBOW = [
+    "#E53935", "#FB8C00", "#F9A825", "#43A047", "#00ACC1",
+    "#1E88E5", "#3949AB", "#8E24AA", "#D81B60", "#6D4C41",
+]
+GRIS = colors.Color(0.42, 0.42, 0.42)
 GRIS_CLAIR = colors.Color(0.80, 0.80, 0.80)
-PALE = colors.Color(0.86, 0.86, 0.86)
-PALE2 = colors.Color(0.90, 0.90, 0.90)
 
+import os as _os
 try:
-    pdfmetrics.registerFont(TTFont("DJLECO", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    _POLICE_ECO = "DJLECO"
+    pdfmetrics.registerFont(TTFont("LMROMANPRL", _os.path.join(
+        _os.path.dirname(_os.path.abspath(__file__)), "LatinModern.ttf")))
+    _POLICE_ECO = "LMROMANPRL"
 except Exception:
-    _POLICE_ECO = "Helvetica"
-_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
+    try:
+        pdfmetrics.registerFont(TTFont("DJLECOPRL", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
+        _POLICE_ECO = "DJLECOPRL"
+    except Exception:
+        _POLICE_ECO = "Helvetica"
+_GRIS_ECO = colors.Color(0.40, 0.40, 0.40)
+_GRAS_TRAIT = 0.012
+_POLICE_P15 = _POLICE_ECO
+_GRIS_P15 = colors.Color(0.14, 0.14, 0.14)
+
+TRAIT_NB = "#555555"
 
 
 def _style_chiffres(style):
     if str(style).lower() in ("p15", "premium"):
-        return "Helvetica-Bold", colors.Color(0.55, 0.55, 0.55)
+        return _POLICE_P15, _GRIS_P15
     return _POLICE_ECO, _GRIS_ECO
 
 
-import os as _os
-# 🎚️ RÉGLAGE DE DOUCEUR de la nacre (04/08) : plus petit = plus doux.
-# 0,18 = l'ancien aplat qui sortait noir · 0,10 = le réglage retenu.
-DOUCEUR_NACRE = 0.10
-
-# 🎚️ LES TEINTES DE LA PERLE (au trait depuis le 04/08)
-PERLE_TRAIT = colors.Color(0.55, 0.55, 0.55)     # le cercle du corps
-PERLE_OMBRE = colors.Color(0.74, 0.74, 0.74)     # les arcs du galbe
-PERLE_LUMIERE = colors.Color(0.82, 0.82, 0.82)   # le reflet
-
-_NACRE_IMG = None
-
-
-def _charger_nacre():
-    """L'illustration du coquillage (licence Freepik), pâlie en filigrane.
-    Anti-panne : si le fichier manque, retour à la gravure vectorielle maison."""
-    global _NACRE_IMG
-    if _NACRE_IMG is not None:
-        return _NACRE_IMG
-    try:
-        from PIL import Image as _Image
-        chemin = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "nacre_poe_parau.png")
-        brut = _Image.open(chemin)
-        # fond transparent -> aplati sur BLANC (sinon pavé noir !)
-        if brut.mode in ("RGBA", "LA", "P"):
-            brut = brut.convert("RGBA")
-            fondb = _Image.new("RGBA", brut.size, (255, 255, 255, 255))
-            brut = _Image.alpha_composite(fondb, brut)
-        img = brut.convert("L")
-        # 🦪 ADOUCI LE 04/08 — le filigrane était un APLAT gris : à l'impression
-        # noir & blanc « au seuil », toute la nacre basculait en NOIR PLEIN.
-        # Remède d'imprimeur : la TRAME DE POINTS (demi-teinte). L'image est
-        # d'abord très éclaircie, puis convertie en points noirs clairsemés
-        # (tramage Floyd-Steinberg). Un point reste un point sur toutes les
-        # machines : à l'œil c'est un gris doux, jamais un pavé.
-        img = img.point(lambda p: int(255 - (255 - p) * DOUCEUR_NACRE))
-        img = img.resize((img.width * 2, img.height * 2), _Image.LANCZOS)
-        img = img.convert("1", dither=_Image.FLOYDSTEINBERG)      # la trame
-        _NACRE_IMG = img.convert("RGB")
-    except Exception:
-        _NACRE_IMG = False
-    return _NACRE_IMG
-
-
+# -- GEOMETRIE DE LA FEUILLE (A4 portrait, 4 colonnes x 4 rangees) --
 PAGE_W, PAGE_H = A4
-COLS_PAGE = 3
+ASPECT = 256.0 / 384.0
+COLS_PAGE = 4
 ROWS_PAGE = 4
-MARGIN_X = 8 * mm
-MARGIN_TOP = 9 * mm
-MARGIN_BOT = 8 * mm
-GUTTER_X = 4 * mm
-GUTTER_Y = 4 * mm
-CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
-CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
+CARTES_PAGE = COLS_PAGE * ROWS_PAGE
+MARGE_X = 8 * mm
+GUTTER_X = 3 * mm
+GUTTER_Y = 3 * mm
+CARD_W = (PAGE_W - 2 * MARGE_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
+CARD_H = CARD_W / ASPECT
+_BLOC_H = ROWS_PAGE * CARD_H + (ROWS_PAGE - 1) * GUTTER_Y
+MARGE_TOP = (PAGE_H - _BLOC_H) / 2.0
+MARGE_BOT = MARGE_TOP
 
-NB_NUMS = 6
-# ordre de LECTURE : les numéros triés s'y posent du plus petit au plus grand
-POSITIONS = [(0.20, 0.72), (0.15, 0.45), (0.32, 0.20), (0.80, 0.72), (0.85, 0.45), (0.64, 0.20)]  # cascade haut->bas : gauche puis droite
-TAILLE_CHIFFRE = 32
+# -- LES SIX BULLES (fx depuis la gauche, fy depuis le HAUT) --
+# les 5 numeros tires (un par colonne) :
+CASES = [
+    (0.227, 0.354, (1, 18)),    # B haut-gauche
+    (0.539, 0.344, (19, 36)),   # I haut-milieu
+    (0.859, 0.349, (37, 54)),   # N haut-droite
+    (0.219, 0.656, (55, 72)),   # G milieu-gauche
+    (0.867, 0.651, (73, 89)),   # O milieu-droite (73-89 : le 90 est la perle)
+]
+# la GRANDE BULLE DU BAS : toujours 90 (la perle fixe)
+PERLE_FX, PERLE_FY, PERLE_VAL = 0.555, 0.839, 90
+
+TAILLE_CHIFFRE = 30.0
+_T_SERIE = 7.0
+_SERIE_FX = 0.266   # centre, sur la ligne << N deg ___ >>
+_SERIE_FY = 0.086   # depuis le haut
 
 
-def _dessiner_fond(c, x0, y0, w, h):
-    """La nacre POE PARAU : l'illustration sous licence en filigrane —
-    et la gravure vectorielle maison en roue de secours si l'image manque."""
-    img = _charger_nacre()
-    if img:
-        from reportlab.lib.utils import ImageReader
-        iw, ih = img.size
-        zone_w, zone_h = w * 0.76, h * 0.70
-        ratio = min(zone_w / iw, zone_h / ih)
-        dw, dh = iw * ratio, ih * ratio
-        c.drawImage(ImageReader(img), x0 + (w - dw) / 2, y0 + h * 0.07, dw, dh,
-                    mask=[250, 255, 250, 255, 250, 255])   # seul le blanc pur devient transparent
-        # mention de licence (formule gratuite Freepik)
-        c.setFillColor(colors.Color(0.62, 0.62, 0.62)); c.setFont(POLICE, 3.2)
-        c.drawCentredString(x0 + w / 2, y0 + 0.9 * mm, "Illustration : Designed by Freepik")
-        return
-    # ── repli : la gravure vectorielle maison ──
-    bx, by = x0 + w * 0.50, y0 + h * 0.10
-    R = h * 0.50
-    c.setStrokeColor(PALE)
-
-    NERVURES = 9
-    a0, a1 = 32, 148   # l'ouverture de l'éventail (degrés)
-
-    # ── le contour festonné : une bosse entre chaque paire de nervures ──
-    c.setLineWidth(1.0)
-    for i in range(NERVURES - 1):
-        ang_a = math.radians(a0 + (a1 - a0) * i / (NERVURES - 1))
-        ang_b = math.radians(a0 + (a1 - a0) * (i + 1) / (NERVURES - 1))
-        xa, ya = bx + R * math.cos(ang_a), by + R * math.sin(ang_a)
-        xb, yb = bx + R * math.cos(ang_b), by + R * math.sin(ang_b)
-        mx, my = (xa + xb) / 2, (ya + yb) / 2
-        # la bosse : point médian poussé vers l'extérieur
-        norme = math.hypot(mx - bx, my - by)
-        fx, fy = bx + (mx - bx) / norme * R * 1.075, by + (my - by) / norme * R * 1.075
+def _graver_planche(c):
+    nom = "PERLE90_DECOR"
+    if not getattr(c, "_perle90_forme_faite", False):
+        c.beginForm(nom, lowerx=0, lowery=0, upperx=CARD_W, uppery=CARD_H)
         p = c.beginPath()
-        p.moveTo(xa, ya)
-        p.curveTo(fx, fy, fx, fy, xb, yb)
-        c.drawPath(p, stroke=1, fill=0)
-
-    # ── les nervures : doubles lignes légèrement galbées ──
-    c.setLineWidth(0.8)
-    for i in range(NERVURES):
-        ang = math.radians(a0 + (a1 - a0) * i / (NERVURES - 1))
-        xe, ye = bx + R * math.cos(ang), by + R * math.sin(ang)
-        for de in (-1.1, 1.1):
-            px = -math.sin(ang) * de
-            py = math.cos(ang) * de
-            p = c.beginPath()
-            p.moveTo(bx + px, by + py)
-            p.curveTo(bx + (xe - bx) * 0.4 + px * 2.2, by + (ye - by) * 0.4 + py * 2.2,
-                      bx + (xe - bx) * 0.75 + px * 1.6, by + (ye - by) * 0.75 + py * 1.6,
-                      xe, ye)
-            c.drawPath(p, stroke=1, fill=0)
-
-    # ── les hachures de gravure : petits traits le long des nervures ──
-    c.setLineWidth(0.45)
-    for i in range(NERVURES - 1):
-        ang_m = math.radians(a0 + (a1 - a0) * (i + 0.5) / (NERVURES - 1))
-        for k in range(7):
-            rr = R * (0.40 + 0.078 * k)
-            hx, hy = bx + rr * math.cos(ang_m), by + rr * math.sin(ang_m)
-            lg = R * 0.045 * (1 + 0.5 * (k % 2))
-            c.line(hx - math.cos(ang_m) * lg / 2, hy - math.sin(ang_m) * lg / 2,
-                   hx + math.cos(ang_m) * lg / 2, hy + math.sin(ang_m) * lg / 2)
-
-    # ── la charnière et ses oreillettes ──
-    c.setLineWidth(0.9)
-    c.setFillColor(colors.white)
-    c.rect(bx - R * 0.13, by - R * 0.075, R * 0.26, R * 0.075, stroke=1, fill=1)
-    for s in (-1, 1):
-        c.rect(bx + s * R * 0.13, by - R * 0.045, s * R * 0.085, R * 0.045, stroke=1, fill=1)
-
-    # ── la petite perle POE, nichée à la charnière (signature du jeu) ──
-    pr = R * 0.085
-    # 🦪 la perle AU TRAIT (adoucie le 04/08) : plus d'aplats gris à noircir,
-    # juste son cercle et un croissant de lumière — douce à l'impression.
-    c.setFillColor(colors.white)
-    c.setStrokeColor(colors.Color(0.58, 0.58, 0.58))
-    c.setLineWidth(0.6)
-    c.circle(bx, by + R * 0.055, pr, stroke=1, fill=1)
-    c.setStrokeColor(colors.Color(0.74, 0.74, 0.74))
-    c.setLineWidth(0.4)
-    c.circle(bx + pr * 0.22, by + R * 0.055 - pr * 0.18, pr * 0.62, stroke=1, fill=0)
+        for contour in _DECOR.split("|"):
+            i = 0
+            n = len(contour)
+            while i < n:
+                cmd = contour[i]
+                j = i + 1
+                while j < n and contour[j] not in "mlc":
+                    j += 1
+                v = [float(x) for x in contour[i + 1:j].split(",")]
+                if cmd == "m":
+                    p.moveTo(v[0] / 1000.0 * CARD_W, CARD_H - v[1] / 1000.0 * CARD_H)
+                elif cmd == "l":
+                    p.lineTo(v[0] / 1000.0 * CARD_W, CARD_H - v[1] / 1000.0 * CARD_H)
+                else:
+                    p.curveTo(v[0] / 1000.0 * CARD_W, CARD_H - v[1] / 1000.0 * CARD_H,
+                              v[2] / 1000.0 * CARD_W, CARD_H - v[3] / 1000.0 * CARD_H,
+                              v[4] / 1000.0 * CARD_W, CARD_H - v[5] / 1000.0 * CARD_H)
+                i = j
+            p.close()
+        c.drawPath(p, stroke=0, fill=1)
+        c.endForm()
+        c._perle90_forme_faite = True
+    return nom
 
 
-def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
-    police_ch, gris_ch = _style_chiffres(style)
-    col = colors.HexColor(couleur_hex)
+def _poser_carton(c, x0, y0, couleur):
+    nom = _graver_planche(c)
+    c.saveState()
+    c.setFillColor(couleur)
+    c.translate(x0, y0)
+    c.doForm(nom)
+    c.restoreState()
 
-    c.setStrokeColor(col); c.setLineWidth(0.9)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 2 * mm, stroke=1, fill=0)
+
+def _gen_grille(rng):
+    """CINQ numeros tires, un par colonne (la perle du bas = 90, fixe)."""
+    return [
+        rng.randint(1, 18),
+        rng.randint(19, 36),
+        rng.randint(37, 54),
+        rng.randint(55, 72),
+        rng.randint(73, 89),
+    ]
+
+
+def _tirer(rng, deja):
+    g = None
+    for _ in range(400):
+        g = _gen_grille(rng)
+        cle = tuple(g)
+        if cle not in deja:
+            deja.add(cle)
+            return g
+    return g
+
+
+def _poser_chiffre(c, val, cx, cy, taille, gris_ch, police_ch):
+    yb = cy - taille * 0.36
     if _sec:
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
-
-    _dessiner_fond(c, x0, y0, CARD_W, CARD_H)
-
-    # en-tête : nom du jeu toujours affiché + titre client + notre signature
-    hdr_y = y0 + CARD_H - 4.2 * mm
-    titre = "POE PARAU 6 boules"
-    if titre_jeu and titre_jeu.strip().upper() != titre.upper():
-        titre += "  —  " + titre_jeu.strip()
-    titre += "  " + (telephone or "")
-    c.setFillColor(col); c.setFont(POLICE, 4.6)
-    c.drawCentredString(x0 + CARD_W / 2, hdr_y, titre[:64])
-    c.setFillColor(col); c.setFont(POLICE, 6)
-    c.drawCentredString(x0 + CARD_W / 2, hdr_y - 4.2 * mm, "Carte N° %05d" % serie)
-
-    # le téléphone en pied gauche (comme les billets du fenua)
-    c.setFillColor(colors.Color(0.45, 0.45, 0.45)); c.setFont(POLICE, 4.5)
-    c.drawString(x0 + 2.5 * mm, y0 + 2.2 * mm, "Tèl : " + (telephone or ""))
+        _sec.chiffre_micro(c, val, cx, yb, taille, gris_ch, police_ch, epaisseur=_GRAS_TRAIT)
+    else:
+        c.setFillColor(gris_ch)
+        c.setFont(police_ch, taille)
+        c.drawCentredString(cx, yb, str(val))
 
 
-    for i, (px, py) in enumerate(POSITIONS[:len(nums)]):
-        cx = x0 + CARD_W * px
-        cy = y0 + CARD_H * py
-        # boule ombrée en relief (dégradé simulé par anneaux)
-        r_b = TAILLE_CHIFFRE * 0.72
-        cyb = cy - TAILLE_CHIFFRE * 0.14
-        # 🦪 LA PERLE ADOUCIE (04/08) — avant : 4 disques gris pleins imbriqués
-        # pour simuler le relief ; à l'impression noir & blanc « au seuil »,
-        # toute la perle basculait en NOIR PLEIN et avalait le numéro.
-        # Maintenant : le relief est rendu AU TRAIT (cercles fins), le ventre
-        # de la perle reste BLANC — le numéro respire sur toutes les machines.
-        c.setFillColor(colors.white)
-        c.setStrokeColor(PERLE_TRAIT)
-        c.setLineWidth(0.8)
-        c.circle(cx, cyb, r_b, stroke=1, fill=1)          # le corps, blanc
-        # le galbe : un SEUL arc fin le long du bord bas-droit (pas de cercle
-        # entier, qui viendrait barrer le numéro)
-        c.setStrokeColor(PERLE_OMBRE)
-        c.setLineWidth(0.5)
-        rg = r_b * 0.86
-        c.arc(cx - rg, cyb - rg, cx + rg, cyb + rg, -75, 150)
-        # le reflet : un petit arc clair en haut à gauche
-        c.setStrokeColor(PERLE_LUMIERE)
-        c.setLineWidth(0.45)
-        rl = r_b * 0.30
-        gx, gy = cx - r_b * 0.40, cyb + r_b * 0.40
-        c.arc(gx - rl, gy - rl, gx + rl, gy + rl, 20, 150)
-        if _sec:
-            _sec.chiffre_micro(c, nums[i], cx, cy - TAILLE_CHIFFRE * 0.36, TAILLE_CHIFFRE, gris_ch, police_ch)
-        else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, TAILLE_CHIFFRE)
-            c.drawCentredString(cx, cy - TAILLE_CHIFFRE * 0.36, str(nums[i]))
-
-    # QR de vérification (anti-duplication) — bas-droit
-    if _sec and evenement_id:
+def _dessiner_carton(c, x0, y0, grille, serie, couleur, style="eco"):
+    police_ch, gris_ch = _style_chiffres(style)
+    _poser_carton(c, x0, y0, couleur)
+    taille = TAILLE_CHIFFRE
+    for k, (fx, fy, _pl) in enumerate(CASES):
+        cx = x0 + CARD_W * fx
+        cy = y0 + CARD_H * (1.0 - fy)
+        _poser_chiffre(c, grille[k], cx, cy, taille, gris_ch, police_ch)
+    # la perle du bas : toujours 90
+    _poser_chiffre(c, PERLE_VAL, x0 + CARD_W * PERLE_FX,
+                   y0 + CARD_H * (1.0 - PERLE_FY), taille, gris_ch, police_ch)
+    # numero de serie sur la ligne << N deg ___ >>
+    c.setFillColor(GRIS)
+    c.setFont(POLICE, _T_SERIE)
+    c.drawCentredString(x0 + CARD_W * _SERIE_FX,
+                        y0 + CARD_H * (1.0 - _SERIE_FY), "%05d" % serie)
+    if _sec:
         try:
-            _q = 10 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 2.5 * mm, y0 + 2.2 * mm, _q, evenement_id, serie)
+            _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.9 * mm)
         except Exception:
             pass
 
 
-def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
-                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id="", motif="", page_start=1):
-    telephone = (telephone or "").strip() or "89 22 23 05"
+def generer_pdf(nb_cartes=16, serie_start=1, theme="", couleur=True,
+                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="",
+                telephone="", style="eco", evenement_id="", motif="",
+                page_start=1, **_):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
     nb_cartes = max(1, min(int(nb_cartes), 10000))
-    par_page = COLS_PAGE * ROWS_PAGE
-    nb_pages = (nb_cartes + par_page - 1) // par_page
+    nb_pages = (nb_cartes + CARTES_PAGE - 1) // CARTES_PAGE
     rng = random.Random(930000 + int(serie_start))
     serie = int(serie_start)
-    # 📄 la page continue d'une rame à l'autre (sceau Maeva 12/08)
     no_page = max(1, int(page_start))
-    faites = 0
-    for _ in range(nb_pages):
+    faits = 0
+    _deja = set()
+    for _p in range(nb_pages):
         if nom_evenement:
             c.setFillColor(colors.black); c.setFont(POLICE, 9)
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 5 * mm, nom_evenement)
+            c.drawCentredString(PAGE_W / 2, PAGE_H - 5.0 * mm, nom_evenement)
         c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 6)
-        c.drawCentredString(PAGE_W / 2, PAGE_H - 7.2 * mm, "%03d" % no_page)
+        c.drawRightString(PAGE_W - MARGE_X, PAGE_H - 5.0 * mm, "%03d" % no_page)
         for row in range(ROWS_PAGE):
             for col_i in range(COLS_PAGE):
-                if faites >= nb_cartes:
+                if faits >= nb_cartes:
                     break
-                x0 = MARGIN_X + col_i * (CARD_W + GUTTER_X)
-                y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
-                nums = sorted(rng.sample(range(1, 76), NB_NUMS))  # ordre chronologique 1 -> 75
-                coul = (couleur_perso if (couleur and couleur_perso)
-                        else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
-                _dessiner_carte(c, x0, y0, nums, coul, serie, titre_jeu, telephone,
-                                style=style, evenement_id=evenement_id)
+                x0 = MARGE_X + col_i * (CARD_W + GUTTER_X)
+                y0 = MARGE_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
+                grille = _tirer(rng, _deja)
+                coul = colors.HexColor(
+                    couleur_perso if (couleur and couleur_perso)
+                    else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else TRAIT_NB)
+                _dessiner_carton(c, x0, y0, grille, serie, coul, style=style)
                 serie += 1
-                faites += 1
+                faits += 1
         c.showPage()
         no_page += 1
     c.save()
     buf.seek(0)
     return buf
+
+
+if __name__ == "__main__":
+    with open("test_perle90.pdf", "wb") as f:
+        f.write(generer_pdf(nb_cartes=16, couleur=True).read())
+    print("PERLE 90 genere")
+
+
+# == LE DESSIN DE SA PLANCHE, RELEVE AU TRAIT (un carton, millimes) ==
+_DECOR = (
+    "m476.5,953.8c75.9,953.5,56.9,953.4,54.4,952.3c50.7,950.7,46.4,946.5,45.0,943.2c44.1,941.1,43.9,854.8,44.2,566.4c44.4,360.7,44.7,155.6,45.0,110.7c45.4,30.4,45.4,28.9,47.4,26.8c48.4,25.6,51.2,23.7,53.6,"
+    "22.5l57.8,20.5l187.4,20.5c466.8,20.5,777.1,21.0,781.7,21.4c786.4,21.8,786.3,21.9,777.8,22.3c773.0,22.6,662.0,22.8,531.2,22.8c400.5,22.9,259.6,23.0,218.3,23.1c176.9,23.3,124.3,23.4,101.3,23.4l59.6,23.4"
+    "l55.7,25.8c53.5,27.1,51.4,29.0,51.0,30.2c50.6,31.3,50.3,237.4,50.5,488.2c50.7,888.2,50.9,944.4,52.2,945.6c53.0,946.3,54.5,947.7,55.6,948.6l57.5,950.2l132.5,950.5c173.8,950.7,385.8,950.8,603.8,950.8l10"
+    "00.0,950.7l1000.0,952.2c1000.0,953.4,999.3,953.6,994.9,954.0c992.1,954.2,968.7,954.3,942.9,954.3c917.1,954.2,707.2,954.0,476.5,953.8|m534.2,937.5c507.4,935.6,482.2,928.3,458.5,915.4c444.3,907.6,427.9,"
+    "893.1,420.6,881.8c414.0,871.5,410.8,864.2,408.7,854.6c406.8,845.6,406.9,839.6,409.1,829.1c413.1,810.2,423.7,794.6,443.5,778.2c458.9,765.5,484.3,753.8,504.4,750.0c509.0,749.1,513.9,747.3,514.0,746.4c51"
+    "4.1,746.0,509.3,745.6,502.7,745.3c492.4,744.9,478.9,743.3,461.9,740.4c448.9,738.2,423.6,730.7,413.8,726.1c398.4,718.9,369.2,702.2,360.4,695.5c357.0,692.9,353.7,690.8,353.1,690.8c352.5,690.8,350.1,693."
+    "5,347.7,696.8c345.4,700.1,341.0,705.3,338.1,708.3c332.1,714.5,317.5,724.9,306.8,730.6c290.2,739.4,266.3,746.8,245.1,749.7c226.8,752.2,195.7,751.5,176.9,748.3c150.7,743.8,121.0,730.8,103.6,716.5c95.5,7"
+    "09.7,94.0,708.2,88.3,700.6c77.8,686.6,75.2,679.4,74.5,662.8c74.0,649.7,74.5,645.8,78.0,636.4c87.0,611.8,116.8,586.9,151.9,574.7c177.2,565.8,208.4,562.1,236.8,564.7c257.2,566.6,271.0,569.9,292.3,578.0c"
+    "314.2,586.4,333.9,599.9,344.8,613.9c348.3,618.5,353.4,628.3,357.7,639.0c358.9,642.2,360.5,644.9,361.1,645.0c362.7,645.4,363.5,640.4,363.1,632.7c362.7,626.4,362.5,625.6,358.6,620.3c356.3,617.1,354.5,61"
+    "4.4,354.5,614.2c354.5,614.1,352.4,611.7,349.8,608.9c335.0,593.2,329.5,583.3,328.4,570.6c327.9,564.2,327.5,563.1,324.6,559.6c318.2,551.8,317.9,542.4,323.9,536.4c325.4,534.9,327.4,532.9,328.3,532.0c329."
+    "6,530.7,329.8,529.5,329.4,526.0c328.3,517.0,334.9,510.7,351.3,505.0c360.5,501.8,364.2,499.6,364.3,497.1c364.3,493.1,370.3,483.9,376.2,479.0c382.4,473.7,402.1,467.0,413.3,466.3c419.0,466.0,419.2,465.9,"
+    "424.1,462.0c442.7,447.5,457.8,443.3,488.3,444.4l501.7,444.8l510.2,442.0c514.8,440.5,518.5,439.0,518.3,438.6c517.8,437.7,514.2,437.0,509.5,436.9c503.7,436.8,484.7,433.1,474.6,430.1c451.8,423.3,427.3,40"
+    "9.7,414.1,396.4c409.7,392.1,403.1,383.7,401.9,380.9c401.5,380.0,400.8,378.9,400.4,378.6c398.7,377.0,395.4,369.6,393.6,363.3c389.3,348.5,392.4,326.0,400.4,314.1c400.8,313.4,402.5,310.9,403.9,308.6c409."
+    "6,299.7,419.8,289.9,432.0,281.3c455.9,264.6,478.2,256.2,510.7,251.8c526.7,249.7,554.6,249.7,568.4,251.9c590.3,255.3,608.1,260.9,624.5,269.5c652.3,284.0,668.9,301.7,677.4,325.8c680.0,333.2,680.0,351.5,"
+    "677.4,359.4c672.8,373.0,666.3,383.2,653.8,395.8c638.7,411.1,611.0,425.2,583.5,431.7c570.5,434.7,570.3,434.8,570.3,435.8c570.3,436.3,571.6,437.0,573.2,437.4c574.8,437.8,579.0,439.4,582.6,441.0c591.7,44"
+    "5.2,594.8,445.7,604.9,444.7c633.0,441.8,656.7,448.8,672.4,464.6c675.3,467.6,677.9,470.1,678.0,470.1c678.2,470.1,682.0,470.4,686.5,470.7c697.7,471.7,707.6,475.1,716.4,481.2c724.6,486.9,727.4,491.0,728."
+    "1,498.1c728.4,501.1,728.8,504.2,729.1,505.0c729.8,507.4,735.0,510.8,740.9,512.7c755.2,517.4,761.4,525.9,758.2,536.3c756.7,541.1,756.7,541.3,758.7,542.9c765.7,548.7,766.1,549.4,766.1,555.6c766.1,560.8,"
+    "765.8,562.0,763.3,565.3c761.7,567.4,758.2,570.8,755.5,572.8l750.5,576.4l750.5,585.6c750.5,594.4,750.4,594.9,747.7,598.3c744.9,601.9,741.2,605.6,734.7,611.6c732.8,613.3,730.2,616.8,729.0,619.2c727.7,62"
+    "1.6,725.0,625.1,722.8,626.9c720.5,628.8,718.6,631.3,718.2,632.7c717.9,634.0,717.2,635.9,716.7,637.0c716.2,638.0,715.5,640.8,715.2,643.2c714.6,647.2,714.8,647.8,717.8,651.7c724.6,660.7,726.0,660.7,726."
+    "8,651.9c728.0,639.5,735.6,623.8,746.9,610.4c758.0,597.2,777.1,584.7,800.6,575.3c826.0,565.1,857.4,560.6,889.4,562.3c896.8,562.7,904.2,563.4,905.8,563.7c907.4,564.1,912.6,565.1,917.5,566.1c929.9,568.6,"
+    "946.0,573.9,958.5,579.5c970.5,584.8,987.2,595.5,993.6,601.9c995.8,604.0,998.1,606.0,998.8,606.3c1000.2,606.9,1000.6,621.1,999.1,621.1c998.6,621.1,996.4,618.7,994.2,615.8c979.7,597.0,957.1,583.5,924.8,"
+    "574.7c922.9,574.2,917.2,573.0,912.1,572.1c877.2,565.8,851.2,567.3,815.3,577.7c797.4,582.9,775.6,594.9,762.1,607.1c756.8,611.9,746.1,625.2,746.1,627.0c746.1,627.4,745.4,628.6,744.5,629.7c743.7,630.8,74"
+    "1.7,635.1,740.1,639.2c735.1,651.9,735.2,669.9,740.3,681.3c741.2,683.5,742.3,686.1,742.6,687.2c743.5,689.6,753.3,703.2,756.2,706.0c779.2,727.8,811.1,741.3,849.1,745.2c868.1,747.1,891.2,745.7,910.4,741."
+    "4c936.1,735.7,950.1,730.0,967.8,718.1c980.9,709.3,988.9,702.4,994.6,694.8c996.6,692.2,998.6,690.1,999.1,690.1c999.6,690.1,1000.0,693.0,1000.0,696.5c1000.0,702.1,999.8,702.9,998.0,703.6c997.0,704.1,996"
+    ".1,704.7,996.1,705.1c996.1,706.5,986.1,715.7,979.7,720.2c950.0,741.2,911.2,752.3,868.2,752.1c842.7,751.9,821.6,748.6,801.3,741.5c780.6,734.3,763.3,724.1,749.8,711.2c745.6,707.2,738.3,698.7,738.3,697.8"
+    "c738.3,696.5,734.2,691.3,732.9,691.0c732.0,690.8,727.9,692.8,722.3,696.1c710.3,703.2,696.2,710.3,685.1,714.8c673.0,719.7,636.1,732.0,623.5,735.4c616.7,737.2,593.6,740.9,584.6,741.6c574.6,742.3,571.9,7"
+    "43.0,574.8,744.0c575.8,744.3,578.8,744.8,581.5,745.0c588.9,745.7,601.3,748.3,612.3,751.5c619.6,753.6,636.9,760.4,642.1,763.2c680.9,784.1,700.7,812.3,698.9,844.4c698.4,854.3,696.5,860.5,690.2,872.7c683"
+    ".0,886.8,674.9,895.5,658.0,907.3c630.3,926.6,595.4,937.1,556.5,937.8c548.2,937.9,538.2,937.8,534.2,937.5|m568.1,930.7c596.9,927.9,618.1,921.8,639.4,909.9c649.7,904.2,655.1,900.3,662.2,893.9c669.1,887."
+    "4,669.1,887.4,674.8,879.9c687.2,863.7,692.5,844.7,689.1,829.4c686.1,816.4,678.4,801.8,670.3,793.9c669.0,792.6,668.0,791.5,668.0,791.3c668.0,790.5,653.1,778.7,647.8,775.3c635.0,767.0,614.5,758.6,597.2,"
+    "754.6c582.4,751.1,574.8,750.4,554.7,750.4c537.6,750.4,534.6,750.6,525.4,752.1c519.8,753.0,511.0,754.8,505.9,756.2c497.6,758.3,494.7,759.3,486.3,762.5c479.6,765.0,464.5,772.9,458.3,777.1c445.2,786.1,43"
+    "4.0,797.6,427.5,808.9c423.6,815.6,422.0,818.9,421.5,821.0c421.2,822.2,420.3,825.3,419.5,827.8c417.0,835.3,417.5,849.7,420.4,859.5c426.6,880.1,440.9,896.5,464.5,910.3c482.1,920.6,507.8,928.2,531.7,930."
+    "3c536.6,930.8,541.0,931.2,541.5,931.3c544.2,931.9,558.8,931.5,568.1,930.7|m119.9,918.6c117.1,917.5,117.9,914.9,121.7,912.1c125.3,909.5,130.7,907.5,138.0,906.2c140.3,905.8,142.5,905.2,143.1,905.0c143.6"
+    ",904.7,145.6,904.1,147.5,903.8c149.3,903.4,155.7,901.7,161.6,900.1c172.0,897.1,177.3,895.7,186.5,893.6c188.9,893.0,191.6,892.4,192.4,892.1c196.4,891.1,219.5,886.0,224.0,885.2c226.7,884.7,236.9,882.8,2"
+    "46.6,881.0c256.2,879.2,267.7,877.3,272.0,876.6c276.3,876.0,285.1,874.7,291.5,873.7c310.9,870.6,334.7,867.6,344.7,866.8c347.7,866.6,353.8,866.0,358.3,865.5c367.6,864.5,375.8,864.3,377.9,865.2c379.0,865"
+    ".7,378.8,865.9,376.9,866.4c372.6,867.6,359.9,869.8,357.7,869.8c356.5,869.8,348.8,870.9,340.6,872.3c332.4,873.7,321.3,875.5,315.9,876.3c305.7,877.9,294.0,880.0,285.6,881.7c281.4,882.6,273.5,884.2,254.4"
+    ",887.8c251.7,888.3,246.4,889.3,242.7,890.0c238.9,890.6,234.5,891.5,232.9,891.9c231.3,892.3,222.7,894.2,213.9,896.1c205.0,898.0,196.7,899.9,195.3,900.3c194.0,900.7,188.3,902.0,182.6,903.4c168.8,906.6,1"
+    "60.5,908.7,155.8,910.1c153.6,910.8,149.4,912.0,146.5,912.8c143.5,913.5,139.4,914.7,137.2,915.3c132.8,916.7,122.8,919.3,122.1,919.3c121.8,919.2,120.8,918.9,119.9,918.6|m784.2,898.4c778.9,898.0,776.8,89"
+    "7.3,772.8,894.4c767.9,890.9,766.3,887.1,766.3,878.4c766.2,862.4,773.1,854.9,788.4,854.3c794.2,854.0,795.4,854.2,798.8,855.7c806.5,859.1,810.4,865.6,810.5,874.9c810.6,885.0,806.9,892.1,799.6,896.0c795."
+    "6,898.2,790.6,899.0,784.2,898.4|m724.9,897.7c722.2,895.9,724.2,893.2,728.3,893.2c734.2,893.2,744.1,886.9,744.1,883.1c744.1,882.1,743.4,882.0,739.3,882.4c732.5,882.9,728.2,881.9,724.2,878.8c715.8,872.2"
+    ",717.7,861.4,728.3,856.5c731.6,854.9,733.7,854.5,738.8,854.3c746.8,853.9,749.2,854.4,753.5,856.9c760.1,860.8,761.2,863.1,761.2,873.0c761.1,881.2,760.9,882.1,758.5,885.6c755.4,890.0,749.0,894.5,743.0,8"
+    "96.5c737.9,898.3,726.7,899.0,724.9,897.7|m92.1,891.6c89.8,890.0,89.7,889.6,90.0,884.5c90.3,879.9,90.7,878.7,93.1,876.4c99.1,870.3,108.0,869.4,110.0,874.7c111.2,878.0,108.0,881.4,100.1,885.2c97.6,886.3"
+    ",97.4,886.7,98.5,887.6c100.0,888.8,101.8,888.4,106.8,885.8c112.1,883.0,113.3,881.1,113.3,875.4c113.3,869.8,114.5,868.5,119.7,868.5c121.6,868.5,124.9,867.8,127.0,867.0c132.5,864.9,133.3,865.8,133.3,873"
+    ".5c133.3,878.0,133.7,879.8,134.5,880.0c135.3,880.2,136.2,879.5,136.8,878.3c138.1,875.9,140.4,875.7,141.2,877.9c141.8,879.6,139.9,882.5,137.1,884.2c133.9,886.1,131.4,886.2,128.4,884.7c125.8,883.3,125.7"
+    ",883.2,126.4,878.1c126.9,874.1,126.7,873.0,125.7,873.0c122.3,873.0,120.9,874.8,119.6,880.7c118.0,887.9,117.0,889.3,113.5,889.3c112.0,889.3,108.9,890.2,106.4,891.3c100.7,893.8,95.7,893.9,92.1,891.6|m79"
+    "0.9,891.3c793.7,889.5,795.2,882.4,794.8,873.0c794.4,863.7,793.1,861.1,788.9,860.8c786.6,860.6,785.9,861.0,784.0,863.4c781.9,866.0,781.7,867.0,781.7,876.3c781.7,884.9,782.0,886.7,783.6,888.7c787.1,893."
+    "0,787.9,893.3,790.9,891.3|m104.2,878.4c104.5,877.9,104.3,877.2,103.8,876.9c102.6,876.1,98.1,878.4,99.0,879.4c99.8,880.3,103.5,879.6,104.2,878.4|m162.1,877.8c160.2,876.2,160.0,875.3,160.3,869.5c160.5,8"
+    "64.8,160.2,862.6,159.2,861.6c158.1,860.4,158.2,859.8,160.5,857.1c161.9,855.5,163.3,853.1,163.7,851.8c164.4,849.3,165.3,848.7,167.9,849.3c169.2,849.5,169.9,850.4,170.1,851.8c170.3,853.3,170.9,853.9,172"
+    ".5,854.0c177.7,854.5,177.9,858.3,172.8,859.1c169.0,859.6,168.3,860.6,167.7,866.5c167.2,871.9,167.5,873.0,169.4,873.0c171.8,873.0,174.0,870.5,174.8,866.8c176.7,858.8,180.2,855.2,187.4,854.1c192.3,853.4"
+    ",194.8,854.1,195.7,856.5c196.8,859.3,199.3,858.1,201.5,853.8c203.1,850.8,204.1,849.9,205.6,849.9c207.4,849.9,207.5,850.4,207.5,856.4c207.5,861.9,207.8,863.0,209.1,863.1c211.2,863.4,213.4,859.6,214.3,8"
+    "54.0c214.9,850.2,215.4,849.4,217.9,848.0c222.9,845.2,224.2,846.0,222.1,850.6c221.3,852.3,220.7,855.3,220.7,857.2c220.7,860.2,221.0,860.7,222.6,860.7c223.7,860.7,225.0,860.1,225.6,859.3c226.7,857.9,226"
+    ".4,850.1,225.1,847.0c224.7,845.8,225.1,844.7,227.0,842.9c228.4,841.5,229.5,839.9,229.5,839.2c229.5,837.0,230.6,835.9,232.9,835.9c235.2,835.9,236.3,837.0,236.3,839.3c236.3,840.0,237.4,840.8,238.8,841.3"
+    "c240.1,841.7,241.5,842.7,241.8,843.5c242.6,845.6,244.6,845.4,246.1,843.1c247.0,841.7,248.3,840.9,251.2,840.4c255.0,839.6,255.2,839.6,257.9,841.7c262.5,845.1,261.8,847.1,254.8,851.7c249.4,855.2,248.9,8"
+    "55.7,250.3,856.6c252.1,857.8,254.6,857.0,259.5,853.7c262.5,851.7,263.1,851.6,264.4,852.4c265.6,853.2,265.6,853.6,264.2,855.4c263.3,856.5,260.6,858.5,258.0,859.7c253.4,862.0,250.0,862.4,245.0,861.0c243"
+    ".9,860.7,242.1,861.3,239.8,862.7c236.9,864.4,235.3,864.8,231.6,864.9c228.8,864.9,225.7,865.5,223.6,866.4c221.4,867.3,218.7,867.8,215.7,867.8c212.5,867.8,210.8,868.2,209.5,869.1c208.5,869.9,206.7,870.4"
+    ",205.6,870.4c203.4,870.4,200.2,868.6,200.2,867.4c200.2,867.0,199.6,866.4,198.9,866.0c197.3,865.1,195.3,866.2,195.3,867.9c195.3,868.5,193.5,870.3,191.3,872.0c187.6,874.8,187.0,875.0,182.6,875.0c178.9,8"
+    "75.0,176.8,875.5,172.7,877.3c166.5,880.0,164.8,880.1,162.1,877.8|m744.9,873.2c746.5,871.8,746.4,864.9,744.7,862.7c742.3,859.6,738.6,859.4,736.5,862.2c733.7,866.0,734.4,870.6,738.4,873.4c740.6,875.0,74"
+    "2.8,874.9,744.9,873.2|m274.0,869.6c271.1,866.9,272.4,864.2,277.6,862.1c281.8,860.5,283.8,856.1,285.3,845.3c286.4,837.1,288.1,833.8,290.8,834.1c292.0,834.3,292.6,835.1,292.7,836.9c293.4,843.4,295.2,844"
+    ".2,296.9,838.9c298.4,834.1,302.9,830.7,307.9,830.7c313.0,830.7,314.4,831.3,316.1,834.1c316.9,835.5,317.9,836.6,318.4,836.6c319.4,836.6,320.3,834.9,320.3,832.9c320.3,830.4,322.1,828.8,324.7,828.8c327.1"
+    ",828.8,327.9,830.2,327.9,834.8c327.9,839.1,330.7,837.7,331.6,833.0c332.5,828.2,336.8,824.8,342.0,824.7c347.4,824.6,348.9,825.8,348.4,829.7c348.0,832.3,347.3,833.3,344.9,834.7c341.2,836.9,339.8,838.7,3"
+    "40.8,839.8c341.8,840.9,344.3,840.0,348.3,837.0c351.7,834.4,353.9,834.0,354.9,835.7c355.7,837.1,352.2,840.4,347.1,843.1c343.7,844.9,342.7,845.1,338.9,844.8c335.2,844.6,333.7,844.8,329.8,846.4c324.1,848"
+    ".8,321.5,848.8,320.3,846.7c319.0,844.4,317.0,844.7,313.6,847.7c312.0,849.2,309.0,851.2,307.0,852.1l303.3,853.7l299.6,852.3c297.5,851.5,295.4,851.0,294.9,851.2c294.4,851.4,293.7,852.7,293.4,854.0c293.1"
+    ",855.4,291.4,858.8,289.8,861.6c285.0,869.7,277.9,873.3,274.0,869.6|m188.1,868.2c191.9,864.3,190.2,857.4,185.8,859.1c183.3,860.2,181.0,866.1,182.4,868.2c183.9,870.2,186.0,870.2,188.1,868.2|m238.4,857.3"
+    "c239.7,855.6,242.1,849.2,242.2,847.2c242.2,845.4,239.8,845.2,236.7,846.6c235.1,847.4,234.5,848.5,234.1,852.2c233.8,854.8,233.7,857.3,234.0,857.8c234.8,859.2,237.1,858.9,238.4,857.3|m86.3,848.0c86.0,84"
+    "7.4,86.4,845.7,87.2,844.2c88.1,842.7,89.1,839.9,89.4,837.9c89.7,835.9,90.6,833.0,91.3,831.4c92.1,829.8,93.1,825.8,93.7,822.5c94.3,819.2,95.0,816.0,95.3,815.5c96.0,814.3,99.1,813.5,100.6,814.1c102.0,81"
+    "4.7,101.8,818.2,100.2,822.0c99.4,823.8,98.3,827.4,97.7,830.1c97.2,832.9,96.3,835.9,95.7,836.9c94.6,838.8,94.4,842.0,95.3,842.6c95.6,842.8,97.8,842.2,100.1,841.4c105.4,839.4,109.7,839.5,110.2,841.6c110"
+    ".4,842.7,109.8,843.3,108.2,843.7c107.0,844.0,104.0,844.8,101.6,845.4c99.1,846.0,95.3,847.0,93.0,847.7c87.9,849.2,87.0,849.3,86.3,848.0|m253.3,847.3c253.6,846.8,253.6,845.9,253.3,845.4c252.5,844.0,250."
+    "0,845.4,250.0,847.1c250.0,848.5,252.5,848.7,253.3,847.3|m307.5,845.9c309.0,844.0,310.7,837.5,310.0,836.3c309.6,835.7,308.5,835.3,307.2,835.4c305.7,835.6,305.0,836.3,304.4,838.2c303.9,839.6,303.1,841.9"
+    ",302.5,843.2c302.0,844.5,301.8,845.9,302.2,846.3c303.2,847.4,306.5,847.1,307.5,845.9|m115.3,841.4l112.0,840.4l112.6,836.0c113.0,832.8,114.0,830.3,116.2,827.5c118.8,824.0,119.9,823.3,123.8,822.1c126.4,"
+    "821.4,130.2,820.7,132.3,820.7c136.1,820.6,136.2,820.7,136.1,822.6c136.0,823.7,135.3,826.2,134.5,828.2c132.6,833.0,133.4,833.9,138.2,832.4c140.1,831.8,142.0,831.4,142.3,831.6c144.3,833.0,135.7,838.5,13"
+    "1.5,838.5c130.4,838.5,127.9,839.2,126.0,840.1c121.3,842.2,119.2,842.5,115.3,841.4|m328.1,839.5c328.1,838.3,326.0,838.5,325.4,839.7c325.2,840.1,325.7,840.5,326.6,840.5c327.4,840.5,328.1,840.0,328.1,839"
+    ".5|m374.3,837.5c373.6,836.2,375.1,834.4,377.2,834.1c379.1,833.9,380.1,835.7,378.9,837.3c377.6,838.8,375.2,838.9,374.3,837.5|m125.4,835.0c127.3,833.0,129.1,827.9,128.3,826.5c127.5,825.2,125.7,825.3,123"
+    ".7,826.7c121.8,828.1,119.6,834.1,120.4,835.5c121.3,837.1,123.6,836.8,125.4,835.0|m166.0,832.9c165.2,832.7,163.3,831.8,161.9,830.9c159.7,829.5,159.2,828.6,159.2,826.2c159.3,819.5,162.9,814.9,170.4,812."
+    "1c174.3,810.6,177.0,810.8,178.9,812.8c181.3,815.1,178.3,819.0,175.5,817.1c174.9,816.7,173.4,816.4,172.2,816.4c169.1,816.4,166.7,819.7,166.6,824.2c166.5,827.6,166.7,827.8,168.9,828.0c170.6,828.1,173.1,"
+    "827.3,176.9,825.3l182.3,822.4l183.5,813.4c184.2,808.4,185.5,802.2,186.4,799.5c187.8,795.4,188.4,794.6,190.1,794.4c193.6,794.1,194.0,796.9,191.9,804.7c191.1,807.5,192.5,808.2,196.6,806.9c202.0,805.2,20"
+    "3.0,806.1,203.3,813.4c203.6,818.1,203.9,819.3,205.1,819.3c206.6,819.3,206.9,818.8,209.4,811.5c210.7,807.7,211.6,806.6,214.8,804.5c216.9,803.2,219.6,802.1,220.7,802.1c221.8,802.1,224.1,801.6,225.8,801."
+    "0c228.6,800.1,229.0,800.1,230.1,801.1c231.3,802.2,231.0,806.1,229.4,809.6c228.2,812.3,229.2,813.9,231.8,813.7c233.4,813.5,234.2,812.6,235.6,809.2c236.6,806.9,237.7,803.5,238.1,801.8c238.8,798.5,238.8,"
+    "798.5,244.0,797.4c246.9,796.8,249.8,795.9,250.5,795.5c251.3,795.1,252.8,795.0,253.9,795.2c257.2,795.9,258.1,797.9,257.3,803.1c256.8,807.3,256.9,808.0,258.3,808.4c260.6,809.0,261.7,807.5,261.7,803.8c26"
+    "1.7,794.9,276.7,786.8,281.1,793.3c282.5,795.3,283.8,795.4,284.7,793.5c285.1,792.7,287.2,790.7,289.4,789.2c292.7,786.9,294.0,786.5,297.0,786.5c299.0,786.5,301.3,786.9,302.2,787.5c305.9,789.9,302.4,796."
+    "4,295.9,799.2c292.5,800.6,292.1,801.0,293.0,802.1c293.5,802.8,294.7,803.4,295.6,803.4c297.1,803.4,303.2,799.5,305.4,797.2c306.6,795.9,306.6,795.9,308.1,797.2c312.2,800.6,301.4,807.8,293.2,807.1c291.2,"
+    "807.0,288.9,806.6,288.0,806.4c287.0,806.1,285.1,806.7,282.6,808.0c277.0,811.0,272.7,812.0,267.9,811.5c264.4,811.2,263.3,811.4,259.5,813.2c252.0,816.7,249.3,814.9,250.2,807.0c250.8,802.5,250.1,801.0,24"
+    "7.7,801.6c245.6,802.2,243.4,805.9,242.6,810.1c241.8,814.0,240.0,816.8,237.5,817.6c236.6,818.0,232.8,818.7,229.0,819.3c225.2,819.9,221.0,821.0,219.5,821.7c217.9,822.4,215.2,822.9,212.6,822.9c209.7,822."
+    "9,207.4,823.4,205.8,824.2c202.6,825.9,198.6,825.9,197.3,824.3c196.7,823.6,196.3,820.8,196.3,818.1c196.3,813.2,195.7,812.2,193.1,812.9c191.5,813.3,190.0,816.2,188.4,822.5c187.2,827.3,185.7,828.8,182.1,"
+    "828.8c180.8,828.8,177.0,829.8,173.6,831.0c170.2,832.2,166.8,833.0,166.0,832.9|m289.3,829.9c287.5,828.5,288.9,826.2,291.6,826.2c294.4,826.2,295.7,827.8,294.2,829.4c292.9,830.7,290.6,831.0,289.3,829.9|m"
+    "342.8,829.4c342.8,829.1,342.3,828.8,341.8,828.8c341.3,828.8,340.8,829.2,340.8,829.8c340.8,830.3,341.3,830.6,341.8,830.4c342.3,830.2,342.8,829.7,342.8,829.4|m376.5,828.8c376.2,828.4,376.3,827.0,376.8,8"
+    "25.7c377.4,824.3,378.1,820.2,378.5,816.6c379.2,809.3,380.5,807.1,383.5,808.4c384.5,808.8,385.1,809.4,385.0,809.8c384.9,810.2,384.3,813.4,383.7,816.9c383.2,820.4,382.5,824.2,382.2,825.3c381.6,828.3,378"
+    ".0,830.5,376.5,828.8|m322.9,823.8c322.0,822.4,324.0,820.3,326.1,820.3c328.6,820.3,329.4,821.3,328.7,823.3c328.0,825.1,323.8,825.5,322.9,823.8|m847.7,818.2c835.6,816.8,825.2,808.6,825.2,800.7c825.2,794"
+    ".8,831.1,787.0,838.8,782.9c849.5,777.1,863.8,777.4,874.7,783.5c882.0,787.5,885.5,795.0,883.6,802.2c881.4,810.9,872.8,816.7,859.9,818.3c856.7,818.7,853.9,819.0,853.6,818.9c853.3,818.9,850.6,818.6,847.7"
+    ",818.2|m220.3,816.1c221.2,815.2,222.1,812.5,222.4,810.2c222.8,806.7,222.7,806.0,221.4,806.0c217.7,806.0,213.4,813.5,215.2,816.7c216.0,818.2,218.5,817.9,220.3,816.1|m865.6,812.4c870.5,811.1,873.2,809.0"
+    ",876.0,804.7c881.3,796.3,877.4,788.0,865.9,783.3c863.4,782.2,861.0,781.9,856.1,781.9c852.6,781.9,849.5,782.2,849.2,782.5c848.9,782.8,847.4,783.3,845.9,783.5c842.8,784.0,837.3,787.1,835.9,789.2c835.3,7"
+    "90.0,834.3,791.4,833.5,792.3c829.8,796.7,830.9,805.2,835.8,809.1c840.1,812.5,845.9,813.9,854.5,813.6c858.5,813.5,863.5,812.9,865.6,812.4|m749.5,810.9c749.0,810.8,747.3,810.5,745.9,810.3c742.0,809.7,73"
+    "6.9,806.5,733.5,802.4c730.2,798.5,729.5,793.8,731.5,789.8c732.4,788.2,732.3,787.2,731.1,785.2c728.6,781.1,729.9,777.1,734.7,773.6c738.2,771.1,738.9,770.8,743.2,770.8c747.8,770.8,748.0,770.8,751.6,767."
+    "1c756.5,762.3,762.4,760.2,770.6,760.2c775.5,760.3,776.9,760.6,780.2,762.3c782.3,763.4,785.1,765.6,786.5,767.2c792.7,774.2,787.4,783.4,775.1,787.0c772.4,787.7,772.4,787.9,773.1,790.9c775.1,798.6,772.4,"
+    "804.5,765.3,808.1c760.9,810.4,753.3,811.7,749.5,810.9|m277.9,804.9c282.2,801.8,282.6,798.1,278.8,797.0c275.6,796.0,272.2,796.0,270.7,797.0c270.0,797.4,269.5,799.6,269.5,801.9c269.5,805.0,269.9,806.1,2"
+    "71.2,806.6c273.9,807.6,274.4,807.5,277.9,804.9|m761.5,804.8c766.1,802.5,768.6,798.9,768.5,794.8c768.5,790.8,766.3,788.7,758.9,785.4c755.5,783.9,753.5,783.5,749.4,783.5c744.1,783.5,742.8,782.6,747.1,78"
+    "1.9c750.5,781.4,751.3,780.0,750.1,776.9c749.4,775.1,748.2,774.1,746.5,773.5c742.5,772.3,740.2,772.7,736.7,775.0c734.0,776.8,733.4,777.7,733.4,779.9c733.4,784.1,734.8,785.3,738.8,784.8c740.7,784.5,742."
+    "2,784.5,742.2,784.7c742.2,784.9,740.5,786.3,738.4,787.7c733.7,790.9,733.0,792.1,733.9,796.2c734.9,801.1,740.9,805.5,748.0,806.7c752.1,807.4,758.1,806.5,761.5,804.8|m296.1,792.2c294.5,791.1,292.5,792.5"
+    ",293.4,794.0c294.0,795.1,294.1,795.1,295.6,794.1c296.9,793.2,297.0,792.8,296.1,792.2|m774.2,782.1c780.3,780.1,783.2,777.0,783.2,772.8c783.2,769.6,782.1,768.0,778.0,765.1c775.3,763.2,774.4,763.0,769.5,"
+    "763.0c764.4,763.0,763.8,763.2,759.0,766.2c754.0,769.3,753.9,769.3,753.9,773.2c754.0,776.4,754.4,777.3,756.6,779.1c759.1,781.0,765.9,783.9,768.0,783.9c768.6,783.9,771.4,783.1,774.2,782.1|m227.3,744.8c2"
+    "54.2,743.2,274.9,738.0,296.9,727.3c331.0,710.7,350.6,685.4,350.6,658.0c350.6,633.2,336.1,611.3,308.0,593.8c290.0,582.6,269.7,575.7,243.2,571.8c230.9,570.1,206.2,570.2,192.7,572.1c141.1,579.4,102.8,603"
+    ".2,88.0,637.0c82.3,650.2,82.4,672.7,88.3,683.5c89.1,685.1,89.8,686.8,89.8,687.3c89.8,688.2,97.5,698.9,100.6,702.5c110.2,713.3,129.3,726.2,144.0,731.8c152.5,735.0,156.8,736.5,159.2,737.0c160.5,737.3,16"
+    "4.9,738.4,168.8,739.5c178.7,742.3,190.2,744.2,200.7,744.8c213.6,745.5,215.3,745.5,227.3,744.8|m552.9,740.8c563.4,738.5,571.5,734.1,579.7,726.2c580.8,725.1,582.1,723.6,582.4,722.9c582.8,722.1,583.7,721"
+    ".1,584.5,720.7c585.3,720.2,585.9,719.5,585.9,719.0c585.9,718.6,586.4,717.4,587.0,716.4c587.8,714.9,588.2,714.8,588.9,715.5c589.8,716.5,589.2,719.2,587.9,720.4c587.5,720.7,586.7,722.1,586.1,723.3c584.1"
+    ",727.8,582.5,730.2,580.3,732.0c576.7,735.1,578.4,735.6,589.6,734.6c614.4,732.4,626.0,728.7,641.8,718.0c646.4,714.8,650.5,712.2,650.8,712.2c651.3,712.2,647.8,715.9,645.0,718.4c644.2,719.1,643.6,719.9,6"
+    "43.6,720.2c643.6,721.2,646.7,721.6,648.3,720.8c652.9,718.7,662.5,715.3,667.2,714.3c680.4,711.2,690.5,707.0,709.8,696.4c718.0,691.9,722.4,689.0,721.8,688.6c721.3,688.3,720.1,688.3,718.7,688.8c715.0,690"
+    ".1,701.2,692.1,690.5,692.8c678.9,693.5,672.5,694.8,668.9,697.0c666.7,698.3,665.8,698.5,661.4,698.1c657.6,697.8,654.7,698.1,650.2,699.1c646.8,699.8,641.8,700.6,639.2,700.9c636.5,701.1,633.5,701.6,632.7"
+    ",701.9c631.8,702.2,623.0,703.1,613.2,703.8c603.3,704.5,594.7,705.5,594.0,705.8c593.1,706.3,591.7,706.2,588.8,705.2c583.6,703.5,580.6,704.0,571.0,708.3c564.7,711.2,544.6,715.5,537.8,715.5c532.3,715.5,5"
+    "17.5,712.6,505.9,709.3c499.0,707.2,492.3,705.7,490.3,705.7c486.8,705.7,483.4,707.2,483.4,708.8c483.4,709.4,482.4,709.1,480.7,707.9c478.2,706.1,477.4,705.9,468.7,705.5c452.6,704.8,424.6,700.3,418.0,697"
+    ".2c412.9,695.0,408.8,693.9,401.5,693.1c392.4,692.0,382.8,690.4,378.6,689.2c373.8,687.8,359.8,684.9,358.0,684.9c352.5,684.9,363.6,694.3,378.4,702.2c389.3,707.9,390.3,708.2,391.7,705.3c391.9,704.9,395.4"
+    ",707.2,399.3,710.4c407.4,716.9,410.0,718.4,418.5,721.4c421.7,722.6,427.4,724.7,431.2,726.1c436.2,728.1,439.2,728.8,442.5,728.8c446.0,728.9,448.7,729.6,454.0,731.7c463.1,735.4,472.2,737.0,487.1,737.4c5"
+    "00.9,737.9,501.1,737.8,496.0,732.7c492.2,729.0,488.3,724.1,488.3,723.2c488.3,722.8,487.6,722.0,486.8,721.4c484.8,719.8,483.7,715.9,485.4,716.3c486.1,716.4,487.1,717.6,487.6,718.8c488.1,720.0,489.0,721"
+    ".2,489.7,721.5c490.4,721.8,491.3,722.8,491.7,723.8c492.0,724.8,493.0,726.0,493.7,726.6c494.4,727.1,497.4,729.4,500.2,731.7c505.8,736.2,511.6,738.9,519.7,740.9c527.3,742.7,544.7,742.7,552.9,740.8|m553."
+    "0,709.7c555.3,709.1,558.3,708.3,559.8,708.1c562.6,707.6,563.3,706.8,561.5,706.0c560.9,705.8,557.1,706.1,553.0,706.7c547.3,707.6,542.2,707.8,531.3,707.6c523.5,707.4,518.0,707.4,519.0,707.6c520.1,707.7,"
+    "521.8,708.4,522.7,709.0c524.4,710.2,525.5,710.5,531.2,711.2c536.3,711.8,548.8,711.0,553.0,709.7|m590.8,710.0c590.8,709.4,591.3,709.0,591.8,709.0c592.3,709.0,592.8,709.3,592.8,709.6c592.8,709.9,592.3,7"
+    "10.4,591.8,710.6c591.3,710.8,590.8,710.6,590.8,710.0|m552.2,701.2c573.9,698.1,589.6,691.5,600.1,681.0c606.4,674.7,608.8,669.2,608.8,661.1c608.7,654.4,607.2,650.2,602.6,644.3c593.9,633.0,574.1,624.3,55"
+    "2.8,622.4c534.4,620.7,517.6,622.6,500.8,628.3c494.3,630.5,490.8,632.3,483.4,637.3c470.2,646.1,464.8,653.7,464.8,663.4c464.8,682.2,487.5,696.9,522.9,701.1c536.7,702.8,541.2,702.8,552.2,701.2|m482.5,701"
+    ".1c485.5,700.1,484.7,698.6,480.6,697.4c475.0,695.8,468.6,691.5,465.9,687.7c462.9,683.4,458.6,680.6,453.6,679.8c451.5,679.4,444.4,678.3,438.0,677.2c408.6,672.2,392.3,672.2,361.5,676.8c358.1,677.3,359.1"
+    ",679.8,363.3,681.1c373.8,684.4,394.5,688.3,407.2,689.3c412.7,689.8,414.4,690.2,418.8,692.6c421.7,694.1,424.8,695.3,425.7,695.3c426.6,695.3,427.8,695.6,428.4,696.0c429.3,696.6,436.9,698.1,447.8,699.9c4"
+    "57.4,701.4,479.4,702.2,482.5,701.1|m628.4,698.8c633.3,698.2,639.8,697.3,643.1,696.8c646.3,696.2,651.2,695.6,653.9,695.2c656.7,694.9,660.4,694.3,662.2,693.8c664.0,693.3,667.5,692.6,669.9,692.4c672.3,69"
+    "2.1,675.0,691.7,675.9,691.3c676.8,691.0,681.4,690.5,686.2,690.1c695.5,689.4,708.9,687.4,714.2,685.9c715.9,685.4,719.0,684.8,721.2,684.5c724.5,684.0,725.1,683.7,725.1,682.3c725.1,681.1,724.4,680.6,721."
+    "7,680.2c719.8,679.9,715.2,679.1,711.4,678.4c701.6,676.6,685.3,675.1,674.7,675.1c664.1,675.1,645.7,677.0,633.2,679.3c628.4,680.2,622.6,681.3,620.4,681.6c616.8,682.2,615.4,683.0,610.6,687.3c605.6,691.8,"
+    "598.4,696.3,593.2,698.3c592.2,698.7,591.8,699.3,592.2,699.8c593.2,700.8,616.4,700.2,628.4,698.8|m645.0,672.2c649.8,671.6,662.4,671.0,672.9,670.8c693.7,670.4,703.3,671.1,717.0,673.9c727.4,675.9,728.7,6"
+    "75.1,723.4,669.6c722.7,668.9,720.2,666.3,717.9,663.8c711.6,657.1,708.0,654.2,704.5,653.3c698.8,651.7,682.1,651.4,672.8,652.7c659.0,654.6,624.4,666.3,621.5,670.0c619.8,672.2,619.7,674.9,621.2,675.3c621"
+    ".8,675.4,625.4,675.0,629.2,674.3c633.0,673.7,640.1,672.7,645.0,672.2|m455.8,674.1c456.1,673.5,455.5,672.0,454.5,670.7c452.7,668.4,449.2,666.7,439.5,663.2c429.7,659.7,405.8,650.2,400.7,647.7c393.8,644."
+    "3,378.5,635.4,375.9,633.3c373.8,631.4,369.1,630.8,369.1,632.4c369.1,636.6,366.8,651.4,365.7,654.0c363.1,660.3,360.3,669.9,360.8,670.6c361.7,671.5,364.6,671.4,370.7,670.2c375.0,669.4,379.8,669.2,396.7,"
+    "669.5c418.1,669.7,429.3,670.7,445.8,673.8c454.3,675.4,455.0,675.4,455.8,674.1|m454.1,657.9c454.1,657.2,453.6,656.2,452.9,655.7c452.0,655.1,452.3,654.6,454.4,653.5c456.2,652.5,457.3,651.2,457.7,649.4c4"
+    "58.0,647.9,459.4,646.0,460.9,644.9c462.4,643.8,466.0,640.6,469.1,637.7c472.1,634.8,474.9,632.3,475.3,632.0c476.7,631.0,489.8,625.5,491.8,625.0c492.9,624.7,495.1,623.8,496.6,622.9c498.2,622.0,501.3,621"
+    ".0,503.4,620.6c505.6,620.2,510.4,619.2,514.2,618.5c522.4,616.8,533.1,615.9,542.8,616.0c548.0,616.1,550.3,615.8,551.4,615.1c552.7,614.2,553.1,614.3,555.2,615.6c556.7,616.6,558.7,617.2,560.8,617.2c562.5"
+    ",617.2,566.1,617.9,568.6,618.8c571.2,619.7,575.5,620.8,578.3,621.1c581.4,621.5,583.8,622.2,584.7,623.1c585.4,623.8,587.3,624.8,588.9,625.3c590.5,625.9,594.7,628.2,598.2,630.5c601.7,632.9,605.0,634.8,6"
+    "05.4,634.8c606.1,634.8,612.0,640.9,613.2,642.9c613.4,643.3,614.4,644.3,615.4,645.1c616.4,646.0,617.2,647.2,617.2,647.9c617.2,648.6,618.3,649.9,619.6,650.8c621.7,652.1,622.1,653.0,622.1,656.3c622.1,660"
+    ".9,623.1,661.2,629.9,658.2c632.3,657.1,634.7,656.3,635.1,656.3c636.5,656.2,661.2,647.3,669.9,643.6c700.0,630.9,718.4,620.6,725.4,612.7c726.8,611.0,730.3,607.6,733.0,605.0c742.0,596.6,745.1,590.3,741.5"
+    ",587.4c740.0,586.1,739.5,586.0,737.3,586.8c734.9,587.6,730.7,591.9,730.5,593.7c730.5,594.1,729.5,595.3,728.3,596.3c727.1,597.3,725.4,598.8,724.6,599.6c721.9,602.3,715.9,606.4,715.2,605.9c714.5,605.5,7"
+    "19.5,600.3,721.4,599.4c722.1,599.1,722.7,598.5,722.7,598.1c722.7,597.6,723.5,596.7,724.5,596.1c727.0,594.6,727.8,592.5,726.0,592.0c725.1,591.8,722.3,593.0,719.0,594.9c712.8,598.4,701.2,603.7,700.5,603"
+    ".3c699.8,602.8,711.8,594.6,731.2,582.6c752.3,569.4,757.2,565.2,758.3,559.5c759.2,554.5,758.2,551.3,754.8,548.9c752.1,546.9,751.9,546.9,749.1,547.8c747.6,548.4,746.1,549.1,745.9,549.4c745.8,549.8,741.4"
+    ",553.1,736.3,556.7c722.2,566.8,721.7,567.2,721.7,567.8c721.7,568.1,721.2,568.4,720.7,568.4c719.2,568.4,719.6,566.8,721.4,565.6c722.4,565.0,724.0,563.8,725.1,562.8c726.2,561.9,727.7,560.6,728.5,560.1c7"
+    "34.8,555.6,747.6,544.0,750.1,540.5c755.3,533.2,753.8,527.3,745.5,521.8c740.7,518.6,735.0,517.0,728.8,516.9c724.0,516.9,723.6,516.8,723.6,515.3c723.6,513.0,721.9,510.4,720.3,510.4c719.5,510.4,717.4,511"
+    ".9,715.6,513.8c712.9,516.6,712.4,516.9,712.1,515.7c711.9,514.9,712.2,513.9,712.8,513.4c713.3,513.0,715.3,509.4,717.3,505.5c720.5,498.9,720.7,498.1,719.7,495.3c717.3,488.7,709.8,483.4,697.0,479.5c690.5"
+    ",477.5,688.6,477.2,681.9,477.2l674.3,477.2l671.1,474.6c669.4,473.2,668.0,471.9,667.9,471.6c667.9,471.3,666.6,470.0,665.1,468.8c662.7,466.8,661.9,466.6,660.5,467.2c658.0,468.2,654.8,473.2,652.2,480.1c6"
+    "51.7,481.6,650.6,483.4,649.8,484.2c649.1,485.0,648.4,486.4,648.4,487.4c648.4,488.3,647.6,490.3,646.6,491.8c644.3,495.3,641.6,500.4,640.7,503.3c640.3,504.5,639.2,506.5,638.3,507.6c637.5,508.8,636.7,510"
+    ".4,636.7,511.2c636.7,512.1,635.8,513.9,634.8,515.3c633.7,516.7,632.8,518.5,632.8,519.2c632.8,519.9,631.9,521.7,630.9,523.1c629.8,524.5,628.9,526.4,628.9,527.3c628.9,528.2,628.0,530.1,627.0,531.4c625.9"
+    ",532.8,625.0,534.4,625.0,535.2c625.0,535.9,624.1,537.7,623.0,539.1c622.0,540.5,621.1,542.5,621.1,543.5c621.1,544.5,620.3,546.1,619.3,546.9c618.3,547.8,617.2,549.9,616.9,551.6c616.5,553.4,615.6,555.4,6"
+    "14.8,556.2c613.9,556.9,613.3,558.3,613.3,559.2c613.3,560.1,612.5,561.9,611.5,563.2c610.5,564.4,609.3,566.6,608.9,568.0c608.5,569.5,607.6,571.4,606.9,572.3c606.2,573.2,605.3,575.0,604.8,576.4c604.4,577"
+    ".9,603.4,579.1,602.6,579.3c601.5,579.5,601.4,579.0,602.0,576.7c602.3,575.2,603.3,573.2,604.1,572.5c604.8,571.7,605.5,570.2,605.5,569.2c605.5,568.2,606.3,566.3,607.3,565.0c608.3,563.6,609.4,561.3,609.8"
+    ",559.8c610.1,558.3,610.9,556.6,611.5,556.2c612.1,555.7,612.9,554.0,613.4,552.3c613.9,550.6,614.9,548.8,615.7,548.2c616.5,547.6,617.2,546.2,617.2,545.2c617.2,544.1,618.0,542.3,619.0,541.0c620.0,539.8,6"
+    "21.2,537.5,621.5,536.0c621.9,534.5,622.8,533.0,623.5,532.6c624.2,532.2,625.1,530.3,625.4,528.3c625.8,526.4,626.7,524.5,627.5,524.1c628.3,523.6,628.9,522.4,628.9,521.2c628.9,520.1,629.7,518.2,630.7,516"
+    ".9c631.7,515.7,632.8,513.3,633.2,511.6c633.6,510.0,634.5,508.1,635.3,507.4c636.0,506.7,636.7,505.4,636.7,504.5c636.7,503.6,637.5,501.9,638.5,500.6c639.5,499.4,640.6,497.3,641.0,496.1c641.3,494.8,642.2"
+    ",492.9,642.9,491.9c644.8,489.2,647.3,484.1,648.8,480.1c649.5,478.4,650.6,476.2,651.2,475.5c651.8,474.7,652.3,473.0,652.3,471.8c652.3,470.5,652.8,468.0,653.4,466.1c655.4,459.8,651.3,455.8,638.9,452.0c6"
+    "29.0,448.9,612.0,449.2,601.9,452.6l597.7,454.0l593.9,452.2c591.7,451.2,588.2,450.3,586.1,450.1c582.8,449.8,582.1,449.9,581.6,451.1c580.6,453.2,579.4,452.8,578.6,450.0c577.0,444.2,568.2,440.2,555.7,439"
+    ".6c546.4,439.2,535.5,440.3,529.2,442.4c523.5,444.2,513.7,449.1,513.7,450.0c513.7,450.4,511.8,450.5,508.7,450.2c504.4,449.9,502.9,450.1,498.5,451.5l493.4,453.2l490.0,451.8c485.7,450.2,475.9,449.5,468.7"
+    ",450.4c457.2,451.8,445.4,457.0,441.9,462.2c440.3,464.6,439.8,464.9,437.7,464.5c435.3,464.1,432.5,465.6,426.1,470.9c423.1,473.4,423.1,473.4,419.2,472.6c415.9,472.0,414.4,472.0,410.0,473.0c388.3,477.7,3"
+    "76.7,485.3,375.3,495.8c374.9,498.5,374.0,500.2,372.5,501.4c371.3,502.4,370.1,504.5,369.7,506.1l369.0,509.1l364.4,509.0c353.6,508.8,340.2,516.1,337.5,523.7c337.1,524.8,337.3,527.5,338.0,529.8l339.2,533"
+    ".9l336.2,536.0c329.7,540.5,327.2,549.5,330.7,555.5c333.6,560.4,340.3,566.5,354.7,577.2c369.7,588.6,375.3,592.9,381.4,598.0c385.0,601.0,385.1,601.1,382.3,599.8c380.7,599.0,376.6,596.6,373.2,594.4c364.6"
+    ",588.9,356.9,584.6,355.7,584.6c354.2,584.6,355.5,588.1,357.6,589.4c358.6,590.0,359.4,590.9,359.4,591.3c359.4,591.8,360.3,592.9,361.3,593.8c362.4,594.6,363.2,595.9,363.3,596.5c363.3,597.2,364.0,598.4,3"
+    "64.9,599.3c365.8,600.2,366.2,601.1,365.9,601.3c365.7,601.5,364.8,600.9,364.1,600.0c363.4,599.2,360.4,596.0,357.4,593.0c351.4,586.9,351.1,586.6,346.2,580.9c343.7,578.0,342.1,576.8,341.0,577.0c339.6,577"
+    ".2,339.4,577.9,339.7,581.4c340.0,585.8,342.3,591.1,346.3,596.9c352.7,606.0,370.1,621.3,382.4,628.6c392.3,634.5,413.8,645.9,420.8,649.0c428.8,652.4,451.5,660.0,452.9,659.6c453.6,659.5,454.1,658.7,454.1"
+    ",657.9|m706.0,647.4c706.9,646.8,707.4,644.9,707.4,641.5c707.5,635.4,706.3,634.8,700.0,638.2c697.7,639.4,692.3,642.0,688.1,643.9c681.1,647.0,680.5,647.4,682.1,648.2c684.4,649.3,704.0,648.7,706.0,647.4|"
+    "m452.4,643.3c450.6,641.9,449.2,640.4,449.2,640.1c449.2,639.7,448.8,639.3,448.3,639.2c447.0,638.9,437.5,629.3,438.1,628.9c438.4,628.7,439.2,629.2,440.0,629.9c440.7,630.6,441.9,631.6,442.6,632.2c443.4,6"
+    "32.7,445.5,634.7,447.5,636.7c449.4,638.7,452.1,641.1,453.6,642.2c455.0,643.2,456.0,644.5,455.9,645.0c455.7,645.6,454.5,645.1,452.4,643.3|m629.9,644.5c629.9,644.2,630.3,643.9,630.9,643.9c631.5,643.9,63"
+    "1.7,644.2,631.3,644.5c631.0,644.9,630.6,645.2,630.3,645.2c630.1,645.2,629.9,644.9,629.9,644.5|m633.8,641.0c633.8,640.0,635.5,639.0,636.3,639.5c637.0,639.9,635.7,641.9,634.7,641.9c634.2,641.9,633.8,641"
+    ".5,633.8,641.0|m637.7,637.9c637.7,637.3,638.2,636.6,638.7,636.4c640.5,635.7,640.7,636.4,639.2,637.7c637.9,638.8,637.8,638.9,637.7,637.9|m641.6,634.1c641.6,633.8,642.0,633.5,642.6,633.5c643.1,633.5,643"
+    ".6,633.8,643.6,634.1c643.6,634.5,643.1,634.8,642.6,634.8c642.0,634.8,641.6,634.5,641.6,634.1|m432.8,625.2c431.6,623.9,430.7,622.6,430.9,622.2c431.1,621.8,431.9,622.2,432.6,623.0c433.3,623.9,434.5,624."
+    "9,435.2,625.2c436.6,625.7,437.1,627.6,435.8,627.6c435.4,627.6,434.1,626.5,432.8,625.2|m427.5,620.0c427.1,619.8,426.8,619.1,426.8,618.6c426.8,617.8,427.0,617.8,427.8,618.3c428.4,618.7,428.8,619.4,428.6"
+    ",619.8c428.4,620.2,427.9,620.3,427.5,620.0|m583.0,618.5c583.0,618.2,583.4,617.7,584.0,617.5c584.5,617.3,585.0,617.6,585.0,618.1c585.0,618.7,584.5,619.1,584.0,619.1c583.4,619.1,583.0,618.9,583.0,618.5|"
+    "m423.4,616.6c423.0,616.2,422.9,615.6,423.2,615.4c424.1,614.8,425.1,615.7,424.6,616.6c424.3,617.3,424.0,617.3,423.4,616.6|m586.9,610.7c586.9,609.4,587.4,608.0,587.9,607.4c588.6,606.7,588.8,607.0,588.8,"
+    "608.7c588.8,610.0,588.4,611.4,587.9,612.0c587.2,612.7,586.9,612.4,586.9,610.7|m450.8,603.7c450.5,603.5,450.2,603.0,450.2,602.6c450.2,602.2,450.7,602.3,451.4,602.7c452.0,603.1,452.3,603.6,452.0,603.8c4"
+    "51.7,604.0,451.2,604.0,450.8,603.7|m633.8,603.2c633.8,602.7,634.2,602.1,634.8,601.9c635.3,601.7,635.7,602.1,635.7,602.8c635.7,603.6,635.3,604.2,634.8,604.2c634.2,604.2,633.8,603.7,633.8,603.2|m590.8,6"
+    "01.6c590.8,600.6,591.3,599.5,591.8,599.3c592.4,599.0,592.8,599.7,592.8,600.8c592.8,601.9,592.3,603.0,591.8,603.2c591.2,603.4,590.8,602.8,590.8,601.6|m490.0,602.5c489.6,602.2,489.3,601.5,489.3,601.0c48"
+    "9.3,600.3,489.5,600.2,490.3,600.7c490.9,601.1,491.3,601.8,491.1,602.2c490.9,602.6,490.4,602.7,490.0,602.5|m555.8,598.0c555.7,596.5,556.1,594.9,556.6,594.4c557.4,593.7,557.6,593.9,557.5,595.4c557.5,596"
+    ".5,557.1,598.1,556.6,599.0c556.0,600.4,555.8,600.2,555.8,598.0|m637.7,598.8c637.7,597.8,638.3,596.8,639.2,596.6c640.0,596.4,640.6,595.7,640.6,595.0c640.6,594.3,641.5,593.2,642.6,592.4c643.7,591.7,644."
+    "5,590.7,644.5,590.3c644.5,589.8,645.3,588.7,646.3,587.8c647.2,587.0,648.6,585.5,649.2,584.6c649.9,583.7,651.5,581.8,652.8,580.4c654.1,579.0,655.7,577.0,656.3,576.0c656.9,575.0,657.7,574.2,658.1,574.2c"
+    "658.5,574.2,659.6,573.3,660.5,572.1c661.4,570.9,663.0,569.1,664.0,568.0c665.1,567.0,666.7,565.2,667.6,564.1c668.5,563.1,669.8,561.9,670.5,561.7c671.3,561.4,671.9,560.8,671.9,560.4c671.9,559.5,685.8,54"
+    "5.6,686.7,545.6c688.1,545.6,687.5,547.3,685.5,549.0c684.5,549.9,683.6,550.9,683.6,551.1c683.6,551.4,681.9,553.3,679.9,555.3c675.5,559.7,674.3,561.0,672.7,563.2c672.0,564.0,670.9,565.3,670.1,565.9c668."
+    "5,567.2,666.8,569.1,664.6,571.9c663.8,573.0,661.8,575.1,660.2,576.5c658.6,577.9,656.8,579.9,656.2,580.9c655.6,581.9,654.7,582.7,654.3,582.7c653.9,582.7,653.0,583.6,652.5,584.6c651.9,585.7,650.8,586.8,"
+    "649.9,587.0c649.1,587.2,648.4,587.9,648.4,588.6c648.4,589.3,647.6,590.4,646.5,591.0c645.4,591.6,644.5,592.6,644.5,593.3c644.5,593.9,643.7,594.9,642.6,595.5c641.5,596.1,640.6,597.0,640.6,597.4c640.6,59"
+    "7.7,640.0,598.6,639.2,599.3c637.8,600.5,637.8,600.5,637.7,598.8|m447.0,599.2c446.6,599.0,446.3,598.1,446.3,597.4c446.3,596.5,446.6,596.3,447.4,596.8c447.9,597.2,448.3,598.0,448.1,598.6c447.9,599.2,447"
+    ".4,599.5,447.0,599.2|m486.1,594.7c485.7,594.4,485.4,593.1,485.4,591.9c485.4,589.9,485.6,589.7,486.4,590.7c487.5,592.0,487.2,595.5,486.1,594.7|m594.7,592.9c594.7,591.6,595.2,590.4,595.7,590.2c596.3,589"
+    ".9,596.7,590.7,596.7,592.0c596.7,593.3,596.2,594.5,595.7,594.7c595.1,595.0,594.7,594.2,594.7,592.9|m442.4,593.1c442.4,592.3,442.8,591.9,443.4,592.1c443.9,592.3,444.3,592.9,444.3,593.5c444.3,594.0,443."
+    "9,594.4,443.4,594.4c442.8,594.4,442.4,593.8,442.4,593.1|m438.5,588.5c438.5,587.8,438.9,587.2,439.5,587.2c440.0,587.2,440.4,587.8,440.4,588.5c440.4,589.3,440.0,589.8,439.5,589.8c438.9,589.8,438.5,589.3"
+    ",438.5,588.5|m598.3,584.8c598.9,582.3,600.1,580.8,601.1,581.5c602.0,582.1,600.1,586.8,598.9,587.1c598.1,587.2,597.9,586.6,598.3,584.8|m481.7,584.3c480.2,581.1,480.1,579.4,481.5,579.4c483.0,579.4,483.6"
+    ",580.9,483.2,584.1l482.9,586.9l481.7,584.3|m435.3,584.9c434.9,584.6,434.6,583.8,434.6,583.1c434.6,582.1,434.9,582.0,435.6,582.5c436.2,582.9,436.6,583.7,436.4,584.3c436.2,584.9,435.7,585.2,435.3,584.9|"
+    "m431.4,579.7c431.0,579.4,430.7,578.6,430.7,577.9c430.7,576.9,431.0,576.8,431.7,577.3c432.3,577.7,432.6,578.5,432.5,579.1c432.3,579.7,431.8,580.0,431.4,579.7|m478.4,576.5c477.0,575.1,476.3,569.7,477.5,"
+    "569.7c478.1,569.7,478.8,570.1,479.1,570.6c479.8,571.8,479.1,577.3,478.4,576.5|m427.4,575.1c426.4,574.4,426.6,572.3,427.7,572.3c428.3,572.3,428.7,573.0,428.7,573.9c428.7,575.6,428.5,575.8,427.4,575.1|m"
+    "711.9,574.2c711.9,573.9,712.4,573.6,712.9,573.6c713.5,573.6,713.7,573.9,713.4,574.2c713.0,574.6,712.6,574.9,712.3,574.9c712.1,574.9,711.9,574.6,711.9,574.2|m422.9,568.6c422.9,567.7,423.3,567.2,423.8,5"
+    "67.4c424.4,567.6,424.8,568.4,424.8,569.0c424.8,569.7,424.4,570.3,423.8,570.3c423.3,570.3,422.9,569.6,422.9,568.6|m474.5,566.7c474.1,566.4,473.5,564.6,473.1,562.8c472.5,559.8,472.5,559.6,474.1,560.6c47"
+    "5.2,561.4,475.6,562.5,475.4,564.5c475.2,566.1,474.8,567.1,474.5,566.7|m419.2,564.5c418.1,562.7,418.6,561.4,420.1,562.4c420.6,562.7,420.9,563.7,420.7,564.5l420.3,566.1l419.2,564.5|m415.6,559.7c415.1,55"
+    "9.1,415.1,558.4,415.4,558.1c416.4,557.5,417.2,558.4,416.7,559.7c416.3,560.8,416.3,560.8,415.6,559.7|m470.4,557.7c470.1,557.2,469.6,555.4,469.2,553.7c468.6,551.2,468.8,550.7,469.8,550.9c471.5,551.3,473"
+    ".1,557.2,471.9,558.1c471.3,558.4,470.7,558.3,470.4,557.7|m137.2,551.2c134.3,548.3,139.2,545.2,142.6,547.9c144.4,549.3,149.0,549.1,150.8,547.4c154.3,544.1,151.9,541.8,144.6,541.3c139.1,541.0,137.3,540."
+    "1,138.3,538.4c138.6,537.9,139.1,535.7,139.4,533.5c140.2,527.3,140.3,527.3,150.7,527.5c159.2,527.7,159.7,527.7,160.0,529.2c160.5,531.5,158.5,532.6,153.7,532.4c149.2,532.3,146.5,533.3,146.5,535.2c146.5,"
+    "536.1,147.6,536.4,151.9,536.8c158.4,537.3,160.3,538.8,160.9,543.9c161.3,547.2,161.1,547.5,157.9,549.9c154.5,552.3,154.3,552.4,146.7,552.6c139.2,552.9,138.8,552.8,137.2,551.2|m168.0,551.9c166.6,551.4,1"
+    "65.4,550.4,165.2,549.6c164.8,547.8,168.8,546.6,172.4,547.5c176.5,548.6,178.7,548.3,179.8,546.6c180.7,545.3,180.6,544.6,179.3,543.3c178.0,542.0,176.9,541.7,173.4,541.7c168.3,541.7,165.5,540.2,166.5,538"
+    ".2c166.8,537.4,167.4,535.0,167.8,532.7c168.2,530.5,169.0,528.3,169.6,528.0c170.2,527.6,174.2,527.4,179.3,527.5c187.5,527.7,188.0,527.7,188.3,529.2c188.8,531.4,186.8,532.6,182.7,532.6c178.3,532.6,174.2"
+    ",534.2,175.8,535.5c176.3,535.9,179.0,536.5,181.7,536.7c185.8,537.1,186.9,537.5,188.5,539.3c189.6,540.4,190.4,542.3,190.4,543.5c190.4,546.5,186.8,550.5,183.0,551.7c179.2,552.9,171.3,553.0,168.0,551.9|m"
+    "219.2,551.8c217.3,550.9,217.3,550.8,219.4,548.1c225.2,540.2,228.7,534.5,228.2,533.6c227.5,532.4,222.9,532.2,219.3,533.3c216.3,534.2,213.9,533.2,213.9,530.9c213.9,528.1,216.5,527.4,227.4,527.5c236.9,52"
+    "7.6,237.6,527.6,238.5,529.0c239.3,530.2,239.1,531.0,237.4,532.9c235.3,535.3,232.3,540.4,230.1,545.6c227.2,552.3,223.9,554.1,219.2,551.8|m563.5,549.4c563.5,547.5,563.9,545.5,564.5,544.9c565.1,544.2,565"
+    ".4,545.1,565.4,548.0c565.4,550.2,565.0,552.2,564.5,552.4c563.8,552.7,563.5,551.5,563.5,549.4|m836.7,552.0c834.5,551.2,834.5,549.7,836.7,547.2c837.7,546.1,839.2,543.9,840.2,542.3c841.1,540.6,842.9,538."
+    "3,844.2,537.1c846.1,535.5,846.4,534.7,845.6,533.8c844.4,532.3,840.1,532.2,837.1,533.6c833.8,535.1,831.1,534.2,831.1,531.6c831.1,527.9,832.8,527.3,844.3,527.3c853.6,527.3,854.5,527.5,855.5,528.7c856.6,"
+    "530.1,856.7,530.1,849.5,540.8c848.5,542.3,847.7,543.9,847.6,544.4c847.6,546.1,843.0,551.9,841.3,552.3c839.2,552.9,838.7,552.8,836.7,552.0|m862.3,551.9c860.6,551.3,859.8,550.4,859.6,549.0c859.2,546.2,8"
+    "62.1,545.6,866.2,547.6c868.7,548.8,869.5,548.9,871.6,548.3c874.7,547.3,875.6,545.9,874.2,543.9c873.5,542.9,872.3,542.3,870.8,542.3c865.2,542.3,864.7,539.0,870.1,536.8c874.4,535.0,874.4,534.9,873.0,533"
+    ".2c871.8,531.7,869.3,531.5,866.6,532.9c862.9,534.7,859.4,533.8,859.4,530.9c859.4,529.3,866.0,527.2,871.0,527.2c875.5,527.2,881.0,528.6,882.3,530.0c883.4,531.1,883.1,536.2,881.9,537.7c880.9,538.9,881.1"
+    ",539.6,882.7,541.7c885.6,545.3,885.3,546.5,881.0,549.6c877.4,552.2,876.8,552.3,871.0,552.6c867.1,552.7,863.8,552.5,862.3,551.9|m913.3,552.3c910.6,551.5,912.1,549.6,916.4,548.6c918.8,548.0,921.3,547.0,"
+    "921.9,546.5c923.7,545.1,921.3,543.6,917.3,543.6c910.3,543.6,906.3,537.7,909.7,532.1c912.8,526.8,922.0,525.1,929.7,528.3c932.9,529.7,933.7,530.4,934.2,532.6c934.5,534.0,935.2,535.3,935.6,535.5c936.5,53"
+    "5.9,941.4,531.8,941.4,530.7c941.4,530.3,942.9,529.3,944.7,528.4c949.1,526.1,955.2,526.1,960.1,528.3c969.8,532.7,968.8,548.1,958.7,551.9c955.4,553.1,948.2,552.9,944.7,551.5c941.8,550.3,937.5,545.6,937."
+    "5,543.5c937.5,543.0,937.2,542.3,936.9,542.1c935.9,541.4,933.6,543.0,933.6,544.3c933.6,545.7,929.7,548.9,925.9,550.7c923.3,552.0,915.5,553.0,913.3,552.3|m243.8,551.6c242.2,550.5,243.6,548.5,248.0,545.6"
+    "c254.3,541.4,258.3,536.0,256.9,533.6c255.8,531.6,252.0,531.3,250.0,532.9c249.3,533.5,247.6,533.8,246.2,533.7c244.3,533.6,243.6,533.1,243.4,531.8c242.7,528.1,255.2,525.8,261.7,528.4c268.8,531.2,268.1,5"
+    "38.1,260.3,543.2c258.0,544.7,256.8,545.9,257.2,546.5c257.8,547.6,261.3,547.9,262.2,546.9c263.2,545.8,268.3,546.1,268.9,547.3c269.9,548.9,269.7,549.4,267.6,550.8c265.9,551.9,264.3,552.1,255.0,552.1c249"
+    ".2,552.1,244.2,551.9,243.8,551.6|m465.9,546.8c464.5,544.1,464.5,542.1,466.0,542.5c467.7,542.8,469.3,547.4,468.0,548.3c467.4,548.7,466.7,548.2,465.9,546.8|m955.0,546.9c955.6,546.2,956.1,543.0,956.1,539"
+    ".8c956.1,535.2,955.7,533.7,954.3,532.6c952.1,530.8,949.3,531.4,949.1,533.8c948.9,537.5,949.4,547.2,949.9,547.7c950.7,548.6,954.0,548.2,955.0,546.9|m196.5,544.5c195.0,544.1,195.0,542.2,196.5,541.1c198."
+    "4,539.8,206.5,540.2,209.1,541.7c211.4,542.9,211.4,543.0,209.5,543.9c207.7,544.9,199.3,545.2,196.5,544.5|m688.5,543.4c688.5,542.8,688.9,542.2,689.5,542.0c690.0,541.8,690.4,542.0,690.4,542.6c690.4,543.1"
+    ",690.0,543.7,689.5,543.9c688.9,544.2,688.5,543.9,688.5,543.4|m887.9,543.5c887.0,542.9,887.1,542.5,888.3,541.5c889.6,540.6,891.4,540.4,896.0,540.4c902.5,540.4,906.0,541.4,905.0,543.2c904.5,544.1,902.9,"
+    "544.3,896.7,544.3c892.1,544.3,888.6,544.0,887.9,543.5|m462.7,539.4c461.2,536.4,460.8,533.9,461.9,533.9c463.4,533.9,464.0,535.3,463.7,538.2c463.5,540.1,463.2,540.4,462.7,539.4|m924.6,538.3c926.0,537.3,"
+    "926.2,532.8,924.8,532.2c920.9,530.6,916.7,536.4,920.5,538.2c922.7,539.3,923.1,539.3,924.6,538.3|m458.7,530.4c458.3,529.7,458.0,528.3,458.0,527.1c458.1,525.4,458.2,525.2,459.1,526.2c459.6,526.9,459.9,5"
+    "28.3,459.8,529.5c459.5,531.1,459.3,531.3,458.7,530.4|m454.8,520.6c453.7,518.7,453.9,516.5,455.2,517.4c455.7,517.8,456.1,518.9,455.9,519.9c455.6,521.5,455.4,521.6,454.8,520.6|m890.0,513.0c876.9,512.1,8"
+    "68.0,501.8,869.4,489.0c870.2,480.8,878.3,473.1,888.1,471.2c893.3,470.2,903.7,470.2,908.9,471.2c914.5,472.3,920.9,476.7,923.6,481.3c928.1,488.9,925.8,500.8,918.7,506.7c912.4,512.0,903.6,513.9,890.0,513"
+    ".0|m188.5,511.2c181.8,508.8,177.4,505.1,174.8,499.6c168.7,486.4,177.3,474.1,195.0,470.4c200.2,469.3,201.2,469.3,210.8,470.2c216.8,470.8,221.3,471.6,221.8,472.1c223.1,473.4,222.8,480.1,221.5,481.0c219."
+    "3,482.4,216.8,481.8,214.4,479.2c212.5,477.2,211.1,476.5,208.5,476.2c202.3,475.4,198.1,476.3,194.6,479.0c191.0,481.9,190.1,484.5,190.2,492.4c190.3,499.1,192.7,503.3,197.6,505.3c202.7,507.4,204.9,507.5,"
+    "207.6,505.8c209.6,504.5,210.0,503.7,210.0,500.2c210.0,496.3,209.8,496.1,207.0,495.1c205.4,494.6,204.1,493.7,204.1,493.1c204.1,491.7,207.7,491.0,216.6,490.8c223.0,490.6,224.9,490.8,226.2,491.7c227.7,49"
+    "2.7,227.7,493.0,226.2,496.2c225.3,498.3,224.7,501.4,224.8,503.9c224.9,506.2,224.7,508.5,224.3,509.0c223.8,509.4,221.7,510.4,219.4,511.2c216.1,512.4,213.3,512.7,204.6,512.9c194.2,513.1,193.7,513.1,188."
+    "5,511.2|m902.6,505.2c906.9,502.7,908.2,499.6,908.2,491.7c908.2,481.3,904.6,475.9,897.5,475.9c888.9,475.9,884.7,483.4,886.2,495.7c886.8,500.2,887.4,501.8,889.7,504.2c892.2,506.8,893.0,507.2,895.9,507.2"
+    "c898.3,507.2,900.3,506.6,902.6,505.2|m758.5,492.4c757.1,492.2,753.6,490.7,750.9,489.1c742.9,484.0,740.4,477.0,744.7,471.5c745.5,470.5,746.1,469.3,746.1,468.7c746.1,468.1,748.2,466.2,750.8,464.5c755.7,"
+    "461.3,762.9,459.0,768.2,459.0c772.9,459.0,779.6,461.3,784.5,464.6c788.3,467.1,789.0,468.1,790.0,471.7c792.1,480.0,787.6,486.3,776.2,490.8c772.7,492.2,763.9,493.0,758.5,492.4|m774.6,486.2c776.9,485.4,7"
+    "80.0,483.5,781.6,482.0c784.1,479.6,784.4,478.7,784.5,474.4c784.7,469.9,784.5,469.4,781.7,467.0c778.2,464.2,772.2,461.7,768.4,461.6c761.4,461.5,751.7,466.6,748.7,472.0c746.5,476.0,746.6,477.8,749.4,482"
+    ".0c751.3,484.8,752.5,485.7,756.0,486.9c761.3,488.7,768.6,488.4,774.6,486.2|m318.9,477.1c316.2,475.9,312.7,473.6,311.1,472.0c308.2,469.1,308.1,468.9,308.1,461.2c308.1,454.8,308.4,453.0,309.7,452.1c310."
+    "6,451.4,311.6,450.2,312.0,449.4c313.7,445.7,327.2,440.8,335.7,440.8c343.5,440.8,353.0,444.4,357.1,449.1c359.6,451.9,359.8,452.7,359.8,458.3c359.9,463.8,359.6,464.9,357.3,467.8c354.1,471.8,348.7,475.2,"
+    "342.3,477.5c338.4,478.8,336.1,479.2,330.6,479.2c324.5,479.2,323.2,478.9,318.9,477.1|m338.4,473.9c343.0,473.1,349.7,469.0,352.7,465.2c353.8,463.7,355.0,460.8,355.2,458.5c355.6,455.2,355.3,454.0,353.5,4"
+    "51.7c348.8,445.6,340.1,443.1,329.9,444.8c322.9,446.1,318.2,448.6,314.9,452.9c312.6,456.0,312.3,456.9,312.6,461.7c313.0,466.6,313.3,467.4,316.2,470.2c319.7,473.5,322.6,474.5,330.1,474.5c332.5,474.6,336"
+    ".2,474.3,338.4,473.9|m196.3,446.4c190.1,445.6,182.0,444.2,178.2,443.4c169.8,441.5,155.3,437.1,149.4,434.5c147.0,433.5,144.5,432.5,143.9,432.3c140.8,431.4,125.6,422.9,118.2,417.9c102.5,407.4,90.3,393.7"
+    ",85.8,381.3c85.3,379.9,84.5,378.3,84.0,377.7c82.4,375.6,79.1,360.7,79.1,355.3c79.1,337.6,90.0,314.9,105.9,299.8c112.4,293.6,131.0,280.9,139.2,277.0c157.8,268.3,176.1,262.8,197.8,259.6c205.9,258.4,210."
+    "5,258.2,226.1,258.2c252.2,258.2,264.3,260.0,286.5,267.2c316.9,277.0,339.6,291.7,354.9,311.5c357.4,314.7,359.4,317.6,359.4,317.9c359.4,318.2,360.0,319.4,360.7,320.5c362.3,323.0,365.9,330.9,366.6,333.7c"
+    "366.9,334.7,367.6,339.5,368.2,344.3c371.0,367.0,362.2,387.6,341.0,407.8c329.5,418.8,309.0,430.2,288.0,437.3c266.2,444.7,250.7,447.2,224.6,447.6c209.7,447.9,206.1,447.7,196.3,446.4|m831.5,442.4c798.2,4"
+    "38.8,772.1,429.6,748.8,413.5c738.7,406.5,728.6,396.8,724.2,390.0c722.8,387.6,721.1,385.2,720.7,384.4c718.6,381.3,715.9,374.8,713.8,367.8c709.7,353.9,711.3,336.2,717.9,322.6c720.6,317.2,728.8,305.1,733"
+    ".1,300.5c741.2,291.6,759.0,278.6,771.4,272.6c792.8,262.2,807.7,257.8,833.5,254.2c845.2,252.6,847.6,252.5,864.3,252.8c883.1,253.0,888.7,253.6,904.8,257.0c944.0,265.2,978.7,286.6,993.9,312.2c995.0,314.0"
+    ",996.2,316.4,996.5,317.5c996.9,318.6,997.8,319.9,998.6,320.3c999.8,321.0,1000.0,325.1,1000.0,345.8c1000.0,359.8,999.6,370.4,999.1,370.4c998.6,370.4,996.7,373.6,994.8,377.4c989.9,387.4,984.0,394.4,972."
+    "1,404.6c951.4,422.4,916.7,436.5,880.9,441.7c870.9,443.2,842.0,443.6,831.5,442.4|m240.3,440.7c264.2,438.6,289.0,431.3,309.9,420.0c322.0,413.5,338.9,399.2,345.6,389.6c351.8,380.9,352.9,378.8,356.2,369.8"
+    "c358.4,363.9,358.8,361.5,358.8,352.5c358.8,338.0,355.3,327.4,346.2,315.0c341.0,307.9,340.9,307.8,334.4,301.8c311.8,280.9,276.5,267.4,237.6,264.9c214.4,263.3,186.0,266.9,165.5,273.9c146.8,280.4,123.8,2"
+    "93.8,113.8,304.0c111.2,306.7,108.4,309.7,107.5,310.5c106.6,311.4,104.7,313.9,103.2,316.1c101.7,318.2,100.0,320.5,99.6,321.0c97.8,323.4,93.8,332.0,92.1,337.2c89.6,345.1,89.6,366.8,92.1,373.4c99.6,393.0"
+    ",118.5,412.0,141.6,423.3c154.4,429.5,173.1,435.8,187.0,438.5c200.6,441.1,224.2,442.1,240.3,440.7|m876.5,435.8c893.2,433.3,900.3,431.7,916.7,426.3c934.4,420.5,945.1,415.1,957.8,405.6c970.1,396.5,978.5,"
+    "387.2,985.7,375.0c994.8,359.4,996.2,341.9,989.7,324.7c987.3,318.4,986.3,316.6,981.6,309.9c965.1,286.5,932.0,268.1,894.8,261.8c884.8,260.1,867.6,258.5,859.4,258.5c846.3,258.5,823.5,261.5,812.8,264.7c81"
+    "1.1,265.2,809.3,265.6,808.7,265.6c807.6,265.6,793.3,270.5,788.6,272.5c781.5,275.4,768.3,282.9,759.7,288.8c742.2,300.9,730.7,315.1,724.5,332.4c722.4,338.2,722.2,340.3,722.2,352.5c722.3,364.8,722.5,366."
+    "7,724.4,370.4c725.6,372.8,726.6,375.1,726.6,375.7c726.6,376.2,727.5,377.8,728.5,379.2c729.6,380.7,730.4,382.2,730.4,382.7c730.5,383.5,738.5,394.1,741.7,397.5c742.7,398.5,746.6,402.0,750.3,405.2c770.4,"
+    "422.1,807.8,435.2,841.3,437.1c849.7,437.5,869.3,436.8,876.5,435.8|m557.4,430.1c573.9,428.1,591.8,423.4,605.5,417.5c614.8,413.4,617.2,412.2,625.5,407.0c647.7,392.9,658.2,381.5,665.7,362.9c668.2,356.8,6"
+    "68.4,355.6,668.4,342.4c668.3,329.3,668.2,328.0,665.7,321.9c661.2,310.7,654.2,301.0,644.3,292.2c635.2,284.1,629.4,280.2,617.2,274.0c580.0,255.3,534.7,251.0,491.2,262.2c456.0,271.2,431.1,286.7,413.4,310"
+    ".7c410.2,315.0,408.5,318.3,405.1,326.2c402.7,332.1,402.2,334.5,401.7,343.8c400.9,359.2,403.8,368.8,413.0,381.0c434.6,409.9,465.8,425.3,513.2,430.4c525.7,431.7,544.7,431.6,557.4,430.1|m261.7,247.4c257."
+    "2,246.7,252.9,243.4,252.9,240.7c252.9,239.5,254.0,237.5,255.4,236.2c257.8,233.8,257.8,232.2,255.3,231.5c254.4,231.3,253.9,230.2,253.9,228.3c253.9,222.9,260.8,220.0,271.0,221.0c278.3,221.7,282.7,226.8,"
+    "278.8,230.2c276.9,231.9,277.0,233.6,279.3,235.5c280.5,236.6,281.2,238.1,281.2,239.9c281.2,242.1,280.7,243.0,278.0,244.7c273.3,247.7,268.7,248.5,261.7,247.4|m175.8,246.4c175.8,245.8,176.9,244.7,178.2,2"
+    "44.0c180.6,242.8,180.7,242.4,180.7,235.7l180.7,228.6l177.7,227.2c176.1,226.4,174.8,225.5,174.8,225.2c174.8,224.1,185.3,221.2,188.2,221.5l190.9,221.7l191.4,232.4l191.9,243.1l194.8,244.1c196.4,244.7,197"
+    ".8,245.6,197.8,246.1c197.8,246.9,195.5,247.1,186.8,247.3c177.1,247.4,175.8,247.3,175.8,246.4|m225.9,246.4c225.6,245.9,226.8,244.6,229.0,243.2c231.8,241.4,232.5,240.6,232.1,239.4c231.7,238.6,231.5,235."
+    "7,231.5,232.9l231.4,227.9l227.9,226.9c226.0,226.4,224.6,225.6,224.8,225.1c225.4,224.0,234.1,221.8,238.3,221.8l241.7,221.7l242.2,232.0c242.7,242.3,242.7,242.3,245.4,243.8c250.5,246.8,248.7,247.4,235.7,"
+    "247.4c228.5,247.4,226.4,247.2,225.9,246.4|m801.0,246.1c795.7,245.6,793.5,244.2,794.3,242.0c795.1,239.7,797.7,239.3,800.3,240.9c801.4,241.6,803.1,242.2,804.1,242.2c811.5,242.2,811.4,236.2,804.0,234.7c8"
+    "00.7,234.1,801.3,232.1,805.2,230.4c808.2,229.2,808.7,228.7,808.4,227.0c808.0,224.3,805.8,224.1,801.9,226.3c799.4,227.7,798.5,227.9,797.3,227.2c795.5,226.2,795.5,223.9,797.3,222.3c798.4,221.3,800.1,221"
+    ".0,806.4,220.8c814.0,220.6,814.1,220.6,816.7,222.6c820.0,225.3,820.1,227.5,816.9,228.9c813.7,230.3,813.8,231.8,817.4,234.0c820.8,236.2,821.1,238.3,818.5,241.5c815.4,245.4,809.1,247.0,801.0,246.1|m830."
+    "1,245.4c829.2,244.4,829.8,242.9,833.1,237.8c835.3,234.3,837.7,231.0,838.5,230.4c840.3,229.0,840.2,226.8,838.2,226.3c837.3,226.1,834.4,226.4,831.7,227.0c827.0,228.0,826.8,228.0,825.5,226.8c824.7,226.1,"
+    "824.3,224.6,824.4,223.3l824.7,221.0l835.8,220.8c848.9,220.6,850.1,221.0,849.2,224.9c848.8,226.4,847.5,228.9,846.3,230.5c845.0,232.1,842.8,235.7,841.3,238.6c837.6,246.0,832.8,248.9,830.1,245.4|m875.5,2"
+    "44.8c874.3,243.9,874.0,243.0,874.4,241.9c875.3,239.6,877.5,239.1,880.9,240.5c882.4,241.1,884.3,241.5,885.1,241.5c887.3,241.5,889.9,238.6,889.2,237.0c888.4,235.4,883.9,233.7,880.4,233.7c876.4,233.7,874"
+    ".9,231.4,875.6,226.6c876.5,221.2,877.9,220.6,888.8,220.8c896.3,221.0,897.0,221.1,897.3,222.4c897.7,224.5,894.0,225.9,888.5,225.9c884.5,225.9,883.8,226.1,883.8,227.2c883.8,228.8,886.6,229.8,890.8,229.8"
+    "c895.2,229.8,896.2,230.4,898.0,233.8c901.7,240.8,895.0,246.1,882.5,246.1c878.5,246.1,876.8,245.8,875.5,244.8|m919.3,245.6c914.5,245.3,912.2,244.0,914.1,242.5c916.3,240.7,914.5,239.6,909.4,239.6c904.7,"
+    "239.6,901.4,238.3,901.4,236.5c901.4,235.3,915.0,222.1,916.9,221.4c919.5,220.5,923.2,220.5,924.6,221.5c925.3,222.0,925.8,224.3,925.8,227.7c925.8,232.2,926.1,233.5,927.7,234.8c930.3,237.0,930.2,238.1,92"
+    "7.5,239.6c925.6,240.6,925.5,240.9,926.7,242.4c928.8,245.1,926.8,245.9,919.3,245.6|m269.9,242.1c270.6,241.3,270.6,240.5,269.7,239.3c268.8,237.9,268.0,237.6,265.9,237.8c263.7,237.9,263.1,238.3,262.9,239"
+    ".9c262.3,243.0,267.4,244.6,269.9,242.1|m204.1,238.6c203.5,238.1,203.1,237.0,203.3,236.2c203.6,234.8,204.0,234.7,211.4,234.7c218.7,234.7,219.3,234.8,219.5,236.1c219.7,237.0,219.0,237.9,217.6,238.5c214."
+    "7,239.9,205.8,239.9,204.1,238.6|m476.4,238.5c475.7,237.9,476.2,237.2,478.5,235.8c481.6,233.9,481.7,233.7,481.9,227.5c482.1,220.9,481.6,219.9,477.5,219.1c476.5,218.8,475.6,218.2,475.6,217.7c475.6,216.4"
+    ",484.9,213.4,488.6,213.7l491.7,213.9l492.0,223.6c492.2,232.9,492.4,233.4,494.7,235.5c496.1,236.7,497.0,238.0,496.8,238.5c496.3,239.6,477.8,239.6,476.4,238.5|m506.2,238.6c505.3,236.9,506.4,236.0,510.8,"
+    "235.0c514.3,234.2,515.1,233.7,515.1,232.4c515.1,231.2,514.5,230.8,512.2,230.4c505.2,229.5,501.9,226.7,502.0,221.9c502.1,216.5,506.8,213.5,515.2,213.4c520.1,213.4,521.0,213.6,524.0,215.5c530.3,219.6,53"
+    "0.9,225.6,525.8,232.2c523.4,235.3,522.1,236.2,517.6,237.7c511.7,239.7,507.1,240.1,506.2,238.6|m559.4,239.1c554.6,238.8,552.0,236.9,553.5,234.7c554.8,232.8,556.5,232.7,560.7,234.1c564.2,235.3,568.4,234"
+    ".5,568.4,232.7c568.4,230.7,565.4,228.0,562.5,227.3c558.6,226.4,558.8,224.8,563.0,223.7c565.8,222.9,566.4,222.4,566.4,220.7c566.4,218.2,564.4,217.6,560.7,219.1c557.0,220.6,554.7,220.0,554.7,217.5c554.7"
+    ",214.7,557.7,213.5,564.8,213.5c568.9,213.5,571.5,213.9,573.8,214.9c578.1,216.6,578.7,218.3,576.2,221.0c573.7,223.7,573.7,225.4,576.2,226.9c577.6,227.8,578.1,228.9,578.1,231.3c578.1,234.0,577.7,234.8,5"
+    "75.1,236.4c572.4,238.1,566.4,239.7,564.0,239.5c563.4,239.4,561.4,239.3,559.4,239.1|m589.8,238.1c584.2,235.6,582.0,232.8,582.0,228.3c582.1,221.3,589.4,215.0,599.2,213.5c603.1,212.9,607.8,213.7,607.2,21"
+    "4.9c607.0,215.3,604.3,216.5,601.0,217.7c594.1,220.1,593.5,221.5,599.1,222.0c603.9,222.5,608.3,224.3,609.5,226.4c612.1,230.9,609.0,236.3,602.5,238.4c597.9,240.0,593.7,239.9,589.8,238.1|m854.2,236.9c853"
+    ".3,236.6,852.5,235.8,852.5,235.3c852.5,233.8,856.4,233.2,863.3,233.6c868.4,234.0,869.7,234.3,870.0,235.3c870.2,235.9,869.7,236.7,869.0,237.1c867.2,237.8,856.3,237.7,854.2,236.9|m914.5,234.0c916.3,232."
+    "8,915.7,231.8,913.1,231.8c910.6,231.8,909.7,232.9,911.2,234.1c912.6,235.3,912.6,235.3,914.5,234.0|m599.4,231.4c599.6,229.4,599.2,228.5,597.7,227.6c595.1,226.0,592.8,227.2,592.8,230.2c592.8,233.5,593.7"
+    ",234.5,596.6,234.2c598.8,234.1,599.2,233.7,599.4,231.4|m532.2,229.5c530.5,228.1,531.8,226.6,534.9,226.5c538.9,226.3,545.2,226.6,547.1,227.0c549.2,227.4,549.4,229.5,547.3,230.1c544.1,230.9,533.5,230.5,"
+    "532.2,229.5|m269.8,228.3c270.1,227.8,269.8,226.8,269.0,226.1c267.8,225.0,267.6,225.0,266.1,226.0c265.2,226.5,264.8,227.4,265.2,228.1c266.0,229.4,269.1,229.5,269.8,228.3|m518.4,224.5c521.1,222.6,518.5,"
+    "218.1,514.6,218.1c511.8,218.1,510.7,221.5,512.7,224.0c513.9,225.4,516.6,225.7,518.4,224.5|m832.2,204.3c830.5,203.1,830.8,202.2,833.5,200.5l835.9,199.0l835.9,185.3l835.9,171.6l833.3,169.8c829.2,166.9,8"
+    "30.9,165.7,839.4,165.5c843.1,165.4,847.1,165.5,848.3,165.7c850.5,166.0,867.2,181.3,867.2,182.9c867.2,184.0,872.1,185.3,872.9,184.4c873.2,184.0,873.3,180.9,873.0,177.5c872.5,171.8,872.3,171.2,869.9,169"
+    ".7c866.8,167.8,867.2,166.2,870.9,165.8c878.6,164.8,885.0,164.7,886.3,165.4c888.4,166.6,888.0,168.3,885.3,169.5l882.8,170.6l882.8,187.1c882.8,199.0,882.5,203.7,881.6,204.3c880.0,205.4,873.9,205.3,871.4"
+    ",204.1c870.2,203.6,867.8,201.7,866.1,200.0c856.2,190.3,851.8,185.7,851.2,184.7c850.9,184.0,850.0,183.6,849.4,183.8c848.5,183.9,848.1,186.3,847.9,191.9c847.6,199.3,847.7,199.9,849.6,200.5c851.8,201.3,8"
+    "52.2,203.1,850.4,204.3c848.8,205.3,833.8,205.3,832.2,204.3|m205.1,203.2c204.4,202.2,204.7,201.7,207.1,200.3l210.0,198.6l210.0,184.6l210.0,170.6l207.0,168.4c202.5,164.9,203.0,164.2,210.7,163.7c214.3,16"
+    "3.4,223.1,163.4,230.3,163.6c242.9,163.9,243.5,164.0,246.9,165.8c253.4,169.3,254.5,176.4,249.0,179.5c246.2,181.1,246.6,182.2,250.7,185.1c254.3,187.5,254.4,187.6,254.4,192.7c254.4,197.8,254.4,197.9,250."
+    "6,200.4c245.6,203.9,241.7,204.4,222.3,204.4c207.5,204.4,206.0,204.3,205.1,203.2|m532.5,202.1c530.6,201.5,531.0,199.0,533.2,197.7c535.0,196.7,535.2,195.8,535.2,183.7c535.2,171.6,535.0,170.7,533.2,169.6"
+    "c532.1,168.9,531.2,167.9,531.2,167.3c531.2,165.1,533.6,164.7,543.6,164.9c552.5,165.0,553.2,165.1,553.5,166.4c553.7,167.1,552.9,168.3,551.8,168.9c549.9,170.1,549.8,170.9,549.8,183.6c549.8,196.3,549.9,1"
+    "97.1,551.8,198.3c552.9,198.9,553.7,200.1,553.5,200.8c553.2,202.0,552.5,202.2,543.5,202.3c538.1,202.3,533.1,202.2,532.5,202.1|m233.9,198.6c240.0,196.1,240.6,190.2,235.2,187.2c231.6,185.2,228.0,185.1,22"
+    "6.5,186.9c224.9,189.0,225.7,198.4,227.5,199.2c229.6,200.1,230.3,200.0,233.9,198.6|m959.1,180.7c952.5,177.4,945.7,172.0,942.5,167.4c941.3,165.8,939.8,163.8,939.2,163.1c938.6,162.4,937.9,159.5,937.7,156"
+    ".7c937.5,154.0,936.7,151.4,936.1,151.1c935.3,150.7,933.2,151.0,929.6,152.1c920.4,154.9,913.6,155.8,900.4,155.8c890.2,155.8,886.5,155.5,878.0,154.0c872.4,153.1,867.0,152.0,865.9,151.6c863.8,150.8,863.9"
+    ",150.1,867.6,143.6c874.1,132.0,880.5,126.5,892.0,122.8c896.0,121.5,901.5,120.1,904.2,119.7c911.1,118.8,910.7,117.2,902.7,113.8c893.0,109.7,882.7,97.2,882.6,89.5c882.5,83.3,885.5,81.9,902.6,80.4c913.0,"
+    "79.5,916.1,79.4,922.0,80.1c934.5,81.5,944.9,85.0,952.1,90.2c953.5,91.1,955.7,92.3,957.2,92.8c959.7,93.7,959.7,93.7,960.3,91.3c960.6,90.0,961.2,86.1,961.5,82.7c962.1,77.0,962.0,76.4,960.1,74.8c958.9,73"
+    ".8,956.6,72.8,955.0,72.6c953.1,72.3,949.3,70.4,944.8,67.5c938.7,63.4,937.5,62.3,936.1,58.9c935.2,56.8,933.6,53.5,932.5,51.7c930.1,47.6,930.2,47.0,933.1,44.1c936.6,40.7,938.6,40.5,944.8,43.2c949.5,45.4"
+    ",957.0,51.2,957.0,52.8c957.0,53.1,958.8,54.7,961.1,56.3c964.8,59.0,965.0,59.4,964.5,61.9c963.4,66.5,964.6,68.9,969.0,70.9c975.0,73.5,978.5,76.1,981.0,79.9c983.7,83.9,985.6,84.7,988.6,82.9c989.8,82.1,9"
+    "92.0,81.4,993.7,81.1c995.3,80.9,997.4,80.5,998.3,80.3c999.8,80.0,1000.0,80.4,1000.0,83.1l999.9,86.3l993.8,88.2c986.9,90.3,974.2,98.6,970.8,103.2c968.6,106.1,968.1,111.0,969.8,112.6c970.6,113.5,970.9,1"
+    "13.4,972.1,112.3c972.9,111.6,974.6,110.3,975.8,109.5c977.6,108.3,978.1,108.2,978.4,109.1c978.5,109.6,978.2,111.0,977.6,112.1c976.4,114.4,977.9,117.2,979.8,116.0c980.4,115.6,981.4,115.2,982.1,115.2c984"
+    ".3,115.2,983.5,117.0,980.5,118.7c973.9,122.4,979.5,122.6,992.3,119.1c996.3,118.1,999.6,117.2,999.8,117.2c999.9,117.2,1000.0,118.5,1000.0,120.1c1000.0,122.7,999.7,123.1,997.8,123.1c994.6,123.1,984.2,12"
+    "5.9,984.2,126.6c984.2,127.0,985.7,127.6,987.5,128.0c989.3,128.4,990.9,129.3,991.1,129.9c991.4,130.9,990.8,131.0,985.0,130.6c980.4,130.3,978.5,130.4,978.5,130.9c978.5,131.9,987.3,140.6,992.4,144.7c994."
+    "5,146.3,997.0,147.9,998.1,148.1c999.6,148.4,1000.0,149.1,1000.0,151.5c1000.0,154.4,1000.0,154.4,997.2,154.0c993.5,153.5,992.5,154.4,991.9,159.2c991.3,164.2,987.2,170.1,980.5,175.6c977.0,178.5,967.8,18"
+    "3.6,966.1,183.6c965.5,183.6,962.4,182.3,959.1,180.7|m231.8,180.3c235.1,178.6,236.8,174.8,235.5,172.4c234.0,169.9,230.2,168.3,227.6,169.2c225.9,169.9,225.6,170.6,225.6,174.5c225.6,178.9,226.7,181.6,228"
+    ".4,181.6c228.9,181.6,230.4,181.0,231.8,180.3|m973.1,170.7c981.5,163.3,983.4,160.1,983.4,153.1c983.4,147.1,981.7,142.5,977.3,136.9c975.5,134.6,974.7,134.1,972.7,134.3c970.4,134.4,970.3,134.7,970.5,137."
+    "7l970.7,141.0l969.1,139.0c967.3,136.8,966.0,136.1,963.7,136.1c962.5,136.1,961.7,137.1,960.8,140.0c960.1,142.2,959.0,144.0,958.5,144.1c958.0,144.2,957.3,142.5,957.0,140.5c956.8,138.5,956.2,136.6,955.8,"
+    "136.3c954.6,135.6,951.6,137.8,948.2,142.0c945.2,145.9,945.1,146.1,945.5,152.6c945.8,158.1,946.3,159.7,948.4,162.4c951.8,166.7,963.5,175.8,965.6,175.8c966.6,175.8,969.7,173.7,973.1,170.7|m366.2,167.4c3"
+    "63.3,166.8,359.8,165.9,358.6,165.4c354.2,163.8,348.5,159.9,345.9,156.6c343.4,153.5,343.3,152.8,343.3,144.8c343.3,136.6,343.4,136.1,346.2,132.4c349.8,127.7,355.3,123.9,362.3,121.5c371.3,118.4,386.1,118"
+    ".1,392.2,120.9c393.8,121.6,396.2,122.7,397.7,123.3c403.4,125.6,410.2,136.2,410.2,143.0c410.2,146.6,406.6,154.9,403.7,158.0c401.5,160.4,396.3,164.1,395.2,164.1c394.7,164.1,393.2,164.6,391.8,165.3c388.7"
+    ",166.7,378.5,168.6,374.4,168.6c372.9,168.6,369.2,168.0,366.2,167.4|m387.3,161.4c392.0,160.0,397.5,157.2,397.5,156.1c397.5,155.8,398.7,153.9,400.1,151.8c402.5,148.5,402.8,147.4,402.8,141.6c402.8,136.3,"
+    "402.4,134.5,400.6,131.9c397.9,127.9,396.2,126.6,390.7,124.3c387.0,122.7,385.3,122.4,379.7,122.4c374.2,122.4,371.8,122.8,366.9,124.3c357.2,127.4,353.8,130.1,350.6,136.8c348.0,142.4,348.1,147.4,351.0,15"
+    "2.7c355.1,160.3,360.7,162.7,374.6,162.7c380.6,162.8,383.7,162.4,387.3,161.4|m915.5,149.0c924.2,148.0,934.8,144.3,939.5,140.7c945.0,136.6,949.2,132.5,949.2,131.2c949.2,130.1,945.7,129.8,945.1,130.9c944"
+    ".7,131.8,938.5,133.6,938.5,132.8c938.5,132.5,939.6,131.1,940.9,129.8c943.5,127.3,944.1,125.7,942.4,125.7c941.8,125.7,939.6,124.5,937.4,123.0c933.9,120.8,933.7,120.4,935.4,120.4c936.5,120.4,939.4,120.8"
+    ",941.8,121.2c944.3,121.7,946.5,121.8,946.8,121.6c947.1,121.5,946.2,119.6,944.9,117.6c943.5,115.6,942.8,113.8,943.3,113.6c943.8,113.4,945.8,114.2,947.7,115.3c949.6,116.4,951.8,117.2,952.5,117.0c956.0,1"
+    "16.1,954.3,101.8,950.2,97.4c946.4,93.2,935.0,87.8,926.4,85.9c920.3,84.6,908.8,85.4,901.7,87.5c892.8,90.2,891.9,91.0,893.5,95.2c897.8,106.3,909.0,114.5,923.4,117.1c927.9,117.9,931.9,120.2,929.6,120.7c9"
+    "28.8,120.9,924.5,121.3,919.9,121.8c907.7,122.9,897.6,125.2,892.7,128.0c889.4,129.9,887.2,132.2,883.2,137.8c877.3,145.9,876.8,147.6,880.1,148.1c889.0,149.5,907.5,150.0,915.5,149.0|m445.9,127.2c441.0,12"
+    "6.2,434.8,122.7,431.8,119.2c429.2,116.1,428.5,104.3,429.1,75.3c429.7,48.2,429.8,46.6,431.7,44.6c432.7,43.4,435.1,41.7,437.0,40.8c446.8,35.8,471.8,36.0,485.9,41.3c491.6,43.4,492.7,43.4,497.9,41.0c504.2"
+    ",38.2,514.2,36.9,528.1,37.3c535.7,37.4,541.2,37.9,544.4,38.7c549.1,39.8,549.3,39.8,554.6,38.3c559.3,37.0,561.7,36.8,571.3,36.8c586.0,36.8,598.8,39.2,605.2,43.1l607.3,44.4l612.0,41.8c617.7,38.7,621.6,3"
+    "7.8,628.8,37.8c636.2,37.8,641.7,39.6,645.2,43.0l647.9,45.8l648.3,70.8c648.6,94.6,648.7,95.7,650.4,95.7c651.4,95.7,652.5,95.4,652.9,95.0c653.2,94.6,653.4,84.6,653.4,72.7c653.2,48.2,653.6,46.5,659.8,42."
+    "2c665.3,38.4,672.8,37.1,688.2,37.1c702.3,37.1,708.1,38.3,712.4,42.1c720.5,49.1,716.3,62.5,705.2,65.0c703.0,65.5,701.2,66.1,701.2,66.4c701.2,66.7,703.1,67.7,705.5,68.6c712.0,71.2,713.9,73.8,713.9,80.5c"
+    "713.9,86.6,712.6,88.9,707.9,91.9c704.5,94.0,704.3,95.5,707.3,96.1c710.1,96.6,714.6,99.4,716.6,101.9c718.8,104.6,718.7,112.9,716.4,115.9c713.9,119.1,710.1,121.7,706.1,122.8c700.2,124.5,676.7,124.4,662."
+    "0,122.7c659.6,122.4,657.5,122.6,655.5,123.3c651.3,124.8,625.6,124.8,620.5,123.4c616.1,122.2,612.6,122.2,609.4,123.4c605.7,124.8,594.5,124.6,590.0,123.1c588.0,122.4,585.7,121.4,585.0,120.8c583.1,119.3,"
+    "580.4,119.6,576.0,121.9c572.6,123.8,571.3,124.0,565.1,124.2c560.1,124.4,556.9,124.2,554.3,123.4c549.5,122.1,544.7,122.1,540.7,123.5c538.1,124.4,534.5,124.6,519.9,124.6l502.1,124.7l498.0,122.7c491.7,11"
+    "9.8,489.5,116.3,488.9,108.1c488.6,104.4,488.0,101.1,487.4,100.7c486.4,100.1,480.9,102.0,476.9,104.3c475.0,105.5,474.8,106.0,475.3,110.3c475.6,113.3,475.4,115.9,474.6,117.5c473.0,120.8,468.1,124.3,463."
+    "2,125.8c459.0,127.0,449.2,127.8,445.9,127.2|m820.3,125.4c810.6,124.0,799.9,119.0,797.2,114.8c796.5,113.6,795.4,112.6,794.8,112.6c794.2,112.6,790.6,114.8,786.8,117.4c777.8,123.4,772.5,125.2,762.1,125.5"
+    "c744.6,126.1,732.3,120.8,729.4,111.2c727.9,106.3,728.8,103.5,732.9,100.2c734.8,98.7,736.3,97.3,736.3,97.0c736.3,96.7,734.4,95.1,732.0,93.5c724.0,88.0,720.7,81.1,720.7,69.7c720.7,58.1,724.9,50.5,734.9,"
+    "43.9c740.2,40.4,742.0,39.6,749.0,38.1c755.9,36.6,758.2,36.3,765.1,36.6c772.1,36.8,773.9,37.2,779.9,39.3c787.5,42.1,790.6,43.8,792.6,46.4c793.4,47.4,794.5,48.2,795.1,48.2c795.8,48.2,798.6,46.6,801.4,44"
+    ".6c819.9,31.6,849.4,35.2,862.6,52.1c865.9,56.3,867.1,58.9,870.2,68.7c870.6,70.1,871.0,76.3,871.0,82.4c871.1,91.9,870.7,94.3,868.8,99.6c863.2,114.5,851.3,123.5,834.5,125.6c827.7,126.4,827.3,126.4,820.3"
+    ",125.4|m460.0,119.5c461.5,118.9,463.3,117.9,463.8,117.2c464.4,116.5,464.8,112.3,464.8,107.9c464.8,102.1,465.2,99.6,466.1,99.2c466.7,98.8,469.9,98.0,473.1,97.3c477.7,96.3,480.2,95.2,484.4,92.4c490.0,88"
+    ".6,490.6,88.0,494.0,82.0c497.2,76.6,497.0,66.4,493.6,59.2c490.4,52.5,487.4,49.4,481.6,46.9c474.7,43.8,467.8,42.7,458.5,43.2c447.4,43.7,443.6,44.6,441.4,47.1c439.5,49.1,439.5,50.6,439.5,81.5c439.5,116."
+    "5,439.7,118.1,444.6,119.7c447.8,120.7,456.7,120.6,460.0,119.5|m769.1,118.4c775.1,116.4,779.5,113.1,784.1,107.1c790.7,98.7,792.4,92.5,792.4,77.5c792.5,67.0,792.2,64.1,790.7,60.9c787.2,53.2,785.8,51.1,7"
+    "81.8,48.3c771.6,40.9,755.1,40.7,743.2,47.9c738.5,50.8,736.3,53.3,732.9,60.3c726.2,74.0,733.5,89.2,748.3,92.1c754.6,93.4,759.2,93.4,760.7,92.1c762.3,90.9,765.5,90.9,766.2,92.1c767.1,93.6,764.7,98.1,761"
+    ".9,100.2c758.9,102.2,757.3,102.3,752.1,100.5c750.8,100.1,749.0,99.9,748.2,100.1c745.3,100.7,740.3,104.4,739.2,106.6c737.9,109.2,738.4,110.4,742.3,113.9c748.1,119.3,760.4,121.3,769.1,118.4|m838.4,117.9"
+    "c847.1,115.2,852.0,111.0,856.4,103.0c862.4,91.7,862.8,71.0,857.2,61.5c849.7,48.8,843.1,44.1,831.1,43.2c824.5,42.7,820.4,43.3,815.1,45.7c807.6,49.0,803.0,54.5,799.2,65.1c796.6,72.2,796.6,94.1,799.3,100"
+    ".3c802.1,106.8,806.2,112.3,810.2,114.9c818.4,120.2,828.1,121.2,838.4,117.9|m539.6,117.5c544.6,116.2,546.3,113.4,544.9,108.9c544.2,106.6,542.8,104.7,541.3,103.7c539.0,102.1,538.5,102.1,531.7,102.4c523."
+    "0,102.9,522.5,102.6,522.5,95.9c522.5,90.0,523.4,89.2,531.2,88.6c536.5,88.2,537.8,87.8,540.3,86.0c542.9,84.0,543.1,83.5,542.7,80.2c542.4,77.1,541.8,76.3,539.1,74.7c536.1,72.9,535.4,72.8,530.7,73.1c522."
+    "9,73.6,521.5,72.7,521.5,66.8c521.5,60.0,522.6,59.2,533.0,58.8c544.3,58.3,545.9,57.4,545.9,51.5c545.9,47.6,545.6,46.9,543.4,45.5c540.9,44.0,540.4,43.9,525.6,43.9c517.1,43.9,509.0,44.2,507.6,44.4c506.1,"
+    "44.7,503.9,46.0,502.5,47.4l500.1,49.8l499.8,81.7c499.7,99.3,499.9,114.3,500.3,115.1c500.8,115.9,502.5,117.2,504.2,117.9c507.1,119.1,508.4,119.2,521.8,118.8c530.7,118.6,537.6,118.1,539.6,117.5|m571.5,1"
+    "16.1c573.5,114.6,573.8,113.7,574.2,106.6c574.5,101.4,575.1,98.7,575.9,98.5c576.5,98.3,579.2,101.2,582.2,105.3c588.2,113.5,591.1,116.6,594.1,117.7c598.8,119.4,607.1,118.1,609.5,115.1c611.3,112.8,609.6,"
+    "108.8,602.5,99.1c598.8,94.0,595.7,89.7,595.7,89.5c595.7,89.2,597.7,87.6,600.1,85.8c602.4,84.1,605.6,80.9,607.0,78.9c609.4,75.5,609.6,74.5,609.6,67.7c609.6,61.4,609.3,59.7,607.4,56.6c602.9,49.5,595.5,4"
+    "5.2,585.2,43.7c577.4,42.6,563.3,42.8,558.7,44.0c551.4,45.9,551.7,44.2,552.0,81.4c552.2,114.4,552.3,114.6,554.4,116.0c558.4,118.7,567.7,118.8,571.5,116.1|m656.7,115.9c658.9,114.5,659.2,113.8,659.2,110."
+    "1c659.2,104.2,657.0,101.8,651.0,101.2c648.6,101.0,645.8,101.0,644.8,101.2c643.8,101.4,642.2,101.2,641.2,100.7c639.6,99.9,639.5,98.3,639.6,76.5c639.7,63.6,640.0,52.1,640.2,51.0c641.0,46.5,633.4,42.6,62"
+    "5.6,43.4c620.4,44.0,617.4,46.3,616.7,50.3c616.4,52.2,616.2,67.1,616.4,83.4c616.7,110.7,616.8,113.2,618.5,114.8c619.4,115.8,621.2,116.9,622.4,117.2c623.5,117.5,631.2,117.7,639.3,117.7c653.5,117.5,654.3"
+    ",117.4,656.7,115.9|m703.8,116.2c707.1,114.8,708.2,112.3,707.8,107.8c707.4,104.6,706.9,103.7,704.6,102.4c702.2,101.0,701.1,100.9,695.1,101.0c686.9,101.2,685.5,100.4,685.5,95.4c685.5,91.0,687.5,89.2,692"
+    ".0,89.2c697.0,89.2,701.8,87.5,703.2,85.2c705.0,82.3,703.9,75.8,701.3,74.0c699.5,72.8,698.2,72.6,693.4,72.8c686.3,73.0,685.5,72.3,685.5,66.0c685.5,60.1,686.8,59.2,694.8,59.2c699.9,59.2,701.3,59.0,703.5"
+    ",57.6c705.7,56.3,706.1,55.5,706.1,52.4c706.1,44.8,702.2,43.3,682.7,43.7l670.7,44.0l667.4,46.4l664.1,48.8l664.1,81.2c664.1,116.3,664.0,115.7,669.3,117.2c672.8,118.3,701.0,117.4,703.8,116.2|m402.5,111.3"
+    "c402.8,110.8,403.5,110.3,404.2,110.1c405.0,110.0,405.3,110.2,405.1,110.7c404.9,111.2,404.1,111.7,403.4,111.9c402.6,112.0,402.3,111.8,402.5,111.3|m964.3,108.2c965.3,104.8,968.6,99.9,972.7,95.7c976.9,91"
+    ".5,978.0,88.9,977.1,85.0c976.3,81.5,971.0,76.9,969.3,78.2c967.7,79.4,966.1,83.3,965.3,88.1c964.9,90.1,963.8,92.5,962.9,93.3c960.5,95.3,959.5,102.4,960.9,107.0c961.5,109.0,962.4,110.7,962.9,110.7c963.3"
+    ",110.7,964.0,109.6,964.3,108.2|m396.0,109.4c395.2,108.5,396.4,107.3,397.5,107.8c398.7,108.3,398.7,110.0,397.5,110.0c397.0,110.0,396.3,109.7,396.0,109.4|m406.4,108.7c406.7,108.2,407.4,107.7,408.1,107.5"
+    "c408.9,107.4,409.2,107.6,409.0,108.1c408.8,108.6,408.0,109.1,407.3,109.3c406.6,109.4,406.2,109.2,406.4,108.7|m409.8,104.4c408.5,103.5,409.3,102.2,411.6,101.6c413.0,101.2,414.1,100.4,414.1,99.7c414.1,9"
+    "8.3,416.3,96.8,417.3,97.4c418.6,98.3,417.9,99.7,414.9,102.3c411.7,104.9,411.0,105.2,409.8,104.4|m826.5,102.2c825.4,101.9,823.4,100.3,822.1,98.5c819.9,95.5,819.8,94.8,819.8,81.7c819.8,68.3,819.9,68.0,8"
+    "22.3,65.2c825.4,61.5,827.2,60.7,830.7,61.5c836.4,62.9,839.5,71.9,838.5,84.3c837.5,97.2,833.0,103.8,826.5,102.2|m85.3,98.0c85.0,97.5,85.7,96.3,86.8,95.3c88.7,93.7,88.9,92.7,88.9,84.1c88.9,75.3,88.7,74."
+    "5,86.8,73.2c83.6,70.9,85.0,69.9,91.8,69.4c99.2,68.8,100.8,69.4,107.2,75.0c118.9,85.2,120.1,85.5,120.1,78.6c120.1,74.6,119.8,73.8,118.2,73.1c113.1,71.0,117.5,68.9,126.2,69.1c131.7,69.3,132.4,69.5,132.6"
+    ",70.8c132.9,71.8,132.3,72.5,130.6,73.0c128.3,73.7,128.3,73.7,128.2,85.1c128.0,97.9,127.5,99.0,121.6,99.0c119.3,99.0,117.7,98.3,115.1,96.5c111.5,93.9,106.0,89.3,105.4,88.2c105.1,87.9,103.9,86.5,102.7,8"
+    "5.1c100.4,82.7,98.2,82.0,97.4,83.5c96.5,85.1,97.9,94.1,99.2,95.5c102.0,98.5,101.2,99.0,93.2,99.0c87.7,99.0,85.7,98.7,85.3,98.0|m265.8,96.5l192.2,96.3l192.6,94.9l192.9,93.4l266.1,93.2c306.4,93.1,340.3,"
+    "93.2,341.6,93.4c343.7,93.8,344.8,96.4,342.9,96.4c342.4,96.4,341.4,96.4,340.7,96.5c339.9,96.6,306.3,96.6,265.8,96.5|m139.0,80.8c134.6,79.0,133.5,76.3,135.9,73.0c137.8,70.4,141.3,69.0,145.9,69.0c149.1,6"
+    "9.0,153.8,71.3,155.2,73.5c158.7,79.1,147.5,84.2,139.0,80.8|m463.2,80.6c461.8,79.4,461.7,61.8,463.1,60.7c465.2,59.0,469.5,59.8,472.3,62.3c475.8,65.3,476.7,72.1,474.1,75.6c470.6,80.3,465.5,82.6,463.2,80"
+    ".6|m574.2,78.1c573.6,77.4,573.3,73.5,573.5,68.5c573.7,60.4,573.8,60.2,576.0,60.0c584.3,59.2,588.6,64.4,586.3,72.2c585.6,74.4,579.0,79.4,576.7,79.4c575.9,79.4,574.8,78.8,574.2,78.1|m376.2,78.1c371.5,76"
+    ".8,367.4,74.1,364.8,70.6c362.3,67.3,362.1,66.6,362.6,61.9c363.2,55.5,366.3,51.5,372.9,48.8c376.9,47.1,378.3,46.9,385.3,46.9c392.5,46.9,393.5,47.0,397.2,48.8c399.4,49.9,402.4,52.1,403.8,53.7c405.9,56.2"
+    ",406.3,57.4,406.5,62.7c406.7,68.7,406.6,69.0,403.8,71.6c402.2,73.2,399.0,75.3,396.8,76.4c393.3,78.0,391.6,78.4,385.5,78.5c381.6,78.7,377.4,78.5,376.2,78.1|m758.6,77.7c755.3,75.2,753.9,72.3,753.9,68.1c"
+    "753.9,64.5,754.3,63.6,756.4,61.9c759.9,59.1,763.7,59.2,766.8,62.0c768.6,63.7,769.1,65.2,769.4,69.0c769.7,73.3,769.4,74.2,767.4,76.2c764.7,78.8,761.0,79.5,758.6,77.7|m147.9,75.5c147.9,74.2,147.4,73.9,1"
+    "45.3,73.7c143.5,73.6,142.4,73.8,142.0,74.5c140.9,76.3,142.4,77.6,145.3,77.4c147.4,77.2,147.9,76.8,147.9,75.5|m389.9,73.5c398.3,72.0,402.6,67.7,402.7,60.9c402.8,56.8,402.5,56.0,400.1,53.9c395.7,50.1,39"
+    "3.0,49.2,385.5,49.3c379.7,49.4,378.5,49.6,375.2,51.4c369.5,54.4,366.9,58.5,367.4,63.2c368.3,71.3,377.9,75.8,389.9,73.5|m960.0,66.3c960.0,65.6,959.3,65.1,958.5,65.1c956.7,65.1,954.8,67.5,955.5,68.8c956"
+    ".0,69.7,956.3,69.7,958.0,68.7c959.1,68.0,960.0,67.0,960.0,66.3|m957.0,61.2c957.0,60.5,956.6,59.8,956.0,59.5c954.5,58.9,952.7,60.3,953.5,61.5c954.3,62.9,957.0,62.7,957.0,61.2|m952.9,55.8c952.6,54.0,949"
+    ".2,53.4,949.2,55.2c949.2,56.7,950.0,57.3,951.9,57.3c952.8,57.3,953.1,56.7,952.9,55.8|m948.8,50.4c948.0,49.0,945.3,49.3,945.3,50.7c945.3,52.4,948.6,53.8,949.1,52.3c949.2,51.8,949.1,50.9,948.8,50.4|m402"
+    ".7,45.5c399.2,44.1,395.5,40.3,395.5,38.4c395.5,37.7,397.4,35.8,399.7,34.2c403.3,31.7,404.5,31.3,407.8,31.3c410.8,31.3,412.4,31.7,415.2,33.5c417.2,34.7,419.1,36.4,419.5,37.3c420.5,40.0,418.2,43.5,414.2"
+    ",45.3c409.9,47.2,406.8,47.3,402.7,45.5|m412.3,41.8c416.0,39.2,416.2,37.5,413.0,35.3c410.2,33.3,405.6,33.4,402.2,35.6c398.7,37.8,398.7,39.5,402.0,41.8c405.4,44.2,409.0,44.2,412.3,41.8|m816.4,22.2l806.2"
+    ",21.8l815.9,21.3c827.8,20.7,858.1,20.8,864.7,21.4c868.7,21.8,867.1,21.9,856.0,22.3c841.9,22.8,833.6,22.8,816.4,22.2|m930.9,22.3c915.6,22.2,907.3,21.9,907.7,21.5c908.1,21.1,925.2,20.8,954.2,20.8c994.3,"
+    "20.8,1000.0,21.0,1000.0,21.8c1000.0,22.8,1000.3,22.8,930.9,22.3"
+)
