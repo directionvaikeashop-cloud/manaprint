@@ -39,6 +39,7 @@ from generators import sun
 from generators import pow as powgen
 from generators import pow9 as pow9gen
 from generators import pow_halloween as powhwgen
+from generators import tiare_halloween as tiarehwgen
 from generators import poe_parau as poeparaugen
 from generators import poe as poegen
 from generators import bng as bnggen
@@ -798,6 +799,7 @@ _enregistrer_paire("sun_casino",    "SUN CASINO","🎲", 12, sun.generer_pdf_cas
 _enregistrer_paire("pow",           "POW 8 boules","💥", 12, powgen.generer_pdf)
 _enregistrer_paire("pow9",          "POW 9 boules", "\U0001f9fa", 12, pow9gen.generer_pdf)
 _enregistrer_paire("pow_halloween", "POW HALLOWEEN", "🎃", 16, powhwgen.generer_pdf)
+_enregistrer_paire("tiare_halloween", "TIARE HALLOWEEN", "🎃", 16, tiarehwgen.generer_pdf)
 _enregistrer_paire("pow_casino",    "POW CASINO","🎲", 12, powgen.generer_pdf_casino)
 _enregistrer_paire("poe_parau",     "POE PARAU 6 boules", "🦪", 12, poeparaugen.generer_pdf)
 _enregistrer_paire("poe",           "POE 6 boules", "⚪", 12, poegen.generer_pdf)
@@ -1807,6 +1809,7 @@ _PLAGES_CALLER = {
     "hakari": (1, 75),
     "henua_enana": (1, 75),
     "tiare": (50, 90),
+    "tiare_halloween": (50, 90),
     "tuamotu": (1, 75),
     "societe": (1, 75),
     "australes": (1, 75),
