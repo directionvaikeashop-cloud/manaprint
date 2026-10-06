@@ -1,27 +1,25 @@
 # -*- coding: utf-8 -*-
-"""
-MANAPRINT — Générateur BO 90 (format A4)
-12 grilles par feuille A4 (3 colonnes × 4 rangées) — à la demande de Maeva
-(le modèle historique en avait 18, on aère pour de plus grosses cartes).
-Chaque carte : en-tête B | O | 90 puis grille 2 rangées × 3 colonnes —
-5 BOULES triées vers le bas (décision Maeva) :
-  B = 1-15 (×2) · O = 61-75 (×1, en haut) · 90 = 76-90 (×2)
-La case du BAS-MILIEU est libérée pour le QR de vérification.
-Un grand saut dans le tirage : tout le 16-60 (caller informé) !
-Pied : « N° SERIE » + signature + numéro.
-Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
+"""MANAPRINT - Generateur BO 90 (A4 PAYSAGE, 16 cartons/feuille).
+
+REGLE ABSOLUE : le decor plus bas EST la planche de Maeva, relevee au trait
+   sur sa nouvelle maquette BO 90 (le cadre, les rayons, le titre << B I 90 >>
+   et les SIX cases - 2 rangees x 3 colonnes B . I . 90). RIEN n'a ete
+   redessine : on ECRIT seulement les 6 numeros et le numero de serie.
+
+LA REGLE DU JEU : SIX numeros - 2x B (1-15) . 2x O (61-75) . 2x << 90 >> (76-90).
+   Le crieur sort 1-30 et 76-90 (le 31-75 n'existe pas).
+
+L'ARC-EN-CIEL EST CARTON PAR CARTON. En N&B au gris #555555.
 """
 import io
 import random
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
-# SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne : si le module securite
-# est absent, les cartons sortent normalement, simplement sans microtexte.
 try:
     from generators import securite as _sec
 except Exception:
@@ -30,10 +28,9 @@ except Exception:
     except Exception:
         _sec = None
 
-
 try:
-    pdfmetrics.registerFont(TTFont("DJL", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    POLICE = "DJL"
+    pdfmetrics.registerFont(TTFont("DJLBO90", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
+    POLICE = "DJLBO90"
 except Exception:
     POLICE = "Helvetica"
 
@@ -44,171 +41,266 @@ RAINBOW = [
 GRIS = colors.Color(0.42, 0.42, 0.42)
 GRIS_CLAIR = colors.Color(0.80, 0.80, 0.80)
 
-
-# ══ DEUX GAMMES COMMERCIALES (vision Maeva) ══════════════════════════
-# ÉCO      : écriture fine DejaVu ExtraLight, gris 0,50 — économie de toner
-# PREMIUM  : écriture grasse Helvetica-Bold, gris 0,55 — style P15
-from reportlab.pdfbase import pdfmetrics as _pm
-from reportlab.pdfbase.ttfonts import TTFont as _TF
+import os as _os
 try:
-    _pm.registerFont(_TF("DJLECO", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    _POLICE_ECO = "DJLECO"
+    pdfmetrics.registerFont(TTFont("LMROMANBO90", _os.path.join(
+        _os.path.dirname(_os.path.abspath(__file__)), "LatinModern.ttf")))
+    _POLICE_ECO = "LMROMANBO90"
 except Exception:
-    _POLICE_ECO = "Helvetica"
-_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
-_POLICE_P15 = "Helvetica-Bold"
-_GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
+    try:
+        pdfmetrics.registerFont(TTFont("DJLECOBO90", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
+        _POLICE_ECO = "DJLECOBO90"
+    except Exception:
+        _POLICE_ECO = "Helvetica"
+_GRIS_ECO = colors.Color(0.40, 0.40, 0.40)
+_GRAS_TRAIT = 0.012
+_POLICE_P15 = _POLICE_ECO
+_GRIS_P15 = colors.Color(0.14, 0.14, 0.14)
+
+TRAIT_NB = "#555555"
+
 
 def _style_chiffres(style):
-    """Retourne (police, gris) des chiffres selon la gamme choisie."""
     if str(style).lower() in ("p15", "premium"):
         return _POLICE_P15, _GRIS_P15
     return _POLICE_ECO, _GRIS_ECO
-# ═════════════════════════════════════════════════════════════════════
 
-PAGE_W, PAGE_H = A4
-LETTRES = ["B", "O", "90"]
-COLONNES = [(1, 15), (61, 75), (76, 90)]   # le grand saut du 16-60 !
 
-COLS_PAGE = 3
+# -- GEOMETRIE DE LA FEUILLE (A4 PAYSAGE, 4 colonnes x 4 rangees) --
+PAGE_W, PAGE_H = landscape(A4)
+ASPECT = 381.0 / 240.0
+COLS_PAGE = 4
 ROWS_PAGE = 4
-MARGIN_X = 8 * mm
-MARGIN_TOP = 10 * mm
-MARGIN_BOT = 8 * mm
-GUTTER_X = 4 * mm
-GUTTER_Y = 4 * mm
+CARTES_PAGE = COLS_PAGE * ROWS_PAGE
+MARGE_X = 6 * mm
+GUTTER_X = 3 * mm
+GUTTER_Y = 3 * mm
+CARD_W = (PAGE_W - 2 * MARGE_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
+CARD_H = CARD_W / ASPECT
+_BLOC_H = ROWS_PAGE * CARD_H + (ROWS_PAGE - 1) * GUTTER_Y
+MARGE_TOP = (PAGE_H - _BLOC_H) / 2.0
+MARGE_BOT = MARGE_TOP
 
-CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
-CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
-HDR_H = 6 * mm
-PIED_H = 4.4 * mm        # le pied fin : N° SERIE + signature + numéro
+# -- LES SIX CASES (fx depuis la gauche, fy depuis le HAUT, plage) --
+#    2 rangees x 3 colonnes : B . I . 90
+FX_B, FX_I, FX_90 = 0.202, 0.504, 0.814
+FY_HAUT, FY_BAS = 0.483, 0.808
+CASES = [
+    (FX_B,  FY_HAUT, (1, 15)),   # B haut
+    (FX_B,  FY_BAS,  (1, 15)),   # B bas
+    (FX_I,  FY_HAUT, (61, 75)),  # O haut
+    (FX_I,  FY_BAS,  (61, 75)),  # O bas
+    (FX_90, FY_HAUT, (76, 90)),  # 90 haut
+    (FX_90, FY_BAS,  (76, 90)),  # 90 bas
+]
+TAILLE_CHIFFRE = 34.0
+_T_SERIE = 6.0
+_SERIE_FX = 0.50
+_SERIE_FY = 0.955
 
 
-def _gen_carte(rng):
-    """5 boules : 2 + 1 + 2 par famille, triées vers le bas.
-    Le O libère sa case du bas pour le QR (décision Maeva)."""
-    return [sorted(rng.sample(range(pmin, pmax + 1), n))
-            for (pmin, pmax), n in zip(COLONNES, (2, 1, 2))]
+def _graver_planche(c):
+    nom = "BO90_DECOR"
+    if not getattr(c, "_bo90_forme_faite", False):
+        c.beginForm(nom, lowerx=0, lowery=0, upperx=CARD_W, uppery=CARD_H)
+        p = c.beginPath()
+        for contour in _DECOR.split("|"):
+            i = 0
+            n = len(contour)
+            while i < n:
+                cmd = contour[i]
+                j = i + 1
+                while j < n and contour[j] not in "mlc":
+                    j += 1
+                v = [float(x) for x in contour[i + 1:j].split(",")]
+                if cmd == "m":
+                    p.moveTo(v[0] / 1000.0 * CARD_W, CARD_H - v[1] / 1000.0 * CARD_H)
+                elif cmd == "l":
+                    p.lineTo(v[0] / 1000.0 * CARD_W, CARD_H - v[1] / 1000.0 * CARD_H)
+                else:
+                    p.curveTo(v[0] / 1000.0 * CARD_W, CARD_H - v[1] / 1000.0 * CARD_H,
+                              v[2] / 1000.0 * CARD_W, CARD_H - v[3] / 1000.0 * CARD_H,
+                              v[4] / 1000.0 * CARD_W, CARD_H - v[5] / 1000.0 * CARD_H)
+                i = j
+            p.close()
+        c.drawPath(p, stroke=0, fill=1)
+        c.endForm()
+        c._bo90_forme_faite = True
+    return nom
 
 
-def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
+def _poser_carton(c, x0, y0, couleur):
+    nom = _graver_planche(c)
+    c.saveState()
+    c.setFillColor(couleur)
+    c.translate(x0, y0)
+    c.doForm(nom)
+    c.restoreState()
+
+
+def _gen_grille(rng):
+    """SIX numeros : 2xB (1-15), 2xI (16-30), 2x90 (76-90), tries par colonne.
+    Ordre rendu = B-haut, B-bas, I-haut, I-bas, 90-haut, 90-bas."""
+    b = sorted(rng.sample(range(1, 16), 2))
+    i = sorted(rng.sample(range(61, 76), 2))
+    n = sorted(rng.sample(range(76, 91), 2))
+    return [b[0], b[1], i[0], i[1], n[0], n[1]]
+
+
+def _tirer(rng, deja):
+    g = None
+    for _ in range(400):
+        g = _gen_grille(rng)
+        cle = tuple(g)
+        if cle not in deja:
+            deja.add(cle)
+            return g
+    return g
+
+
+def _dessiner_carton(c, x0, y0, grille, serie, couleur, style="eco"):
     police_ch, gris_ch = _style_chiffres(style)
-    col = colors.HexColor(couleur_hex)
-    cell_w = CARD_W / 3
-
-    # Bordure carte
-    c.setStrokeColor(col); c.setLineWidth(0.8)
-    c.rect(x0, y0, CARD_W, CARD_H, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.8 * mm)
-
-    # En-tête B | G | 90 (fidèle au modèle)
-    hdr_bas = y0 + CARD_H - HDR_H
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0, hdr_bas, x0 + CARD_W, hdr_bas)
-    for i in range(1, 3):
-        c.line(x0 + i * cell_w, hdr_bas, x0 + i * cell_w, y0 + CARD_H)
-    c.setFillColor(col); c.setFont(POLICE, 6.5)
-    for i, lettre in enumerate(LETTRES):
-        c.drawCentredString(x0 + (i + 0.5) * cell_w, hdr_bas + 1.8 * mm, lettre)
-
-    # Pied fin : « N° SERIE » + signature + numéro
-    pied_haut = y0 + PIED_H
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0, pied_haut, x0 + CARD_W, pied_haut)
-    c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 4.2)
-    c.drawString(x0 + 2 * mm, y0 + 1.4 * mm, "N\u00b0 SERIE")
-    signature = "BO 90"
-    if titre_jeu and "BO" not in titre_jeu.strip().upper():
-        signature += " \u00b7 " + titre_jeu.strip()
-    if telephone:
-        signature += " \u00b7 " + telephone
-    c.setFillColor(col); c.setFont(POLICE, 4.0)
-    c.drawCentredString(x0 + CARD_W / 2, y0 + 1.4 * mm, signature[:46])
-    c.setFont(POLICE, 6)
-    c.drawRightString(x0 + CARD_W - 2 * mm, y0 + 1.3 * mm, "%06d" % serie)
-
-    # La grille 2×3 (traits complets)
-    z_top = hdr_bas
-    z_bot = pied_haut
-    row_h = (z_top - z_bot) / 2
-    c.setStrokeColor(col); c.setLineWidth(0.35)
-    for i in range(1, 3):
-        c.line(x0 + i * cell_w, z_bot, x0 + i * cell_w, z_top)
-    c.line(x0 + 1.5 * mm, z_top - row_h, x0 + CARD_W - 1.5 * mm, z_top - row_h)
-
-    # Les 5 boules — le O garde son numéro en haut
-    taille = 40  # les plus gros du catalogue !
-    for ci, nums in enumerate(cols_nums):
-        cx = x0 + (ci + 0.5) * cell_w
-        for ri, val in enumerate(nums):
-            cyc = z_top - (ri + 0.5) * row_h
-            if _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, val, cx, cyc - taille * 0.36, taille, gris_ch, police_ch)
-            else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-                c.drawCentredString(cx, cyc - taille * 0.36, str(val))
-
-    # QR de vérification — logé dans la case libérée du BAS-MILIEU (décision Maeva)
-    if _sec and evenement_id:
+    _poser_carton(c, x0, y0, couleur)
+    taille = TAILLE_CHIFFRE
+    for k, (fx, fy, _pl) in enumerate(CASES):
+        cx = x0 + CARD_W * fx
+        cy = y0 + CARD_H * (1.0 - fy) - taille * 0.36
+        if _sec:
+            _sec.chiffre_micro(c, grille[k], cx, cy, taille, gris_ch, police_ch,
+                               epaisseur=_GRAS_TRAIT)
+        else:
+            c.setFillColor(gris_ch)
+            c.setFont(police_ch, taille)
+            c.drawCentredString(cx, cy, str(grille[k]))
+    c.setFillColor(GRIS_CLAIR)
+    c.setFont(POLICE, _T_SERIE)
+    c.drawCentredString(x0 + CARD_W * _SERIE_FX,
+                        y0 + CARD_H * (1.0 - _SERIE_FY), "N %05d" % serie)
+    if _sec:
         try:
-            _q = min(row_h - 2.4 * mm, cell_w - 3 * mm, 14.0 * mm)
-            _sec.carton_qr(c, x0 + 1.5 * cell_w - _q / 2,
-                           z_top - 1.5 * row_h - _q / 2, _q, evenement_id, serie)
+            _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.9 * mm)
         except Exception:
             pass
 
 
-def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
-                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id="", page_start=1):
+def generer_pdf(nb_cartes=16, serie_start=1, theme="", couleur=True,
+                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="",
+                telephone="", style="eco", evenement_id="", motif="",
+                page_start=1, **_):
     buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
-
+    c = canvas.Canvas(buf, pagesize=landscape(A4), pageCompression=1)
     nb_cartes = max(1, min(int(nb_cartes), 10000))
-    par_page = COLS_PAGE * ROWS_PAGE
-    nb_pages = (nb_cartes + par_page - 1) // par_page
-
-    rng = random.Random(938200 + int(serie_start))
+    nb_pages = (nb_cartes + CARTES_PAGE - 1) // CARTES_PAGE
+    rng = random.Random(939000 + int(serie_start))
     serie = int(serie_start)
-    # 📄 la page continue d'une rame à l'autre (sceau Maeva 12/08)
     no_page = max(1, int(page_start))
-    faites = 0
-
-    for _ in range(nb_pages):
-        # en-tête de page
+    faits = 0
+    _deja = set()
+    for _p in range(nb_pages):
         if nom_evenement:
             c.setFillColor(colors.black); c.setFont(POLICE, 9)
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 5 * mm, nom_evenement)
+            c.drawCentredString(PAGE_W / 2, PAGE_H - 5.0 * mm, nom_evenement)
         c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 6)
-        c.drawCentredString(PAGE_W / 2, PAGE_H - 7.2 * mm, "%03d" % no_page)
-
+        c.drawRightString(PAGE_W - MARGE_X, PAGE_H - 5.0 * mm, "%03d" % no_page)
         for row in range(ROWS_PAGE):
             for col_i in range(COLS_PAGE):
-                if faites >= nb_cartes:
+                if faits >= nb_cartes:
                     break
-                x0 = MARGIN_X + col_i * (CARD_W + GUTTER_X)
-                y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
-                cols_nums = _gen_carte(rng)
-                coul = (couleur_perso if (couleur and couleur_perso)
-                        else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
-                _dessiner_carte(c, x0, y0, cols_nums, coul, serie, titre_jeu, telephone,
-                                style=style, evenement_id=evenement_id)
+                x0 = MARGE_X + col_i * (CARD_W + GUTTER_X)
+                y0 = MARGE_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
+                grille = _tirer(rng, _deja)
+                coul = colors.HexColor(
+                    couleur_perso if (couleur and couleur_perso)
+                    else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else TRAIT_NB)
+                _dessiner_carton(c, x0, y0, grille, serie, coul, style=style)
                 serie += 1
-                faites += 1
-
+                faits += 1
         c.showPage()
         no_page += 1
-
     c.save()
     buf.seek(0)
     return buf
 
 
 if __name__ == "__main__":
-    pdf = generer_pdf(nb_cartes=12, couleur=True,
-                      nom_evenement="ASSOCIATION TE MANU", titre_jeu="Grand Loto",
-                      telephone="89 22 23 05")
     with open("test_bo90.pdf", "wb") as f:
-        f.write(pdf.read())
-    print("BO 90 généré")
+        f.write(generer_pdf(nb_cartes=16, couleur=True).read())
+    print("BO 90 genere")
+
+
+# == LE DESSIN DE SA PLANCHE, RELEVE AU TRAIT (un carton, millimes) ==
+_DECOR = (
+    "m56.2,998.6c55.5,997.7,53.8,996.7,52.3,996.3c47.5,995.0,39.6,987.2,36.4,980.5c35.3,978.4,33.7,974.2,32.8,971.4l31.2,966.1l31.2,508.3l31.2,50.5l32.9,44.8c36.6,32.2,43.1,23.4,51.6,19.3l56.9,16.7l508.7,1"
+    "6.7l960.4,16.7l964.9,19.1c970.7,22.3,974.0,25.3,977.6,30.6c981.3,36.2,983.4,41.4,984.9,49.3c986.2,55.6,986.2,63.0,986.2,509.4l986.2,963.0l984.9,968.6c983.1,975.9,980.3,982.3,977.2,986.2c973.3,991.2,96"
+    "7.2,995.5,962.6,996.8c959.0,997.8,845.3,998.7,685.0,999.1c648.8,999.2,575.1,999.1,544.9,998.9c503.7,998.6,330.1,998.5,288.1,998.7c273.4,998.8,218.1,998.7,165.0,998.6c112.0,998.5,66.1,998.8,63.0,999.3c"
+    "58.5,999.9,57.2,999.8,56.2,998.6|m961.9,988.1c970.1,985.0,977.0,974.8,979.3,962.3c980.3,956.8,980.3,921.7,980.3,508.6c980.2,12.2,980.6,54.0,975.8,42.7c973.2,36.5,968.0,30.3,963.6,28.0c961.4,26.9,879.3"
+    ",26.6,510.2,26.5c19.0,26.3,54.8,25.9,48.1,31.9c44.2,35.4,39.9,43.5,38.2,50.6l36.7,56.8l36.9,509.4l37.1,962.0l38.5,966.7c40.5,973.6,45.2,980.8,50.4,984.7l54.8,988.0l180.8,988.5c382.7,989.4,959.4,989.1,"
+    "961.9,988.1|m68.0,963.8c66.2,963.0,64.3,961.9,63.7,961.2c60.5,957.4,58.8,954.1,57.4,949.1l55.8,943.6l55.8,808.2c55.7,677.0,55.8,672.8,57.0,668.5c58.6,662.9,61.6,658.0,65.2,655.3c68.0,653.1,68.0,653.1,"
+    "201.8,653.1c294.9,653.1,336.4,653.5,338.2,654.3c341.6,655.8,346.0,662.5,347.0,667.5c348.1,673.4,348.1,937.7,347.0,946.4c346.3,951.6,345.7,953.4,343.2,957.4c340.7,961.3,339.4,962.5,336.6,963.5c331.1,96"
+    "5.3,72.5,965.6,68.0,963.8|m370.4,964.8c363.4,963.0,358.4,957.1,356.5,948.6c355.4,943.5,355.3,936.2,355.5,806.6c355.6,690.8,355.8,669.5,356.6,666.4c357.9,661.6,362.2,655.6,365.4,654.2c367.2,653.4,410.2"
+    ",653.2,507.1,653.4l646.2,653.6l649.0,656.8c650.9,658.9,652.5,661.9,653.7,665.7l655.5,671.4l655.5,807.0c655.5,941.6,655.5,942.7,654.2,948.4c652.5,955.2,649.8,959.9,645.8,962.7c642.9,964.6,639.1,964.7,5"
+    "07.2,964.9c432.7,965.0,371.1,965.0,370.4,964.8|m673.6,963.0c666.3,958.7,664.1,953.6,663.3,938.2c662.4,920.7,662.6,676.2,663.5,669.8c664.6,662.5,669.1,655.9,674.1,654.2c676.5,653.4,718.2,653.2,813.7,65"
+    "3.4l949.9,653.6l953.1,656.8c955.6,659.3,956.8,661.4,958.5,666.5l960.6,673.1l960.6,809.0l960.6,944.9l958.7,951.0c956.6,957.7,954.3,960.5,949.1,963.0c944.4,965.3,677.5,965.2,673.6,963.0|m646.3,950.5l648"
+    ".6,946.8l648.6,808.2l648.6,669.6l646.2,666.1l643.7,662.5l506.5,662.5c356.3,662.5,367.9,662.0,363.8,668.7l361.9,672.0l361.7,806.6c361.6,896.2,361.7,942.4,362.2,944.8c362.5,946.9,363.7,949.9,364.9,951.6"
+    "l366.9,954.7l503.5,955.2c578.6,955.5,641.0,955.4,642.0,955.0c643.1,954.5,645.0,952.5,646.3,950.5|m336.2,953.8c337.4,953.0,339.0,951.0,339.8,949.5l341.2,946.6l341.2,808.7l341.2,670.8l339.0,666.9l336.7,"
+    "663.0l202.4,662.8l68.1,662.5l64.9,667.6l61.7,672.6l61.7,807.1c61.7,899.5,61.9,942.4,62.4,944.5c63.2,947.9,66.1,953.0,67.9,954.2c68.6,954.7,128.8,955.1,201.6,955.1c312.7,955.2,334.4,955.0,336.2,953.8|m"
+    "948.8,953.4c950.1,952.4,951.8,950.0,952.6,948.0l954.1,944.5l954.1,809.2c954.1,660.6,954.4,670.9,950.1,665.2l948.1,662.5l812.3,662.5c663.1,662.5,674.6,662.0,671.0,668.8l669.3,672.0l669.3,808.8l669.3,94"
+    "5.6l670.7,948.4c671.5,950.0,673.0,952.2,674.2,953.2c676.1,955.1,680.1,955.2,811.4,955.2c938.7,955.2,946.7,955.1,948.8,953.4|m195.2,640.7c98.8,640.3,66.8,639.8,65.5,638.9c62.4,636.6,58.9,630.8,57.3,625"
+    ".2l55.8,619.7l55.8,480.7l55.8,341.7l57.3,336.2c59.0,330.4,61.1,326.9,65.3,322.8l67.9,320.3l201.8,320.3l335.6,320.3l339.4,323.2c343.7,326.6,346.8,333.1,347.4,340.0c347.6,342.3,347.7,407.1,347.6,483.9c3"
+    "47.4,587.1,347.2,624.4,346.6,627.0c345.6,631.5,342.9,636.0,339.6,638.8c337.5,640.5,335.6,640.9,330.1,641.1c326.3,641.2,265.6,641.0,195.2,640.7|m805.4,640.7l674.2,640.1l670.9,637.4c666.9,634.2,664.0,62"
+    "8.0,663.3,621.2c662.7,615.0,662.7,366.2,663.3,347.8c663.7,335.7,663.9,334.3,665.6,330.5c666.7,327.8,668.7,325.3,671.1,323.3l674.9,320.3l810.7,320.3l946.5,320.3l950.2,323.1c954.9,326.6,957.6,331.1,959."
+    "3,338.2c960.6,343.7,960.6,345.8,960.6,483.0l960.6,622.2l959.2,626.7c956.1,636.5,951.1,640.7,942.3,641.1c939.2,641.2,877.6,641.0,805.4,640.7|m364.9,638.9c361.4,636.9,357.2,630.2,356.3,625.1c355.9,622.8"
+    ",355.7,567.1,355.6,480.2c355.5,365.1,355.7,338.5,356.4,335.9c358.0,330.2,360.4,325.9,363.8,323.1l367.1,320.3l505.2,320.3l643.4,320.3l646.6,322.9c650.2,325.8,652.8,330.7,654.4,337.5c655.4,341.9,655.5,3"
+    "53.6,655.5,482.3c655.5,620.9,655.5,622.4,654.1,627.1c652.3,633.4,651.2,635.3,647.3,638.2l644.0,640.6l505.9,640.5c383.1,640.5,367.5,640.3,364.9,638.9|m337.0,629.6c338.0,628.4,339.4,626.3,340.0,624.9c34"
+    "1.1,622.5,341.2,615.3,341.2,480.8c341.3,343.1,341.3,339.2,340.1,336.6c339.4,335.1,337.6,333.0,336.2,331.8l333.7,329.6l201.5,329.9l69.4,330.1l66.9,332.9c65.5,334.4,63.8,336.9,63.2,338.4c62.1,341.0,62.0"
+    ",348.3,61.8,478.1c61.7,553.5,61.8,616.6,62.0,618.5c62.5,622.9,65.3,628.0,68.5,630.3c71.1,632.2,76.2,632.2,203.2,632.0l335.2,631.8l337.0,629.6|m643.7,630.8c644.7,629.9,646.3,627.8,647.2,626.0l649.0,622"
+    ".8l649.0,481.0l649.0,339.3l646.2,334.9l643.4,330.5l606.6,330.0c578.8,329.6,378.1,329.7,369.5,330.1c368.7,330.2,366.7,332.2,365.0,334.8l361.9,339.4l361.9,481.1l361.9,622.8l363.8,626.1c367.7,632.7,357.3"
+    ",632.2,505.8,632.3c624.0,632.3,642.0,632.1,643.7,630.8|m948.9,629.9c950.1,628.6,951.8,626.0,952.6,624.0l954.1,620.5l954.1,481.6c954.1,328.2,954.4,339.9,949.8,333.5l947.5,330.2l930.9,330.1c915.0,330.0,"
+    "678.8,330.1,676.2,330.2c675.5,330.2,673.7,332.3,672.1,334.9l669.3,339.6l669.3,480.7l669.3,621.7l671.1,625.1c672.0,626.9,674.0,629.3,675.5,630.3c678.0,632.2,683.6,632.2,812.4,632.3l946.7,632.3l948.9,62"
+    "9.9|m890.7,296.5c888.5,294.0,883.8,287.5,880.1,282.2c876.4,276.8,869.4,266.5,864.4,259.4c851.6,241.0,846.9,233.8,842.4,225.7c838.7,219.3,838.5,218.4,839.1,216.1c839.5,214.7,840.3,213.5,840.8,213.5c841"
+    ".6,213.5,846.1,217.1,858.4,227.6c860.4,229.3,864.3,232.5,866.9,234.7c869.6,237.0,872.2,239.3,872.7,240.1c873.2,240.8,874.1,241.6,874.7,242.0c875.2,242.4,876.7,243.7,878.1,245.0c879.4,246.3,885.3,251.8"
+    ",891.2,257.1c897.1,262.5,902.7,268.1,903.7,269.6c905.9,272.8,906.1,277.3,904.2,281.8c903.5,283.5,902.9,285.7,902.9,286.6c902.9,289.6,899.7,299.7,898.6,300.4c896.3,301.8,894.3,300.9,890.7,296.5|m132.8,"
+    "295.9c130.2,294.2,127.1,284.7,125.3,273.3c124.6,268.6,124.6,267.5,125.5,265.4c126.3,263.3,131.3,258.5,141.1,250.2c142.7,248.8,146.8,245.3,150.3,242.2c158.2,235.2,173.2,222.8,183.7,214.6c188.2,211.0,19"
+    "2.8,207.4,193.9,206.6c195.0,205.7,196.6,205.2,197.5,205.4c198.9,205.7,199.2,206.4,199.3,209.5c199.5,212.9,199.2,213.6,195.7,218.3c191.3,224.3,178.7,241.7,165.4,260.2c142.1,292.7,136.8,298.5,132.8,295."
+    "9|m474.9,279.2c462.4,275.6,449.1,264.2,439.3,248.5c434.1,240.3,431.6,234.8,428.1,224.3c416.1,187.8,418.2,141.5,433.3,109.9c437.8,100.4,447.0,87.0,452.1,82.4c459.1,76.0,465.3,72.1,473.1,69.1c480.1,66.4"
+    ",497.0,66.4,503.9,69.1c529.5,79.1,547.9,107.5,554.8,147.3c556.4,157.0,556.5,158.7,556.3,176.0c556.1,194.8,555.5,200.4,552.4,211.2c551.7,213.7,551.2,216.1,551.2,216.6c551.2,218.8,544.3,236.7,541.0,243."
+    "0c537.6,249.6,529.7,260.9,527.6,262.3c527.0,262.6,525.4,264.2,524.0,265.7c520.5,269.5,513.3,274.2,506.9,277.2c502.4,279.2,499.8,279.6,489.8,279.8c483.3,280.0,476.6,279.7,474.9,279.2|m644.0,279.2c637.7"
+    ",277.6,630.4,272.8,627.3,268.1l624.3,263.7l624.6,241.5c624.7,225.4,625.1,218.5,625.7,216.5c627.2,212.1,630.4,208.3,632.9,208.3c634.1,208.3,635.3,207.9,635.5,207.4c635.7,206.9,634.3,204.4,632.4,201.8c6"
+    "28.2,196.1,623.8,184.5,621.5,172.6c620.0,164.8,619.8,162.4,619.8,144.8c619.8,127.3,619.9,124.9,621.2,118.8c624.0,106.2,627.3,97.2,632.4,88.5c636.5,81.5,638.2,79.5,642.8,76.0c653.7,67.7,668.7,67.9,678."
+    "8,76.4c679.5,77.0,681.0,78.2,682.1,79.0c685.7,81.9,692.5,94.0,694.8,101.6c697.6,110.8,698.7,112.9,699.9,111.3c700.4,110.7,700.8,109.2,700.8,108.1c700.8,102.5,709.1,86.3,715.6,79.1c721.4,72.8,725.1,71."
+    "4,735.6,71.4c744.0,71.4,745.6,71.6,749.3,73.9c768.2,85.0,777.9,116.1,779.3,169.3c779.9,191.9,776.0,227.1,771.2,243.6c766.8,258.4,757.7,271.1,747.4,276.7c741.8,279.7,728.9,279.4,722.9,276.2c711.9,270.2"
+    ",703.5,256.2,698.2,235.1c697.3,231.3,696.2,231.9,695.3,236.6c693.1,247.9,683.3,266.2,676.2,272.0c669.1,277.9,664.9,279.4,655.8,279.8c651.1,279.9,645.8,279.7,644.0,279.2|m281.2,273.8l278.2,269.5l278.2,"
+    "173.7l278.2,77.9l281.1,73.3l283.9,68.7l310.1,68.8c337.8,68.8,346.0,69.7,354.1,73.9c365.7,79.8,373.3,91.5,377.0,109.4c378.0,113.8,378.3,118.2,378.2,128.6c378.2,143.4,377.1,150.8,373.6,159.6c371.3,165.4"
+    ",371.4,167.7,374.5,173.6c378.0,180.2,379.6,185.6,381.0,194.9c383.4,210.8,382.0,229.7,377.5,244.5c372.9,259.4,362.1,271.4,349.2,276.0c343.6,278.0,341.0,278.1,313.6,278.1l284.1,278.1l281.2,273.8|m505.6,"
+    "264.3c515.4,259.4,521.0,254.5,528.0,244.7c542.3,224.9,549.2,199.3,548.4,169.4c548.0,156.8,546.6,145.3,544.3,137.0c543.2,133.1,542.9,131.9,541.1,126.5c538.5,118.8,532.7,108.3,527.5,101.5c525.0,98.4,522"
+    ".9,95.8,522.7,95.8c522.5,95.8,521.3,94.7,520.0,93.3c513.2,86.0,499.3,80.0,488.8,80.0c482.2,80.0,470.5,83.1,466.1,86.0c458.2,91.4,456.1,93.4,449.1,102.3c438.5,115.7,432.1,133.4,429.5,156.4c426.9,179.3,"
+    "429.3,202.0,436.3,221.3c441.6,236.1,454.2,253.9,463.6,260.1c472.9,266.2,478.3,267.6,490.8,267.2c498.8,267.0,501.2,266.5,505.6,264.3|m660.9,266.6c667.9,265.0,675.5,258.9,680.1,250.9c687.3,238.6,691.6,2"
+    "19.8,693.3,193.8c695.5,159.6,693.3,124.8,688.1,109.0c682.2,91.3,673.7,83.3,660.8,83.3c639.8,83.3,627.9,105.9,627.8,145.8c627.7,156.4,628.0,160.4,629.2,166.9c632.1,182.6,636.4,191.6,643.7,197.2c647.6,2"
+    "00.2,648.5,200.5,654.2,200.4c659.7,200.4,660.8,200.1,663.9,197.5c669.0,193.1,669.7,195.2,667.2,207.1c665.4,215.6,661.0,223.2,656.8,225.0c653.0,226.7,642.4,225.7,638.4,223.3c633.0,220.2,632.7,221.3,632"
+    ".4,243.4c632.3,253.1,632.5,257.6,633.1,258.7c633.6,259.5,635.9,261.5,638.3,263.1c645.0,267.3,652.6,268.6,660.9,266.6|m745.7,263.6c747.9,262.4,750.7,260.3,752.0,259.0c755.2,255.5,759.7,248.2,761.2,243."
+    "8c761.9,241.8,762.8,239.4,763.1,238.5c764.3,235.5,765.6,230.2,766.1,226.8c766.4,225.0,767.0,222.1,767.5,220.6c770.4,211.5,771.7,162.6,769.5,141.7c767.4,120.9,762.6,104.3,755.9,94.5c750.6,86.6,746.4,84"
+    ".1,737.5,83.6c731.5,83.2,730.1,83.5,725.9,85.8c719.4,89.3,714.4,95.7,710.8,104.7c709.4,108.3,706.7,118.0,706.3,120.8c706.1,122.2,705.4,126.7,704.7,130.7c703.1,140.2,701.4,164.4,701.4,177.6c701.4,188.2"
+    ",702.9,210.7,704.1,218.2c704.5,220.5,705.1,224.5,705.5,227.1c706.8,235.6,709.9,244.5,714.0,251.5c722.1,265.4,734.1,269.9,745.7,263.6|m344.5,263.6c348.6,262.5,353.5,260.6,355.3,259.3c367.0,251.1,373.9,"
+    "233.4,374.0,211.6c374.0,194.0,369.2,179.9,360.4,171.6c359.2,170.5,358.3,169.1,358.3,168.5c358.3,167.9,360.0,164.9,362.1,161.9c368.8,152.3,371.4,139.2,370.0,122.1c368.3,99.7,359.3,86.8,342.6,82.8c338.0"
+    ",81.6,330.0,81.2,311.9,81.2c288.4,81.2,287.4,81.3,286.8,83.3c285.9,86.0,285.8,259.2,286.7,263.0l287.4,265.6l312.2,265.6c333.5,265.6,338.0,265.3,344.5,263.6|m318.3,225.2c317.4,222.7,317.3,193.9,318.2,1"
+    "91.8c318.6,190.7,320.6,190.5,327.2,190.8c334.8,191.1,335.8,191.4,337.8,193.6c340.6,196.8,342.0,201.4,342.1,207.8c342.2,214.4,340.5,219.2,336.7,223.4c334.0,226.4,333.5,226.6,326.5,226.9c319.5,227.3,319"
+    ".0,227.2,318.3,225.2|m731.8,221.4c728.8,217.4,727.3,210.3,726.1,195.3c724.8,178.0,724.8,171.7,726.3,153.6c727.6,137.7,728.9,131.9,732.2,128.2c734.5,125.6,738.3,125.4,740.5,127.7c745.1,132.5,747.3,147."
+    "4,747.3,173.4c747.4,201.2,745.1,217.5,740.5,222.3c738.0,224.8,734.1,224.4,731.8,221.4|m331.9,211.9c333.7,209.9,333.8,205.7,332.1,204.2c330.4,202.8,327.9,202.8,326.9,204.4c326.1,205.7,325.8,211.7,326.6"
+    ",212.8c327.3,214.1,330.4,213.6,331.9,211.9|m482.3,212.5c476.0,210.0,469.2,200.8,466.0,190.7c464.4,185.4,464.2,183.9,464.3,173.4c464.3,162.8,464.4,161.6,466.2,156.2c475.6,128.2,498.6,125.7,509.4,151.6c"
+    "511.8,157.5,513.8,167.1,513.8,173.4c513.8,183.9,509.3,198.5,504.1,204.8c499.1,210.9,496.1,212.6,490.2,213.1c487.1,213.3,483.5,213.1,482.3,212.5|m737.7,203.6c738.6,198.5,739.0,164.7,738.3,154.8c737.7,1"
+    "45.6,736.8,142.4,735.6,144.4c733.9,147.1,733.6,202.0,735.2,206.2c736.0,208.1,737.1,206.9,737.7,203.6|m924.4,202.5c924.2,202.2,921.4,201.3,918.2,200.6c915.0,199.8,909.7,198.4,906.5,197.5c895.1,194.4,88"
+    "8.3,192.6,883.3,191.7c877.9,190.6,870.1,188.5,860.2,185.4c856.8,184.3,853.3,183.3,852.4,183.1c849.7,182.6,850.2,178.9,853.0,178.0c854.3,177.6,858.6,176.2,862.5,175.0c866.5,173.7,871.5,172.3,873.7,171."
+    "7c875.9,171.2,880.1,170.1,883.2,169.2c886.3,168.4,891.0,167.2,893.7,166.7c896.4,166.1,901.3,165.0,904.5,164.1c920.1,160.1,925.9,159.1,927.5,160.2c929.8,161.9,930.4,167.2,930.4,183.5c930.4,196.2,930.3,"
+    "197.9,929.1,200.4c927.9,202.9,925.3,204.0,924.4,202.5|m495.9,197.7c501.8,192.4,505.9,182.5,505.9,173.7c505.9,159.8,497.3,146.4,488.5,146.6c481.4,146.8,473.9,156.4,472.4,167.3c470.9,178.0,474.0,190.7,4"
+    "79.5,196.2c483.0,199.7,483.4,199.8,488.6,199.9c492.3,200.0,493.9,199.5,495.9,197.7|m105.9,195.7c104.8,193.6,104.2,178.5,104.7,167.0c105.2,157.5,105.3,156.6,107.1,153.9c109.3,150.6,110.6,150.5,117.4,15"
+    "2.5c120.2,153.4,126.2,155.0,130.9,156.3c135.6,157.5,142.8,159.4,147.0,160.5c151.1,161.6,158.4,163.5,163.1,164.7c167.7,165.9,173.4,167.6,175.5,168.5c177.7,169.3,181.0,170.4,182.9,170.9c187.0,171.8,188."
+    "5,173.4,188.2,176.4c188.0,178.2,187.1,178.8,182.1,180.4c178.8,181.5,173.2,183.0,169.6,183.8c156.2,186.9,153.0,187.6,144.7,189.6c140.0,190.7,134.4,191.9,132.2,192.2c130.1,192.6,126.5,193.5,124.3,194.3c"
+    "118.0,196.6,106.7,197.4,105.9,195.7|m655.2,162.2c652.4,157.8,651.4,151.7,651.7,141.7c652.3,120.9,662.0,114.0,667.3,130.7c668.6,134.8,668.9,137.3,668.9,145.2c669.0,153.3,668.8,155.2,667.5,158.5c665.5,1"
+    "63.6,663.3,165.6,660.1,165.6c657.9,165.6,656.9,165.0,655.2,162.2|m319.6,154.4c317.8,153.4,317.6,151.8,317.6,136.8c317.6,125.1,317.8,121.9,318.6,120.8c319.2,119.9,321.6,119.7,326.3,120.0c332.1,120.3,33"
+    "3.3,120.7,335.2,122.8c337.9,125.9,339.2,130.6,339.2,137.2c339.2,143.3,337.7,147.5,334.3,151.2c332.1,153.5,330.7,154.0,326.1,154.4c323.0,154.7,320.1,154.7,319.6,154.4|m830.8,149.6c830.1,148.4,830.4,147"
+    ".4,832.0,144.5c834.9,139.3,861.1,100.2,871.0,86.3c875.7,79.8,882.0,70.9,885.1,66.4c893.2,54.8,896.8,54.5,899.3,65.3c899.9,68.1,901.0,72.6,901.7,75.3c902.4,78.3,902.9,82.1,902.8,84.7c902.5,89.7,902.4,8"
+    "9.8,888.9,102.8c884.3,107.3,879.9,111.6,879.0,112.5c877.3,114.1,866.6,123.9,861.5,128.4c859.9,129.8,855.3,134.1,851.2,137.8c838.7,149.5,832.6,153.0,830.8,149.6|m201.7,147.9c201.3,147.3,199.2,145.3,197"
+    ".0,143.5c190.3,137.9,172.2,119.9,151.1,98.2c147.7,94.6,144.7,91.7,144.6,91.7c143.9,91.7,138.9,85.2,137.7,82.8c136.4,80.2,136.4,80.0,137.5,75.2c139.8,65.3,143.9,53.0,145.3,51.5c148.4,48.3,149.4,49.6,18"
+    "2.9,102.6c207.8,142.1,208.3,143.1,205.7,147.3c204.5,149.2,202.7,149.5,201.7,147.9|m330.7,139.7c331.6,136.9,331.5,135.8,330.3,133.9c329.0,131.8,327.8,131.9,326.5,134.0c325.4,135.7,325.7,139.4,327.0,140"
+    ".9c328.3,142.3,330.0,141.7,330.7,139.7"
+)
