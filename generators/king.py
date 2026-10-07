@@ -158,54 +158,78 @@ CARTES = [
 ]
 
 
+def _split_decor():
+    """Repartit les contours carton par carton (par position), pour que CHAQUE
+    carton ne dessine que SES traits une seule fois, au lieu de redessiner
+    toute la planche a chaque carton (ce qui bloquait l'imprimante)."""
+    buckets = [[] for _ in CARTES]
+    for ct in _DECOR.split("|"):
+        nums = [float(x) for x in ct.replace("m", " ").replace("l", " ").replace("c", " ").replace(",", " ").split()]
+        if not nums:
+            continue
+        xs = nums[0::2]; ys = nums[1::2]
+        cx = sum(xs) / len(xs); cy = sum(ys) / len(ys)
+        placed = False
+        for i, carte in enumerate(CARTES):
+            bord, cadre = carte[0], carte[1]
+            if bord[0] <= cx <= bord[1] and cadre[0] <= cy <= cadre[1]:
+                buckets[i].append(ct); placed = True; break
+        if not placed:
+            best = min(range(len(CARTES)), key=lambda i: (
+                (cx - (CARTES[i][0][0] + CARTES[i][0][1]) / 2.0) ** 2 +
+                (cy - (CARTES[i][1][0] + CARTES[i][1][1]) / 2.0) ** 2))
+            buckets[best].append(ct)
+    return buckets
+
+
+def _parse_into(p, contour):
+    i = 0; n = len(contour)
+    while i < n:
+        cmd = contour[i]; j = i + 1
+        while j < n and contour[j] not in "mlc":
+            j += 1
+        v = [float(x) for x in contour[i + 1:j].split(",")]
+        if cmd == "m":
+            p.moveTo(v[0] / 1000.0 * FEUILLE_W, FEUILLE_H - v[1] / 1000.0 * FEUILLE_H)
+        elif cmd == "l":
+            p.lineTo(v[0] / 1000.0 * FEUILLE_W, FEUILLE_H - v[1] / 1000.0 * FEUILLE_H)
+        else:
+            p.curveTo(v[0] / 1000.0 * FEUILLE_W, FEUILLE_H - v[1] / 1000.0 * FEUILLE_H,
+                      v[2] / 1000.0 * FEUILLE_W, FEUILLE_H - v[3] / 1000.0 * FEUILLE_H,
+                      v[4] / 1000.0 * FEUILLE_W, FEUILLE_H - v[5] / 1000.0 * FEUILLE_H)
+        i = j
+    p.close()
+
+
 def _graver_planche(c):
-    nom = "KING40_DECOR"
-    if not getattr(c, "_king_forme_faite", False):
-        c.beginForm(nom, lowerx=0, lowery=0, upperx=FEUILLE_W, uppery=FEUILLE_H)
-        p = c.beginPath()
-        for contour in _DECOR.split("|"):
-            i = 0
-            n = len(contour)
-            while i < n:
-                cmd = contour[i]
-                j = i + 1
-                while j < n and contour[j] not in "mlc":
-                    j += 1
-                v = [float(x) for x in contour[i + 1:j].split(",")]
-                if cmd == "m":
-                    p.moveTo(v[0] / 1000.0 * FEUILLE_W, FEUILLE_H - v[1] / 1000.0 * FEUILLE_H)
-                elif cmd == "l":
-                    p.lineTo(v[0] / 1000.0 * FEUILLE_W, FEUILLE_H - v[1] / 1000.0 * FEUILLE_H)
-                else:
-                    p.curveTo(v[0] / 1000.0 * FEUILLE_W, FEUILLE_H - v[1] / 1000.0 * FEUILLE_H,
-                              v[2] / 1000.0 * FEUILLE_W, FEUILLE_H - v[3] / 1000.0 * FEUILLE_H,
-                              v[4] / 1000.0 * FEUILLE_W, FEUILLE_H - v[5] / 1000.0 * FEUILLE_H)
-                i = j
-            p.close()
-        c.drawPath(p, stroke=0, fill=1)
-        c.endForm()
-        c._king_forme_faite = True
-    return nom
+    """Grave UN decor par carton (leger). Renvoie la liste des noms de forme.
+    La planche n'est plus redessinee en entier a chaque carton : chaque carton
+    a sa propre forme, ne contenant que ses traits -> impression rapide."""
+    noms = getattr(c, "KINGformes", None)
+    if noms is None:
+        noms = []
+        for gi, bucket in enumerate(_split_decor()):
+            nom = "KING_DECOR_%d" % gi
+            c.beginForm(nom, lowerx=0, lowery=0, upperx=FEUILLE_W, uppery=FEUILLE_H)
+            p = c.beginPath()
+            for ct in bucket:
+                _parse_into(p, ct)
+            if bucket:
+                c.drawPath(p, stroke=0, fill=1)
+            c.endForm()
+            noms.append(nom)
+        c.KINGformes = noms
+    return noms
 
 
 def _poser_decor(c, x0, y0, couleurs):
-    nom = _graver_planche(c)
-    marge = 0.3 * mm
-    for gi, (bord, cadre, _pts, _se) in enumerate(CARTES):
-        gx = x0 + bord[0] / 1000.0 * FEUILLE_W - marge
-        gl = (bord[1] - bord[0]) / 1000.0 * FEUILLE_W + 2 * marge
-        gy = y0 + FEUILLE_H - cadre[1] / 1000.0 * FEUILLE_H - marge
-        gh = (cadre[1] - cadre[0]) / 1000.0 * FEUILLE_H + 2 * marge
+    noms = _graver_planche(c)
+    for gi in range(len(CARTES)):
         c.saveState()
-        fen = c.beginPath()
-        fen.rect(gx, gy, gl, gh)
-        c.clipPath(fen, stroke=0, fill=0)
         c.setFillColor(couleurs[gi])
         c.translate(x0, y0)
-        c.doForm(nom)
+        c.doForm(noms[gi])
         c.restoreState()
-
-
 def _gen_grille(rng):
     """DOUZE numeros : trois par colonne (col1 1-10, col2 11-20, col3 21-30,
     col4 31-40), tries du plus petit en haut. Rendus en lecture par rangees :
