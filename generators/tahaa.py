@@ -36,6 +36,11 @@ except Exception:
     except Exception:
         _sec = None
 
+# ⚡ 06/10 (sceau Maeva : « c'est long à l'impression sur la Sharp ») :
+#    microtexte COUPÉ. Chiffres pleins et nets, sortie beaucoup plus rapide.
+#    ⚠️ On perd l'anti-photocopie — choix assumé pour la vitesse.
+_sec = None
+
 from reportlab.pdfbase import pdfmetrics as _pm
 from reportlab.pdfbase.ttfonts import TTFont as _TF
 import os as _os
