@@ -210,7 +210,7 @@ def generer_pdf(nb_cartes=15, serie_start=1, theme="", couleur=True,
         for _k in range(CARTES_PAGE):
             for _try in range(200):
                 carte = [rng.randint(lo, hi) for (b, cad, cercles) in [CARTES[_k]] for (cx, cy, r, lo, hi) in cercles]
-                cle = (_k, tuple(carte))
+                cle = tuple(carte)   # déduplication GLOBALE (pas par position)
                 if cle not in _deja:
                     _deja.add(cle); break
             cartes.append(carte)
