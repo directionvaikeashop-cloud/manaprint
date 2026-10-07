@@ -44,6 +44,11 @@ except Exception:
     except Exception:
         _sec = None
 
+# ⚡ 06/10 (sceau Maeva : « chiffres pleins pour impression rapide sur la
+#    Sharp MX-B557P ») : microtexte COUPÉ. Chiffres pleins et nets, sortie
+#    beaucoup plus rapide. ⚠️ On perd l'anti-photocopie — choix assumé.
+_sec = None
+
 try:
     pdfmetrics.registerFont(TTFont("DJLKING", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
     POLICE = "DJLKING"
