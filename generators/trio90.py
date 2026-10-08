@@ -1,26 +1,18 @@
 # -*- coding: utf-8 -*-
-"""
-MANAPRINT — Générateur TRIO 90 (format A4)
+"""TRIO 90 - nouvelle maquette de Maeva (08/10), 2 cartes/feuille.
 
-📏 NÉ LE 12/08 (sceau Maeva) : L'ÉCHELLE GRADUÉE. Six rangées sont
-rangées dans la règle — une par plage — comme TRIO 75 range ses cinq
-grilles dans sa carte d'embarquement. Deux cartes par feuille A4.
+REGLE ABSOLUE : le decor EST sa carte (titre TRIO 90, les deux regles
+graduees, les 4 lignes de separation, << 2KEA & Associe - Papeete >>),
+releve au trait. RIEN n'a ete redessine ni ajoute (ancienne image echelle
+retiree -> maquette epuree, impression rapide).
 
-Bâti sur le modèle de TRIPLE ACTION 90, pour le sac de 90 :
-  • 6 plages : 1-15 · 16-30 · 31-45 · 46-60 · 61-75 · 76-90
-  • 3 numéros par trio, 5 trios par rangée
-  • 6 rangées ⇒ 90 numéros sur la carte
+LE JEU : carte PLEINE facon marathon (comme avant). 6 plages (colonnes) x
+5 rangees, chaque case = un TRIO : DEUX numeros en haut, LE TROISIEME dessous.
+Les 4 lignes separent les 5 rangees ; les deux regles bordent en haut/bas.
+Plages : 1-15 . 16-30 . 31-45 . 46-60 . 61-75 . 76-90. Crieur 1 a 90.
 
-⭐ LA CARTE EST DONC **PLEINE** — 5 trios × 3 = les quinze numéros d'une
-plage, ni plus ni moins. Chaque numéro du sac figure sur la carte, UNE
-SEULE FOIS.
-
-⚠️⚠️ RÈGLE MARATHON (la même qu'OHANA 75 · 2 séries et TRIO 75) : un
-numéro ne sort qu'une fois. Ici elle est parfaite par construction —
-sinon un même tirage cocherait deux cases et le jeu serait faussé.
-
-Le trio se lit comme sur le modèle : DEUX numéros en haut, LE TROISIÈME
-dessous, centré entre les deux.
+DISPOSITION : A4 PORTRAIT, 2 cartes pleine largeur, l'une sous l'autre.
+On reprend UNE carte et on la pose 2 fois -> leger et rapide a l'impression.
 """
 import io
 import random
@@ -31,8 +23,6 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
-# SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne : si le module securite
-# est absent, les cartons sortent normalement, simplement sans microtexte.
 try:
     from generators import securite as _sec
 except Exception:
@@ -40,13 +30,30 @@ except Exception:
         import securite as _sec
     except Exception:
         _sec = None
+_sec = None  # chiffres pleins -> impression rapide sur la Sharp
 
-
+import os as _os
 try:
-    pdfmetrics.registerFont(TTFont("DJL", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    POLICE = "DJL"
+    pdfmetrics.registerFont(TTFont("LMROMANT90", _os.path.join(
+        _os.path.dirname(_os.path.abspath(__file__)), "LatinModern.ttf")))
+    _POLICE_ECO = "LMROMANT90"
 except Exception:
-    POLICE = "Helvetica"
+    try:
+        pdfmetrics.registerFont(TTFont("DJLT90", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
+        _POLICE_ECO = "DJLT90"
+    except Exception:
+        _POLICE_ECO = "Helvetica"
+POLICE = _POLICE_ECO
+_GRIS_ECO = colors.Color(0.40, 0.40, 0.40)
+_POLICE_P15 = "Helvetica-Bold"
+_GRIS_P15 = colors.Color(0.14, 0.14, 0.14)
+
+
+def _style_chiffres(style):
+    if str(style).lower() in ("p15", "premium"):
+        return _POLICE_P15, _GRIS_P15
+    return _POLICE_ECO, _GRIS_ECO
+
 
 RAINBOW = [
     "#E53935", "#FB8C00", "#F9A825", "#43A047", "#00ACC1",
@@ -54,107 +61,75 @@ RAINBOW = [
 ]
 GRIS = colors.Color(0.42, 0.42, 0.42)
 GRIS_CLAIR = colors.Color(0.80, 0.80, 0.80)
-
-
-# ══ DEUX GAMMES COMMERCIALES (vision Maeva) ══════════════════════════
-# ÉCO      : écriture fine DejaVu ExtraLight, gris 0,50 — économie de toner
-# PREMIUM  : écriture grasse Helvetica-Bold, gris 0,55 — style P15
-from reportlab.pdfbase import pdfmetrics as _pm
-from reportlab.pdfbase.ttfonts import TTFont as _TF
-try:
-    _pm.registerFont(_TF("DJLECO", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    _POLICE_ECO = "DJLECO"
-except Exception:
-    _POLICE_ECO = "Helvetica"
-_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
-_POLICE_P15 = "Helvetica-Bold"
-_GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
-
-def _style_chiffres(style):
-    """Retourne (police, gris) des chiffres selon la gamme choisie."""
-    if str(style).lower() in ("p15", "premium"):
-        return _POLICE_P15, _GRIS_P15
-    return _POLICE_ECO, _GRIS_ECO
-# ═════════════════════════════════════════════════════════════════════
+TRAIT_NB = "#555555"
 
 PAGE_W, PAGE_H = A4
-# (min, max) des 6 groupes — TRIPLE ACTION 90
-# 🎫 les cinq plages du sac de 75
-PLAGES = [(1, 15), (16, 30), (31, 45), (46, 60), (61, 75), (76, 90)]
-NB_GRILLES = 5                 # cinq trios par rangée
-NB_PAR_PLAGE = 3               # trois numéros par plage et par grille
-
-# 🎫 LA CARTE D'EMBARQUEMENT DE MAEVA — les grilles se rangent dedans.
-_RATIO_CARTE = 1.4041
-CADRE = (0.0094, 0.9906, 0.0936, 0.9075)   # x0, x1, y0, y1
-# ⚠️⚠️ 12/08 : L'IMAGE NE PORTE PLUS QUE LES DEUX RÈGLES. Le titre
-# « TRIO 90 » de l'image d'origine était en portrait ; le coucher puis
-# l'aplatir le rendait laid et illisible. Il est désormais ÉCRIT PAR LE
-# PDF, en vraie typographie — net à toutes les tailles, et il ne coûte
-# presque rien en encre. L'image y gagne aussi : la carte passe de 155
-# à 190 mm de large, et les chiffres respirent.
-# ⚠️⚠️ 12/08 : L'ÉCHELLE A ÉTÉ COUCHÉE d'un quart de tour. En portrait
-# (ratio 0,63) elle ne remplissait qu'un tiers du carton et les chiffres
-# tombaient à 10 pt. Couchée (1,593), elle prend toute la largeur — les
-# deux règles graduées courent en haut et en bas, et les deux cartes se
-# rangent l'une SOUS l'autre, comme les cartes de TRIO 75.
-# ⚠️ 12/08 : NOUVELLE IMAGE de Maeva — le titre passe en lettres creuses
-# et les 12 petites cases du bas ont disparu. Le grand cadre gagne donc
-# en hauteur (0,0383 → 0,8520 contre 0,0972 → 0,8503 avant).
-import os as _os2
-from reportlab.pdfbase.pdfmetrics import stringWidth as _lgt
-
-
-def _choisir_image(motif, ratio_attendu):
-    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
-    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
-    exact = _os2.path.join(dossier, motif + ".png")
-    candidats = []
-    try:
-        for f in _os2.listdir(dossier):
-            if motif in f and f.lower().endswith(".png"):
-                candidats.append(_os2.path.join(dossier, f))
-    except Exception:
-        return exact
-    if not candidats:
-        return exact
-    meilleur, ecart = candidats[0], 9e9
-    for chemin in candidats:
-        try:
-            from PIL import Image as _Im
-            with _Im.open(chemin) as im:
-                e = abs(im.width / float(im.height) - ratio_attendu)
-        except Exception:
-            continue
-        if e < ecart:
-            meilleur, ecart = chemin, e
-    return meilleur
-
-
-_IMAGE_CARTE = _choisir_image("trio90_echelle", _RATIO_CARTE)
-
+ASPECT = 1.4500                 # largeur / hauteur de la carte
 COLS_PAGE = 1
-ROWS_PAGE = 2            # 2 cartes pleine largeur, l'une sous l'autre
-MARGIN_X = 6 * mm
-MARGIN_TOP = 10 * mm
-MARGIN_BOT = 8 * mm
-GUTTER_X = 4 * mm        # l'écart entre les deux cartes côte à côte
-GUTTER_Y = 2.4 * mm
+ROWS_PAGE = 2
+CARTES_PAGE = COLS_PAGE * ROWS_PAGE
 
-CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
-CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
-ZONE_QR = 16 * mm        # bande de droite réservée au QR de vérification
+MARGE_X = 6 * mm
+GUTTER = 4 * mm
+CELL_W = (PAGE_W - 2 * MARGE_X - (COLS_PAGE - 1) * GUTTER) / COLS_PAGE
+CELL_H = CELL_W / ASPECT
+_BLOC_H = ROWS_PAGE * CELL_H + (ROWS_PAGE - 1) * GUTTER
+MARGE_Y = (PAGE_H - _BLOC_H) / 2.0
+
+PLAGES = [(1, 15), (16, 30), (31, 45), (46, 60), (61, 75), (76, 90)]
+NB_GRILLES = 5                 # 5 rangees
+NB_PAR_PLAGE = 3               # 3 numeros par case (trio)
+
+# bornes verticales des 5 rangees (fractions du carton, depuis le haut) :
+# juste sous la regle du haut -> les 4 lignes -> juste au-dessus de la regle du bas
+ROWS_FY = [0.0971, 0.2926, 0.4500, 0.6074, 0.7662, 0.9603]
+COL_X0, COL_X1 = 0.030, 0.970  # 6 colonnes sur toute la largeur utile
+
+# serie discrete en bas a droite (la signature est en bas a gauche)
+_SERIE_FX = 0.845
+_SERIE_FY = 0.986
+_T_SERIE = 6.0
+
+
+def _positions():
+    pos = []
+    for r in range(ROWS_PAGE):
+        for col in range(COLS_PAGE):
+            px = MARGE_X + col * (CELL_W + GUTTER)
+            py = PAGE_H - MARGE_Y - (r + 1) * CELL_H - r * GUTTER
+            pos.append((px, py))
+    return pos
+
+
+def _graver_planche(c):
+    nom = "TRIO90_DECOR"
+    if not getattr(c, "_t90_forme", False):
+        c.beginForm(nom, lowerx=0, lowery=0, upperx=CELL_W, uppery=CELL_H)
+        p = c.beginPath()
+        for contour in _DECOR.split("|"):
+            i = 0; n = len(contour)
+            while i < n:
+                cmd = contour[i]; j = i + 1
+                while j < n and contour[j] not in "mlc":
+                    j += 1
+                v = [float(x) for x in contour[i + 1:j].split(",")]
+                if cmd == "m":
+                    p.moveTo(v[0] / 1000.0 * CELL_W, CELL_H - v[1] / 1000.0 * CELL_H)
+                elif cmd == "l":
+                    p.lineTo(v[0] / 1000.0 * CELL_W, CELL_H - v[1] / 1000.0 * CELL_H)
+                else:
+                    p.curveTo(v[0] / 1000.0 * CELL_W, CELL_H - v[1] / 1000.0 * CELL_H,
+                              v[2] / 1000.0 * CELL_W, CELL_H - v[3] / 1000.0 * CELL_H,
+                              v[4] / 1000.0 * CELL_W, CELL_H - v[5] / 1000.0 * CELL_H)
+                i = j
+            p.close()
+        c.drawPath(p, stroke=0, fill=1)
+        c.endForm()
+        c._t90_forme = True
+    return nom
 
 
 def _gen_carte(rng):
-    """🎫 Les QUATRE grilles de la carte, sans un seul doublon.
-
-    ⚠️⚠️ RÈGLE MARATHON : on tire d'abord, pour CHAQUE plage, les 12
-    numéros de la carte entière (4 grilles × 3) — d'un seul coup, avec
-    `sample`, qui ne rend jamais deux fois le même. On les distribue
-    ensuite entre les grilles. Tirer grille par grille aurait laissé
-    passer des doublons d'une grille à l'autre.
-    """
     grilles = [[] for _ in range(NB_GRILLES)]
     for pmin, pmax in PLAGES:
         besoin = NB_GRILLES * NB_PAR_PLAGE
@@ -163,204 +138,104 @@ def _gen_carte(rng):
             grilles[g].append(sorted(tous[g * NB_PAR_PLAGE:(g + 1) * NB_PAR_PLAGE]))
     return grilles
 
-def _dessiner_carte(c, x0, y0, grilles, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
+
+def _tirer(rng, deja):
+    for _ in range(400):
+        g = _gen_carte(rng)
+        cle = tuple(tuple(tuple(t) for t in rangee) for rangee in g)
+        if cle not in deja:
+            deja.add(cle); return g
+    return g
+
+
+def _dessiner_feuille(c, cartes, series, couleurs, style="eco"):
     police_ch, gris_ch = _style_chiffres(style)
-    col = colors.HexColor(couleur_hex)
-
-    # Bordure du bandeau
-    c.setStrokeColor(col); c.setLineWidth(0.8)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.9 * mm)
-
-    # ═══ 🎫 LA CARTE D'EMBARQUEMENT, ET SES QUATRE GRILLES ═══
-    # Le dessin de Maeva occupe toute la carte ; les quatre grilles se
-    # rangent dans son grand cadre, l'une sous l'autre.
-    # ⚠️ 12/08 : une BANDE est réservée en haut pour le titre — l'image
-    # (les deux règles) descend d'autant, sinon le titre chevauche la
-    # graduation du haut.
-    BANDE_TITRE = 8.0 * mm
-    iw = CARD_W - 2.0 * mm
-    ih = iw / _RATIO_CARTE
-    if ih > CARD_H - 2.0 * mm - BANDE_TITRE:
-        ih = CARD_H - 2.0 * mm - BANDE_TITRE
-        iw = ih * _RATIO_CARTE
-    px = x0 + (CARD_W - iw) / 2
-    py = y0 + (CARD_H - BANDE_TITRE - ih) / 2
-    if _os2.path.exists(_IMAGE_CARTE):
-        try:
-            c.drawImage(_IMAGE_CARTE, px, py, iw, ih, mask="auto",
-                        preserveAspectRatio=True)
-        except Exception:
-            pass
-
-    # le grand cadre : c'est là que vivent les quatre grilles
-    gx0 = px + CADRE[0] * iw
-    gw = (CADRE[1] - CADRE[0]) * iw
-    gy0 = py + CADRE[2] * ih
-    gh = (CADRE[3] - CADRE[2]) * ih
-
-    # ⚠️ 12/08 : une bande est RÉSERVÉE au QR à droite, sinon il mange le
-    # dernier numéro de la dernière rangée.
-    # ⚠️ 12/08 : le QR passe SOUS le cadre, dans la bande du pied — sur
-    # TRIO 90 les SIX colonnes ont besoin de toute la largeur, et les
-    # 12,5 mm qu'il volait bridaient les chiffres à 26 pt au lieu de 30.
-    PLACE_QR = 0.0 * mm
-    gw_num = gw - PLACE_QR
-    n_pl = len(PLAGES)
-    cell_w = gw_num / n_pl
-    rang_h = gh / NB_GRILLES
-    # ⚡ 12/08 (sceau Maeva) : LE TRIO SE LIT COMME SUR SON MODÈLE —
-    # DEUX numéros en haut, LE TROISIÈME dessous, centré entre les deux.
-    # Ils étaient alignés côte à côte ; en deux étages, chacun gagne la
-    # moitié de la largeur de la case et devient bien plus grand.
-    place = cell_w / 2.0                 # deux numéros par étage du haut
-    demi_h = rang_h / 2.0                # deux étages dans la rangée
-    taille = 30.0
-    # ⚠️⚠️ 12/08 : LES DEUX ÉTAGES SE RAPPROCHENT pour tenir les 30 pt
-    # demandés par Maeva. Le chiffre peut monter à 0,90 de la demi-hauteur :
-    # les deux étages se frôlent, mais un chiffre n'occupe en vrai que les
-    # deux tiers de sa hauteur nominale — vérifié à l'œil, ils ne se
-    # touchent pas. C'est la HAUTEUR qui bridait, jamais la largeur
-    # (16,5 mm disponibles pour 15,7 nécessaires).
-    while taille > 8 and (_lgt("88", police_ch, taille) > place * 0.94
-                          or taille * 0.72 > demi_h * 0.90):
+    nom = _graver_planche(c)
+    ncol = len(PLAGES)
+    cw = (COL_X1 - COL_X0) / ncol * CELL_W
+    place = cw / 2.0
+    _w88 = pdfmetrics.stringWidth("88", police_ch, 1.0)
+    # la rangee la plus basse en hauteur borne la taille (toutes proches)
+    _hmin = min(ROWS_FY[i + 1] - ROWS_FY[i] for i in range(NB_GRILLES)) * CELL_H
+    _demi = _hmin / 2.0
+    taille = 34.0
+    while taille > 8 and (_w88 * taille > place * 0.92 or taille * 0.72 > _demi * 0.90):
         taille -= 0.5
-    # 🔻 la troisième boule : cinq points de moins, et jamais plus large
-    # que sa case (elle a toute la largeur, elle est seule sur son étage).
-    taille_3 = max(10.0, taille - 5.0)
-    while taille_3 > 8 and _lgt("88", police_ch, taille_3) > cell_w * 0.80:
+    taille_3 = max(10.0, taille - 4.0)
+    while taille_3 > 8 and _w88 * taille_3 > cw * 0.80:
         taille_3 -= 0.5
-
-    for gi, grille in enumerate(grilles):
-        cy = gy0 + gh - (gi + 0.5) * rang_h
-        # un trait fin sépare les grilles (sauf au-dessus de la première)
-        if gi > 0:
-            c.setStrokeColor(colors.Color(0.85, 0.85, 0.85))
-            c.setLineWidth(0.3)
-            c.line(gx0 + 1.5 * mm, gy0 + gh - gi * rang_h,
-                   gx0 + gw_num - 1.5 * mm, gy0 + gh - gi * rang_h)
-        for pi, nums in enumerate(grille):
-            gx = gx0 + pi * cell_w
-            # ⚡ 12/08 (sceau Maeva) : un trait fin sépare les colonnes —
-            # il court sur toute la hauteur du cadre, pas seulement dans
-            # la rangée, pour que l'œil suive la plage de haut en bas.
-            if pi > 0 and gi == 0:
-                c.setStrokeColor(colors.Color(0.85, 0.85, 0.85))
-                c.setLineWidth(0.3)
-                c.line(gx, gy0 + 1.0 * mm, gx, gy0 + gh - 1.0 * mm)
-            haut_y = cy + demi_h * 0.44 - taille * 0.34    # l'étage du haut
-            bas_y3 = cy - demi_h * 0.46 - taille_3 * 0.34  # celui du bas
-            for ni, n in enumerate(nums):
-                # ⚡ 12/08 (sceau Maeva) : LA TROISIÈME BOULE EST PLUS PETITE
-                # — 25 pt contre 30 pour les deux du haut, comme sur le
-                # modèle TRIPLE ACTION 75 où le numéro du bas est discret.
-                t_ch = taille if ni < 2 else taille_3
-                if ni < 2:
-                    nx = gx + (ni + 0.5) * place           # les deux du haut
-                    ny = haut_y
-                else:
-                    nx = gx + cell_w / 2                   # le troisième,
-                    ny = bas_y3                            # centré dessous
-                if _sec:
-                    _sec.chiffre_micro(c, n, nx, ny, t_ch, gris_ch, police_ch)
-                else:
-                    c.setFillColor(gris_ch)
-                    c.setFont(police_ch, t_ch)
+    for gi_c, (px, py) in enumerate(_positions()):
+        c.saveState()
+        fen = c.beginPath(); fen.rect(px, py, CELL_W, CELL_H)
+        c.clipPath(fen, stroke=0, fill=0)
+        c.setFillColor(couleurs[gi_c])
+        c.translate(px, py)
+        c.doForm(nom)
+        c.restoreState()
+        # les 4 lignes grises qui separent les 5 rangees (comme la maquette)
+        c.setStrokeColor(colors.Color(0.80, 0.80, 0.80)); c.setLineWidth(0.4)
+        for _k in (1, 2, 3, 4):
+            _ly = py + CELL_H - ROWS_FY[_k] * CELL_H
+            c.line(px + COL_X0 * CELL_W, _ly, px + COL_X1 * CELL_W, _ly)
+        grilles = cartes[gi_c]
+        for gi in range(NB_GRILLES):
+            fy_top = ROWS_FY[gi]; fy_bot = ROWS_FY[gi + 1]
+            cy = py + CELL_H - (fy_top + fy_bot) / 2.0 * CELL_H
+            demi_h = (fy_bot - fy_top) * CELL_H / 2.0
+            for pi in range(ncol):
+                gx = px + (COL_X0 + pi * (COL_X1 - COL_X0) / ncol) * CELL_W
+                nums = grilles[gi][pi]
+                for ni, n in enumerate(nums):
+                    if ni < 2:
+                        t_ch = taille
+                        nx = gx + (ni + 0.5) * place
+                        ny = cy + demi_h * 0.44 - t_ch * 0.34
+                    else:
+                        t_ch = taille_3
+                        nx = gx + cw / 2.0
+                        ny = cy - demi_h * 0.46 - t_ch * 0.34
+                    c.setFillColor(gris_ch); c.setFont(police_ch, t_ch)
                     c.drawCentredString(nx, ny, str(n))
-
-    # ═══ 📏 LE TITRE, ÉCRIT PROPREMENT PAR LE PDF ═══
-    # En capitales espacées, centré au-dessus des règles. Il prend la
-    # couleur de la carte, comme le reste du décor.
-    t_titre = min(BANDE_TITRE * 0.82, iw * 0.050)
-    c.setFillColor(col)
-    c.setFont("Helvetica-Bold", t_titre)
-    # ⚠️ cette version de ReportLab n'a pas setCharSpace : on espace les
-    # lettres à la main, une par une, pour un titre qui respire.
-    _mot = "TRIO 90"
-    _esp = t_titre * 0.16
-    _larg = sum(_lgt(ch, "Helvetica-Bold", t_titre) for ch in _mot) + _esp * (len(_mot) - 1)
-    _x = px + iw / 2 - _larg / 2
-    _y = y0 + CARD_H - BANDE_TITRE * 0.80
-    for ch in _mot:
-        c.drawString(_x, _y, ch)
-        _x += _lgt(ch, "Helvetica-Bold", t_titre) + _esp
-
-    # le nom du jeu et la série, dans la bande du haut de la carte
-    c.setFillColor(col)
-    c.setFont(POLICE, 5.4)
-    bas = ""
-    if titre_jeu and "TRIO 75" not in titre_jeu.strip().upper():
-        bas = titre_jeu.strip()
-    if telephone:
-        bas = (bas + "  \u00b7  " if bas else "") + telephone
-    # ⚠️ au-dessus des petites cases du bas, sinon le texte tombe dedans
-    if bas:
-        c.drawString(gx0 + 1.0 * mm, gy0 + 1.4 * mm, bas[:60])
-    c.setFont(POLICE, 5.4)
-    c.drawRightString(gx0 + gw_num - 1.0 * mm, gy0 + 1.4 * mm, "N\u00b0 %06d" % serie)
-
-    # QR de vérification par carte (anti-duplication) — bande de droite
-    if _sec and evenement_id:
-        try:
-            # ⚠️ 12/08 : le QR vivait dans une bande de droite héritée de
-            # TRIPLE ACTION 90 — il débordait de la carte. Il se pose
-            # désormais DANS la carte, au coin bas-droit du grand cadre.
-            _q = 9.5 * mm
-            _sec.carton_qr(c, gx0 + gw - _q - 1.0 * mm, py + ih * 0.012,
-                           _q, evenement_id, serie, avec_code=False)
-        except Exception:
-            pass
+        c.setFillColor(GRIS); c.setFont(POLICE, _T_SERIE)
+        c.drawString(px + _SERIE_FX * CELL_W,
+                     py + CELL_H - _SERIE_FY * CELL_H, "N %06d" % series[gi_c])
 
 
-def generer_pdf(nb_cartes=10, serie_start=1, theme="", couleur=True,
-                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id="", page_start=1):
+def generer_pdf(nb_cartes=2, serie_start=1, theme="", couleur=True,
+                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="",
+                telephone="", style="eco", evenement_id="", motif="", page_start=1, **_):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
-
     nb_cartes = max(1, min(int(nb_cartes), 10000))
-    nb_pages = (nb_cartes + COLS_PAGE * ROWS_PAGE - 1) // (COLS_PAGE * ROWS_PAGE)
-
-    rng = random.Random(945000 + int(serie_start))
+    nb_pages = (nb_cartes + CARTES_PAGE - 1) // CARTES_PAGE
+    rng = random.Random(900900 + int(serie_start))
     serie = int(serie_start)
-    # 📄 la page continue d'une rame à l'autre (sceau Maeva 12/08)
     no_page = max(1, int(page_start))
-    faites = 0
-
-    for _ in range(nb_pages):
-        # en-tête de page
+    _deja = set()
+    for _p in range(nb_pages):
         if nom_evenement:
-            c.setFillColor(colors.black); c.setFont(POLICE, 9)
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 5 * mm, nom_evenement)
-        c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 6)
-        c.drawCentredString(PAGE_W / 2, PAGE_H - 7.2 * mm, "%03d" % no_page)
-
-        for row in range(ROWS_PAGE):
-            if faites >= nb_cartes:
-                break
-            x0 = MARGIN_X
-            y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
-            grilles = _gen_carte(rng)
-            coul = (couleur_perso if (couleur and couleur_perso)
-                    else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
-            _dessiner_carte(c, x0, y0, grilles, coul, serie, titre_jeu, telephone,
-                            style=style, evenement_id=evenement_id)
-            serie += 1
-            faites += 1
-
+            c.setFillColor(colors.black); c.setFont(POLICE, 8)
+            c.drawCentredString(PAGE_W / 2, PAGE_H - 4.4 * mm, nom_evenement)
+        c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 5.5)
+        c.drawRightString(PAGE_W - 5 * mm, PAGE_H - 4.4 * mm, "%03d" % no_page)
+        cartes = [_tirer(rng, _deja) for _k in range(CARTES_PAGE)]
+        series = [serie + k for k in range(CARTES_PAGE)]
+        couleurs = [colors.HexColor(
+            couleur_perso if (couleur and couleur_perso)
+            else RAINBOW[(s - 1) % len(RAINBOW)] if couleur else TRAIT_NB)
+            for s in series]
+        _dessiner_feuille(c, cartes, series, couleurs, style=style)
+        serie += CARTES_PAGE
         c.showPage()
         no_page += 1
-
-    c.save()
-    buf.seek(0)
+    c.save(); buf.seek(0)
     return buf
 
 
 if __name__ == "__main__":
-    pdf = generer_pdf(nb_cartes=10, couleur=True,
-                      nom_evenement="ASSOCIATION TE MANU", titre_jeu="Grand Loto",
-                      telephone="89.22.23.05")
-    with open("test_triple_action_90.pdf", "wb") as f:
-        f.write(pdf.read())
-    print("TRIPLE ACTION 90 généré")
+    open("test_trio90.pdf", "wb").write(generer_pdf(nb_cartes=2).read())
+    print("TRIO 90 - 2 cartes genere")
+
+_DECOR = (
+    'm7.76,998.43c4.97,996.46,1.74,991.33,1.06,987.76c0.26,983.58,0.29,15.58,1.09,11.71c1.85,8.00,4.00,4.36,6.41,2.68c7.49,1.92,8.76,1.01,9.25,0.65c9.76,0.27,215.17,0.00,500.12,0.01c887.62,0.02,990.48,0.21,991.89,0.93c994.88,2.46,997.47,5.19,998.76,8.16l1000.00,11.00l999.99,500.17l999.97,989.34l998.29,992.67c997.25,994.72,995.58,996.77,993.94,998.00l991.29,1000.00l500.59,999.96l9.89,999.93l7.76,998.43|m994.38,994.62c995.79,993.26,996.88,991.43,997.51,989.36c998.46,986.23,998.48,977.48,998.35,499.10l998.23,12.02l996.87,9.06c996.02,7.20,994.66,5.52,993.20,4.52l990.88,2.94l500.54,2.94c120.00,2.94,9.87,3.14,8.77,3.82c6.16,5.45,4.55,7.45,3.54,10.33c2.54,13.16,2.54,16.48,2.54,499.63c2.54,911.05,2.64,986.44,3.23,988.44c4.02,991.11,6.10,994.11,8.37,995.84c9.75,996.90,54.31,996.99,501.05,996.85l992.21,996.69l994.38,994.62|m28.91,983.44c29.27,982.82,29.66,982.47,29.79,982.65c30.14,983.16,29.43,984.56,28.81,984.56c28.48,984.56,28.51,984.14,28.91,983.44|m44.92,983.92c44.70,983.41,44.66,982.79,44.83,982.55c45.28,981.89,45.78,982.86,45.53,983.93c45.36,984.67,45.24,984.67,44.92,983.92|m40.82,983.09c40.65,982.68,40.75,982.35,41.05,982.35c41.34,982.35,41.58,982.68,41.58,983.09c41.58,983.49,41.48,983.82,41.36,983.82c41.24,983.82,40.99,983.49,40.82,983.09|m70.21,983.04c70.03,982.61,70.00,982.08,70.15,981.86c70.51,981.34,71.50,982.26,71.50,983.13c71.50,984.07,70.63,984.01,70.21,983.04|m171.01,980.15c171.01,978.73,171.11,978.15,171.24,978.86c171.37,979.57,171.37,980.73,171.24,981.43c171.11,982.14,171.01,981.56,171.01,980.15|m56.80,980.15c56.80,979.74,57.02,979.41,57.30,979.41c57.58,979.41,57.81,979.74,57.81,980.15c57.81,980.55,57.58,980.88,57.30,980.88c57.02,980.88,56.80,980.55,56.80,980.15|m191.22,979.72c191.24,978.86,191.36,978.69,191.52,979.27c191.67,979.80,191.65,980.44,191.48,980.68c191.31,980.93,191.19,980.49,191.22,979.72|m148.07,979.00c148.07,978.37,148.30,978.06,148.59,978.32c148.87,978.57,148.97,979.09,148.81,979.46c148.38,980.48,148.07,980.29,148.07,979.00|m178.75,979.41c178.58,979.01,178.68,978.68,178.98,978.68c179.27,978.68,179.51,979.01,179.51,979.41c179.51,979.82,179.41,980.15,179.29,980.15c179.17,980.15,178.92,979.82,178.75,979.41|m37.02,977.86c37.02,977.02,37.29,976.48,37.62,976.64c38.56,977.09,38.67,978.45,37.80,978.93c37.25,979.24,37.02,978.91,37.02,977.86|m45.17,978.25c45.20,977.39,45.32,977.22,45.48,977.80c45.62,978.33,45.61,978.97,45.44,979.21c45.27,979.46,45.15,979.02,45.17,978.25|m123.23,978.27c123.23,977.63,123.45,977.32,123.73,977.57c124.01,977.82,124.24,978.34,124.24,978.72c124.24,979.10,124.01,979.41,123.73,979.41c123.45,979.41,123.23,978.90,123.23,978.27|m66.43,977.16c66.43,976.73,66.66,976.59,66.94,976.84c67.22,977.09,67.44,977.44,67.44,977.62c67.44,977.80,67.22,977.94,66.94,977.94c66.66,977.94,66.43,977.59,66.43,977.16|m186.65,975.31c186.68,974.45,186.80,974.28,186.96,974.86c187.11,975.39,187.09,976.03,186.92,976.27c186.75,976.52,186.63,976.08,186.65,975.31|m81.64,973.94c81.64,973.31,81.87,972.79,82.15,972.79c82.43,972.79,82.66,973.11,82.66,973.49c82.66,973.87,82.43,974.38,82.15,974.63c81.87,974.88,81.64,974.57,81.64,973.94|m54.77,973.53c54.77,973.12,54.98,972.79,55.24,972.79c55.51,972.79,55.86,973.12,56.03,973.53c56.21,973.93,55.99,974.26,55.56,974.26c55.12,974.26,54.77,973.93,54.77,973.53|m47.16,961.03c47.16,960.63,47.49,960.29,47.89,960.29c48.29,960.29,48.76,960.63,48.94,961.03c49.11,961.43,48.78,961.76,48.20,961.76c47.63,961.76,47.16,961.43,47.16,961.03|m53.12,961.24c53.76,961.07,54.67,961.08,55.15,961.26c55.64,961.44,55.12,961.59,54.01,961.58c52.89,961.57,52.49,961.42,53.12,961.24|m57.80,960.67c58.44,959.56,59.33,959.80,59.33,961.07c59.33,961.45,58.85,961.76,58.25,961.76c57.36,961.76,57.28,961.58,57.80,960.67|m68.36,960.88c68.83,960.20,69.10,960.20,69.57,960.88c70.05,961.57,69.91,961.76,68.97,961.76c68.02,961.76,67.88,961.57,68.36,960.88|m79.11,961.03c79.11,960.63,79.34,960.29,79.61,960.29c79.89,960.29,80.12,960.63,80.12,961.03c80.12,961.43,79.89,961.76,79.61,961.76c79.34,961.76,79.11,961.43,79.11,961.03|m89.25,961.03c89.25,960.63,89.59,960.29,90.01,960.29c90.43,960.29,90.77,960.63,90.77,961.03c90.77,961.43,90.43,961.76,90.01,961.76c89.59,961.76,89.25,961.43,89.25,961.03|m100.15,961.03c99.98,960.63,100.21,960.29,100.66,960.29c101.11,960.29,101.34,960.63,101.17,961.03c100.99,961.43,100.77,961.76,100.66,961.76c100.55,961.76,100.32,961.43,100.15,961.03|m110.55,961.07c110.55,959.84,111.45,959.53,111.75,960.67c111.92,961.33,111.74,961.76,111.29,961.76c110.88,961.76,110.55,961.45,110.55,961.07|m120.69,961.03c120.69,960.63,121.03,960.29,121.45,960.29c121.87,960.29,122.21,960.63,122.21,961.03c122.21,961.43,121.87,961.76,121.45,961.76c121.03,961.76,120.69,961.43,120.69,961.03|m131.34,961.03c131.34,960.63,131.68,960.29,132.10,960.29c132.52,960.29,132.86,960.63,132.86,961.03c132.86,961.43,132.52,961.76,132.10,961.76c131.68,961.76,131.34,961.43,131.34,961.03|m141.48,961.03c141.48,960.63,141.81,960.29,142.21,960.29c142.61,960.29,143.08,960.63,143.26,961.03c143.43,961.43,143.10,961.76,142.52,961.76c141.95,961.76,141.48,961.43,141.48,961.03|m152.64,961.03c152.64,960.63,152.87,960.29,153.14,960.29c153.42,960.29,153.65,960.63,153.65,961.03c153.65,961.43,153.42,961.76,153.14,961.76c152.87,961.76,152.64,961.43,152.64,961.03|m162.78,961.03c162.78,960.63,163.12,960.29,163.54,960.29c163.96,960.29,164.30,960.63,164.30,961.03c164.30,961.43,163.96,961.76,163.54,961.76c163.12,961.76,162.78,961.43,162.78,961.03|m173.43,961.03c173.43,960.63,173.77,960.29,174.19,960.29c174.61,960.29,174.95,960.63,174.95,961.03c174.95,961.43,174.61,961.76,174.19,961.76c173.77,961.76,173.43,961.43,173.43,961.03|m183.57,961.03c183.57,960.63,183.91,960.29,184.33,960.29c184.75,960.29,185.09,960.63,185.09,961.03c185.09,961.43,184.75,961.76,184.33,961.76c183.91,961.76,183.57,961.43,183.57,961.03|m194.73,961.03c194.73,960.63,194.95,960.29,195.23,960.29c195.51,960.29,195.74,960.63,195.74,961.03c195.74,961.43,195.51,961.76,195.23,961.76c194.95,961.76,194.73,961.43,194.73,961.03|m200.44,961.24c201.21,961.07,202.35,961.07,202.97,961.25c203.60,961.42,202.97,961.56,201.57,961.55c200.18,961.55,199.67,961.41,200.44,961.24|m204.61,961.03c204.79,960.63,205.26,960.29,205.66,960.29c206.06,960.29,206.39,960.63,206.39,961.03c206.39,961.43,205.92,961.76,205.35,961.76c204.77,961.76,204.44,961.43,204.61,961.03|m215.52,961.03c215.52,960.63,215.86,960.29,216.28,960.29c216.70,960.29,217.04,960.63,217.04,961.03c217.04,961.43,216.70,961.76,216.28,961.76c215.86,961.76,215.52,961.43,215.52,961.03|m225.91,961.03c226.09,960.63,226.56,960.29,226.96,960.29c227.36,960.29,227.69,960.63,227.69,961.03c227.69,961.43,227.22,961.76,226.64,961.76c226.07,961.76,225.74,961.43,225.91,961.03|m236.31,961.03c236.31,960.63,236.65,960.29,237.07,960.29c237.49,960.29,237.83,960.63,237.83,961.03c237.83,961.43,237.49,961.76,237.07,961.76c236.65,961.76,236.31,961.43,236.31,961.03|m246.96,961.03c246.96,960.63,247.30,960.29,247.72,960.29c248.14,960.29,248.48,960.63,248.48,961.03c248.48,961.43,248.14,961.76,247.72,961.76c247.30,961.76,246.96,961.43,246.96,961.03|m257.61,961.03c257.61,960.63,257.83,960.29,258.11,960.29c258.39,960.29,258.62,960.63,258.62,961.03c258.62,961.43,258.39,961.76,258.11,961.76c257.83,961.76,257.61,961.43,257.61,961.03|m268.26,961.03c268.26,960.63,268.60,960.29,269.02,960.29c269.43,960.29,269.78,960.63,269.78,961.03c269.78,961.43,269.43,961.76,269.02,961.76c268.60,961.76,268.26,961.43,268.26,961.03|m278.90,961.03c278.90,960.63,279.13,960.29,279.41,960.29c279.69,960.29,279.92,960.63,279.92,961.03c279.92,961.43,279.69,961.76,279.41,961.76c279.13,961.76,278.90,961.43,278.90,961.03|m289.05,961.03c289.05,960.63,289.39,960.29,289.81,960.29c290.23,960.29,290.57,960.63,290.57,961.03c290.57,961.43,290.23,961.76,289.81,961.76c289.39,961.76,289.05,961.43,289.05,961.03|m299.44,961.03c299.61,960.63,300.08,960.29,300.49,960.29c300.89,960.29,301.22,960.63,301.22,961.03c301.22,961.43,300.75,961.76,300.17,961.76c299.60,961.76,299.27,961.43,299.44,961.03|m310.34,961.03c310.34,960.63,310.57,960.29,310.85,960.29c311.13,960.29,311.36,960.63,311.36,961.03c311.36,961.43,311.13,961.76,310.85,961.76c310.57,961.76,310.34,961.43,310.34,961.03|m320.99,961.03c320.99,960.63,321.34,960.29,321.75,960.29c322.17,960.29,322.52,960.63,322.52,961.03c322.52,961.43,322.17,961.76,321.75,961.76c321.34,961.76,320.99,961.43,320.99,961.03|m327.63,961.50c328.17,960.83,333.16,960.43,333.16,961.06c333.16,961.45,331.87,961.76,330.29,961.76c328.71,961.76,327.51,961.65,327.63,961.50|m342.04,961.03c341.87,960.63,341.97,960.29,342.26,960.29c342.56,960.29,342.80,960.63,342.80,961.03c342.80,961.43,342.70,961.76,342.58,961.76c342.45,961.76,342.21,961.43,342.04,961.03|m352.18,961.03c352.35,960.63,352.71,960.29,352.97,960.29c353.23,960.29,353.45,960.63,353.45,961.03c353.45,961.43,353.09,961.76,352.66,961.76c352.22,961.76,352.01,961.43,352.18,961.03|m362.58,961.03c362.58,960.63,362.90,960.29,363.31,960.29c363.71,960.29,364.18,960.63,364.35,961.03c364.52,961.43,364.19,961.76,363.62,961.76c363.05,961.76,362.58,961.43,362.58,961.03|m373.48,961.03c373.65,960.63,374.12,960.29,374.52,960.29c374.92,960.29,375.25,960.63,375.25,961.03c375.25,961.43,374.78,961.76,374.21,961.76c373.64,961.76,373.31,961.43,373.48,961.03|m384.13,961.03c384.30,960.63,384.66,960.29,384.92,960.29c385.18,960.29,385.40,960.63,385.40,961.03c385.40,961.43,385.04,961.76,384.60,961.76c384.17,961.76,383.96,961.43,384.13,961.03|m394.52,961.03c394.52,960.63,394.75,960.29,395.03,960.29c395.31,960.29,395.54,960.63,395.54,961.03c395.54,961.43,395.31,961.76,395.03,961.76c394.75,961.76,394.52,961.43,394.52,961.03|m404.67,961.03c404.67,960.63,404.99,960.29,405.40,960.29c405.80,960.29,406.27,960.63,406.44,961.03c406.61,961.43,406.28,961.76,405.71,961.76c405.14,961.76,404.67,961.43,404.67,961.03|m415.31,961.03c415.31,960.63,415.66,960.29,416.08,960.29c416.49,960.29,416.84,960.63,416.84,961.03c416.84,961.43,416.49,961.76,416.08,961.76c415.66,961.76,415.31,961.43,415.31,961.03|m426.22,961.03c426.39,960.63,426.75,960.29,427.01,960.29c427.27,960.29,427.48,960.63,427.48,961.03c427.48,961.43,427.13,961.76,426.69,961.76c426.26,961.76,426.04,961.43,426.22,961.03|m432.94,961.28c433.28,961.07,433.86,961.07,434.20,961.28c434.55,961.48,434.27,961.65,433.57,961.65c432.87,961.65,432.59,961.48,432.94,961.28|m436.61,961.03c436.61,960.63,436.94,960.29,437.34,960.29c437.75,960.29,438.22,960.63,438.39,961.03c438.56,961.43,438.23,961.76,437.66,961.76c437.08,961.76,436.61,961.43,436.61,961.03|m457.40,961.03c457.40,960.63,457.76,960.29,458.19,960.29c458.63,960.29,458.84,960.63,458.67,961.03c458.50,961.43,458.14,961.76,457.88,961.76c457.62,961.76,457.40,961.43,457.40,961.03|m468.05,961.03c468.05,960.63,468.40,960.29,468.81,960.29c469.23,960.29,469.57,960.63,469.57,961.03c469.57,961.43,469.23,961.76,468.81,961.76c468.40,961.76,468.05,961.43,468.05,961.03|m478.70,961.03c478.70,960.63,478.92,960.29,479.18,960.29c479.44,960.29,479.80,960.63,479.97,961.03c480.14,961.43,479.93,961.76,479.49,961.76c479.06,961.76,478.70,961.43,478.70,961.03|m489.86,961.03c489.86,960.63,490.09,960.29,490.37,960.29c490.64,960.29,490.87,960.63,490.87,961.03c490.87,961.43,490.64,961.76,490.37,961.76c490.09,961.76,489.86,961.43,489.86,961.03|m500.00,961.03c500.00,960.63,500.23,960.29,500.51,960.29c500.79,960.29,501.01,960.63,501.01,961.03c501.01,961.43,500.79,961.76,500.51,961.76c500.23,961.76,500.00,961.43,500.00,961.03|m510.14,961.03c510.14,960.63,510.37,960.29,510.65,960.29c510.93,960.29,511.16,960.63,511.16,961.03c511.16,961.43,510.93,961.76,510.65,961.76c510.37,961.76,510.14,961.43,510.14,961.03|m520.54,961.03c520.71,960.63,521.18,960.29,521.58,960.29c521.98,960.29,522.31,960.63,522.31,961.03c522.31,961.43,521.84,961.76,521.27,961.76c520.69,961.76,520.37,961.43,520.54,961.03|m531.44,961.03c531.44,960.63,531.80,960.29,532.23,960.29c532.67,960.29,532.88,960.63,532.71,961.03c532.54,961.43,532.18,961.76,531.92,961.76c531.65,961.76,531.44,961.43,531.44,961.03|m552.74,961.03c552.74,960.63,552.97,960.29,553.25,960.29c553.52,960.29,553.75,960.63,553.75,961.03c553.75,961.43,553.52,961.76,553.25,961.76c552.97,961.76,552.74,961.43,552.74,961.03|m562.63,961.03c562.80,960.63,563.15,960.29,563.42,960.29c563.68,960.29,563.89,960.63,563.89,961.03c563.89,961.43,563.54,961.76,563.10,961.76c562.67,961.76,562.45,961.43,562.63,961.03|m573.28,961.03c573.45,960.63,573.92,960.29,574.32,960.29c574.72,960.29,575.05,960.63,575.05,961.03c575.05,961.43,574.58,961.76,574.01,961.76c573.43,961.76,573.10,961.43,573.28,961.03|m583.92,961.03c584.10,960.63,584.57,960.29,584.97,960.29c585.37,960.29,585.70,960.63,585.70,961.03c585.70,961.43,585.23,961.76,584.66,961.76c584.08,961.76,583.75,961.43,583.92,961.03|m594.57,961.03c594.75,960.63,595.22,960.29,595.62,960.29c596.02,960.29,596.35,960.63,596.35,961.03c596.35,961.43,595.88,961.76,595.30,961.76c594.73,961.76,594.40,961.43,594.57,961.03|m604.97,961.03c604.97,960.63,605.31,960.29,605.73,960.29c606.15,960.29,606.49,960.63,606.49,961.03c606.49,961.43,606.15,961.76,605.73,961.76c605.31,961.76,604.97,961.43,604.97,961.03|m615.62,961.03c615.62,960.63,615.85,960.29,616.13,960.29c616.40,960.29,616.63,960.63,616.63,961.03c616.63,961.43,616.40,961.76,616.13,961.76c615.85,961.76,615.62,961.43,615.62,961.03|m625.76,961.03c625.76,960.63,626.09,960.29,626.49,960.29c626.89,960.29,627.36,960.63,627.54,961.03c627.71,961.43,627.38,961.76,626.80,961.76c626.23,961.76,625.76,961.43,625.76,961.03|m636.66,961.03c636.84,960.63,637.31,960.29,637.71,960.29c638.11,960.29,638.44,960.63,638.44,961.03c638.44,961.43,637.97,961.76,637.39,961.76c636.82,961.76,636.49,961.43,636.66,961.03|m647.31,961.03c647.48,960.63,647.84,960.29,648.10,960.29c648.37,960.29,648.58,960.63,648.58,961.03c648.58,961.43,648.22,961.76,647.79,961.76c647.35,961.76,647.14,961.43,647.31,961.03|m658.22,961.03c658.22,960.63,658.46,960.29,658.75,960.29c659.05,960.29,659.15,960.63,658.98,961.03c658.80,961.43,658.56,961.76,658.44,961.76c658.32,961.76,658.22,961.43,658.22,961.03|m667.85,961.07c667.85,959.80,668.74,959.56,669.38,960.67c669.90,961.58,669.82,961.76,668.93,961.76c668.33,961.76,667.85,961.45,667.85,961.07|m689.40,961.03c689.57,960.63,689.93,960.29,690.19,960.29c690.45,960.29,690.67,960.63,690.67,961.03c690.67,961.43,690.31,961.76,689.88,961.76c689.44,961.76,689.23,961.43,689.40,961.03|m699.80,961.03c699.80,960.63,700.14,960.29,700.56,960.29c700.98,960.29,701.32,960.63,701.32,961.03c701.32,961.43,700.98,961.76,700.56,961.76c700.14,961.76,699.80,961.43,699.80,961.03|m709.94,961.03c709.94,960.63,710.40,960.29,710.95,960.29c711.51,960.29,711.97,960.63,711.97,961.03c711.97,961.43,711.51,961.76,710.95,961.76c710.40,961.76,709.94,961.43,709.94,961.03|m720.59,961.03c720.59,960.63,720.93,960.29,721.35,960.29c721.77,960.29,722.11,960.63,722.11,961.03c722.11,961.43,721.77,961.76,721.35,961.76c720.93,961.76,720.59,961.43,720.59,961.03|m731.24,961.03c731.24,960.63,731.58,960.29,732.00,960.29c732.42,960.29,732.76,960.63,732.76,961.03c732.76,961.43,732.42,961.76,732.00,961.76c731.58,961.76,731.24,961.43,731.24,961.03|m742.14,961.03c742.31,960.63,742.67,960.29,742.93,960.29c743.19,960.29,743.41,960.63,743.41,961.03c743.41,961.43,743.05,961.76,742.62,961.76c742.18,961.76,741.97,961.43,742.14,961.03|m746.83,961.28c747.18,961.07,747.75,961.07,748.10,961.28c748.45,961.48,748.16,961.65,747.46,961.65c746.77,961.65,746.48,961.48,746.83,961.28|m752.54,961.03c752.54,960.63,752.88,960.29,753.30,960.29c753.71,960.29,754.06,960.63,754.06,961.03c754.06,961.43,753.71,961.76,753.30,961.76c752.88,961.76,752.54,961.43,752.54,961.03|m762.93,961.03c762.76,960.63,762.99,960.29,763.44,960.29c763.89,960.29,764.12,960.63,763.95,961.03c763.77,961.43,763.54,961.76,763.44,961.76c763.33,961.76,763.10,961.43,762.93,961.03|m773.33,961.03c773.33,960.63,773.55,960.29,773.83,960.29c774.11,960.29,774.34,960.63,774.34,961.03c774.34,961.43,774.11,961.76,773.83,961.76c773.55,961.76,773.33,961.43,773.33,961.03|m783.72,961.03c783.89,960.63,784.36,960.29,784.77,960.29c785.17,960.29,785.50,960.63,785.50,961.03c785.50,961.43,785.03,961.76,784.45,961.76c783.88,961.76,783.55,961.43,783.72,961.03|m794.62,961.03c794.62,960.63,794.85,960.29,795.13,960.29c795.41,960.29,795.64,960.63,795.64,961.03c795.64,961.43,795.41,961.76,795.13,961.76c794.85,961.76,794.62,961.43,794.62,961.03|m805.27,961.03c805.27,960.63,805.50,960.29,805.78,960.29c806.06,960.29,806.29,960.63,806.29,961.03c806.29,961.43,806.06,961.76,805.78,961.76c805.50,961.76,805.27,961.43,805.27,961.03|m815.42,961.03c815.42,960.63,815.76,960.29,816.18,960.29c816.59,960.29,816.94,960.63,816.94,961.03c816.94,961.43,816.59,961.76,816.18,961.76c815.76,961.76,815.42,961.43,815.42,961.03|m825.81,961.03c825.98,960.63,826.45,960.29,826.86,960.29c827.26,960.29,827.59,960.63,827.59,961.03c827.59,961.43,827.12,961.76,826.54,961.76c825.97,961.76,825.64,961.43,825.81,961.03|m836.71,961.03c836.71,960.63,836.94,960.29,837.22,960.29c837.50,960.29,837.73,960.63,837.73,961.03c837.73,961.43,837.50,961.76,837.22,961.76c836.94,961.76,836.71,961.43,836.71,961.03|m847.26,960.88c847.73,960.20,848.01,960.20,848.48,960.88c848.95,961.57,848.82,961.76,847.87,961.76c846.92,961.76,846.79,961.57,847.26,960.88|m854.87,961.26c855.24,961.05,855.68,961.08,855.85,961.32c856.01,961.56,855.72,961.74,855.18,961.71c854.59,961.67,854.47,961.50,854.87,961.26|m857.25,961.03c857.42,960.63,857.99,960.29,858.52,960.29c859.04,960.29,859.61,960.63,859.79,961.03c859.97,961.46,859.44,961.76,858.52,961.76c857.59,961.76,857.07,961.46,857.25,961.03|m878.80,961.03c878.80,960.63,879.15,960.29,879.56,960.29c879.98,960.29,880.32,960.63,880.32,961.03c880.32,961.43,879.98,961.76,879.56,961.76c879.15,961.76,878.80,961.43,878.80,961.03|m889.35,960.88c889.82,960.20,890.09,960.20,890.57,960.88c891.04,961.57,890.91,961.76,889.96,961.76c889.01,961.76,888.88,961.57,889.35,960.88|m899.85,961.03c900.02,960.63,900.38,960.29,900.64,960.29c900.90,960.29,901.12,960.63,901.12,961.03c901.12,961.43,900.76,961.76,900.33,961.76c899.89,961.76,899.68,961.43,899.85,961.03|m910.75,961.03c910.75,960.63,910.98,960.29,911.26,960.29c911.54,960.29,911.76,960.63,911.76,961.03c911.76,961.43,911.54,961.76,911.26,961.76c910.98,961.76,910.75,961.43,910.75,961.03|m921.15,961.03c920.97,960.63,921.07,960.29,921.37,960.29c921.67,960.29,921.91,960.63,921.91,961.03c921.91,961.43,921.81,961.76,921.68,961.76c921.56,961.76,921.32,961.43,921.15,961.03|m931.44,960.88c931.91,960.20,932.18,960.20,932.66,960.88c933.13,961.57,933.00,961.76,932.05,961.76c931.10,961.76,930.97,961.57,931.44,960.88|m941.68,961.03c941.68,960.63,942.03,960.29,942.44,960.29c942.86,960.29,943.20,960.63,943.20,961.03c943.20,961.43,942.86,961.76,942.44,961.76c942.03,961.76,941.68,961.43,941.68,961.03|m952.59,961.03c952.41,960.63,952.51,960.29,952.81,960.29c953.11,960.29,953.35,960.63,953.35,961.03c953.35,961.43,953.25,961.76,953.12,961.76c953.00,961.76,952.76,961.43,952.59,961.03|m962.98,961.03c962.98,960.63,963.32,960.29,963.74,960.29c964.16,960.29,964.50,960.63,964.50,961.03c964.50,961.43,964.16,961.76,963.74,961.76c963.32,961.76,962.98,961.43,962.98,961.03|m36.44,98.45c35.97,98.02,36.28,97.81,37.40,97.81c38.31,97.80,39.05,97.92,39.05,98.08c39.05,98.74,37.07,99.03,36.44,98.45|m47.41,98.53c47.24,98.12,47.47,97.79,47.92,97.79c48.37,97.79,48.60,98.12,48.43,98.53c48.26,98.93,48.03,99.26,47.92,99.26c47.81,99.26,47.59,98.93,47.41,98.53|m57.56,98.53c57.38,98.12,57.73,97.79,58.32,97.79c58.91,97.79,59.25,98.12,59.08,98.53c58.90,98.93,58.56,99.26,58.32,99.26c58.07,99.26,57.73,98.93,57.56,98.53|m78.84,98.50c78.68,98.11,79.01,97.79,79.58,97.79c80.81,97.79,80.93,98.20,79.88,98.79c79.47,99.01,79.01,98.88,78.84,98.50|m89.20,98.47c88.68,98.00,88.87,97.81,89.88,97.81c91.40,97.79,91.67,98.15,90.60,98.75c90.22,98.96,89.60,98.83,89.20,98.47|m120.59,98.44c120.31,98.19,121.42,97.82,123.05,97.61c124.68,97.40,126.21,97.49,126.45,97.81c126.96,98.49,121.33,99.10,120.59,98.44|m131.34,98.53c130.73,97.96,130.81,97.81,131.75,97.81c132.40,97.80,132.78,98.12,132.61,98.53c132.23,99.41,132.28,99.41,131.34,98.53|m162.73,98.47c162.21,98.00,162.40,97.81,163.41,97.81c164.93,97.79,165.20,98.15,164.13,98.75c163.75,98.96,163.13,98.83,162.73,98.47|m173.43,98.53c172.82,97.96,172.90,97.81,173.84,97.81c174.49,97.80,174.87,98.12,174.70,98.53c174.32,99.41,174.37,99.41,173.43,98.53|m183.82,98.53c183.64,98.11,184.11,97.80,184.93,97.81c186.04,97.81,186.19,97.98,185.60,98.53c184.62,99.44,184.21,99.44,183.82,98.53|m194.17,98.47c193.65,98.00,193.84,97.81,194.85,97.81c196.37,97.79,196.64,98.15,195.57,98.75c195.19,98.96,194.57,98.83,194.17,98.47|m204.82,98.47c204.30,98.00,204.49,97.81,205.50,97.81c207.02,97.79,207.29,98.15,206.22,98.75c205.84,98.96,205.22,98.83,204.82,98.47|m236.31,98.53c235.74,97.99,235.99,97.82,237.32,97.82c238.65,97.82,238.91,97.99,238.34,98.53c237.92,98.92,237.46,99.24,237.32,99.24c237.18,99.24,236.73,98.92,236.31,98.53|m246.70,98.53c245.81,97.97,245.86,97.89,247.11,97.85c247.94,97.82,248.41,98.10,248.23,98.53c248.05,98.93,247.87,99.24,247.81,99.21c247.76,99.18,247.26,98.88,246.70,98.53|m254.82,98.53l251.77,98.04l255.83,97.93c258.61,97.85,259.65,98.04,259.13,98.53c258.71,98.92,258.25,99.19,258.11,99.13c257.97,99.07,256.49,98.80,254.82,98.53|m278.90,98.53c278.29,97.96,278.37,97.81,279.31,97.81c279.97,97.80,280.35,98.12,280.17,98.53c279.80,99.41,279.85,99.41,278.90,98.53|m289.29,98.50c289.12,98.11,289.46,97.79,290.03,97.79c291.26,97.79,291.38,98.20,290.33,98.79c289.92,99.01,289.45,98.88,289.29,98.50|m310.09,98.53c309.92,98.12,310.26,97.79,310.85,97.79c311.44,97.79,311.78,98.12,311.61,98.53c311.44,98.93,311.10,99.26,310.85,99.26c310.61,99.26,310.26,98.93,310.09,98.53|m320.74,98.53c319.85,97.97,319.90,97.89,321.15,97.85c321.98,97.82,322.44,98.10,322.26,98.53c322.09,98.93,321.90,99.24,321.85,99.21c321.80,99.18,321.30,98.88,320.74,98.53|m331.39,98.53c331.22,98.12,331.56,97.79,332.15,97.79c332.74,97.79,333.08,98.12,332.91,98.53c332.74,98.93,332.40,99.26,332.15,99.26c331.90,99.26,331.56,98.93,331.39,98.53|m342.04,98.53c341.87,98.12,342.09,97.79,342.55,97.79c343.00,97.79,343.23,98.12,343.05,98.53c342.88,98.93,342.65,99.26,342.55,99.26c342.44,99.26,342.21,98.93,342.04,98.53|m352.17,98.50c352.00,98.11,352.34,97.79,352.91,97.79c354.14,97.79,354.26,98.20,353.21,98.79c352.80,99.01,352.33,98.88,352.17,98.50|m373.48,98.53c372.59,97.97,372.64,97.89,373.89,97.85c374.72,97.82,375.18,98.10,375.00,98.53c374.83,98.93,374.64,99.24,374.59,99.21c374.54,99.18,374.04,98.88,373.48,98.53|m384.13,98.53c383.96,98.12,384.30,97.79,384.89,97.79c385.48,97.79,385.82,98.12,385.65,98.53c385.48,98.93,385.13,99.26,384.89,99.26c384.64,99.26,384.30,98.93,384.13,98.53|m394.27,98.53c394.10,98.12,394.44,97.79,395.03,97.79c395.62,97.79,395.96,98.12,395.79,98.53c395.62,98.93,395.28,99.26,395.03,99.26c394.78,99.26,394.44,98.93,394.27,98.53|m415.06,98.48c414.23,98.01,414.35,97.89,415.69,97.85c417.41,97.79,417.80,98.13,416.71,98.72c416.36,98.91,415.62,98.80,415.06,98.48|m425.92,98.47c425.40,98.00,425.58,97.81,426.60,97.81c428.11,97.79,428.38,98.15,427.31,98.75c426.94,98.96,426.31,98.83,425.92,98.47|m447.26,98.53c446.65,97.96,446.73,97.81,447.67,97.81c448.32,97.80,448.70,98.12,448.53,98.53c448.15,99.41,448.21,99.41,447.26,98.53|m467.80,98.47c467.15,98.11,468.06,97.88,470.29,97.85c472.22,97.82,473.70,97.92,473.59,98.06c473.10,98.69,468.73,99.00,467.80,98.47|m499.49,98.53c498.92,97.99,499.18,97.82,500.51,97.82c501.84,97.82,502.09,97.99,501.52,98.53c501.10,98.92,500.65,99.24,500.51,99.24c500.37,99.24,499.91,98.92,499.49,98.53|m509.63,98.48c508.53,98.01,508.61,97.93,510.27,97.87c512.20,97.79,512.68,98.11,511.54,98.70c511.19,98.87,510.33,98.78,509.63,98.48|m531.37,98.45c530.90,98.02,531.21,97.81,532.33,97.81c533.23,97.80,533.98,97.92,533.98,98.08c533.98,98.74,532.00,99.03,531.37,98.45|m552.48,98.53c552.31,98.12,552.54,97.79,552.99,97.79c553.44,97.79,553.67,98.12,553.50,98.53c553.33,98.93,553.10,99.26,552.99,99.26c552.89,99.26,552.66,98.93,552.48,98.53|m562.62,98.47c561.85,98.03,562.07,97.89,563.51,97.85c564.56,97.82,565.42,97.92,565.42,98.08c565.42,98.73,563.55,98.99,562.62,98.47|m573.28,98.53c572.38,97.97,572.43,97.89,573.69,97.85c574.51,97.82,574.98,98.10,574.80,98.53c574.62,98.93,574.44,99.24,574.39,99.21c574.33,99.18,573.83,98.88,573.28,98.53|m583.92,98.53c583.75,98.12,584.09,97.79,584.69,97.79c585.28,97.79,585.62,98.12,585.45,98.53c585.27,98.93,584.93,99.26,584.69,99.26c584.44,99.26,584.10,98.93,583.92,98.53|m605.22,98.53c605.05,98.12,605.28,97.79,605.73,97.79c606.18,97.79,606.41,98.12,606.24,98.53c606.06,98.93,605.84,99.26,605.73,99.26c605.62,99.26,605.40,98.93,605.22,98.53|m615.37,98.53c615.19,98.12,615.54,97.79,616.13,97.79c616.72,97.79,617.06,98.12,616.89,98.53c616.71,98.93,616.37,99.26,616.13,99.26c615.88,99.26,615.54,98.93,615.37,98.53|m626.00,98.50c625.84,98.11,626.17,97.79,626.74,97.79c627.97,97.79,628.09,98.20,627.04,98.79c626.64,99.01,626.17,98.88,626.00,98.50|m647.15,98.63c646.71,98.22,647.29,97.85,648.87,97.53c652.27,96.86,653.65,96.94,653.65,97.83c653.65,98.26,652.71,98.54,651.50,98.47c650.31,98.40,649.00,98.55,648.58,98.80c648.16,99.05,647.52,98.97,647.15,98.63|m657.45,98.53c656.56,97.97,656.61,97.89,657.86,97.85c658.69,97.82,659.16,98.10,658.98,98.53c658.80,98.93,658.62,99.24,658.57,99.21c658.51,99.18,658.01,98.88,657.45,98.53|m668.10,98.53c667.93,98.12,668.16,97.79,668.61,97.79c669.06,97.79,669.29,98.12,669.12,98.53c668.95,98.93,668.72,99.26,668.61,99.26c668.50,99.26,668.28,98.93,668.10,98.53|m689.39,98.50c689.22,98.11,689.56,97.79,690.13,97.79c691.36,97.79,691.48,98.20,690.43,98.79c690.02,99.01,689.55,98.88,689.39,98.50|m698.28,98.55c696.63,98.26,696.29,98.03,697.06,97.70c698.30,97.18,702.45,98.03,701.32,98.57c700.90,98.78,699.53,98.76,698.28,98.55|m710.40,98.47c709.88,98.00,710.07,97.81,711.08,97.81c712.59,97.79,712.87,98.15,711.79,98.75c711.42,98.96,710.79,98.83,710.40,98.47|m720.59,98.53c719.98,97.96,720.06,97.81,721.00,97.81c721.65,97.80,722.03,98.12,721.86,98.53c721.48,99.41,721.53,99.41,720.59,98.53|m731.19,98.47c730.67,98.00,730.86,97.81,731.87,97.81c733.39,97.79,733.66,98.15,732.59,98.75c732.21,98.96,731.58,98.83,731.19,98.47|m742.14,98.53c741.97,98.12,742.20,97.79,742.65,97.79c743.10,97.79,743.33,98.12,743.15,98.53c742.98,98.93,742.75,99.26,742.65,99.26c742.54,99.26,742.31,98.93,742.14,98.53|m762.68,98.53c762.11,97.99,762.36,97.82,763.69,97.82c765.02,97.82,765.28,97.99,764.71,98.53c764.29,98.92,763.83,99.24,763.69,99.24c763.55,99.24,763.10,98.92,762.68,98.53|m783.98,98.53c783.36,97.96,783.44,97.81,784.39,97.81c785.04,97.80,785.42,98.12,785.24,98.53c784.87,99.41,784.92,99.41,783.98,98.53|m805.02,98.53c804.85,98.12,805.19,97.79,805.78,97.79c806.37,97.79,806.71,98.12,806.54,98.53c806.37,98.93,806.03,99.26,805.78,99.26c805.53,99.26,805.19,98.93,805.02,98.53|m825.81,98.48c824.99,98.01,825.10,97.89,826.45,97.85c828.16,97.79,828.55,98.13,827.46,98.72c827.11,98.91,826.37,98.80,825.81,98.48|m836.67,98.47c836.15,98.00,836.33,97.81,837.35,97.81c838.86,97.79,839.13,98.15,838.06,98.75c837.69,98.96,837.06,98.83,836.67,98.47|m878.76,98.47c878.24,98.00,878.42,97.81,879.44,97.81c880.95,97.79,881.22,98.15,880.15,98.75c879.78,98.96,879.15,98.83,878.76,98.47|m889.20,98.53c889.03,98.12,889.37,97.79,889.96,97.79c890.55,97.79,890.89,98.12,890.72,98.53c890.55,98.93,890.21,99.26,889.96,99.26c889.71,99.26,889.37,98.93,889.20,98.53|m899.59,98.53c899.02,97.99,899.28,97.82,900.61,97.82c901.94,97.82,902.19,97.99,901.62,98.53c901.20,98.92,900.75,99.24,900.61,99.24c900.47,99.24,900.01,98.92,899.59,98.53|m910.20,98.47c909.68,98.00,909.86,97.81,910.88,97.81c912.39,97.79,912.66,98.15,911.59,98.75c911.22,98.96,910.59,98.83,910.20,98.47|m920.64,98.53c920.47,98.12,920.81,97.79,921.40,97.79c921.99,97.79,922.33,98.12,922.16,98.53c921.99,98.93,921.65,99.26,921.40,99.26c921.15,99.26,920.81,98.93,920.64,98.53|m941.68,98.53c941.07,97.96,941.15,97.81,942.09,97.81c942.75,97.80,943.13,98.12,942.95,98.53c942.57,99.41,942.63,99.41,941.68,98.53|m962.98,98.53c962.37,97.96,962.45,97.81,963.39,97.81c964.04,97.80,964.42,98.12,964.25,98.53c963.87,99.41,963.93,99.41,962.98,98.53|m63.77,98.01c64.40,97.83,65.32,97.84,65.80,98.02c66.29,98.21,65.77,98.35,64.66,98.34c63.54,98.34,63.14,98.19,63.77,98.01|m68.33,98.04c68.68,97.84,69.25,97.84,69.60,98.04c69.95,98.25,69.66,98.41,68.97,98.41c68.27,98.41,67.98,98.25,68.33,98.04|m99.77,98.04c100.12,97.84,100.69,97.84,101.04,98.04c101.39,98.25,101.10,98.41,100.41,98.41c99.71,98.41,99.42,98.25,99.77,98.04|m110.42,98.04c110.77,97.84,111.34,97.84,111.69,98.04c112.04,98.25,111.75,98.41,111.05,98.41c110.36,98.41,110.07,98.25,110.42,98.04|m141.62,98.02c142.11,97.83,142.80,97.85,143.14,98.05c143.48,98.25,143.08,98.40,142.24,98.39c141.40,98.37,141.12,98.21,141.62,98.02|m152.27,98.02c152.76,97.83,153.44,97.85,153.79,98.05c154.13,98.25,153.73,98.40,152.89,98.39c152.05,98.37,151.77,98.21,152.27,98.02|m170.29,98.03c170.66,97.81,171.09,97.84,171.26,98.09c171.43,98.33,171.13,98.50,170.60,98.47c170.01,98.44,169.89,98.26,170.29,98.03|m187.96,97.75c188.33,97.21,189.05,97.19,190.22,97.68l191.94,98.40l189.68,98.46c188.09,98.51,187.58,98.30,187.96,97.75|m208.80,98.04c209.15,97.84,209.72,97.84,210.07,98.04c210.41,98.25,210.13,98.41,209.43,98.41c208.73,98.41,208.45,98.25,208.80,98.04|m215.39,98.04c215.74,97.84,216.31,97.84,216.66,98.04c217.01,98.25,216.72,98.41,216.02,98.41c215.33,98.41,215.04,98.25,215.39,98.04|m226.04,98.04c226.39,97.84,226.96,97.84,227.31,98.04c227.66,98.25,227.37,98.41,226.67,98.41c225.98,98.41,225.69,98.25,226.04,98.04|m262.04,98.04c262.39,97.84,262.96,97.84,263.31,98.04c263.66,98.25,263.37,98.41,262.68,98.41c261.98,98.41,261.69,98.25,262.04,98.04|m268.39,98.02c268.89,97.83,269.57,97.85,269.91,98.05c270.26,98.25,269.85,98.40,269.02,98.39c268.18,98.37,267.90,98.21,268.39,98.02|m299.33,98.02c299.82,97.83,300.50,97.85,300.85,98.05c301.19,98.25,300.79,98.40,299.95,98.39c299.11,98.37,298.83,98.21,299.33,98.02|m314.26,97.70c314.67,97.11,315.53,97.09,317.28,97.62l319.73,98.36l316.71,98.44c314.48,98.51,313.84,98.31,314.26,97.70|m362.99,98.03c363.35,97.81,363.79,97.84,363.96,98.09c364.13,98.33,363.83,98.50,363.29,98.47c362.70,98.44,362.58,98.26,362.99,98.03|m405.05,98.04c405.39,97.84,405.96,97.84,406.31,98.04c406.66,98.25,406.38,98.41,405.68,98.41c404.98,98.41,404.70,98.25,405.05,98.04|m412.15,98.04c412.49,97.84,413.06,97.84,413.41,98.04c413.76,98.25,413.48,98.41,412.78,98.41c412.08,98.41,411.80,98.25,412.15,98.04|m457.78,98.04c458.13,97.84,458.70,97.84,459.05,98.04c459.40,98.25,459.12,98.41,458.42,98.41c457.72,98.41,457.44,98.25,457.78,98.04|m479.11,98.03c479.48,97.81,479.92,97.84,480.09,98.09c480.25,98.33,479.95,98.50,479.42,98.47c478.83,98.44,478.71,98.26,479.11,98.03|m489.49,98.02c489.98,97.83,490.67,97.85,491.01,98.05c491.35,98.25,490.95,98.40,490.11,98.39c489.27,98.37,488.99,98.21,489.49,98.02|m521.20,98.03c521.57,97.81,522.01,97.84,522.18,98.09c522.34,98.33,522.04,98.50,521.51,98.47c520.92,98.44,520.80,98.26,521.20,98.03|m525.86,98.25c525.86,97.63,528.92,97.35,529.53,97.91c529.91,98.27,529.31,98.51,528.02,98.52c526.83,98.52,525.86,98.40,525.86,98.25|m542.50,98.03c542.87,97.81,543.30,97.84,543.47,98.09c543.64,98.33,543.34,98.50,542.81,98.47c542.22,98.44,542.10,98.26,542.50,98.03|m565.92,97.79c565.92,96.91,569.32,96.91,570.74,97.79c571.47,98.25,570.94,98.44,568.84,98.48c567.21,98.51,565.92,98.21,565.92,97.79|m594.70,98.04c595.05,97.84,595.62,97.84,595.97,98.04c596.32,98.25,596.03,98.41,595.33,98.41c594.64,98.41,594.35,98.25,594.70,98.04|m636.79,98.04c637.14,97.84,637.71,97.84,638.06,98.04c638.41,98.25,638.12,98.41,637.42,98.41c636.73,98.41,636.44,98.25,636.79,98.04|m678.64,98.02c679.13,97.83,679.81,97.85,680.16,98.05c680.50,98.25,680.10,98.40,679.26,98.39c678.42,98.37,678.14,98.21,678.64,98.02|m715.39,98.01c716.02,97.84,717.04,97.84,717.67,98.01c718.30,98.19,717.79,98.33,716.53,98.33c715.28,98.33,714.76,98.19,715.39,98.01|m752.41,98.04c752.76,97.84,753.33,97.84,753.68,98.04c754.03,98.25,753.74,98.41,753.04,98.41c752.35,98.41,752.06,98.25,752.41,98.04|m773.20,98.04c773.55,97.84,774.12,97.84,774.47,98.04c774.82,98.25,774.53,98.41,773.83,98.41c773.14,98.41,772.85,98.25,773.20,98.04|m794.25,98.02c794.75,97.83,795.43,97.85,795.78,98.05c796.12,98.25,795.72,98.40,794.88,98.39c794.04,98.37,793.76,98.21,794.25,98.02|m815.80,98.04c816.14,97.84,816.72,97.84,817.06,98.04c817.41,98.25,817.13,98.41,816.43,98.41c815.73,98.41,815.45,98.25,815.80,98.04|m840.26,98.24c840.26,97.53,841.69,97.26,842.34,97.85c842.86,98.33,842.67,98.51,841.66,98.52c840.89,98.52,840.26,98.40,840.26,98.24|m847.24,98.04c847.58,97.84,848.16,97.84,848.50,98.04c848.85,98.25,848.57,98.41,847.87,98.41c847.17,98.41,846.89,98.25,847.24,98.04|m857.89,98.04c858.23,97.84,858.80,97.84,859.15,98.04c859.50,98.25,859.22,98.41,858.52,98.41c857.82,98.41,857.54,98.25,857.89,98.04|m868.53,98.04c868.88,97.84,869.45,97.84,869.80,98.04c870.15,98.25,869.87,98.41,869.17,98.41c868.47,98.41,868.19,98.25,868.53,98.04|m904.54,98.01c905.18,97.83,906.09,97.84,906.57,98.02c907.06,98.21,906.54,98.35,905.43,98.34c904.31,98.34,903.91,98.19,904.54,98.01|m931.41,98.04c931.76,97.84,932.33,97.84,932.68,98.04c933.03,98.25,932.75,98.41,932.05,98.41c931.35,98.41,931.07,98.25,931.41,98.04|m952.71,98.04c953.06,97.84,953.63,97.84,953.98,98.04c954.33,98.25,954.04,98.41,953.35,98.41c952.65,98.41,952.36,98.25,952.71,98.04|m499.77,76.43c495.00,72.98,492.93,67.97,492.91,59.85c492.90,53.76,493.53,50.65,495.51,46.96c497.66,42.98,500.72,41.18,505.34,41.18c509.60,41.18,511.97,42.48,514.27,46.07c516.71,49.89,517.42,52.84,517.43,59.19c517.45,68.45,515.26,73.59,509.95,76.77c507.21,78.41,502.28,78.25,499.77,76.43|m420.64,76.32c420.50,75.80,420.33,69.74,420.26,62.87l420.13,50.37l416.84,50.00l413.54,49.63l413.25,46.47c412.75,41.09,412.69,41.12,424.44,41.34l434.84,41.54l434.84,45.59l434.84,49.63l431.29,50.00l427.74,50.37l427.48,63.60l427.23,76.84l424.06,77.06c421.80,77.21,420.81,77.00,420.64,76.32|m444.39,76.32c443.93,75.29,444.04,42.93,444.50,41.84c444.66,41.47,447.65,41.18,451.15,41.18c458.75,41.18,460.76,42.30,462.49,47.49c463.41,50.23,463.46,50.98,462.93,54.03c462.60,55.92,461.91,57.85,461.39,58.32c460.22,59.38,460.18,61.26,461.29,62.59c462.12,63.58,466.02,75.04,466.02,76.48c466.02,76.89,464.46,77.21,462.48,77.21l458.94,77.21l457.61,73.35c455.54,67.35,453.93,64.59,452.67,64.85c451.68,65.05,451.55,65.63,451.32,70.96l451.06,76.84l447.94,77.06c445.80,77.20,444.68,76.97,444.39,76.32|m475.51,76.75c475.31,76.46,475.15,68.51,475.15,59.08l475.15,41.94l476.33,41.51c476.97,41.28,478.63,41.19,480.00,41.31l482.51,41.54l482.51,59.19l482.51,76.84l479.19,77.05c477.36,77.17,475.71,77.03,475.51,76.75|m510.65,74.01c516.73,69.78,518.12,54.34,513.05,47.22c507.67,39.68,498.21,41.83,495.34,51.24c493.97,55.73,494.01,63.58,495.41,67.57c496.78,71.46,499.41,74.43,502.40,75.48c505.35,76.51,507.64,76.10,510.65,74.01|m541.46,75.27c540.83,75.00,540.57,74.14,540.57,72.35c540.57,70.06,540.67,69.88,541.55,70.56c542.09,70.98,543.59,71.32,544.88,71.32c546.81,71.32,547.51,70.93,548.72,69.17c549.54,67.99,550.20,66.30,550.20,65.41c550.20,63.95,550.04,63.85,548.55,64.37c544.26,65.88,541.01,64.23,539.76,59.89c537.57,52.29,540.86,45.59,546.78,45.59c551.62,45.59,554.52,51.11,554.50,60.29c554.48,70.25,551.58,75.22,545.65,75.49c543.83,75.57,541.94,75.47,541.46,75.27|m569.16,75.01c563.63,71.77,563.49,51.50,568.96,46.81c570.86,45.19,575.22,45.21,577.14,46.86c579.99,49.30,581.59,57.38,580.64,64.59c579.94,69.96,579.16,72.08,577.13,74.05c575.32,75.82,571.36,76.30,569.16,75.01|m426.47,61.40l426.72,48.16l429.95,48.07c432.86,47.98,434.06,47.26,434.06,45.59c434.06,43.79,432.74,43.49,424.25,43.31c416.43,43.16,415.14,43.29,414.75,44.30c413.78,46.79,414.74,47.79,418.10,47.79c420.54,47.79,421.36,48.07,421.60,48.96c421.77,49.60,421.91,55.74,421.91,62.60l421.91,75.08l424.06,74.86l426.22,74.63l426.47,61.40|m450.20,68.57l450.35,62.50l452.03,62.50c454.37,62.50,455.92,64.52,457.89,70.17l459.58,75.00l461.79,75.00c463.00,75.00,464.00,74.83,464.00,74.61c464.00,72.98,460.14,62.98,459.15,62.04c457.79,60.75,457.48,58.82,458.63,58.82c460.00,58.82,461.46,55.14,461.46,51.71c461.46,47.74,460.37,45.16,458.25,44.18c455.66,42.97,446.22,42.99,445.68,44.21c445.17,45.35,445.13,73.87,445.63,74.60c445.81,74.86,446.88,74.97,448.00,74.85l450.05,74.63l450.20,68.57|m481.12,59.65c481.20,50.63,481.06,44.33,480.76,43.80c480.48,43.31,479.48,43.07,478.47,43.24l476.67,43.54l476.67,59.31l476.67,75.08l478.83,74.86l480.98,74.63l481.12,59.65|m503.79,71.42c502.13,70.67,500.59,68.79,499.77,66.49c498.73,63.61,498.75,55.72,499.80,52.51c500.70,49.78,503.30,47.06,505.03,47.06c506.79,47.06,509.09,49.13,510.16,51.69c511.53,54.95,511.56,64.16,510.21,67.14c508.61,70.66,505.99,72.40,503.79,71.42|m575.40,69.37c576.62,66.68,576.60,55.82,575.37,52.39c574.66,50.40,574.23,50.00,572.77,50.00c570.11,50.00,569.33,52.75,569.55,61.42c569.69,66.85,569.92,68.54,570.69,69.78c572.08,71.99,574.30,71.80,575.40,69.37|m508.22,67.83c509.36,66.40,510.29,59.64,509.84,56.13c509.36,52.45,507.16,49.26,505.09,49.26c500.74,49.26,498.67,59.63,501.60,66.68c502.95,69.92,506.12,70.47,508.22,67.83|m548.71,59.52c550.23,57.31,549.91,52.49,548.11,50.54c546.91,49.26,546.61,49.21,545.32,50.11c544.07,50.97,543.84,51.59,543.71,54.56c543.59,57.26,543.79,58.34,544.60,59.52c545.92,61.44,547.38,61.44,548.71,59.52|m450.22,57.37c450.13,56.97,450.13,54.68,450.22,52.28c450.37,48.33,450.51,47.88,451.67,47.46c453.33,46.85,456.26,48.28,456.90,50.01c458.44,54.18,456.34,58.09,452.56,58.09c451.37,58.09,450.31,57.76,450.22,57.37|m455.36,54.81c456.25,53.25,455.81,51.31,454.28,50.06c453.16,49.15,452.80,49.13,452.13,49.94c451.32,50.91,451.01,54.46,451.66,55.39c452.27,56.28,454.73,55.90,455.36,54.81'
+)
