@@ -61,6 +61,7 @@ except Exception:
         import securite as _sec
     except Exception:
         _sec = None
+_sec = None  # chiffres pleins -> economie de toner
 
 try:
     pdfmetrics.registerFont(TTFont("DJL", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
@@ -301,6 +302,17 @@ def _tirer(rng, deja):
     return g
 
 
+def _lunettes_eco(c, cx, cy, w, col):
+    """Lunettes de soleil simples, au trait -> economie de toner."""
+    from reportlab.lib import colors as _col
+    lw = w * 0.30; lh = w * 0.26; rad = lh * 0.35; dx = w * 0.26
+    c.setStrokeColor(col); c.setLineWidth(1.0); c.setFillColor(_col.white)
+    c.roundRect(cx - dx - lw / 2, cy - lh / 2, lw, lh, rad, stroke=1, fill=0)
+    c.roundRect(cx + dx - lw / 2, cy - lh / 2, lw, lh, rad, stroke=1, fill=0)
+    c.line(cx - dx + lw / 2, cy + lh * 0.22, cx + dx - lw / 2, cy + lh * 0.22)
+    c.line(cx + dx + lw / 2, cy + lh * 0.30, cx + dx + lw / 2 + w * 0.16, cy + lh * 0.55)
+
+
 def _dessiner_feuille(c, x0, y0, grilles, series, couleurs, titre_jeu="",
                       telephone="", style="eco"):
     police_ch, gris_ch = _style_chiffres(style)
@@ -311,6 +323,18 @@ def _dessiner_feuille(c, x0, y0, grilles, series, couleurs, titre_jeu="",
 
     def MY(v):
         return y0 + FEUILLE_H - v / 1000.0 * FEUILLE_H
+
+    # ⭐ 08/10 (sceau Maeva : << lunettes en economie de toner >>) : on cache
+    #    les grosses lunettes pleines (blanc) et on pose des lunettes au trait.
+    from reportlab.lib import colors as _colM
+    for _gi, (_bd, _cd, _cx, _ry, _se) in enumerate(CARTES):
+        _gx = MX(_bd[0] + 194.0); _gx2 = MX(_bd[0] + 243.0)
+        _gyt = MY(_cd[0] + 3.0); _gyb = MY(_cd[0] + 49.0)
+        c.setFillColor(_colM.white)
+        c.rect(_gx, _gyb, _gx2 - _gx, _gyt - _gyb, stroke=0, fill=1)
+        _cxg = MX(_bd[0] + 216.0); _cyg = MY(_cd[0] + 27.0)
+        _wg = MX(_bd[0] + 242.0) - MX(_bd[0] + 194.0)
+        _lunettes_eco(c, _cxg, _cyg, _wg, couleurs[_gi])
 
     for gi, (bord, cadre, colx, rowy, serie) in enumerate(CARTES):
         grille = grilles[gi]
