@@ -6,10 +6,12 @@ REFAIT LE 11/10 (sceau Maeva) : nouvelle maquette LOSANGE · 8 BOULES en
 couronne. Reprise TELLE QUELLE, posée comme UNE SEULE image de fond
 (impression rapide). 12 cartons par feuille.
 
-RÈGLE INCHANGÉE (8 boules) :
-  flanc GAUCHE : 3 numéros 1-30 (triés, haut -> bas)
-  flanc DROIT  : 3 numéros 46-75 (triés, haut -> bas)
-  HAUT + BAS   : 2 numéros 31-45 (triés)
+RÈGLE (11/10 — plages BINGO par colonne de la couronne) :
+  colonne de GAUCHE (L)          -> B : 1 numéro  1-15
+  colonne gauche-centre (UL/LL)  -> I : 2 numéros 16-30 (triés haut->bas)
+  colonne CENTRE (TOP/BOT)       -> N : 2 numéros 31-45 (triés haut->bas)
+  colonne droite-centre (UR/LR)  -> G : 2 numéros 46-60 (triés haut->bas)
+  colonne de DROITE (R)          -> O : 1 numéro  61-75
 N° de série dans le carré pointillé central. Chiffres NOIRS (Latin Modern).
 """
 import io
@@ -73,11 +75,14 @@ _a=_sw("88",POLICE_NUM,1.0)/2.0
 _T_NUM = R_PT*0.86/max((_a*_a+0.35*0.35)**0.5,0.01)
 
 def _gen_carte(rng):
-    g=sorted(rng.sample(range(1,31),3))      # gauche 1-30
-    d=sorted(rng.sample(range(46,76),3))     # droite 46-75
-    tb=sorted(rng.sample(range(31,46),2))    # haut/bas 31-45
+    # plages BINGO par colonne de la couronne
+    b = rng.randint(1, 15)                    # L  -> B 1-15
+    i = sorted(rng.sample(range(16, 31), 2))  # UL/LL -> I 16-30
+    nn = sorted(rng.sample(range(31, 46), 2)) # TOP/BOT -> N 31-45
+    g = sorted(rng.sample(range(46, 61), 2))  # UR/LR -> G 46-60
+    o = rng.randint(61, 75)                   # R  -> O 61-75
     # ordre: TOP, UL, UR, L, R, LL, LR, BOT
-    return [tb[0], g[0], d[0], g[1], d[1], g[2], d[2], tb[1]]
+    return [nn[0], i[0], g[0], b, o, i[1], g[1], nn[1]]
 
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="",
