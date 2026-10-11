@@ -639,7 +639,7 @@ NOMS_RESERVES = ["tukea", "2kea", "maeva", "2kea&associe", "2kea & associe", "2k
 #   0,50 = l'ancien (trop chargé)   ·   0,30 = très foncé
 # Le microtexte intérieur suit automatiquement (il vaut la teinte × 0,45).
 # La gamme PREMIUM (_GRIS_P15) n'est pas touchée.
-GRIS_CHIFFRES_ECO = 0.50   # 🎨 50 % D'ENCRE POUR TOUS LES JEUX (sceau Maeva 07/08).
+GRIS_CHIFFRES_ECO = 0.00   # 🖤 CHIFFRES BIEN NOIRS pour la boutique Chez TUKEA (sceau Maeva 11/10) — 100 % d'encre.
                            # ⚠️ LANGAGE IMPRIMEUR : le chiffre que Maeva donne est
                            # la TENEUR EN ENCRE ; la valeur du code est son
                            # complement — 50 % d'encre = Color(0,50).
@@ -806,7 +806,7 @@ _enregistrer_paire("tiare_halloween", "TIARE HALLOWEEN", "🎃", 16, tiarehwgen.
 _enregistrer_paire("pow_casino",    "POW CASINO","🎲", 12, powgen.generer_pdf_casino)
 _enregistrer_paire("poe_parau",     "PERLE 90", "🦪", 16, poeparaugen.generer_pdf)
 _enregistrer_paire("poe",           "POE 6 boules", "⚪", 12, poegen.generer_pdf)
-_enregistrer_paire("bng",           "BNG 5 boules", "🟢", 12, bnggen.generer_pdf)
+_enregistrer_paire("bng",           "BNG 5 boules", "🟢", 16, bnggen.generer_pdf)
 _enregistrer_paire("hakari",        "HAKARI 6 boules", "🥥", 20, hakarigen.generer_pdf)
 _enregistrer_paire("hakari_halloween", "HAKARI HALLOWEEN", "🎃", 20, hakarihwgen.generer_pdf)
 _enregistrer_paire("valider_halloween", "VALIDER HALLOWEEN", "🎃", 16, validerhwgen.generer_pdf)
@@ -1056,7 +1056,7 @@ _enregistrer_paire("tahaa",         "TAHAA",      "🥥", 15, tahaa.generer_pdf)
 _enregistrer_paire("tahaa90",       "TAHAA 90",   "\U0001f41b", 8,  tahaa90.generer_pdf)
 _enregistrer_paire("baam",          "BAAM",       "\U0001f388", 8,  baam.generer_pdf)
 _enregistrer_paire("papeari",       "PAPEARI",    "\U0001f38a", 8,  papeari.generer_pdf)
-_enregistrer_paire("boules60",      "60 BOULES",  "🔵", 8, boules60.generer_pdf)
+_enregistrer_paire("boules60",      "60 BOULES",  "🔵", 12, boules60.generer_pdf)
 _enregistrer_paire("ahuru",         "AHURU",      "🔟", 10, ahuru.generer_pdf)
 _enregistrer_paire("tchin",         "TCHIN",      "🍻", 12, tchin.generer_pdf)
 _enregistrer_paire("ing",           "ING CLASSIC",        "🧭", 12, ing.generer_pdf)
