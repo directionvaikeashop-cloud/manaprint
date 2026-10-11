@@ -1,262 +1,108 @@
 # -*- coding: utf-8 -*-
 """
-MANAPRINT — Générateur 60 BOULES (format A4)
-12 grilles par feuille A4 (2 colonnes × 6 rangées) — à la demande de Maeva
-(le modèle historique en avait 18, on aère pour de plus grosses cartes).
-Chaque carte : BANDEAU coloré « JEUX 60 · 8 BOULES · BY 2KEA » (texte blanc,
-fidèle au modèle), puis grille 4×2 — 8 numéros triés par colonne :
-  1-15 · 16-30 · 31-45 · 46-60   (2 par colonne, d'où les « 60 boules »)
-Pied de carte : « N° SÉRIE | 027001 ». QR de vérification dans la bande droite.
-Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
+MANAPRINT — Generateur 60 BOULES (format A4 PORTRAIT)
+
+REFAIT LE 11/10 (sceau Maeva) : nouvelle maquette JEU 60 (12 cartons,
+4 colonnes x 2 rangees = 8 cases). Reprise TELLE QUELLE, posee comme UNE
+SEULE image de fond (impression rapide). 12 cartons par feuille.
+L'image n'est pas au ratio A4 : on la pose en gardant ses proportions
+(ajustee en largeur, centree verticalement) — AUCUNE deformation.
+
+REGLE INCHANGEE (60 BOULES - 8 boules) :
+  colonne 1 : 2 numeros 1-15   (tries haut -> bas)
+  colonne 2 : 2 numeros 16-30
+  colonne 3 : 2 numeros 31-45
+  colonne 4 : 2 numeros 46-60
+N de serie dans le pied (N SERIE). Chiffres NOIRS (Latin Modern), au max.
 """
 import io
+import os as _os
 import random
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
-from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-
-# SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne : si le module securite
-# est absent, les cartons sortent normalement, simplement sans microtexte.
-try:
-    from generators import motifs as _motifs
-except Exception:
-    try:
-        import motifs as _motifs
-    except Exception:
-        _motifs = None
-
-try:
-    from generators import securite as _sec
-except Exception:
-    try:
-        import securite as _sec
-    except Exception:
-        _sec = None
-
-
-try:
-    pdfmetrics.registerFont(TTFont("DJL", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    POLICE = "DJL"
-except Exception:
-    POLICE = "Helvetica"
-
-RAINBOW = [
-    "#E53935", "#FB8C00", "#F9A825", "#43A047", "#00ACC1",
-    "#1E88E5", "#3949AB", "#8E24AA", "#D81B60", "#6D4C41",
-]
-GRIS = colors.Color(0.42, 0.42, 0.42)
-GRIS_CLAIR = colors.Color(0.80, 0.80, 0.80)
-
-
-# ══ DEUX GAMMES COMMERCIALES (vision Maeva) ══════════════════════════
-# ÉCO      : écriture fine DejaVu ExtraLight, gris 0,50 — économie de toner
-# PREMIUM  : écriture grasse Helvetica-Bold, gris 0,55 — style P15
-from reportlab.pdfbase import pdfmetrics as _pm
-from reportlab.pdfbase.ttfonts import TTFont as _TF
-try:
-    _pm.registerFont(_TF("DJLECO", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    _POLICE_ECO = "DJLECO"
-except Exception:
-    _POLICE_ECO = "Helvetica"
-_GRIS_ECO = colors.Color(0.58, 0.58, 0.58)  # allégé (économie d'encre, 27/07)
-_POLICE_P15 = "Helvetica-Bold"
-_GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
-
-def _style_chiffres(style):
-    """Retourne (police, gris) des chiffres selon la gamme choisie."""
-    if str(style).lower() in ("p15", "premium"):
-        return _POLICE_P15, _GRIS_P15
-    return _POLICE_ECO, _GRIS_ECO
-# ═════════════════════════════════════════════════════════════════════
+from reportlab.pdfbase.pdfmetrics import stringWidth as _sw
 
 PAGE_W, PAGE_H = A4
-# Les 4 colonnes du 60 BOULES : 2 numéros chacune
-PLAGES = [(1, 15), (16, 30), (31, 45), (46, 60)]
+CARTES_PAGE = 12
+FOND_X, FOND_Y, FOND_W, FOND_H = 0.0, 36.15, 595.28, 769.59
+try:
+    pdfmetrics.registerFont(TTFont("LMROMAN", _os.path.join(
+        _os.path.dirname(_os.path.abspath(__file__)), "LatinModern.ttf")))
+    POLICE_NUM = "LMROMAN"
+except Exception:
+    POLICE_NUM = "Times-Bold"
+POLICE_PETIT = "Helvetica"
+RAINBOW = ["#E53935","#FB8C00","#F9A825","#43A047","#00ACC1",
+           "#1E88E5","#3949AB","#8E24AA","#D81B60","#6D4C41"]
+NOIR = colors.Color(0,0,0)
+GRIS = colors.Color(0.45,0.45,0.45)
 
-# ═══ 🦋 LES HUIT PAPILLONS (sceau Maeva 14/08) ═══
-# « J'AI 60 BOULES — 8 BOULES » : huit papillons numérotés de 1 à 8, un
-# cercle clair au cœur de chacun, reliés par des traits pointillés.
-# ⚠️ L'ORDRE suit les PASTILLES NOIRES du dessin (1 à 8), pas la position :
-#   1 haut-gauche · 2 haut-droite · 3 milieu-gauche · 4 centre
-#   5 milieu-droite · 6 bas-gauche · 7 bas-centre · 8 bas-droite
-_RATIO_PAP = 1.5018
-PAPILLONS = [[0.2827, 0.673], [0.7434, 0.6571], [0.2761, 0.3911], [0.5131, 0.4999], [0.8429, 0.394], [0.4165, 0.1791], [0.6323, 0.2311], [0.8372, 0.1488]]
-DIAM_PAP = 0.115
-import os as _os2
-from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_b
+CELL_W, CELL_H = 64.0, 39.27
+PLAGES = [(1,15),(16,30),(31,45),(46,60)]
+
+CARTONS = [
+    dict(C=[[(61.79,739.63),(61.52,700.77)], [(125.21,739.63),(125.21,700.50)], [(188.89,739.63),(188.89,700.77)], [(252.30,739.63),(252.30,700.77)]], SER=(184.00,671.90)),
+    dict(C=[[(342.97,739.63),(342.97,700.77)], [(406.65,739.63),(406.65,700.50)], [(470.07,739.63),(470.07,700.77)], [(533.75,739.63),(533.75,700.77)]], SER=(465.35,671.90)),
+    dict(C=[[(61.79,618.20),(61.52,579.07)], [(125.21,618.20),(125.21,579.07)], [(188.89,618.20),(188.89,579.07)], [(252.30,618.20),(252.30,579.07)]], SER=(184.00,550.47)),
+    dict(C=[[(342.97,618.20),(342.97,579.07)], [(406.65,618.20),(406.65,579.07)], [(470.07,618.20),(470.07,579.07)], [(533.75,618.20),(533.75,579.07)]], SER=(465.35,550.47)),
+    dict(C=[[(61.52,495.96),(61.79,457.10)], [(125.21,495.96),(125.21,457.10)], [(188.89,495.96),(188.89,457.10)], [(252.30,496.23),(252.30,457.10)]], SER=(184.00,428.50)),
+    dict(C=[[(342.97,496.23),(342.97,457.10)], [(406.65,496.23),(406.65,457.10)], [(470.07,495.96),(470.07,457.10)], [(533.75,495.96),(533.75,457.10)]], SER=(465.35,428.50)),
+    dict(C=[[(61.52,374.53),(61.52,335.67)], [(125.21,374.53),(125.21,335.67)], [(188.89,374.53),(188.89,335.67)], [(252.30,374.53),(252.30,335.67)]], SER=(183.97,307.07)),
+    dict(C=[[(342.97,374.53),(342.97,335.67)], [(406.65,374.53),(406.65,335.67)], [(470.07,374.53),(470.07,335.67)], [(533.75,374.53),(533.75,335.67)]], SER=(465.35,307.07)),
+    dict(C=[[(61.52,252.29),(61.52,213.17)], [(125.21,252.29),(125.21,213.17)], [(188.89,252.29),(188.89,213.17)], [(252.30,252.29),(252.30,213.17)]], SER=(183.97,184.56)),
+    dict(C=[[(342.97,252.29),(342.97,213.17)], [(406.65,252.29),(406.65,213.17)], [(470.07,252.29),(470.07,213.17)], [(533.75,252.29),(533.75,213.17)]], SER=(465.35,184.56)),
+    dict(C=[[(61.52,130.32),(61.79,90.93)], [(125.21,130.32),(125.21,90.93)], [(188.89,130.32),(188.89,90.93)], [(252.30,130.05),(252.30,90.93)]], SER=(184.00,62.05)),
+    dict(C=[[(342.97,130.32),(342.97,90.93)], [(406.65,130.32),(406.65,90.93)], [(470.07,130.32),(470.07,90.93)], [(533.75,130.32),(533.75,90.93)]], SER=(465.35,62.05)),
+]
 
 
-def _choisir_image(motif_img, ratio_attendu):
-    """🛟 Retrouve le dessin, quel que soit son nom de fichier."""
-    dossier = _os2.path.dirname(_os2.path.abspath(__file__))
-    exact = _os2.path.join(dossier, motif_img + ".png")
-    candidats = []
+def _fond():
+    d=_os.path.dirname(_os.path.abspath(__file__))
+    for nom in ("boules60_fond.png","jeu60_fond.png"):
+        p=_os.path.join(d,nom)
+        if _os.path.exists(p): return p
     try:
-        for f in _os2.listdir(dossier):
-            if motif_img in f and f.lower().endswith(".png"):
-                candidats.append(_os2.path.join(dossier, f))
-    except Exception:
-        return exact
-    if not candidats:
-        return exact
-    meilleur, ecart = candidats[0], 9e9
-    for chemin in candidats:
-        try:
-            from PIL import Image as _Im
-            with _Im.open(chemin) as im:
-                e = abs(im.width / float(im.height) - ratio_attendu)
-        except Exception:
-            continue
-        if e < ecart:
-            meilleur, ecart = chemin, e
-    return meilleur
+        for f in _os.listdir(d):
+            if "boules60_fond" in f.lower() and f.lower().endswith(".png"): return _os.path.join(d,f)
+    except Exception: pass
+    return _os.path.join(d,"boules60_fond.png")
+_IMG_FOND=_fond()
 
-
-_IMAGE_PAP = _choisir_image("b60_papillons", _RATIO_PAP)
-
-
-# ⚠️ 14/08 : le dessin est en PAYSAGE (ratio 1,50) — on passe de 12 cartes
-# à 8 cartes-plaques (2 colonnes × 4 rangées).
-COLS_PAGE = 2
-ROWS_PAGE = 4
-MARGIN_X = 8 * mm
-MARGIN_TOP = 10 * mm
-MARGIN_BOT = 8 * mm
-GUTTER_X = 5 * mm
-GUTTER_Y = 2.8 * mm
-
-CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
-CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
-HDR_H = 6.2 * mm         # bandeau coloré JEUX 60
-PIED_H = 4.4 * mm        # bande N° SÉRIE
-ZONE_QR = 16 * mm        # bande de droite réservée au QR de vérification
-
+_w88=max(_sw("88",POLICE_NUM,1.0),0.01)
+_T_NUM = min(CELL_W*0.80/_w88, CELL_H*0.92)
 
 def _gen_carte(rng):
-    """8 numéros : 2 distincts par colonne, triés vers le bas."""
-    return [sorted(rng.sample(range(pmin, pmax + 1), 2)) for pmin, pmax in PLAGES]
-
-
-def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id="", motif=""):
-    # 🖼️ filigrane décoratif (option client) — dessiné EN PREMIER, tout passe dessus
-    if _motifs and motif:
-        _motifs.dessiner_filigrane(c, x0, y0, CARD_W, CARD_H, motif, graine=serie, nb=2, echelle=0.9)
-    police_ch, gris_ch = _style_chiffres(style)
-    col = colors.HexColor(couleur_hex)
-
-    # ⚠️⚠️ 14/08 : ni cadre, ni microtexte, ni QR — comme les autres jeux
-    # habillés. Maeva veut le carton net.
-
-    # ═══ 🦋 LA PLAQUE AUX PAPILLONS ═══
-    # ⚠️ PAS de preserveAspectRatio : on VEUT l'étirer pour qu'elle épouse
-    # la carte. Les huit cercles suivent, chacun à sa place.
-    _pw = CARD_W - 0.6 * mm
-    _ph = CARD_H - 0.6 * mm
-    _px = x0 + (CARD_W - _pw) / 2
-    _py = y0 + 0.3 * mm
-    if _os2.path.exists(_IMAGE_PAP):
-        try:
-            c.drawImage(_IMAGE_PAP, _px, _py, _pw, _ph, mask="auto")
-        except Exception:
-            pass
-
-    # ⚠️ la taille se calcule DEPUIS le cercle du papillon, jamais en dur.
-    # ⚠️ MESURER AVEC LA VRAIE POLICE (`police_ch`), pas Helvetica.
-    _dia = _pw * DIAM_PAP
-    _t_num = 25.0
-    while _t_num > 6 and (_lg_b("88", police_ch, _t_num) > _dia * 1.05
-                          or _t_num * 0.72 > _dia * 0.86):
-        _t_num -= 0.5
-
-    # ═══ les HUIT numéros, au cœur de leur papillon ═══
-    # ⚠️ cols_nums donne QUATRE COLONNES de deux numéros triés. On les
-    # aplatit dans l'ordre des pastilles : 1,2 = 1-15 · 3,4 = 16-30 ·
-    # 5,6 = 31-45 · 7,8 = 46-60.
-    _plat = [v for col in cols_nums for v in col]
-    for _k, _n in enumerate(_plat[:8]):
-        _bx, _by = PAPILLONS[_k]
-        _nx = _px + _bx * _pw
-        _ny = _py + _by * _ph - _t_num * 0.34
-        if _sec:
-            _sec.chiffre_micro(c, _n, _nx, _ny, _t_num, gris_ch, police_ch)
-        else:
-            c.setFillColor(gris_ch)
-            c.setFont(police_ch, _t_num)
-            c.drawCentredString(_nx, _ny, str(_n))
-
-    # ═══ 🎫 LES DEUX BANDEAUX, écrits dans leurs pastilles creuses ═══
-    # ⚠️ Ils étaient NOIRS PLEINS dans le dessin (plus de la moitié de
-    # leur surface en encre) : ils sont désormais CREUX, texte en gris.
-    c.setFillColor(gris_ch)
-    _t8 = 6.5
-    while _t8 > 3.2 and _lg_b("8 BOULES", "Helvetica-Bold", _t8) > _pw * 0.14:
-        _t8 -= 0.25
-    c.setFont("Helvetica-Bold", _t8)
-    c.drawCentredString(_px + _pw * 0.530, _py + _ph * 0.800, "8 BOULES")
-
-    _bl = "N\u00b0 %05d" % serie
-    if telephone:
-        _bl += "   \u2022   " + telephone
-    _tb = 9.0
-    while _tb > 3.4 and _lg_b(_bl, "Helvetica-Bold", _tb) > _pw * 0.28:
-        _tb -= 0.25
-    c.setFont("Helvetica-Bold", _tb)
-    c.drawCentredString(_px + _pw * 0.532, _py + _ph * 0.020, _bl)
-
+    return [sorted(rng.sample(range(lo,hi+1),2)) for lo,hi in PLAGES]
 
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
-                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id="", motif="", page_start=1):
-    buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
-
-    nb_cartes = max(1, min(int(nb_cartes), 10000))
-    par_page = COLS_PAGE * ROWS_PAGE
-    nb_pages = (nb_cartes + par_page - 1) // par_page
-
-    rng = random.Random(932000 + int(serie_start))
-    serie = int(serie_start)
-    # 📄 la page continue d'une rame à l'autre (sceau Maeva 12/08)
-    no_page = max(1, int(page_start))
-    faites = 0
-
-    for _ in range(nb_pages):
-        # en-tête de page
-        if nom_evenement:
-            c.setFillColor(colors.black); c.setFont(POLICE, 9)
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 5 * mm, nom_evenement)
-        c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 6)
-        c.drawCentredString(PAGE_W / 2, PAGE_H - 7.2 * mm, "%03d" % no_page)
-
-        for row in range(ROWS_PAGE):
-            for col_i in range(COLS_PAGE):
-                if faites >= nb_cartes:
-                    break
-                x0 = MARGIN_X + col_i * (CARD_W + GUTTER_X)
-                y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
-                cols_nums = _gen_carte(rng)
-                coul = (couleur_perso if (couleur and couleur_perso)
-                        else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
-                _dessiner_carte(c, x0, y0, cols_nums, coul, serie, titre_jeu, telephone,
-                                style=style, evenement_id=evenement_id, motif=motif)
-                serie += 1
-                faites += 1
-
+                nom_evenement="", titre_jeu="", couleur_perso="",
+                date_lieu="", telephone="", page_start=1, evenement_id="",
+                style="", motif="", **_ignore):
+    buf=io.BytesIO(); c=canvas.Canvas(buf, pagesize=(PAGE_W,PAGE_H))
+    rng=random.Random(int(serie_start)*100003+60)
+    n_=max(1,int(nb_cartes)); serie=int(serie_start); faites=0
+    try: page_dep=max(1,int(page_start))
+    except Exception: page_dep=1
+    while faites<n_:
+        try: c.drawImage(_IMG_FOND,FOND_X,FOND_Y,FOND_W,FOND_H,preserveAspectRatio=False,mask="auto")
+        except Exception: pass
+        for pos in CARTONS:
+            if faites>=n_: break
+            nums=_gen_carte(rng)
+            col=colors.HexColor(RAINBOW[serie%len(RAINBOW)]) if couleur else NOIR
+            c.setFillColor(col); c.setFont(POLICE_NUM,_T_NUM)
+            for colpts,colnums in zip(pos["C"], nums):
+                for (cx,cy),val in zip(colpts, colnums):
+                    c.drawCentredString(cx, cy-_T_NUM*0.34, str(val))
+            c.setFillColor(GRIS); c.setFont(POLICE_PETIT,7.0)
+            c.drawString(pos["SER"][0], pos["SER"][1], "%06d"%serie)
+            serie+=1; faites+=1
+        if page_dep>1 or faites>CARTES_PAGE:
+            c.setFillColor(GRIS); c.setFont(POLICE_PETIT,6.0)
+            nfe=page_dep+(faites-1)//CARTES_PAGE
+            c.drawRightString(PAGE_W-6, PAGE_H-10, "%03d"%nfe)
         c.showPage()
-        no_page += 1
-
-    c.save()
-    buf.seek(0)
-    return buf
-
-
-if __name__ == "__main__":
-    pdf = generer_pdf(nb_cartes=12, couleur=True,
-                      nom_evenement="ASSOCIATION TE MANU", titre_jeu="Grand Loto",
-                      telephone="89 22 23 05")
-    with open("test_boules60.pdf", "wb") as f:
-        f.write(pdf.read())
-    print("60 BOULES généré")
+    c.save(); buf.seek(0); return buf
