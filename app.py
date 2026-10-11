@@ -208,6 +208,7 @@ from generators import tiki
 from generators import bo75
 from generators import bg75
 from generators import bn75
+from generators import bi75
 from generators import wiz
 from generators import p15_marathon
 from generators import p12_marathon
@@ -794,7 +795,7 @@ _enregistrer_paire("ohana75_8b_smo","OHANA 75 · 8 boules SMORFIA","🎴", 9,  o
 _enregistrer_paire("ohana75_8b_myst","OHANA 75 · 8 boules MYSTÈRE","💰", 9,  ohana75_8boules.generer_pdf_mystere)
 _enregistrer_paire("ohana75_10b",   "OHANA 75 · 10 boules","🌺", 9,  ohana75_10boules.generer_pdf)
 _enregistrer_paire("ohana75_10b_myst","OHANA 75 · 10 boules MYSTÈRE","💰", 9,  ohana75_10boules.generer_pdf_mystere)
-_enregistrer_paire("quatre_coin",   "4 COIN","🎯", 6,  quatre_coin.generer_pdf)
+_enregistrer_paire("quatre_coin",   "4 COIN","🎯", 12,  quatre_coin.generer_pdf)
 _enregistrer_paire("pol",           "POL 6 boules","🎲", 8, pol.generer_pdf)
 _enregistrer_paire("sun",           "SUN 8 boules","☀️", 12, sun.generer_pdf)
 _enregistrer_paire("sun_casino",    "SUN CASINO","🎲", 12, sun.generer_pdf_casino)
@@ -803,7 +804,7 @@ _enregistrer_paire("pow9",          "POW 9 boules", "\U0001f9fa", 12, pow9gen.ge
 _enregistrer_paire("pow_halloween", "POW HALLOWEEN", "🎃", 16, powhwgen.generer_pdf)
 _enregistrer_paire("tiare_halloween", "TIARE HALLOWEEN", "🎃", 16, tiarehwgen.generer_pdf)
 _enregistrer_paire("pow_casino",    "POW CASINO","🎲", 12, powgen.generer_pdf_casino)
-_enregistrer_paire("poe_parau",     "POE PARAU 6 boules", "🦪", 12, poeparaugen.generer_pdf)
+_enregistrer_paire("poe_parau",     "PERLE 90", "🦪", 16, poeparaugen.generer_pdf)
 _enregistrer_paire("poe",           "POE 6 boules", "⚪", 12, poegen.generer_pdf)
 _enregistrer_paire("bng",           "BNG 5 boules", "🟢", 12, bnggen.generer_pdf)
 _enregistrer_paire("hakari",        "HAKARI 6 boules", "🥥", 20, hakarigen.generer_pdf)
@@ -817,14 +818,17 @@ _enregistrer_paire("australes",     "AUSTRALES", "🐋", 15, australesgen.genere
 _enregistrer_paire("gambier",       "GAMBIER 7 boules", "🐚", 8, gambiergen.generer_pdf)
 _enregistrer_paire("parata",        "PARATA 6 plages", "🦈", 6, paratagen.generer_pdf)
 _enregistrer_paire("katiu",         "KATIU 7 boules", "🐠", 8, katiugen.generer_pdf)
-_enregistrer_paire("ok",            "OK 7 boules", "👌", 12, okgen.generer_pdf)
-_enregistrer_paire("feu",           "FEU 5 boules", "🔥", 12, feugen.generer_pdf)
-_enregistrer_paire("vision",        "VISION 6 boules", "👁️", 8, visiongen.generer_pdf)
-_enregistrer_paire("taptap",        "TAP TAP 5 boules", "👏", 8, taptapgen.generer_pdf)
-_enregistrer_paire("joie",          "JOIE 5 boules", "😄", 12, joiegen.generer_pdf)
-_enregistrer_paire("caller",        "CALLER 6 boules", "👍", 12, callergen.generer_pdf)
+_enregistrer_paire("ok",            "OK 6 boules", "👌", 16, okgen.generer_pdf)
+_enregistrer_paire("feu",           "FEU 5 boules", "🔥", 16, feugen.generer_pdf)
+_enregistrer_paire("vision",        "VISION 6 boules", "👁️", 12, visiongen.generer_pdf)
+_enregistrer_paire("taptap",        "TAP TAP 5 boules", "👏", 12, taptapgen.generer_pdf)
+_enregistrer_paire("joie",          "JOIE 5 boules", "😄", 16, joiegen.generer_pdf)
+_enregistrer_paire("caller",        "CALLER 6 boules", "👍", 16, callergen.generer_pdf)
 _enregistrer_paire("valider",       "VALIDER 6 boules", "✅", 16, validergen.generer_pdf)
-_enregistrer_paire("chance",        "CHANCE 6 boules", "🍀", 8, chancegen.generer_pdf)
+# 🍀 07/10 — CHANCE : nouvelle maquette AU TRAIT (5 trèfles, un numéro chacun).
+#   Plages HG 1-20 · HD 21-40 · milieu 41-60 · BG 61-75 · BD 76-90 (crieur 1-90).
+#   Passe de 6 à 5 boules et de 8 à 12 cartons par feuille (3×4).
+_enregistrer_paire("chance",        "CHANCE 5 boules", "🍀", 12, chancegen.generer_pdf)
 _enregistrer_paire("opoa",          "OPOA", "🏔️", 15, opoagen.generer_pdf)
 _enregistrer_paire("francs",        "100 FRANCS 7 boules", "🪙", 12, francsgen.generer_pdf)
 _enregistrer_paire("francs500",     "500 FRANCS", "\U0001f4b5", 8,  francs500.generer_pdf)
@@ -957,7 +961,11 @@ def _base_jeu(programme):
 _enregistrer_paire("win",           "WIN 9 boules","🏆", 12, win.generer_pdf)
 _enregistrer_paire("win_casino",    "WIN CASINO","🎲", 12, win.generer_pdf_casino)
 _enregistrer_paire("rubis90",       "RUBIS 90","💎", 12, rubis90.generer_pdf)
-_enregistrer_paire("rubis75",       "RUBIS 75 · 32 pts","💎", 8, rubis75.generer_pdf)
+# 💎 07/10 — RUBIS 75 : nouvelle maquette AU TRAIT (diamants + bande R-U-B-I-S,
+#   14 cases, B centrale libre). Fini l'image coffret : sort de JEUX_AVEC_IMAGE
+#   et passe de 8 à 9 cartons par feuille (3×3).
+JEUX_AVEC_IMAGE.discard("rubis75")
+_enregistrer_paire("rubis75",       "RUBIS 75 · 32 pts","💎", 9, rubis75.generer_pdf)
 _enregistrer_paire("sicilio",       "SICILIO",          "🔷", 6,  sicilio.generer_pdf)
 _enregistrer_paire("sicilio_smo",   "SICILIO SMORFIA",  "🎴", 6,  sicilio.generer_pdf_smorfia)
 _enregistrer_paire("avinda",        "A VINDA · 2 séries","🍷", 2,  avinda.generer_pdf)
@@ -989,15 +997,19 @@ _enregistrer_paire("lagoon",        "LAGOON 5 boules","🏝️", 8, lagoon.gener
 _enregistrer_paire("havai",         "HAVAI","🌋", 8,  havai.generer_pdf)  # 2×4 = 8 cartons/feuille (corrigé 04/08 : 6 déclarés → 188 pages au lieu de 250)
 _enregistrer_paire("flash_debout",  "FLASH QUINES DEBOUT","⚡", 8,  flash_debout.generer_pdf)
 _enregistrer_paire("dual_dab",      "DUAL DAB 75","🤜", 8,  dual_dab.generer_pdf)
-_enregistrer_paire("cerf_volant",   "CERF VOLANT","🪁", 8,  cerf_volant.generer_pdf)
+JEUX_AVEC_IMAGE.discard("cerf_volant")   # 08/10 : passe en tracé (SANS IMAGE)
+_enregistrer_paire("cerf_volant",   "CERF VOLANT","🪁", 12,  cerf_volant.generer_pdf)
 _enregistrer_paire("bubulle",       "BUBULLE",    "\U0001fae7", 8,  bubulle.generer_pdf)
 _enregistrer_paire("moorea",        "MOOREA",     "🌴", 6,  moorea.generer_pdf)
 _enregistrer_paire("triple_action_90", "TRIPLE ACTION 90", "🎪", 8, triple_action_90.generer_pdf)
+JEUX_AVEC_IMAGE.discard("trio75")   # 08/10 : maquette epuree, passe en tracé (SANS IMAGE)
 _enregistrer_paire("trio75",        "TRIO 75",     "\U0001f3ab", 2,  trio75.generer_pdf)
+JEUX_AVEC_IMAGE.discard("trio90")   # 08/10 : maquette epuree, passe en tracé (SANS IMAGE)
 _enregistrer_paire("trio90",        "TRIO 90",     "\U0001f4cf", 2,  trio90.generer_pdf)
 _enregistrer_paire("funday",        "FUNDAY",     "🎈", 10, funday.generer_pdf)
 _enregistrer_paire("huahine",       "HUAHINE",    "⛵", 8,  huahine.generer_pdf)
-_enregistrer_paire("boules40",      "40 BOULES",  "🎳", 8, boules40.generer_pdf)
+JEUX_AVEC_IMAGE.discard("boules40")   # 08/10 : maquette epuree, passe en tracé (SANS IMAGE)
+_enregistrer_paire("boules40",      "40 BOULES",  "🎳", 12, boules40.generer_pdf)
 _enregistrer_paire("tea",           "TEA",        "🍵", 12, tea.generer_pdf)
 _enregistrer_paire("ohana75_4series", "OHANA 75 · 4 séries", "🌺", 4, ohana75_4series.generer_pdf)
 _enregistrer_paire("ohana90_4series", "OHANA 90 · 4 séries", "🌸", 4, ohana90_4series.generer_pdf)
@@ -1032,10 +1044,15 @@ _enregistrer_paire("wiz_classic", "WIZ CLASSIC", "🧙", 12, wiz_classic.generer
 _enregistrer_paire("rai_classic", "RAI CLASSIC", "🌈", 12, rai_classic.generer_pdf)
 _enregistrer_paire("tahaa_classic", "TAHAA CLASSIC", "🥥", 18, tahaa_classic.generer_pdf)
 _enregistrer_paire("ani",           "TEAHUPOO",        "🌊", 8, ani.generer_pdf)
-_enregistrer_paire("brown14",       "BROWN 14 boules", "🟤", 8, brown14.generer_pdf)
+# 🟤 07/10 — BROWN 14 : nouvelle maquette, 12 cartons par feuille (3×4).
+_enregistrer_paire("brown14",       "BROWN 14 boules", "🟤", 12, brown14.generer_pdf)
 _enregistrer_paire("ino8",          "INO 8 boules", "🎐", 12, ino8.generer_pdf)
 _enregistrer_paire("ino",           "INO 5 boules", "🎏", 12, ino.generer_pdf)
-_enregistrer_paire("tahaa",         "TAHAA",      "🥥", 8, tahaa.generer_pdf)
+# 🌺 06/10 — TAHAA : nouvelle maquette AU TRAIT (fleur de vanille + bungalow,
+#    5 cercles). Fini l'image chenille : le carton est 100 % tracé, donc il
+#    sort de JEUX_AVEC_IMAGE, et passe de 8 à 15 cartons par feuille.
+JEUX_AVEC_IMAGE.discard("tahaa")
+_enregistrer_paire("tahaa",         "TAHAA",      "🥥", 15, tahaa.generer_pdf)
 _enregistrer_paire("tahaa90",       "TAHAA 90",   "\U0001f41b", 8,  tahaa90.generer_pdf)
 _enregistrer_paire("baam",          "BAAM",       "\U0001f388", 8,  baam.generer_pdf)
 _enregistrer_paire("papeari",       "PAPEARI",    "\U0001f38a", 8,  papeari.generer_pdf)
@@ -1081,14 +1098,15 @@ _enregistrer_paire("bin6",          "BIN 6 boules", "\U0001f3af", 12, bin6.gener
 _enregistrer_paire("bin8",          "BIN 8 boules", "🎯", 12, bin8.generer_pdf)
 _enregistrer_paire("pow6",          "POW 5 boules", "💫", 12, pow6.generer_pdf)
 _enregistrer_paire("bg90",          "BG 90",      "🎱", 12, bg90.generer_pdf)
-_enregistrer_paire("bo90",          "BO 90",      "🟠", 12, bo90.generer_pdf)
+_enregistrer_paire("bo90",          "BO 90",      "🟠", 16, bo90.generer_pdf)
 _enregistrer_paire("bn90",          "BN 90",      "🟤", 12, bn90.generer_pdf)
-_enregistrer_paire("bi90",          "BI 90",      "🔵", 12, bi90.generer_pdf)
+_enregistrer_paire("bi90",          "BI 90",      "🔵", 16, bi90.generer_pdf)
 _enregistrer_paire("bgo5",          "BGO 5 boules", "🅾️", 12, bgo5.generer_pdf)
 _enregistrer_paire("tiki",          "BGO TIKI",   "🗿", 8, tiki.generer_pdf)
-_enregistrer_paire("bo75",          "BO 75",      "🔷", 12, bo75.generer_pdf)
+_enregistrer_paire("bo75",          "BO 75",      "🔷", 16, bo75.generer_pdf)
 _enregistrer_paire("bg75",          "BG 75",      "💠", 12, bg75.generer_pdf)
 _enregistrer_paire("bn75",          "BN 75",      "🔶", 12, bn75.generer_pdf)
+_enregistrer_paire("bi75",          "BI 75",      "💙", 16, bi75.generer_pdf)
 _enregistrer_paire("wiz",           "WIZ 4 boules", "🧙", 12, wiz.generer_pdf)
 _enregistrer_paire("p15_marathon",  "P15 Marathon", "🥥", 15, p15_marathon.generer_pdf)
 _enregistrer_paire("p12_marathon",  "P12 Marathon", "🌴", 12, p12_marathon.generer_pdf)
@@ -1807,7 +1825,7 @@ _PLAGES_CALLER = {
     "pow9": (1, 27),
     "pow_halloween": (1, 27),
     "pow_casino": (1, 27),
-    "poe_parau": (1, 75),
+    "poe_parau": (1, 90),
     "poe": (45, 90),
     "bng": (1, 60),
     "hakari": (1, 75),
@@ -1980,6 +1998,7 @@ _PLAGES_CALLER = {
     "bo75": (1, 75),
     "bg75": (1, 75),
     "bn75": (1, 75),
+    "bi75": (1, 75),
     "wiz": (1, 45),
     "p15_marathon": (1, 75),
     "ohana20b": (1, 75),
@@ -2049,7 +2068,8 @@ _BOULES_CALLER = {
     "bo75": [n for n in range(1, 16)] + [n for n in range(46, 76)],  # BO 75 — B 1-15 · O 46-60 · 75 61-75
     "bg75": [n for n in range(1, 16)] + [n for n in range(46, 76)],  # BG 75 — B 1-15 · G 46-60 · 75 61-75
     "bn75": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(61, 76)],  # BN 75 — B 1-15 · N 31-45 · 75 61-75
-    "ok": [n for n in range(1, 16)] + [n for n in range(31, 76)],       # OK — le 16-30 n'existe pas sur les billets
+    "bi75": [n for n in range(1, 31)] + [n for n in range(61, 76)],  # BI 75 — B 1-15 · I 16-30 · 75 61-75
+    "ok": [n for n in range(1, 31)] + [n for n in range(46, 76)],       # OK — B/I/G/O : 1-30 et 46-75 (le 31-45 n'existe pas)
     "vision": [n for n in range(1, 31)] + [n for n in range(46, 76)],   # VISION — le 31-45 n'existe pas
     "taptap": [n for n in range(1, 16)] + [n for n in range(46, 91)],   # TAP TAP — le 16-45 n'existe pas
     "joie": [n for n in range(16, 31)] + [n for n in range(46, 76)],    # JOIE — le 1-15 et le 31-45 n'existent pas
@@ -6264,7 +6284,9 @@ try:
     JEUX_AVEC_IMAGE.discard("brown8")
 except Exception:
     pass
-_enregistrer_paire("brown8", "BROWN 8 boules", "\U0001f7e4", 16, brown8.generer_pdf)
+# 🟤 06/10 (sceau Maeva : « 12 grilles, pas 16 ») : BROWN 8 repasse à 12
+#    cartons par feuille (3 colonnes × 4 rangées), cartons plus grands.
+_enregistrer_paire("brown8", "BROWN 8 boules", "\U0001f7e4", 12, brown8.generer_pdf)
 # ⭐ la regle du 28/09 : on rememorise la table de fabrication APRES
 #    tout bloc qui touche au catalogue (le plafond des 375 feuilles).
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
