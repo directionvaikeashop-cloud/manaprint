@@ -962,7 +962,7 @@ def _base_jeu(programme):
     return p
 _enregistrer_paire("win",           "WIN 9 boules","🏆", 12, win.generer_pdf)
 _enregistrer_paire("win_casino",    "WIN CASINO","🎲", 12, win.generer_pdf_casino)
-_enregistrer_paire("rubis90",       "RUBIS 90","💎", 12, rubis90.generer_pdf)
+_enregistrer_paire("rubis90",       "RUBIS 90","💎", 9, rubis90.generer_pdf)
 # 💎 07/10 — RUBIS 75 : nouvelle maquette AU TRAIT (diamants + bande R-U-B-I-S,
 #   14 cases, B centrale libre). Fini l'image coffret : sort de JEUX_AVEC_IMAGE
 #   et passe de 8 à 9 cartons par feuille (3×3).
@@ -979,7 +979,7 @@ _enregistrer_paire("italia_villes", "ITALIA VILLES","🗺️", 6,  italia_villes
 _enregistrer_paire("italia_esc",    "ITALIA ESCALIER","\U0001fa9c", 10, italia_escalier.generer_pdf)
 _enregistrer_paire("vai",           "VAI 9 boules","🌊", 8, vai.generer_pdf)
 _enregistrer_paire("wow4",          "WOW 4","🎆", 12, wow4.generer_pdf)
-_enregistrer_paire("wow6",          "WOW 6","\U0001f4a5", 8,  wow6.generer_pdf)
+_enregistrer_paire("wow6",          "WOW 6","\U0001f4a5", 16,  wow6.generer_pdf)
 _enregistrer_paire("maia",          "MAIA \u00b7 Ma\u00efa", "🍌", 12, maiagen.generer_pdf)
 _enregistrer_paire("corsica",       "CORSICA \u00b7 l'\u00eele de la beaut\u00e9", "\u2b50", 8, corsicagen.generer_pdf)
 _enregistrer_paire("bno",           "BNO","🎯", 16, bno.generer_pdf)
