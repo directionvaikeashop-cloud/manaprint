@@ -94,6 +94,7 @@ from generators import maia as maiagen
 from generators import corsica as corsicagen
 from generators import bno
 from generators import ngo
+from generators import ngo_maq
 from generators import diamant
 from generators import rui
 from generators import tureia
@@ -163,6 +164,7 @@ from generators import boules60
 from generators import ahuru
 from generators import tchin
 from generators import ing
+from generators import ing_maq
 from generators import perle
 from generators import hunter
 from generators import echec_et_mat
@@ -982,7 +984,7 @@ _enregistrer_paire("maia",          "MAIA \u00b7 Ma\u00efa", "🍌", 12, maiagen
 _enregistrer_paire("corsica",       "CORSICA \u00b7 l'\u00eele de la beaut\u00e9", "\u2b50", 8, corsicagen.generer_pdf)
 _enregistrer_paire("bno",           "BNO","🎯", 16, bno.generer_pdf)
 _enregistrer_paire("bno_casino",    "BNO CASINO","🎰", 12, bno.generer_pdf_casino)
-_enregistrer_paire("ngo",           "NGO","🎳", 16, ngo.generer_pdf)
+_enregistrer_paire("ngo",           "NGO","🎳", 16, ngo_maq.generer_pdf)
 _enregistrer_paire("ngo_casino",    "NGO CASINO","🎰", 12, ngo.generer_pdf_casino)
 _enregistrer_paire("diamant",       "DIAMANT","💎", 8,  diamant.generer_pdf)
 _enregistrer_paire("rui",           "RUI","🎴", 12, rui.generer_pdf)
@@ -1059,7 +1061,7 @@ _enregistrer_paire("papeari",       "PAPEARI",    "\U0001f38a", 8,  papeari.gene
 _enregistrer_paire("boules60",      "60 BOULES",  "🔵", 12, boules60.generer_pdf)
 _enregistrer_paire("ahuru",         "AHURU",      "🔟", 10, ahuru.generer_pdf)
 _enregistrer_paire("tchin",         "TCHIN",      "🍻", 12, tchin.generer_pdf)
-_enregistrer_paire("ing",           "ING CLASSIC",        "🧭", 12, ing.generer_pdf)
+_enregistrer_paire("ing",           "ING CLASSIC",        "🧭", 16, ing_maq.generer_pdf)
 _enregistrer_paire("perle",         "PERLE",      "\U0001f9aa", 8,  perle.generer_pdf)
 _enregistrer_paire("hunter",        "HUNTER",     "\U0001f3af", 5,  hunter.generer_pdf)
 _enregistrer_paire("echec_et_mat",  "\u00c9CHEC ET MAT", "\u265f\ufe0f", 12, echec_et_mat.generer_pdf)
