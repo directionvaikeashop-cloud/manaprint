@@ -1,220 +1,119 @@
 # -*- coding: utf-8 -*-
 """
-MANAPRINT — Générateur RUBIS 90 (format A4)
-12 cartes par feuille A4 (2 colonnes × 6 rangées).
-Chaque carte : grille 5 colonnes (R-U-B-I-S) × 3 rangées.
-La case CENTRALE (colonne B, rangée du milieu) est toujours VIDE (centre libre).
-=> 14 numéros par carton.
-Colonnes : R=1-18, U=19-36, B=37-54, I=55-72, S=73-90.
-Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
+MANAPRINT — Generateur RUBIS 90 (format A4 PAYSAGE) — nouvelle maquette
+
+REFAIT LE 11/10 (sceau Maeva) : nouvelle maquette RUBIS 90 (9 cartons 3x3,
+en-tete N / RUBIS 90, bande R U B I S, grille 5x3 centre B VIDE). Reprise
+TELLE QUELLE, posee comme UNE SEULE image de fond. L'image n'est pas au ratio
+A4 : posee en gardant ses proportions (ajustee en largeur, centree) — AUCUNE
+deformation.
+
+REGLE INCHANGEE (RUBIS 90 - 14 numeros) :
+  R : 3 numeros 1-18    U : 3 numeros 19-36
+  B : 2 numeros 37-54 (HAUT et BAS ; centre VIDE)
+  I : 3 numeros 55-72   S : 3 numeros 73-90
+Chaque colonne triee du plus petit en haut au plus grand en bas.
+N de serie dans le "N" de l'en-tete. Chiffres NOIRS (Latin Modern).
 """
 import io
+import os as _os
 import random
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
-from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase.pdfmetrics import stringWidth as _sw
 
-# SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne
+PAGE_W, PAGE_H = landscape(A4)
+CARTES_PAGE = 9
+FOND_X, FOND_Y, FOND_W, FOND_H = 0.0, 17.01, 841.89, 561.26
 try:
-    from generators import securite as _sec
+    pdfmetrics.registerFont(TTFont("LMROMAN", _os.path.join(
+        _os.path.dirname(_os.path.abspath(__file__)), "LatinModern.ttf")))
+    POLICE_NUM = "LMROMAN"
 except Exception:
-    try:
-        import securite as _sec
-    except Exception:
-        _sec = None
+    POLICE_NUM = "Times-Bold"
+POLICE_PETIT = "Helvetica"
+RAINBOW = ["#E53935","#FB8C00","#F9A825","#43A047","#00ACC1",
+           "#1E88E5","#3949AB","#8E24AA","#D81B60","#6D4C41"]
+NOIR = colors.Color(0,0,0)
+GRIS = colors.Color(0.45,0.45,0.45)
 
+CELL_W, CELL_H = 48.34, 32.89
+RANGES = [(1,18),(19,36),(37,54),(55,72),(73,90)]  # R U B I S
 
-try:
-    pdfmetrics.registerFont(TTFont("DJL", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    POLICE = "DJL"
-except Exception:
-    POLICE = "Helvetica"
-
-RAINBOW = [
-    "#E53935", "#FB8C00", "#F9A825", "#43A047", "#00ACC1",
-    "#1E88E5", "#3949AB", "#8E24AA", "#D81B60", "#6D4C41",
+CARTONS = [
+    dict(cols=[[(38.09,489.20), (38.09,452.20), (38.09,415.75)], [(89.89,489.20), (89.89,452.20), (89.89,415.75)], [(142.23,489.20), None, (142.23,415.75)], [(194.58,489.20), (194.58,452.20), (194.58,415.75)], [(246.92,489.20), (246.92,452.20), (246.92,415.75)]], SER=(48.23,554.70)),
+    dict(cols=[[(317.08,489.20), (317.08,452.20), (317.08,415.75)], [(368.87,489.20), (368.87,452.20), (368.87,415.75)], [(421.22,489.20), None, (421.22,415.75)], [(473.56,489.20), (473.56,452.20), (473.56,415.75)], [(525.91,489.20), (525.91,452.20), (525.91,415.75)]], SER=(327.22,554.70)),
+    dict(cols=[[(590.58,489.20), (590.58,452.20), (590.58,415.75)], [(642.38,489.20), (642.38,452.20), (642.38,415.75)], [(694.72,489.20), None, (694.72,415.75)], [(747.07,489.20), (747.07,452.20), (747.07,415.75)], [(799.41,489.20), (799.41,452.20), (799.41,415.75)]], SER=(600.72,554.70)),
+    dict(cols=[[(38.64,302.84), (38.64,265.85), (38.64,229.40)], [(90.44,302.84), (90.44,265.85), (90.44,229.40)], [(142.78,302.84), None, (142.78,229.40)], [(195.13,302.84), (195.13,265.85), (195.13,229.40)], [(247.47,302.84), (247.47,265.85), (247.47,229.40)]], SER=(48.78,368.34)),
+    dict(cols=[[(317.08,302.84), (317.08,265.85), (317.08,229.40)], [(368.87,302.84), (368.87,265.85), (368.87,229.40)], [(421.22,302.84), None, (421.22,229.40)], [(473.56,302.84), (473.56,265.85), (473.56,229.40)], [(525.91,302.84), (525.91,265.85), (525.91,229.40)]], SER=(327.22,368.34)),
+    dict(cols=[[(590.04,302.84), (590.04,265.85), (590.04,229.40)], [(641.83,302.84), (641.83,265.85), (641.83,229.40)], [(694.18,302.84), None, (694.18,229.40)], [(746.52,302.84), (746.52,265.85), (746.52,229.40)], [(798.86,302.84), (798.86,265.85), (798.86,229.40)]], SER=(600.18,368.34)),
+    dict(cols=[[(38.09,116.49), (38.09,79.49), (38.09,43.04)], [(89.89,116.49), (89.89,79.49), (89.89,43.04)], [(142.23,116.49), None, (142.23,43.04)], [(194.58,116.49), (194.58,79.49), (194.58,43.04)], [(246.92,116.49), (246.92,79.49), (246.92,43.04)]], SER=(48.23,181.99)),
+    dict(cols=[[(317.08,116.49), (317.08,79.49), (317.08,43.04)], [(368.87,116.49), (368.87,79.49), (368.87,43.04)], [(421.22,116.49), None, (421.22,43.04)], [(473.56,116.49), (473.56,79.49), (473.56,43.04)], [(525.91,116.49), (525.91,79.49), (525.91,43.04)]], SER=(327.22,181.99)),
+    dict(cols=[[(590.04,116.49), (590.04,79.49), (590.04,43.04)], [(641.83,116.49), (641.83,79.49), (641.83,43.04)], [(694.18,116.49), None, (694.18,43.04)], [(746.52,116.49), (746.52,79.49), (746.52,43.04)], [(798.86,116.49), (798.86,79.49), (798.86,43.04)]], SER=(600.18,181.99)),
 ]
-GREY = colors.Color(0.60, 0.60, 0.60)
-GRIS_CLAIR = colors.Color(0.80, 0.80, 0.80)
 
 
-# ══ DEUX GAMMES COMMERCIALES ══════════════════════════
-from reportlab.pdfbase import pdfmetrics as _pm
-from reportlab.pdfbase.ttfonts import TTFont as _TF
-try:
-    _pm.registerFont(_TF("DJLECO", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    _POLICE_ECO = "DJLECO"
-except Exception:
-    _POLICE_ECO = "Helvetica"
-_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
-_POLICE_P15 = "Helvetica-Bold"
-_GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
+def _fond():
+    d=_os.path.dirname(_os.path.abspath(__file__))
+    for nom in ("rubis90_fond.png","rubis90_maquette_fond.png"):
+        p=_os.path.join(d,nom)
+        if _os.path.exists(p): return p
+    try:
+        for f in _os.listdir(d):
+            if "rubis90_fond" in f.lower() and f.lower().endswith(".png"): return _os.path.join(d,f)
+    except Exception: pass
+    return _os.path.join(d,"rubis90_fond.png")
+_IMG_FOND=_fond()
 
-def _style_chiffres(style):
-    if str(style).lower() in ("p15", "premium"):
-        return _POLICE_P15, _GRIS_P15
-    return _POLICE_ECO, _GRIS_ECO
-# ═════════════════════════════════════════════════════════════════════
-
-PAGE_W, PAGE_H = A4
-LETTERS = ["R", "U", "B", "I", "S"]
-RANGES = [(1, 18), (19, 36), (37, 54), (55, 72), (73, 90)]
-
-COLS_PAGE = 2   # 2 cartes par rangée
-ROWS_PAGE = 6   # 6 rangées
-MARGIN_X = 8 * mm
-MARGIN_TOP = 8 * mm
-MARGIN_BOT = 8 * mm
-GUTTER_X = 5 * mm
-GUTTER_Y = 3 * mm
-
-CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
-CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
-
-HDR_H = 4 * mm
-FOOT_H = 3.5 * mm
-
+_w88=max(_sw("88",POLICE_NUM,1.0),0.01)
+_T_NUM = min(CELL_W*0.82/_w88, CELL_H*0.94)
+_T_SER = 8.0
 
 def _gen_carte(rng):
-    """5 colonnes × 3 rangées. 3 numéros triés par colonne, SAUF la colonne B
-    (milieu) qui n'a que 2 numéros : la case centrale (B, rangée 1) est vide.
-    Retourne une matrice grille[rangée][colonne] (None = case vide)."""
-    cols = []
-    for ci, (lo, hi) in enumerate(RANGES):
-        if ci == 2:  # colonne B : centre libre -> 2 numéros (rangées 0 et 2)
-            nums = sorted(rng.sample(range(lo, hi + 1), 2))
-            cols.append([nums[0], None, nums[1]])
+    cols=[]
+    for ci,(lo,hi) in enumerate(RANGES):
+        if ci==2:
+            nums=sorted(rng.sample(range(lo,hi+1),2))   # B : 2 (centre vide)
         else:
-            nums = sorted(rng.sample(range(lo, hi + 1), 3))
-            cols.append([nums[0], nums[1], nums[2]])
-    # transposer en grille[rangée][colonne]
-    grille = [[cols[c][r] for c in range(5)] for r in range(3)]
-    return grille
+            nums=sorted(rng.sample(range(lo,hi+1),3))
+        cols.append(nums)
+    return cols
 
-
-def _dessiner_carte(c, x0, y0, grille, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
-    police_ch, gris_ch = _style_chiffres(style)
-    col = colors.HexColor(couleur_hex)
-    ncols = len(LETTERS)
-    cell_w = CARD_W / ncols
-
-    # Bordure
-    c.setStrokeColor(col); c.setLineWidth(0.8)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
-    if _sec:
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
-
-    # Bandeau titre
-    bandeau = (titre_jeu or "RUBIS 90")
-    if telephone:
-        bandeau += " " + telephone
-    c.setFillColor(col); c.setFont(POLICE, 4.5)
-    c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 2.5 * mm, bandeau[:64])
-
-    # En-tête lettres R-U-B-I-S
-    hdr_y = y0 + CARD_H - HDR_H - 2.5 * mm
-    c.setFillColor(col); c.setFont(POLICE, 6)
-    for i, lettre in enumerate(LETTERS):
-        c.drawCentredString(x0 + (i + 0.5) * cell_w, hdr_y + 1.2 * mm, lettre)
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0, hdr_y, x0 + CARD_W, hdr_y)
-
-    # Zone des numéros (3 rangées)
-    grid_top = hdr_y
-    grid_bot = y0 + FOOT_H
-    grid_h = grid_top - grid_bot
-    row_h = grid_h / 3
-
-    # séparateurs de colonnes
-    c.setStrokeColor(colors.Color(0.85, 0.85, 0.85)); c.setLineWidth(0.3)
-    for i in range(1, ncols):
-        c.line(x0 + i * cell_w, grid_bot, x0 + i * cell_w, grid_top)
-
-    # contenu
-    for r in range(3):
-        for cc in range(ncols):
-            val = grille[r][cc]
-            if val is None:
-                # case centrale vide -> on y place le QR de vérification
-                if _sec and evenement_id:
-                    try:
-                        cx = x0 + (cc + 0.5) * cell_w
-                        cy = grid_top - (r + 0.5) * row_h
-                        _q = min(cell_w, row_h) - 2.0 * mm
-                        _q = max(5.0 * mm, _q)
-                        _sec.carton_qr(c, cx - _q / 2, cy - _q / 2, _q, evenement_id, serie)
-                    except Exception:
-                        pass
-                continue
-            cx = x0 + (cc + 0.5) * cell_w
-            taille = 34  # gros chiffres au maximum
-            cy = grid_top - (r + 0.5) * row_h - taille * 0.36
-            if _sec:
-                _sec.chiffre_micro(c, val, cx, cy, taille, gris_ch, police_ch)
-            else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-                c.drawCentredString(cx, cy, str(val))
-
-    # Pied
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0, y0 + FOOT_H, x0 + CARD_W, y0 + FOOT_H)
-    c.setFillColor(GREY); c.setFont("Helvetica", 4.5)
-    c.drawString(x0 + 1.5 * mm, y0 + 1.3 * mm, "N° SÉRIE")
-    c.setFillColor(col); c.setFont("Helvetica", 6)
-    c.drawRightString(x0 + CARD_W - 1.5 * mm, y0 + 1.3 * mm, "%06d" % serie)
-
-
-def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
-                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id="", page_start=1):
-    buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
-
-    nb_cartes = max(1, min(int(nb_cartes), 10000))
-    par_page = COLS_PAGE * ROWS_PAGE
-    nb_pages = (nb_cartes + par_page - 1) // par_page
-
-    rng = random.Random(90000 + int(serie_start))
-    serie = int(serie_start)
-    # 📄 la page continue d'une rame à l'autre (sceau Maeva 12/08)
-    no_page = max(1, int(page_start))
-    faites = 0
-
-    for _ in range(nb_pages):
-        if nom_evenement:
-            c.setFillColor(colors.black); c.setFont(POLICE, 9)
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 5 * mm, nom_evenement)
-        c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 6)
-        c.drawCentredString(PAGE_W / 2, PAGE_H - 7.2 * mm, "Page %d" % no_page)
-
-        for row in range(ROWS_PAGE):
-            for col_i in range(COLS_PAGE):
-                if faites >= nb_cartes:
-                    break
-                x0 = MARGIN_X + col_i * (CARD_W + GUTTER_X)
-                y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
-                grille = _gen_carte(rng)
-                coul = (couleur_perso if (couleur and couleur_perso)
-                        else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
-                _dessiner_carte(c, x0, y0, grille, coul, serie, titre_jeu, telephone, style=style, evenement_id=evenement_id)
-                serie += 1
-                faites += 1
-
+def generer_pdf(nb_cartes=9, serie_start=1, theme="", couleur=True,
+                nom_evenement="", titre_jeu="", couleur_perso="",
+                date_lieu="", telephone="", page_start=1, evenement_id="",
+                style="", motif="", **_ignore):
+    buf=io.BytesIO(); c=canvas.Canvas(buf, pagesize=(PAGE_W,PAGE_H))
+    rng=random.Random(int(serie_start)*100003+90)
+    n_=max(1,int(nb_cartes)); serie=int(serie_start); faites=0
+    try: page_dep=max(1,int(page_start))
+    except Exception: page_dep=1
+    while faites<n_:
+        try: c.drawImage(_IMG_FOND,FOND_X,FOND_Y,FOND_W,FOND_H,preserveAspectRatio=False,mask="auto")
+        except Exception: pass
+        for pos in CARTONS:
+            if faites>=n_: break
+            data=_gen_carte(rng)
+            col=colors.HexColor(RAINBOW[serie%len(RAINBOW)]) if couleur else NOIR
+            c.setFillColor(col); c.setFont(POLICE_NUM,_T_NUM)
+            for ci, colpts in enumerate(pos["cols"]):
+                vals=data[ci]
+                # colpts a 3 positions (B: la position centrale est None)
+                slot=0
+                for p in colpts:
+                    if p is None: continue
+                    if slot<len(vals):
+                        c.drawCentredString(p[0], p[1]-_T_NUM*0.34, str(vals[slot]))
+                        slot+=1
+            c.setFillColor(GRIS); c.setFont(POLICE_PETIT,_T_SER)
+            c.drawCentredString(pos["SER"][0], pos["SER"][1]-_T_SER*0.34, "%06d"%serie)
+            serie+=1; faites+=1
+        if page_dep>1 or faites>CARTES_PAGE:
+            c.setFillColor(GRIS); c.setFont(POLICE_PETIT,6.0)
+            nfe=page_dep+(faites-1)//CARTES_PAGE
+            c.drawRightString(PAGE_W-6, PAGE_H-10, "%03d"%nfe)
         c.showPage()
-        no_page += 1
-
-    c.save()
-    buf.seek(0)
-    return buf
-
-
-if __name__ == "__main__":
-    pdf = generer_pdf(nb_cartes=12, couleur=True,
-                      nom_evenement="ASSOCIATION TE MANU", titre_jeu="RUBIS 90",
-                      telephone="89.22.23.05")
-    with open("test_rubis.pdf", "wb") as f:
-        f.write(pdf.read())
-    print("RUBIS 90 généré")
+    c.save(); buf.seek(0); return buf
