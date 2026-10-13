@@ -27,7 +27,6 @@ from generators import lundi_pair74
 from generators import mardi_pair90
 from generators import roma6
 from generators import ahe          # 🦪 AHE — création RANIHEI du 23/09
-from generators import ahe_maq      # 🦪 AHE — nouvelle maquette coquillage (plages AUSTRALES)
 from generators import blossom_pearl  # 🌸 BLOSSOM PEARL — création RANIHEI du 23/09
 from generators import makemo       # 🏝️ MAKEMO — création RANIHEI du 23/09
 from generators import tureia_ranihei  # 🐢 TUREIA · RANIHEI — création RANIHEI du 23/09
@@ -780,7 +779,7 @@ _enregistrer_paire("roma6",         "ROMA · 6 boules","🏛️", 8, roma6.gener
 #   Ce chiffre doit TOUJOURS suivre COLS_PAGE x ROWS_PAGE dans
 #   generators/ahe.py, sinon la plateforme se trompe dans ses comptes de
 #   feuilles et facture de travers.
-_enregistrer_paire("ahe",           "AHE","🦪", 12, ahe_maq.generer_pdf)
+_enregistrer_paire("ahe",           "AHE","🦪", 6,  ahe.generer_pdf)
 # ⚠ 6 cartons par feuille : la planche de RANIHEI, 2 colonnes x 3 rangees.
 #   Doit suivre COLS_PAGE x ROWS_PAGE dans generators/blossom_pearl.py.
 _enregistrer_paire("blossom_pearl", "BLOSSOM PEARL","🌸", 6,  blossom_pearl.generer_pdf)
@@ -1806,7 +1805,7 @@ _PLAGES_CALLER = {
     # 🦪 AHE : trois perles, trois plages — B (1-15), I (16-30) et 76-90.
     #    Le tireur ne sort donc JAMAIS un numero entre 31 et 75 : la liste
     #    exacte des 45 boules est plus bas, dans _BOULES_CALLER.
-    "ahe": (1, 75),
+    "ahe": (1, 90),
     # 🌸 BLOSSOM PEARL : quatre groupes, quatre plages — B (1-15),
     #    I (16-30), N (31-45) et les perles du tour G (46-60). Le tireur
     #    ne sort donc JAMAIS au-dessus de 60.
@@ -2098,7 +2097,7 @@ _BOULES_CALLER = {
     "mardi_pair90": [n for n in range(2, 91, 2)],  # ☀️ MARDI PAIR 90 — 45 boules, QUE DES PAIRS de 2 à 90
     "roma6": [n for n in range(2, 91, 2)],  # 🏛️ ROMA · 6 boules — 45 boules, QUE DES PAIRS de 2 à 90
     # 🦪 AHE — maquette coquillage, plages AUSTRALES : B 1-15 · N 31-45 · O 61-75.
-    "ahe": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(61, 76)],
+    "ahe": [n for n in range(1, 31)] + [n for n in range(76, 91)],
     # 🌸 BLOSSOM PEARL — 60 boules, de 1 a 60, sans trou.
     "blossom_pearl": [n for n in range(1, 61)],
     # 🏝️ MAKEMO — 45 boules : I 16-30, N 31-45, puis 76-90. Rien en
