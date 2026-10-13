@@ -42,8 +42,9 @@ except Exception:
     POLICE_PETIT3 = "Helvetica-Bold"
 RAINBOW = ["#E53935","#FF7043","#FB8C00","#F9A825","#43A047","#00ACC1",
            "#1E88E5","#3949AB","#8E24AA","#D81B60","#6D4C41","#546E7A"]
-NOIR = colors.Color(0,0,0)
+NOIR = colors.Color(0,0,0)            # 2 chiffres du haut : noir franc
 GRIS = colors.Color(0.45,0.45,0.45)
+GRIS_TROIS = colors.Color(0.50,0.50,0.50)   # 3e chiffre : gris économie de toner
 
 RANGES = [(1,15),(16,30),(31,45),(46,60),(61,75)]
 _T_SERIE = 7.0
@@ -52,22 +53,30 @@ _T_SERIE = 7.0
 #   tx0,tx1 = bords intérieurs du ticket ; bty,bby = haut/bas du CORPS ;
 #   sx,sy   = position du N° de série (sur le trait après « N° »)
 _STRIPS_PX = [
-    # haut (corps 146 -> 728 : étalé sur toute la hauteur dispo)
-    (14, 211, 146, 728, 66, 42),
-    (230, 420, 146, 728, 282, 42),
-    (438, 619, 146, 728, 490, 42),
-    (638, 827, 146, 728, 690, 42),
-    (845,1039, 146, 728, 897, 42),
-    # bas (corps 894 -> 1472)
-    (14, 211, 894, 1472, 66, 790),
-    (230, 420, 894, 1472, 282, 790),
-    (438, 619, 894, 1472, 490, 790),
-    (638, 827, 894, 1472, 690, 790),
-    (845,1039, 894, 1472, 897, 790),
+    # haut (corps 146 -> 712 : marge au bas pour que le 3e chiffre ne déborde pas)
+    (14, 211, 146, 712, 66, 42),
+    (230, 420, 146, 712, 282, 42),
+    (438, 619, 146, 712, 490, 42),
+    (638, 827, 146, 712, 690, 42),
+    (845,1039, 146, 712, 897, 42),
+    # bas (corps 894 -> 1456)
+    (14, 211, 894, 1456, 66, 790),
+    (230, 420, 894, 1456, 282, 790),
+    (438, 619, 894, 1456, 490, 790),
+    (638, 827, 894, 1456, 690, 790),
+    (845,1039, 894, 1456, 897, 790),
 ]
 
-def _MX(px): return px / MAQ_W * PAGE_W
-def _MY(px): return (MAQ_H - px) / MAQ_H * PAGE_H
+# Marge blanche autour (zone non imprimable de l'imprimante) : on réduit
+# l'ensemble pour que les bordures des tickets ne débordent pas à l'impression.
+from reportlab.lib.units import mm as _mm
+MARGE = 5 * _mm
+FOND_X = MARGE
+FOND_Y = MARGE
+FOND_W = PAGE_W - 2 * MARGE
+FOND_H = PAGE_H - 2 * MARGE
+def _MX(px): return FOND_X + px / MAQ_W * FOND_W
+def _MY(px): return FOND_Y + (MAQ_H - px) / MAQ_H * FOND_H
 
 # Pré-calcul des cartons en points PDF
 CARTES = []
@@ -124,7 +133,7 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
     try: page_dep=max(1,int(page_start))
     except Exception: page_dep=1
     while faites<n_:
-        try: c.drawImage(_IMG_FOND,0,0,PAGE_W,PAGE_H,preserveAspectRatio=False,mask="auto")
+        try: c.drawImage(_IMG_FOND,FOND_X,FOND_Y,FOND_W,FOND_H,preserveAspectRatio=False,mask="auto")
         except Exception: pass
         for carte in CARTES:
             if faites>=n_: break
@@ -156,8 +165,10 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
                 tpetit = min(32.0, (slot_haut - slot_bas) / 0.73)
                 petit_x = x0 + CW*0.50
                 petit_cy = (slot_bas + slot_haut) / 2.0
+                c.setFillColor(col if couleur else GRIS_TROIS)   # 3e chiffre en gris (éco toner)
                 c.setFont(POLICE_PETIT3, tpetit)
                 c.drawCentredString(petit_x, petit_cy - tpetit*0.36, str(n_petit))
+                c.setFillColor(col)
                 # trait séparateur entre chaque groupe de 3 chiffres (épaissi)
                 if ri < 4:
                     c.setStrokeColor(GRIS); c.setLineWidth(1.3)
