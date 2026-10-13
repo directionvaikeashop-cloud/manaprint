@@ -45,13 +45,20 @@ except Exception:
     POLICE_PETIT3 = "Helvetica-Bold"
 RAINBOW = ["#E53935","#FB8C00","#F9A825","#43A047","#00ACC1",
            "#1E88E5","#3949AB","#8E24AA","#D81B60","#6D4C41"]
-NOIR = colors.Color(0,0,0)
+NOIR = colors.Color(0,0,0)            # 2 chiffres du haut : noir franc
+GRIS_TROIS = colors.Color(0.50,0.50,0.50)   # 3e chiffre : gris économie de toner
 GRIS = colors.Color(0.45,0.45,0.45)
 
 RANGES = [(1,15),(16,30),(31,45),(46,60),(61,75),(76,90)]
 
-def _MX(px): return px / MAQ_W * PAGE_W
-def _MY(px): return (MAQ_H - px) / MAQ_H * PAGE_H
+# Marge blanche (zone non imprimable) : réduire l'ensemble pour que les
+# bordures ne débordent pas à l'impression.
+from reportlab.lib.units import mm as _mm
+MARGE = 5 * _mm
+FOND_X = MARGE; FOND_Y = MARGE
+FOND_W = PAGE_W - 2 * MARGE; FOND_H = PAGE_H - 2 * MARGE
+def _MX(px): return FOND_X + px / MAQ_W * FOND_W
+def _MY(px): return FOND_Y + (MAQ_H - px) / MAQ_H * FOND_H
 
 # --- géométrie relevée sur la maquette (pixels, origine HAUT-gauche) ---
 _TOPS = [28,173,318,464,609,755,901,1047,1193,1337]   # bord haut de chaque ticket
@@ -124,7 +131,7 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
     try: page_dep=max(1,int(page_start))
     except Exception: page_dep=1
     while faites<n_:
-        try: c.drawImage(_IMG_FOND,0,0,PAGE_W,PAGE_H,preserveAspectRatio=False,mask="auto")
+        try: c.drawImage(_IMG_FOND,FOND_X,FOND_Y,FOND_W,FOND_H,preserveAspectRatio=False,mask="auto")
         except Exception: pass
         for carte in CARTES:
             if faites>=n_: break
@@ -138,9 +145,11 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
                 c.drawCentredString(bx, by-T_BULLE*0.34, str(n1))
                 c.setFont(POLICE_NUM,T_GRAND)
                 c.drawCentredString(gx, gy-T_GRAND*0.34, str(n2))
-                # 3e chiffre : condensé gras, bien vers le bas
+                # 3e chiffre : condensé gras, en gris (économie de toner)
+                c.setFillColor(col if couleur else GRIS_TROIS)
                 c.setFont(POLICE_PETIT3,T_PETIT)
                 c.drawCentredString(px, py-T_PETIT*0.34, str(n3))
+                c.setFillColor(col)
             c.setFillColor(GRIS); c.setFont(POLICE_PETIT,T_SER)
             c.drawRightString(carte["ser"][0], carte["ser"][1], "%06d"%serie)
             serie+=1; faites+=1
