@@ -1070,7 +1070,7 @@ _enregistrer_paire("unite",         "UNIT\u00c9",     "\U0001f497", 10, unite.ge
 _enregistrer_paire("talon",         "TALON",      "\u26bd", 12,  talon.generer_pdf)
 _enregistrer_paire("hoanui",        "HOANUI",     "\U0001f932", 8,  hoanui.generer_pdf)
 _enregistrer_paire("cristal",       "LES 7 BOULES DE CRISTAL", "\U0001f52e", 14, cristal.generer_pdf)
-_enregistrer_paire("sicile",        "SICILE",     "\U0001f451", 8,  sicile.generer_pdf)
+_enregistrer_paire("sicile",        "SICILE",     "\U0001f451", 10, sicile.generer_pdf)
 _enregistrer_paire("tifai",         "TIFAI",      "\U0001f422", 8,  tifai.generer_pdf)
 _enregistrer_paire("ranihei",       "RANIHEI",    "\U0001f33a", 6,  ranihei.generer_pdf)
 _enregistrer_paire("mabuhai",       "MABUHA\u00cf",   "\U0001f64f", 6,  mabuhai.generer_pdf)
