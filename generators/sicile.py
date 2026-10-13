@@ -54,6 +54,20 @@ CARTES = [
     ([(348.1, 82.4, 25.7), (396.7, 98.2, 25.7), (447.4, 114.1, 28.4), (496.0, 101.6, 27.7), (541.1, 83.6, 22.5)], (561.4, 160.4)),
 ]
 
+# Marge blanche (zone non imprimable) : on réduit l'ensemble pour que les
+# bordures des tickets ne débordent pas à l'impression. Les coordonnées de
+# CARTES (calculées plein cadre) sont transposées dans le cadre réduit.
+from reportlab.lib.units import mm as _mm
+MARGE = 5 * _mm
+FOND_X = MARGE; FOND_Y = MARGE
+FOND_W = PAGE_W - 2 * MARGE; FOND_H = PAGE_H - 2 * MARGE
+_SX = FOND_W / PAGE_W; _SY = FOND_H / PAGE_H
+CARTES = [
+    ([(MARGE + x*_SX, MARGE + y*_SY, sz*_SX) for (x, y, sz) in ov],
+     (MARGE + ser[0]*_SX, MARGE + ser[1]*_SY))
+    for ov, ser in CARTES
+]
+
 def _fond():
     d=_os.path.dirname(_os.path.abspath(__file__))
     for nom in ("sicile_fond.png","sicile_couronne_fond.png"):
@@ -83,7 +97,7 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
     try: page_dep=max(1,int(page_start))
     except Exception: page_dep=1
     while faites<n_:
-        try: c.drawImage(_IMG_FOND,0,0,PAGE_W,PAGE_H,preserveAspectRatio=False,mask="auto")
+        try: c.drawImage(_IMG_FOND,FOND_X,FOND_Y,FOND_W,FOND_H,preserveAspectRatio=False,mask="auto")
         except Exception: pass
         for ovales, ser in CARTES:
             if faites>=n_: break
