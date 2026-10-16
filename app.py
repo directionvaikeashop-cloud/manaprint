@@ -13,6 +13,44 @@ import secrets
 from flask import Flask, request, jsonify, send_file, render_template, session, Response, make_response, redirect
 from functools import wraps
 
+# ════════════════════════════════════════════════════════════════════
+# 🩹 NUMÉROS DE PAGE TOUJOURS IMPRIMÉS (sceau Maeva 15/10/2026)
+# Beaucoup de générateurs posaient le numéro de page à 2–5 mm du bord,
+# dans la zone non imprimable de la Konica (~4,2 mm) : le numéro était
+# rogné (ex. OHANA 75 · 4 séries). On recale ICI, une fois pour toutes,
+# tout numéro de page trop près d'un bord vers une marge sûre — sans
+# jamais toucher aux titres ni aux chiffres des cartons.
+import re as _re_pn
+from reportlab.pdfgen import canvas as _canvas_pn
+from reportlab.lib.units import mm as _mm_pn
+_PN_RE = _re_pn.compile(r'^(?:Page\s*)?\d{1,4}$')
+_PN_EDGE = 6.5 * _mm_pn
+_PN_TOP_SAFE = 9.0 * _mm_pn
+_PN_BOT_SAFE = 6.5 * _mm_pn
+def _pn_fix_y(canv, y, texte):
+    try:
+        if not _PN_RE.match(str(texte).strip()):
+            return y
+        H = canv._pagesize[1]
+        if y > H - _PN_EDGE:
+            return H - _PN_TOP_SAFE
+        if y < _PN_EDGE:
+            return _PN_BOT_SAFE
+    except Exception:
+        pass
+    return y
+def _pn_wrap(nom):
+    orig = getattr(_canvas_pn.Canvas, nom, None)
+    if orig is None or getattr(orig, '_pn_wrapped', False):
+        return
+    def w(self, x, y, text, *a, **k):
+        return orig(self, x, _pn_fix_y(self, y, text), text, *a, **k)
+    w._pn_wrapped = True
+    setattr(_canvas_pn.Canvas, nom, w)
+for _m in ('drawString','drawRightString','drawCentredString','drawCenteredString','drawAlignedString'):
+    _pn_wrap(_m)
+
+
 import database as db
 from generators import bingo
 from generators import triple_action
@@ -763,7 +801,7 @@ def _enregistrer_paire(base_id, nom, emoji, cpf, fn, kwarg_nb="nb_cartes"):
 
 #                  id base          nom                 emoji  cartes/feuille  fonction
 _enregistrer_paire("triple_action", "Triple Action 75",  "🎯", 10, triple_action.generer_pdf, kwarg_nb="nb_tickets")
-_enregistrer_paire("aloha75",       "Aloha 75",          "🌺", 8, aloha75.generer_pdf)
+_enregistrer_paire("aloha75",       "Aloha 75",          "🌺", 12, aloha75.generer_pdf)
 _enregistrer_paire("p6_marathon",   "P6 Marathon",       "6️⃣", 6,  p6_marathon.generer_pdf)
 _enregistrer_paire("p6_casino",     "PJOKER",            "🃏", 6,  p6_marathon.generer_pdf_casino)
 _enregistrer_paire("bingo_ball",    "Bingo Ball",        "🎱", 12, bingo_ball.generer_pdf)
