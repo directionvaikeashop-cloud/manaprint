@@ -19,12 +19,19 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase.pdfmetrics import stringWidth
 
 PAGE_W, PAGE_H = A4
 CARTES_PAGE = 12
 
-POLICE_NUM = "Helvetica-Bold"
+try:
+    pdfmetrics.registerFont(TTFont("LMROMAN", _os.path.join(
+        _os.path.dirname(_os.path.abspath(__file__)), "LatinModern.ttf")))
+    POLICE_NUM = "LMROMAN"
+except Exception:
+    POLICE_NUM = "Times-Bold"
 POLICE_SER = "Helvetica"
 RAINBOW = ["#E53935", "#FB8C00", "#F9A825", "#43A047", "#00ACC1",
            "#1E88E5", "#3949AB", "#8E24AA", "#D81B60", "#6D4C41"]
