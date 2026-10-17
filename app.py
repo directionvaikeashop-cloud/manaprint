@@ -756,6 +756,8 @@ def _variante(fn, couleur_force, style_force="eco"):
 JEUX_AVEC_IMAGE = {
     "bgo8",
     "lover",
+    "lettre_u",
+    "bn90",
     "sangogo",
     "vanira",
     "joker",
@@ -1131,7 +1133,7 @@ _enregistrer_paire("miss75",        "MISS 75",    "👑", 4,  miss75.generer_pdf
 _enregistrer_paire("bien_sur",      "BIEN SÛR",   "✅", 8,  bien_sur.generer_pdf)
 _enregistrer_paire("ohana90_12b",   "OHANA 90 · 12 boules", "🌼", 9, ohana90_12boules.generer_pdf)
 _enregistrer_paire("ohana90_24b",   "OHANA 90 · 24 boules", "💮", 6, ohana90_24boules.generer_pdf)
-_enregistrer_paire("lettre_u",      "LETTRE U",   "😃", 6,  lettre_u.generer_pdf)
+_enregistrer_paire("lettre_u",      "LETTRE U",   "😃", 12, lettre_u.generer_pdf)
 _enregistrer_paire("lettre_l",      "LETTRE L",   "😄", 6,  lettre_l.generer_pdf)
 _enregistrer_paire("topday",        "TOPDAY",     "🔝", 12, topday.generer_pdf)
 _enregistrer_paire("fleche",        "TAHITI",     "🌺", 8,  fleche.generer_pdf)
@@ -1145,7 +1147,7 @@ _enregistrer_paire("bin8",          "BIN 8 boules", "🎯", 12, bin8.generer_pdf
 _enregistrer_paire("pow6",          "POW 5 boules", "💫", 12, pow6.generer_pdf)
 _enregistrer_paire("bg90",          "BG 90",      "🎱", 12, bg90.generer_pdf)
 _enregistrer_paire("bo90",          "BO 90",      "🟠", 16, bo90.generer_pdf)
-_enregistrer_paire("bn90",          "BN 90",      "🟤", 12, bn90.generer_pdf)
+_enregistrer_paire("bn90",          "BN 90",      "🟤", 16, bn90.generer_pdf)
 _enregistrer_paire("bi90",          "BI 90",      "🔵", 16, bi90.generer_pdf)
 _enregistrer_paire("bgo5",          "BGO 5 boules", "🅾️", 12, bgo5.generer_pdf)
 _enregistrer_paire("tiki",          "BGO TIKI",   "🗿", 8, tiki.generer_pdf)
