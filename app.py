@@ -162,6 +162,7 @@ from generators import ohana90_2series
 from generators import ohana90_3series
 from generators import bgo
 from generators import bgo8
+from generators import lover
 from generators import igo
 from generators import kea
 from generators import moon
@@ -754,6 +755,7 @@ def _variante(fn, couleur_force, style_force="eco"):
 #    par JEUX_HABILLES, qui est une autre liste, plus courte, et volontaire.
 JEUX_AVEC_IMAGE = {
     "bgo8",
+    "lover",
     "sangogo",
     "vanira",
     "joker",
@@ -1059,6 +1061,7 @@ _enregistrer_paire("ohana90_2series", "OHANA 90 · 2 séries", "🌸", 2, ohana9
 _enregistrer_paire("ohana90_3series", "OHANA 90 · 3 séries", "🌸", 3, ohana90_3series.generer_pdf)
 _enregistrer_paire("bgo",           "BGO",        "🔠", 16, bgo.generer_pdf)
 _enregistrer_paire("bgo8",          "BGO 8 boules","🔠", 16, bgo8.generer_pdf)
+_enregistrer_paire("lover",         "LOVER","❤️", 12, lover.generer_pdf)
 _enregistrer_paire("igo",           "IGO",        "🎱", 12, igo.generer_pdf)
 _enregistrer_paire("kea",           "KEA",        "🌿", 12, kea.generer_pdf)
 _enregistrer_paire("moon",          "MOON",       "🌙", 8,  moon.generer_pdf)
@@ -1958,6 +1961,7 @@ _PLAGES_CALLER = {
     "ohana90": (1, 90),
     "bgo": (1, 75),
     "bgo8": (1, 75),
+    "lover": (1, 75),
     "igo": (16, 75),
     "kea": (35, 67),
     "moon": (1, 75),
@@ -2096,6 +2100,7 @@ _BOULES_CALLER = {
     "huahine": [n for n in range(1, 16)] + [n for n in range(46, 61)] + [n for n in range(76, 91)],  # 3 familles : 1-15, 46-60, 76-90
     "bgo": [n for n in range(1, 16)] + [n for n in range(46, 76)],  # B 1-15 · G 46-60 · O 61-75
     "bgo8": [n for n in range(1, 16)] + [n for n in range(46, 76)],  # B 1-15 · G 46-60 · O 61-75
+    "lover": [n for n in range(1, 76)],  # L 1-15 · O 16-30 · V 31-45 · E 46-60 · R 61-75
     "igo": [n for n in range(16, 31)] + [n for n in range(46, 76)],  # I 16-30 · G 46-60 · O 61-75
     "moon": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # M·O·O·N — le 31-45 n'existe pas
     "ino8": [n for n in range(16, 46)] + [n for n in range(61, 76)],  # I 16-30 · N 31-45 · O 61-75
