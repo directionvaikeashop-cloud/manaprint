@@ -6,9 +6,9 @@ chaque carton : en-tête « B N 90 », grille 3 colonnes × 2 rangées = 6 cases
 est reprise TELLE QUELLE, posée comme UNE SEULE image de fond. On n'ajoute QUE
 les chiffres ; rien n'est redessiné.
 
-REGLE — inchangée : 5 boules, la case BAS-MILIEU (N bas) reste LIBRE —
+REGLE — 6 boules, les 6 cases REMPLIES —
   B  : 1-15  (2 numéros, haut et bas)
-  N  : 31-45 (1 numéro, en haut seulement ; le bas est libre)
+  N  : 31-45 (2 numéros, haut et bas)
   90 : 76-90 (2 numéros, haut et bas)
 Deux sauts dans le tirage : ni 16-30, ni 46-75. Numéros triés vers le bas.
 Chiffres pleins (pas de microtexte) → impression Konica rapide. Latin Modern.
@@ -76,9 +76,9 @@ T_NUM = _taille_num()
 
 
 def _gen_carte(rng):
-    """B : 2 numéros (1-15) ; N : 1 numéro (31-45) ; 90 : 2 numéros (76-90)."""
+    """6 boules : B, N et 90 ont chacun 2 numéros (haut et bas)."""
     b = sorted(rng.sample(range(PLAGE_B[0], PLAGE_B[1] + 1), 2))
-    n = rng.randint(PLAGE_N[0], PLAGE_N[1])
+    n = sorted(rng.sample(range(PLAGE_N[0], PLAGE_N[1] + 1), 2))
     q = sorted(rng.sample(range(PLAGE_90[0], PLAGE_90[1] + 1), 2))
     return b, n, q
 
@@ -123,8 +123,9 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
                 # B : 2 numéros (haut, bas)
                 c.drawCentredString(xb, yt - dy, str(b[0]))
                 c.drawCentredString(xb, yb - dy, str(b[1]))
-                # N : 1 numéro en HAUT (bas = LIBRE)
-                c.drawCentredString(xn, yt - dy, str(n))
+                # N : 2 numéros (haut, bas)
+                c.drawCentredString(xn, yt - dy, str(n[0]))
+                c.drawCentredString(xn, yb - dy, str(n[1]))
                 # 90 : 2 numéros (haut, bas)
                 c.drawCentredString(xq, yt - dy, str(q[0]))
                 c.drawCentredString(xq, yb - dy, str(q[1]))
