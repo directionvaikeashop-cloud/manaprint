@@ -1,214 +1,141 @@
 # -*- coding: utf-8 -*-
-"""
-MANAPRINT — Générateur BN 90 (format A4)
-12 grilles par feuille A4 (3 colonnes × 4 rangées) — à la demande de Maeva
-(le modèle historique en avait 18, on aère pour de plus grosses cartes).
-Chaque carte : en-tête B | N | 90 puis grille 2 rangées × 3 colonnes —
-5 BOULES triées vers le bas (décision Maeva) :
-  B = 1-15 (×2) · N = 31-45 (×1, en haut) · 90 = 76-90 (×2)
-La case du BAS-MILIEU est libérée pour le QR de vérification.
-Deux sauts dans le tirage : ni 16-30, ni 46-75 (caller informé) !
-Pied : « N° SERIE » + signature + numéro.
-Couleur arc-en-ciel (par carte) ou gris (N&B). Chiffres en gris (2 gammes ÉCO/PREMIUM).
+"""MANAPRINT — BN 90 — nouvelle maquette RETRAVAILLEE par Maeva (16/10).
+
+🅱️ La maquette « BN 90 » (A4 PAYSAGE, 16 cartons = 4 colonnes × 4 rangées ;
+chaque carton : en-tête « B N 90 », grille 3 colonnes × 2 rangées = 6 cases)
+est reprise TELLE QUELLE, posée comme UNE SEULE image de fond. On n'ajoute QUE
+les chiffres ; rien n'est redessiné.
+
+REGLE — inchangée : 5 boules, la case BAS-MILIEU (N bas) reste LIBRE —
+  B  : 1-15  (2 numéros, haut et bas)
+  N  : 31-45 (1 numéro, en haut seulement ; le bas est libre)
+  90 : 76-90 (2 numéros, haut et bas)
+Deux sauts dans le tirage : ni 16-30, ni 46-75. Numéros triés vers le bas.
+Chiffres pleins (pas de microtexte) → impression Konica rapide. Latin Modern.
 """
 import io
+import os as _os
 import random
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase.pdfmetrics import stringWidth
 
-# SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne : si le module securite
-# est absent, les cartons sortent normalement, simplement sans microtexte.
+PAGE_W, PAGE_H = landscape(A4)        # 841.9 × 595.3
+CARTES_PAGE = 16
+
 try:
-    from generators import securite as _sec
+    pdfmetrics.registerFont(TTFont("LMROMAN", _os.path.join(
+        _os.path.dirname(_os.path.abspath(__file__)), "LatinModern.ttf")))
+    POLICE_NUM = "LMROMAN"
 except Exception:
+    POLICE_NUM = "Times-Bold"
+RAINBOW = ["#E53935", "#FB8C00", "#F9A825", "#43A047", "#00ACC1",
+           "#1E88E5", "#3949AB", "#8E24AA", "#D81B60", "#6D4C41"]
+NOIR = colors.Color(0, 0, 0)
+
+PLAGE_B = (1, 15)
+PLAGE_N = (31, 45)
+PLAGE_90 = (76, 90)
+
+# ── Géométrie mesurée sur la maquette (image 1536×1024 px) ──
+_IMG_W, _IMG_H = 1536, 1024
+_X_PX = [95, 208, 323, 469, 582, 696, 837, 951, 1065, 1208, 1323, 1437]  # 4 cartons × 3 col
+_Y_PX = [106, 194, 362, 450, 616, 703, 864, 952]                         # 4 cartons × 2 rang
+X_PT = [x / _IMG_W * PAGE_W for x in _X_PX]
+Y_PT = [PAGE_H - y / _IMG_H * PAGE_H for y in _Y_PX]
+CELL_W = 113 / _IMG_W * PAGE_W         # ≈ 61.9 pt
+CELL_H = 87 / _IMG_H * PAGE_H          # ≈ 50.6 pt
+
+
+def _fond():
+    d = _os.path.dirname(_os.path.abspath(__file__))
+    p = _os.path.join(d, "bn90_fond.png")
+    if _os.path.exists(p):
+        return p
     try:
-        import securite as _sec
+        for f in _os.listdir(d):
+            if "bn90_fond" in f.lower() and f.lower().endswith(".png"):
+                return _os.path.join(d, f)
     except Exception:
-        _sec = None
+        pass
+    return _os.path.join(d, "bn90_fond.png")
+_IMG_FOND = _fond()
 
 
-try:
-    pdfmetrics.registerFont(TTFont("DJL", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    POLICE = "DJL"
-except Exception:
-    POLICE = "Helvetica"
-
-RAINBOW = [
-    "#E53935", "#FB8C00", "#F9A825", "#43A047", "#00ACC1",
-    "#1E88E5", "#3949AB", "#8E24AA", "#D81B60", "#6D4C41",
-]
-GRIS = colors.Color(0.42, 0.42, 0.42)
-GRIS_CLAIR = colors.Color(0.80, 0.80, 0.80)
-
-
-# ══ DEUX GAMMES COMMERCIALES (vision Maeva) ══════════════════════════
-# ÉCO      : écriture fine DejaVu ExtraLight, gris 0,50 — économie de toner
-# PREMIUM  : écriture grasse Helvetica-Bold, gris 0,55 — style P15
-from reportlab.pdfbase import pdfmetrics as _pm
-from reportlab.pdfbase.ttfonts import TTFont as _TF
-try:
-    _pm.registerFont(_TF("DJLECO", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    _POLICE_ECO = "DJLECO"
-except Exception:
-    _POLICE_ECO = "Helvetica"
-_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
-_POLICE_P15 = "Helvetica-Bold"
-_GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
-
-def _style_chiffres(style):
-    """Retourne (police, gris) des chiffres selon la gamme choisie."""
-    if str(style).lower() in ("p15", "premium"):
-        return _POLICE_P15, _GRIS_P15
-    return _POLICE_ECO, _GRIS_ECO
-# ═════════════════════════════════════════════════════════════════════
-
-PAGE_W, PAGE_H = A4
-LETTRES = ["B", "N", "90"]
-COLONNES = [(1, 15), (31, 45), (76, 90)]   # ni 16-30, ni 46-75 !
-
-COLS_PAGE = 3
-ROWS_PAGE = 4
-MARGIN_X = 8 * mm
-MARGIN_TOP = 10 * mm
-MARGIN_BOT = 8 * mm
-GUTTER_X = 4 * mm
-GUTTER_Y = 4 * mm
-
-CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
-CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
-HDR_H = 6 * mm
-PIED_H = 4.4 * mm        # le pied fin : N° SERIE + signature + numéro
+def _taille_num():
+    t = 48.0
+    while t > 8 and (stringWidth("88", POLICE_NUM, t) > CELL_W * 0.72
+                     or t * 0.70 > CELL_H * 0.80):
+        t -= 0.5
+    return t
+T_NUM = _taille_num()
 
 
 def _gen_carte(rng):
-    """5 boules : 2 + 1 + 2 par famille, triées vers le bas.
-    Le N libère sa case du bas pour le QR (décision Maeva)."""
-    return [sorted(rng.sample(range(pmin, pmax + 1), n))
-            for (pmin, pmax), n in zip(COLONNES, (2, 1, 2))]
+    """B : 2 numéros (1-15) ; N : 1 numéro (31-45) ; 90 : 2 numéros (76-90)."""
+    b = sorted(rng.sample(range(PLAGE_B[0], PLAGE_B[1] + 1), 2))
+    n = rng.randint(PLAGE_N[0], PLAGE_N[1])
+    q = sorted(rng.sample(range(PLAGE_90[0], PLAGE_90[1] + 1), 2))
+    return b, n, q
 
 
-def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
-    police_ch, gris_ch = _style_chiffres(style)
-    col = colors.HexColor(couleur_hex)
-    cell_w = CARD_W / 3
+def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleur=True,
+                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="",
+                telephone="", page_start=1, evenement_id="", style="", motif="",
+                **_ignore):
+    n_ = nb_cartes if nb_cartes is not None else nb_tickets
+    n_ = max(1, int(n_ if n_ else CARTES_PAGE))
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=(PAGE_W, PAGE_H), pageCompression=1)
+    rng = random.Random(int(serie_start) * 100003 + 307)
+    serie = int(serie_start)
+    faites = 0
+    try:
+        page_dep = max(1, int(page_start))
+    except Exception:
+        page_dep = 1
 
-    # Bordure carte
-    c.setStrokeColor(col); c.setLineWidth(0.8)
-    c.rect(x0, y0, CARD_W, CARD_H, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.8 * mm)
-
-    # En-tête B | G | 90 (fidèle au modèle)
-    hdr_bas = y0 + CARD_H - HDR_H
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0, hdr_bas, x0 + CARD_W, hdr_bas)
-    for i in range(1, 3):
-        c.line(x0 + i * cell_w, hdr_bas, x0 + i * cell_w, y0 + CARD_H)
-    c.setFillColor(col); c.setFont(POLICE, 6.5)
-    for i, lettre in enumerate(LETTRES):
-        c.drawCentredString(x0 + (i + 0.5) * cell_w, hdr_bas + 1.8 * mm, lettre)
-
-    # Pied fin : « N° SERIE » + signature + numéro
-    pied_haut = y0 + PIED_H
-    c.setStrokeColor(col); c.setLineWidth(0.4)
-    c.line(x0, pied_haut, x0 + CARD_W, pied_haut)
-    c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 4.2)
-    c.drawString(x0 + 2 * mm, y0 + 1.4 * mm, "N\u00b0 SERIE")
-    signature = "BN 90"
-    if titre_jeu and "BN" not in titre_jeu.strip().upper():
-        signature += " \u00b7 " + titre_jeu.strip()
-    if telephone:
-        signature += " \u00b7 " + telephone
-    c.setFillColor(col); c.setFont(POLICE, 4.0)
-    c.drawCentredString(x0 + CARD_W / 2, y0 + 1.4 * mm, signature[:46])
-    c.setFont(POLICE, 6)
-    c.drawRightString(x0 + CARD_W - 2 * mm, y0 + 1.3 * mm, "%06d" % serie)
-
-    # La grille 2×3 (traits complets)
-    z_top = hdr_bas
-    z_bot = pied_haut
-    row_h = (z_top - z_bot) / 2
-    c.setStrokeColor(col); c.setLineWidth(0.35)
-    for i in range(1, 3):
-        c.line(x0 + i * cell_w, z_bot, x0 + i * cell_w, z_top)
-    c.line(x0 + 1.5 * mm, z_top - row_h, x0 + CARD_W - 1.5 * mm, z_top - row_h)
-
-    # Les 5 boules — le N garde son numéro en haut
-    taille = 40  # les plus gros du catalogue !
-    for ci, nums in enumerate(cols_nums):
-        cx = x0 + (ci + 0.5) * cell_w
-        for ri, val in enumerate(nums):
-            cyc = z_top - (ri + 0.5) * row_h
-            if _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, val, cx, cyc - taille * 0.36, taille, gris_ch, police_ch)
-            else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-                c.drawCentredString(cx, cyc - taille * 0.36, str(val))
-
-    # QR de vérification — logé dans la case libérée du BAS-MILIEU (décision Maeva)
-    if _sec and evenement_id:
+    while faites < n_:
         try:
-            _q = min(row_h - 2.4 * mm, cell_w - 3 * mm, 14.0 * mm)
-            _sec.carton_qr(c, x0 + 1.5 * cell_w - _q / 2,
-                           z_top - 1.5 * row_h - _q / 2, _q, evenement_id, serie)
+            c.drawImage(_IMG_FOND, 0, 0, PAGE_W, PAGE_H,
+                        preserveAspectRatio=False, mask="auto")
         except Exception:
             pass
-
-
-def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
-                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id="", page_start=1):
-    buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
-
-    nb_cartes = max(1, min(int(nb_cartes), 10000))
-    par_page = COLS_PAGE * ROWS_PAGE
-    nb_pages = (nb_cartes + par_page - 1) // par_page
-
-    rng = random.Random(938500 + int(serie_start))
-    serie = int(serie_start)
-    # 📄 la page continue d'une rame à l'autre (sceau Maeva 12/08)
-    no_page = max(1, int(page_start))
-    faites = 0
-
-    for _ in range(nb_pages):
-        # en-tête de page
-        if nom_evenement:
-            c.setFillColor(colors.black); c.setFont(POLICE, 9)
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 5 * mm, nom_evenement)
-        c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 6)
-        c.drawCentredString(PAGE_W / 2, PAGE_H - 7.2 * mm, "%03d" % no_page)
-
-        for row in range(ROWS_PAGE):
-            for col_i in range(COLS_PAGE):
-                if faites >= nb_cartes:
+        # 16 cartons : 4 colonnes (CC) × 4 rangées (CR)
+        for CR in range(4):
+            for CC in range(4):
+                if faites >= n_:
                     break
-                x0 = MARGIN_X + col_i * (CARD_W + GUTTER_X)
-                y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
-                cols_nums = _gen_carte(rng)
-                coul = (couleur_perso if (couleur and couleur_perso)
-                        else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
-                _dessiner_carte(c, x0, y0, cols_nums, coul, serie, titre_jeu, telephone,
-                                style=style, evenement_id=evenement_id)
+                b, n, q = _gen_carte(rng)
+                col = colors.HexColor(RAINBOW[serie % len(RAINBOW)]) if couleur else NOIR
+                c.setFillColor(col)
+                c.setFont(POLICE_NUM, T_NUM)
+                xb = X_PT[CC * 3 + 0]      # colonne B
+                xn = X_PT[CC * 3 + 1]      # colonne N
+                xq = X_PT[CC * 3 + 2]      # colonne 90
+                yt = Y_PT[CR * 2 + 0]      # rangée haut
+                yb = Y_PT[CR * 2 + 1]      # rangée bas
+                dy = T_NUM * 0.34
+                # B : 2 numéros (haut, bas)
+                c.drawCentredString(xb, yt - dy, str(b[0]))
+                c.drawCentredString(xb, yb - dy, str(b[1]))
+                # N : 1 numéro en HAUT (bas = LIBRE)
+                c.drawCentredString(xn, yt - dy, str(n))
+                # 90 : 2 numéros (haut, bas)
+                c.drawCentredString(xq, yt - dy, str(q[0]))
+                c.drawCentredString(xq, yb - dy, str(q[1]))
                 serie += 1
                 faites += 1
-
+        if page_dep > 1 or faites > CARTES_PAGE:
+            c.setFillColor(colors.Color(0.45, 0.45, 0.45))
+            c.setFont("Helvetica", 6.0)
+            nfe = page_dep + (faites - 1) // CARTES_PAGE
+            c.drawRightString(PAGE_W - 6 * mm, PAGE_H - 9 * mm, "%03d" % nfe)
         c.showPage()
-        no_page += 1
-
     c.save()
     buf.seek(0)
     return buf
-
-
-if __name__ == "__main__":
-    pdf = generer_pdf(nb_cartes=12, couleur=True,
-                      nom_evenement="ASSOCIATION TE MANU", titre_jeu="Grand Loto",
-                      telephone="89 22 23 05")
-    with open("test_bn90.pdf", "wb") as f:
-        f.write(pdf.read())
-    print("BN 90 généré")
