@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
-"""
-MANAPRINT — Générateur OHANA 75 · 2 SÉRIES (format A4)
-2 cartes (séries) par feuille A4, séparées par un trait de découpe.
-Chaque carte : grille 5×5 B·I·N·G·O, 2 numéros par case (un grand entouré + un petit),
-case centrale FREE avec le N° de série. Règle MARATHON.
-Plages : B 1-15, I 16-30, N 31-45, G 46-60, O 61-75.
-Couleur arc-en-ciel (par carte) ou gris (économie d'encre). Personnalisation + responsable.
-SÉCURITÉ ANTI-PHOTOCOPIE (module generators/securite.py) : cadre intérieur en
-microtexte + chiffres remplis de microtexte (technique billet de banque).
-Vérification à la loupe x10 : lettres nettes = original, trait flou = photocopie.
+"""MANAPRINT — OHANA 75 · 2 SÉRIES — nouvelle maquette RETRAVAILLEE par Maeva (16/10).
+
+🌺 La maquette « OHANA 75 · 2 séries » (A4 portrait, 2 cartes par feuille séparées
+par un trait de découpe ; chaque carte : en-tête « OHANA 75 », B·I·N·G·O, grille
+5×5 avec un ROND par case) est reprise TELLE QUELLE, posée comme UNE SEULE image
+de fond. On n'ajoute QUE les chiffres ; rien n'est redessiné.
+
+REGLE — inchangée : 2 numéros par case (règle MARATHON, 2 séries) —
+  le plus petit ENTOURE (dans le rond, gros), le second À DROITE (plus petit).
+  Plages B 1-15 · I 16-30 · N 31-45 · G 46-60 · O 61-75.
+  Case CENTRALE (N du milieu) = FREE : on y imprime le N° de série.
+Chiffres GRIS (comme l'actuel), Latin Modern. Chiffres pleins -> impression rapide.
 """
 import io
-from reportlab.pdfbase.pdfmetrics import stringWidth as _lgo
+import os as _os
 import random
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -19,142 +21,102 @@ from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-
-# ══ ✒️ LA CALLIGRAPHIE DE LA CASE CENTRALE (sceau Maeva 11/09) ══════
-# Même travail que sur P6 MARATHON : le NOM DE LA SALLE s'écrit en
-# calligraphie au milieu du carton, le reste (adresse, téléphone) dessous
-# en petites capitales. TeX Gyre Chorus, converti en TTF, est rangé à côté
-# de ce fichier ; s'il manque on retombe sur l'italique serif.
-import os as _os75
-from reportlab.pdfbase import pdfmetrics as _pm75
-from reportlab.pdfbase.ttfonts import TTFont as _TF75
-from reportlab.pdfbase.pdfmetrics import stringWidth as _sw75
-_POLICE_SCRIPT = "Times-Italic"
-for _n75, _c75 in (
-        ("CHORUS", _os75.path.join(_os75.path.dirname(_os75.path.abspath(__file__)), "Chorus.ttf")),
-        ("FSERIT", "/usr/share/fonts/truetype/freefont/FreeSerifItalic.ttf")):
-    try:
-        _pm75.registerFont(_TF75(_n75, _c75)); _POLICE_SCRIPT = _n75; break
-    except Exception:
-        pass
-
-
-def _lignes_centre(texte):
-    """✒️ Le NOM sur la 1re ligne (calligraphié), le reste dessous."""
-    # ⭐ 11/09 : ON PEUT IMPOSER LA COUPURE avec « | » ou un retour à la
-    #    ligne — « SAINT ANNE | HIVA OA » donne deux lignes propres au lieu
-    #    d'un découpage automatique qui séparerait SAINT de ANNE.
-    brut = str(texte).replace("\n", "|")
-    if "|" in brut:
-        return [l.strip() for l in brut.split("|") if l.strip()][:3]
-    mots = [m for m in brut.split(" ") if m]
-    if not mots:
-        return []
-    if len(mots) == 1:
-        return [mots[0]]
-    if len(mots) >= 3:
-        return [mots[0], " ".join(mots[1:-1]), mots[-1]]
-    return [mots[0], " ".join(mots[1:])]
-
-
-# SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne : si le module securite
-# est absent, les cartons sortent normalement, simplement sans microtexte.
-try:
-    from generators import securite as _sec
-except Exception:
-    try:
-        import securite as _sec
-    except Exception:
-        _sec = None
-
-# Police fine (look OHANA) avec repli Helvetica
-try:
-    pdfmetrics.registerFont(TTFont("DJL", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    POLICE = "DJL"
-except Exception:
-    POLICE = "Helvetica"
-
-RAINBOW = [
-    "#E53935", "#FB8C00", "#F9A825", "#43A047", "#00ACC1",
-    "#1E88E5", "#3949AB", "#8E24AA", "#D81B60", "#6D4C41",
-]
-NOIR = colors.black
-GRIS = colors.Color(0.42, 0.42, 0.42)
-GRIS40 = colors.Color(0.50, 0.50, 0.50)   # gris 50% (un peu plus fort) — pour les chiffres
-GRIS_CLAIR = colors.Color(0.80, 0.80, 0.80)
-
-
-
-# ══ L'ÉCRITURE DES CHIFFRES (sceau Maeva 11/09) ══════════════════════
-# ⭐⭐ Maeva a choisi LATIN MODERN ROMAN, une serif fine et contrastée —
-#    déliés minces, terminaisons rondes. Elle a EN MÊME TEMPS demandé de
-#    RETIRER L'ÉCONOMIE DE TONER, et les deux vont ensemble : des déliés
-#    aussi fins imprimés en gris 0,50 disparaissent sur du papier
-#    ordinaire. Les chiffres passent donc en NOIR PRESQUE FRANC (0,12).
-# ⚠️ Le fichier LatinModern.ttf est rangé à côté de ce générateur (la
-#    version d'origine est en OTF, que ReportLab ne sait pas lire). S'il
-#    manque, on retombe sur l'ancienne écriture sans planter.
-import os as _osL
-from reportlab.pdfbase import pdfmetrics as _pm
-from reportlab.pdfbase.ttfonts import TTFont as _TF
-_POLICE_ECO = "Helvetica"
-try:
-    _pm.registerFont(_TF("DJLECO", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    _POLICE_ECO = "DJLECO"
-except Exception:
-    pass
-try:
-    _pm.registerFont(_TF("LMROMAN", _osL.path.join(
-        _osL.path.dirname(_osL.path.abspath(__file__)), "LatinModern.ttf")))
-    _POLICE_ECO = "LMROMAN"
-except Exception:
-    pass
-# ⚠️ plus d'économie de toner : les deux gammes écrivent en noir presque franc
-# ⭐ 11/09 (sceau Maeva) : GRIS 0,35 — mesuré, c'est 20 % de toner en moins
-#    que le noir franc, et les chiffres restent noirs à l'œil. Au-delà
-#    (0,45 · 0,55) ça commence à se voir sur le papier.
-_GRIS_ECO = colors.Color(0.26, 0.26, 0.26)
-# ⭐⭐ 23/09 (sceau Maeva : « renforce le gras, on ne change pas
-#    l'écriture ») : LE TRAIT DU CHIFFRE S'ÉPAISSIT, LA POLICE NE BOUGE PAS.
-#    Latin Modern reste Latin Modern ; c'est le CONTOUR du chiffre qui
-#    passe de 0,010 à 0,026 de sa taille. Le trait étant centré sur le
-#    dessin de la lettre, il l'épaissit des deux côtés : on obtient un
-#    gras sans changer d'écriture. Le gris passe de 0,35 à 0,26 en même
-#    temps, sinon le trait plus large reste pâle.
-#    ⚠⚠ ÇA COÛTE DU TONER : environ DEUX FOIS PLUS d'encre sur les
-#    chiffres qu'avant (mesuré à 600 dpi). C'est le prix du gras.
-#    Pour revenir en arrière ou aller plus loin, UNE SEULE VALEUR à
-#    changer ici, et la même dans les cinq jeux OHANA 75 :
-#       0,010 + gris 0,35 = l'ancien   ·  0,018 + 0,30 = un cran
-#       0,026 + gris 0,26 = ACTUEL     ·  0,034 + 0,22 = très gras
-#       0,044 + gris 0,18 = au maximum
-#    ⚠ NE PAS remplacer par une police grasse : Maeva a explicitement
-#      demandé de GARDER l'écriture.
-_GRAS_TRAIT = 0.026
-_POLICE_P15 = _POLICE_ECO
-_GRIS_P15 = colors.Color(0.14, 0.14, 0.14)   # objet distinct : sert à reconnaître la gamme
-
-def _style_chiffres(style):
-    """Retourne (police, gris) des chiffres selon la gamme choisie."""
-    if str(style).lower() in ("p15", "premium"):
-        return _POLICE_P15, _GRIS_P15
-    return _POLICE_ECO, _GRIS_ECO
-# ═════════════════════════════════════════════════════════════════════
+from reportlab.pdfbase.pdfmetrics import stringWidth
 
 PAGE_W, PAGE_H = A4
+CARTES_PAGE = 2
+
+try:
+    pdfmetrics.registerFont(TTFont("LMROMAN", _os.path.join(
+        _os.path.dirname(_os.path.abspath(__file__)), "LatinModern.ttf")))
+    POLICE_NUM = "LMROMAN"
+except Exception:
+    POLICE_NUM = "Times-Bold"
+# 2e chiffre (à droite) : police DIFFÉRENTE — DejaVu Condensed Bold (comme TRIPLE ACTION 75)
+try:
+    pdfmetrics.registerFont(TTFont("DJCONDB", _os.path.join(
+        _os.path.dirname(_os.path.abspath(__file__)), "DejaVuSansCondensed-Bold.ttf")))
+    POLICE_COND = "DJCONDB"
+except Exception:
+    POLICE_COND = "Helvetica-Bold"
+GRIS = colors.Color(0.42, 0.42, 0.42)
+
 PLAGES = [("B", 1, 15), ("I", 16, 30), ("N", 31, 45), ("G", 46, 60), ("O", 61, 75)]
 
-MARGIN_X = 8 * mm
-MARGIN_TOP = 9 * mm
-MARGIN_BOT = 8 * mm
-GUTTER_Y = 7 * mm   # espace de découpe entre les 2 cartes
+# ── Géométrie mesurée sur la maquette (image 1122×1402 px, A4 portrait) ──
+_IMG_W, _IMG_H = 1122, 1402
+_COL_PX = [140, 351, 562, 773, 983]                     # centres des 5 colonnes (B I N G O)
+_ROW_PX = [[204, 306, 408, 510, 613],                   # carte 1 : 5 rangées
+           [915, 1017, 1120, 1222, 1325]]               # carte 2 : 5 rangées
+_CIRC_DX = -53     # rond : décalage x depuis le centre de case (px)
+_RIGHT_DX = 52     # 2e chiffre : décalage x à droite (px)
+_FREE_ROW = 2      # rangée centrale (N du milieu) = FREE / série
 
-CARD_W = PAGE_W - 2 * MARGIN_X
-CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - GUTTER_Y) / 2
+
+def _x(px):
+    return px / _IMG_W * PAGE_W
+
+
+def _y(py):
+    return PAGE_H - py / _IMG_H * PAGE_H
+
+# positions en points
+COL_X = [_x(p) for p in _COL_PX]
+ROW_Y = [[_y(p) for p in carte] for carte in _ROW_PX]
+CIRC_DX = _CIRC_DX / _IMG_W * PAGE_W
+RIGHT_DX = _RIGHT_DX / _IMG_W * PAGE_W
+
+# Diamètre du rond (pt) mesuré sur la maquette (rayon ≈ 42 px)
+CIRCLE_D = 2 * 42 / _IMG_W * PAGE_W
+
+
+def _t_gros():
+    """Chiffre entouré AU PLUS GROS qui tient dans la bulle (pire cas « 88 »)."""
+    t = 44.0
+    while t > 8 and (stringWidth("88", POLICE_NUM, t) > CIRCLE_D * 0.74
+                     or t * 0.70 > CIRCLE_D * 0.82):
+        t -= 0.5
+    return t
+T_GROS = _t_gros()     # chiffre entouré (dans le rond) — au max
+
+# Espace disponible pour le 2e chiffre : à DROITE du rond, dans la case.
+_CELL_W_PT = 210 / _IMG_W * PAGE_W
+_CELL_H_PT = 102 / _IMG_H * PAGE_H
+_CIRC_RIGHT = CIRC_DX + CIRCLE_D / 2          # bord droit du rond (rel. au centre de case)
+_CELL_RIGHT = _CELL_W_PT / 2                  # bord droit de la case
+RIGHT_DX = (_CIRC_RIGHT + _CELL_RIGHT) / 2    # on centre le chiffre dans l'espace restant
+_AVAIL_W = (_CELL_RIGHT - 3) - (_CIRC_RIGHT + 3)   # largeur dispo (marges)
+
+
+def _t_petit():
+    """2e chiffre au plus gros DANS L'ESPACE À DROITE, mais équilibré :
+    on le plafonne juste au-dessus du chiffre entouré (style TRIPLE ACTION 75),
+    pour qu'il ne domine pas la bulle."""
+    t = 46.0
+    while t > 8 and (stringWidth("88", POLICE_COND, t) > _AVAIL_W
+                     or t * 0.70 > _CELL_H_PT * 0.80):
+        t -= 0.5
+    return min(t, T_GROS * 1.08)
+T_PETIT = _t_petit()   # 2e chiffre (à droite), DejaVu Condensed Bold
+
+
+def _fond():
+    d = _os.path.dirname(_os.path.abspath(__file__))
+    p = _os.path.join(d, "ohana75_2series_fond.png")
+    if _os.path.exists(p):
+        return p
+    try:
+        for f in _os.listdir(d):
+            if "ohana75_2series_fond" in f.lower() and f.lower().endswith(".png"):
+                return _os.path.join(d, f)
+    except Exception:
+        pass
+    return _os.path.join(d, "ohana75_2series_fond.png")
+_IMG_FOND = _fond()
 
 
 def _gen_carte(rng):
-    """Pour chaque colonne : 5 cases (4 pour N) de 2 numéros distincts, triés dans la case."""
+    """Pour chaque colonne : 5 cases (4 pour N), 2 numéros distincts triés par case."""
     carte = {}
     for lettre, a, b in PLAGES:
         n_cases = 4 if lettre == "N" else 5
@@ -163,280 +125,65 @@ def _gen_carte(rng):
     return carte
 
 
-def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre,
-                    telephone="", titre_jeu="", no_page=1, style="eco", evenement_id="",
-                    nom_evenement=""):
-    police_ch, gris_ch = _style_chiffres(style)
-    col = colors.HexColor(couleur_hex)
-    ncols = 5
-    cell_w = CARD_W / ncols
+def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleur=True,
+                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="",
+                telephone="", page_start=1, evenement_id="", style="", motif="",
+                **_ignore):
+    n_ = nb_cartes if nb_cartes is not None else nb_tickets
+    n_ = max(1, int(n_ if n_ else CARTES_PAGE))
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=(PAGE_W, PAGE_H), pageCompression=1)
+    rng = random.Random(int(serie_start) * 100003 + 401)
+    serie = int(serie_start)
+    faites = 0
+    try:
+        page_dep = max(1, int(page_start))
+    except Exception:
+        page_dep = 1
 
-    # Bordure carte
-    c.setStrokeColor(col)
-    c.setLineWidth(1.0)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 2 * mm, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.5 * mm)
-
-    # Bandeau haut (sécurité : nom du jeu + tournoi + n° carte, sur chaque grille)
-    bandeau = "OHANA 75"
-    if titre_jeu:
-        bandeau += "  —  " + titre_jeu
-    c.setFillColor(GRIS); c.setFont(POLICE, 6)
-    c.drawString(x0 + 4 * mm, y0 + CARD_H - 5 * mm, bandeau[:60])
-    _droite = "Page %d  ·  Carte N° %05d" % (no_page, serie)
-    c.drawRightString(x0 + CARD_W - 4 * mm, y0 + CARD_H - 5 * mm, _droite)
-
-    # ⭐⭐ 23/09 (sceau Maeva : « la personnalisation du haut de feuille à
-    #    mettre dans l'encadrement où il y a BINGO ») : LE NOM DU CLIENT
-    #    ENTRE DANS LE CARTON, sur la ligne du bandeau, entre « OHANA 75 »
-    #    à gauche et « Carte N° » à droite.
-    #    ⚠️⚠️ POURQUOI : avant, il était imprimé EN HAUT DE LA FEUILLE, au-
-    #    dessus des cartons. Dès qu'on découpe, il part à la poubelle avec
-    #    la chute — le carton en main ne portait plus le nom que dans la
-    #    case du milieu. Maintenant il est DANS le cadre : il survit à la
-    #    découpe. NE PAS LE REMETTRE EN HAUT DE FEUILLE.
-    #    ⚠️ Le texte se rétrécit tout seul pour tenir entre les deux textes
-    #    gris, et il est plafonné à 9 pt : au-delà il mordrait sur
-    #    « MARATHON » qui est juste en dessous.
-    _evt = (nom_evenement or "").replace("|", "  ·  ").replace("\n", "  ·  ")
-    _evt = " ".join(_evt.split())
-    if _evt:
-        _libre = (CARD_W - 8 * mm
-                  - _lgo(bandeau[:60], POLICE, 6)
-                  - _lgo(_droite, POLICE, 6) - 8 * mm)
-        _te = 9.0
-        while _te > 4.0 and _lgo(_evt, POLICE, _te) > _libre:
-            _te -= 0.25
-        c.setFillColor(NOIR); c.setFont(POLICE, _te)
-        c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H - 4.8 * mm, _evt)
-
-    # En-tête des colonnes B I N G O
-    hdr_base = y0 + CARD_H - 14 * mm
-    for i, (lettre, a, b) in enumerate(PLAGES):
-        cx = x0 + (i + 0.5) * cell_w
-        if lettre == "G":
-            c.setFillColor(col); c.setFont(POLICE, 5.5)
-            c.drawCentredString(cx, hdr_base + 6.5 * mm, "MARATHON")
-        c.setFillColor(col); c.setFont(POLICE, 16)
-        c.drawCentredString(cx, hdr_base + 0.5 * mm, lettre)
-    # ligne sous l'en-tête
-    c.setStrokeColor(col); c.setLineWidth(0.5)
-    c.line(x0 + 2 * mm, hdr_base - 2 * mm, x0 + CARD_W - 2 * mm, hdr_base - 2 * mm)
-
-    # Grille des numéros
-    grid_top = hdr_base - 2 * mm
-    grid_bot = y0 + 6 * mm
-    grid_h = grid_top - grid_bot
-    row_h = grid_h / 5
-    # ⚠️⚠️ 11/09 : LE RAYON RESTE BORNÉ PAR LA CASE — c'est LA TAILLE DU
-    #    CHIFFRE qui s'adapte à lui, jamais l'inverse. Un premier essai
-    #    faisait grandir le rayon pour loger le « 88 » : les cercles
-    #    débordaient des cases et mordaient les traits.
-    r_cercle = min(cell_w, row_h) * 0.42
-    # la taille du gros chiffre descend jusqu'à ce que sa DIAGONALE tienne
-    # dans le rond, quelle que soit l'écriture chargée.
-    _t_gros = 42.0
-    while _t_gros > 12:
-        _l = _lgo("88", police_ch, _t_gros); _h = _t_gros * 0.72
-        if ((_l / 2) ** 2 + (_h / 2) ** 2) ** 0.5 <= r_cercle * 0.92:
-            break
-        _t_gros -= 0.5
-    _t_petit = _t_gros * (36.0 / 42.0)   # le petit garde le rapport d'origine
-
-    for j in range(5):          # rangées (0 = haut)
-        cy = grid_top - (j + 0.5) * row_h
-        for i, (lettre, a, b) in enumerate(PLAGES):
-            cell_x = x0 + i * cell_w
-            # ⭐ 11/09 (sceau Maeva : « centre-les bien dans chaque carré ») :
-            #    l'ensemble ROND + PETIT NUMÉRO est centré dans la case, au
-            #    lieu des fractions en dur 0,30 et 0,79 qui le décalaient.
-            _lp2 = _lgo("88", police_ch, _t_petit)
-            _larg_bloc = 2 * r_cercle + _lp2 * 1.06
-            cxc = cell_x + max(r_cercle + 0.4 * mm,
-                               (cell_w - _larg_bloc) / 2 + r_cercle)
-            cx2 = cxc + r_cercle + _lp2 * 0.56
-
-            # séparateurs de colonnes
-            if i > 0:
-                c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.3)
-                c.line(cell_x, grid_bot, cell_x, grid_top)
-
-            # Case centrale = FREE + série
-            if i == 2 and j == 2:
-                # 🎯 Case centrale : elle porte LE NOM DE LA SALLE quand il
-                # y en a un, « FREE SPACE » sinon (sceau Maeva 12/08 : « Bingo
-                # chez MARRAINE à mettre au milieu là où il y a FREE SPACE »).
-                # ⚠️ le texte se rétrécit tout seul s'il est long : une salle
-                # peut avoir un nom de trente lettres, il ne doit pas déborder
-                # sur les cases voisines.
-                # ✒️ 11/09 : le NOM est CALLIGRAPHIÉ, le reste dessous en
-                #    petites capitales. Sans personnalisation : « FREE SPACE ».
-                _libre = (nom_evenement or "").strip()
-                _larg = cell_w - 2.4 * mm
-                if not _libre:
-                    _tl = 6.5
-                    while _tl > 3.2 and _lgo("FREE SPACE", POLICE, _tl) > _larg:
-                        _tl -= 0.2
-                    c.setFillColor(col); c.setFont(POLICE, _tl)
-                    c.drawCentredString(cell_x + cell_w / 2, cy - _tl * 0.36, "FREE SPACE")
-                else:
-                    _lg = _lignes_centre(_libre)
-                    _t = 11.0
-                    while _t > 4.0 and _sw75(_lg[0], _POLICE_SCRIPT, _t) > _larg:
-                        _t -= 0.25
-                    _tp = max(3.0, _t * 0.44)
-                    while _tp > 2.8 and len(_lg) > 1 and max(
-                            _sw75(_l, POLICE, _tp) for _l in _lg[1:]) > _larg:
-                        _tp -= 0.2
-                    _haut = _t * 0.72 + (len(_lg) - 1) * _tp * 1.35
-                    _y0c = cy + _haut / 2 - _t * 0.60
-                    c.setFillColor(col)
-                    c.setFont(_POLICE_SCRIPT, _t)
-                    c.drawCentredString(cell_x + cell_w / 2, _y0c, _lg[0])
-                    c.setFont(POLICE, _tp)
-                    for _k, _l in enumerate(_lg[1:], 1):
-                        c.drawCentredString(cell_x + cell_w / 2,
-                                            _y0c - _t * 0.26 - _k * _tp * 1.35, _l)
-                if _sec and evenement_id:
-                    try:
-                        _q = 13.0 * mm
-                        _sec.carton_qr(c, cell_x + (cell_w - _q) / 2,
-                                       cy - row_h / 2 + 5.2 * mm, _q, evenement_id, serie)
-                    except Exception:
-                        pass
-                continue
-
-            # 2 numéros de la case
-            idx = j if i != 2 else (j if j < 2 else j - 1)  # N saute la case centrale
-            paire = carte[lettre][idx]
-            n1, n2 = paire[0], paire[1]
-
-            # Gros numéro entouré
-            # ⭐ 11/09 : LE CERCLE PASSE DE 1,0 À 0,5 (sceau Maeva). Mesuré à
-            #    600 dpi : 9 % de toner en moins à lui seul, et le cercle
-            #    reste parfaitement net — il y en a cinquante par feuille,
-            #    c'est le deuxième poste après les chiffres.
-            c.setStrokeColor(col); c.setLineWidth(0.5)
-            c.circle(cxc, cy, r_cercle, stroke=1, fill=0)
-            # ⚠️⚠️ LE MICROTEXTE EST GARDÉ DANS LES DEUX GAMMES (11/09,
-            #    après essai dans les deux sens).
-            #    ⚠️ CONTRE-INTUITIF MAIS MESURÉ : il NE RAJOUTE PAS d'encre,
-            #    il CREUSE le chiffre — l'intérieur devient des lettres
-            #    minuscules séparées de blanc au lieu d'une surface pleine.
-            #    Sans lui on consomme 22 % DE PLUS, et on perd la
-            #    protection anti-photocopie sur chaque chiffre.
-            if _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, n1, cxc, cy - _t_gros * 0.33, _t_gros, gris_ch, police_ch,
-                                   epaisseur=_GRAS_TRAIT)
-                _sec.chiffre_micro(c, n2, cx2, cy - _t_petit * 0.33, _t_petit, gris_ch, police_ch,
-                                   epaisseur=_GRAS_TRAIT)
-            else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, _t_gros)
-                c.drawCentredString(cxc, cy - _t_gros * 0.33, str(n1))
-                # Petit numéro
-                c.setFillColor(gris_ch); c.setFont(police_ch, _t_petit)
-                c.drawCentredString(cx2, cy - _t_petit * 0.33, str(n2))
-
-        # séparateur de rangée
-        if j > 0:
-            yy = grid_top - j * row_h
-            c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.3)
-            c.line(x0 + 2 * mm, yy, x0 + CARD_W - 2 * mm, yy)
-
-    # Pied : série + responsable
-    c.setStrokeColor(col); c.setLineWidth(0.5)
-    c.line(x0 + 2 * mm, grid_bot, x0 + CARD_W - 2 * mm, grid_bot)
-    c.setFillColor(GRIS); c.setFont(POLICE, 5.5)
-    c.drawString(x0 + 4 * mm, y0 + 2 * mm, "N° %06d" % serie)
-    if telephone:
-        c.drawRightString(x0 + CARD_W - 4 * mm, y0 + 2 * mm, "Resp. " + telephone)
-
-    # QR de vérification (anti-duplication) — coin bas-droit, discret
-    if _sec and evenement_id:
+    while faites < n_:
         try:
-            pass  # le QR vit désormais dans la case centrale FREE
+            c.drawImage(_IMG_FOND, 0, 0, PAGE_W, PAGE_H,
+                        preserveAspectRatio=False, mask="auto")
         except Exception:
             pass
-
-
-def generer_pdf(nb_cartes=2, serie_start=1, theme="", couleur=True,
-                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id="", page_start=1):
-    buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
-
-    nb_cartes = max(1, min(int(nb_cartes), 10000))
-    par_page = 2
-    nb_pages = (nb_cartes + par_page - 1) // par_page
-
-    rng = random.Random(750000 + int(serie_start))
-    serie = int(serie_start)
-    # 📄 la page continue d'une rame à l'autre (sceau Maeva 12/08)
-    no_page = max(1, int(page_start))
-    encre = NOIR if couleur else GRIS
-    faites = 0
-
-    for _ in range(nb_pages):
-        # En-tête de page (événement)
-        # ⭐⭐ 23/09 (sceau Maeva : « la personnalisation du haut de feuille à
-        #    mettre dans l'encadrement où il y a BINGO ») : PLUS RIEN ICI.
-        #    Le nom du client est maintenant imprimé DANS le bandeau de chaque
-        #    carton (voir _dessiner_carte). Il ne part plus à la découpe.
-        #    ⚠️ NE PAS RÉTABLIR la ligne du haut : on aurait le nom deux fois.
-        ligne2 = (titre_jeu or "OHANA 75 — 2 séries")
-        if date_lieu:
-            ligne2 += "  ·  " + date_lieu
-        c.setFillColor(GRIS); c.setFont(POLICE, 6.5)
-        # ⭐ 23/09 : le nom du client étant descendu dans les cartons, la
-        #   ligne du haut n'a plus à s'écarter — elle reprend le centre.
-        c.drawCentredString(PAGE_W / 2, PAGE_H - 7.4 * mm, ligne2)
-
-        for slot in range(par_page):
-            if faites >= nb_cartes:
+        for k in range(CARTES_PAGE):          # 2 cartes par feuille
+            if faites >= n_:
                 break
-            # carte du haut (slot 0) puis du bas (slot 1)
-            y0 = MARGIN_BOT + (1 - slot) * (CARD_H + GUTTER_Y)
-            x0 = MARGIN_X
             carte = _gen_carte(rng)
-            coul = (couleur_perso if (couleur and couleur_perso)
-                    else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
-            _dessiner_carte(c, x0, y0, carte, coul, serie, encre, telephone, titre_jeu, no_page,
-                            style=style, evenement_id=evenement_id, nom_evenement=nom_evenement)
+            rows_y = ROW_Y[k]
+            for col_i, (lettre, a, b) in enumerate(PLAGES):
+                cx = COL_X[col_i]
+                paires = carte[lettre]
+                # rangées à remplir : toutes sauf la centrale pour N
+                if lettre == "N":
+                    rows = [0, 1, 3, 4]
+                else:
+                    rows = [0, 1, 2, 3, 4]
+                for pi, row in enumerate(rows):
+                    petit, grand = paires[pi]      # trié : petit = entouré, grand = à droite
+                    cy = rows_y[row]
+                    c.setFillColor(GRIS)
+                    # chiffre ENTOURE (dans le rond, à gauche) — plus gros
+                    c.setFont(POLICE_NUM, T_GROS)
+                    c.drawCentredString(cx + CIRC_DX, cy - T_GROS * 0.34, str(petit))
+                    # 2e chiffre (à droite) — autre police (DejaVu Condensed Bold)
+                    c.setFont(POLICE_COND, T_PETIT)
+                    c.drawCentredString(cx + RIGHT_DX, cy - T_PETIT * 0.34, str(grand))
+            # case centrale (N du milieu) = N° de série
+            cxN = COL_X[2]
+            cyN = rows_y[_FREE_ROW]
+            c.setFillColor(GRIS)
+            c.setFont(POLICE_NUM, 11.0)
+            c.drawCentredString(cxN, cyN - 11.0 * 0.34, "N° %05d" % serie)
             serie += 1
             faites += 1
-
-        # trait de découpe pointillé entre les 2 cartes
-        c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.5); c.setDash(3, 3)
-        yc = MARGIN_BOT + CARD_H + GUTTER_Y / 2
-        c.line(MARGIN_X, yc, PAGE_W - MARGIN_X, yc)
-        c.setDash()
-
+        if page_dep > 1 or faites > CARTES_PAGE:
+            c.setFillColor(GRIS)
+            c.setFont("Helvetica", 6.0)
+            nfe = page_dep + (faites - 1) // CARTES_PAGE
+            c.drawRightString(PAGE_W - 6 * mm, PAGE_H - 9 * mm, "%03d" % nfe)
         c.showPage()
-        no_page += 1
-
     c.save()
     buf.seek(0)
     return buf
-
-
-# ── Deux variantes pour le registre : Couleur (arc-en-ciel) et Noir & Blanc ──
-def generer_couleur(**kwargs):
-    """OHANA 75 2 séries — version COULEUR (ronds et lettres arc-en-ciel)."""
-    kwargs["couleur"] = True
-    return generer_pdf(**kwargs)
-
-
-def generer_nb(**kwargs):
-    """OHANA 75 2 séries — version NOIR & BLANC (tout en gris, économie d'encre)."""
-    kwargs["couleur"] = False
-    return generer_pdf(**kwargs)
-
-
-if __name__ == "__main__":
-    pdf = generer_pdf(nb_cartes=2, couleur=True,
-                      nom_evenement="ASSOCIATION TE MANU", titre_jeu="GRAND LOTO OHANA",
-                      date_lieu="20 déc 2026", telephone="87 12 34 56")
-    with open("test_ohana_2series.pdf", "wb") as f:
-        f.write(pdf.read())
-    print("OHANA 75 2 séries généré")
