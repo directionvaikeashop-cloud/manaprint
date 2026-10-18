@@ -1,374 +1,172 @@
 # -*- coding: utf-8 -*-
-"""
-MANAPRINT — Générateur OHANA 90 · 2 SÉRIES (format A4)
-2 cartes par feuille A4 portrait (empilées), trait de découpe pointillé entre elles.
-Chaque carte : grille 6 colonnes × 5 rangées — B(1-15) I(16-30) N(31-45) G(46-60)
-O(61-75) 90(76-90), « MARATHON » au-dessus du G. Chaque case contient DEUX numéros
-de la colonne : le principal dans un CERCLE + un plus petit en bas à droite.
-FREE SPACE = grand rectangle enjambant N et G au centre (fidèle au modèle),
-avec le numéro de carte… et le QR de vérification au cœur de la carte.
-56 numéros par carte (10 par colonne, 8 pour N et G).
-2 séries = 2 couleurs par page (jaune, bleu) en mode Couleur.
-Chiffres en gris (2 gammes ÉCO/PREMIUM).
+"""MANAPRINT — OHANA 90 · 2 SÉRIES — nouvelle maquette RETRAVAILLEE par Maeva (16/10).
+
+🌺 La maquette « OHANA 90 · 2 séries » (A4 portrait, 2 cartes empilées ; chaque carte :
+en-tête « OHANA 90 », B·I·N·G·O·90, grille 6 colonnes × 5 rangées avec un ROND par
+case) est reprise TELLE QUELLE, posée comme UNE SEULE image de fond. On n'ajoute QUE
+les chiffres ; rien n'est redessiné.
+
+REGLE — 2 numéros par case (comme OHANA 75 · 2 séries), les 30 cases REMPLIES —
+  le plus petit ENTOURE (dans le rond, Latin Modern) + le second À DROITE
+  (DejaVu Condensed Bold). Plages :
+  B 1-15 · I 16-30 · N 31-45 · G 46-60 · O 61-75 · 90 76-90.
+Chiffres GRIS. Chiffres pleins -> impression Konica rapide.
 """
 import io
+import os as _os
 import random
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-
-# ══ ✒️ LA CALLIGRAPHIE DU FREE SPACE (sceau Maeva 11/09) ════════════
-# Même travail que sur P6 MARATHON et les OHANA 75 : le NOM DE LA SALLE
-# remplace « FREE / SPACE » et s'écrit en calligraphie ; le NUMÉRO DE CARTE
-# reste au milieu, il ne disparaît jamais.
-# ⭐ On peut imposer la coupure des lignes avec « | » — « SAINT ANNE |
-#    HIVA OA » donne deux lignes propres. La barre ne s'affiche jamais.
-import os as _os92
-from reportlab.pdfbase import pdfmetrics as _pm92
-from reportlab.pdfbase.ttfonts import TTFont as _TF92
-from reportlab.pdfbase.pdfmetrics import stringWidth as _sw92
-_POLICE_SCRIPT = "Times-Italic"
-for _n92, _c92 in (
-        ("CHORUS", _os92.path.join(_os92.path.dirname(_os92.path.abspath(__file__)), "Chorus.ttf")),
-        ("FSERIT", "/usr/share/fonts/truetype/freefont/FreeSerifItalic.ttf")):
-    try:
-        _pm92.registerFont(_TF92(_n92, _c92)); _POLICE_SCRIPT = _n92; break
-    except Exception:
-        pass
-
-
-def _lignes_centre(texte):
-    """✒️ Le NOM sur la 1re ligne (calligraphié), le reste dessous."""
-    brut = str(texte).replace("\n", "|")
-    if "|" in brut:
-        return [l.strip() for l in brut.split("|") if l.strip()][:2]
-    mots = [m for m in brut.split(" ") if m]
-    if not mots:
-        return []
-    if len(mots) == 1:
-        return [mots[0]]
-    return [mots[0], " ".join(mots[1:])]
-
-
-# SÉCURITÉ ANTI-PHOTOCOPIE (microtexte) — anti-panne : si le module securite
-# est absent, les cartons sortent normalement, simplement sans microtexte.
-try:
-    from generators import securite as _sec
-except Exception:
-    try:
-        import securite as _sec
-    except Exception:
-        _sec = None
-
-
-try:
-    pdfmetrics.registerFont(TTFont("DJL", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    POLICE = "DJL"
-except Exception:
-    POLICE = "Helvetica"
-
-# Les 2 SÉRIES : une couleur par position de carte sur la page (vision historique)
-SERIES_2 = ["#F9A825", "#1E88E5"]  # jaune, bleu
-GRIS = colors.Color(0.42, 0.42, 0.42)
-GRIS_CLAIR = colors.Color(0.80, 0.80, 0.80)
-
-
-# ══ DEUX GAMMES COMMERCIALES (vision Maeva) ══════════════════════════
-# ÉCO      : écriture fine DejaVu ExtraLight, gris 0,50 — économie de toner
-# PREMIUM  : écriture grasse Helvetica-Bold, gris 0,55 — style P15
-from reportlab.pdfbase import pdfmetrics as _pm
-from reportlab.pdfbase.ttfonts import TTFont as _TF
-try:
-    _pm.registerFont(_TF("DJLECO", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    _POLICE_ECO = "DJLECO"
-except Exception:
-    _POLICE_ECO = "Helvetica"
-_GRIS_ECO = colors.Color(0.35, 0.35, 0.35)
-_POLICE_P15 = "Helvetica-Bold"
-_GRIS_P15 = colors.Color(0.35, 0.35, 0.35)
-# ⭐⭐ 11/09 (sceau Maeva) : L'ÉCRITURE LATIN MODERN ROMAN dans les deux
-#    gammes, gris 0,35, cercles à 0,5.
-#    ⚠️ MESURÉ : cette écriture consomme 61 % de moins que l'ancienne
-#    grasse à taille égale. Et LE MICROTEXTE EST GARDÉ : contre-intuitif
-#    mais mesuré, il CREUSE le chiffre au lieu d'ajouter de l'encre —
-#    sans lui on consomme 22 % de plus. Ne jamais le retirer « pour faire
-#    plus net » : on paierait plus cher ET on perdrait l'anti-photocopie.
-#    ⚠️ LatinModern.ttf est rangé à côté de ce fichier. S'il manque, on
-#    garde l'ancienne écriture sans planter.
-import os as _os90
-try:
-    _pm.registerFont(_TF("LMROMAN", _os90.path.join(
-        _os90.path.dirname(_os90.path.abspath(__file__)), "LatinModern.ttf")))
-    _POLICE_ECO = "LMROMAN"
-    _POLICE_P15 = "LMROMAN"
-except Exception:
-    pass
-
-def _style_chiffres(style):
-    """Retourne (police, gris) des chiffres selon la gamme choisie."""
-    if str(style).lower() in ("p15", "premium"):
-        return _POLICE_P15, _GRIS_P15
-    return _POLICE_ECO, _GRIS_ECO
-# ═════════════════════════════════════════════════════════════════════
+from reportlab.pdfbase.pdfmetrics import stringWidth
 
 PAGE_W, PAGE_H = A4
-LETTRES = ["B", "I", "N", "G", "O", "90"]
-PLAGES = [(1, 15), (16, 30), (31, 45), (46, 60), (61, 75), (76, 90)]
+CARTES_PAGE = 2
 
-COLS_PAGE = 1
-ROWS_PAGE = 2
-MARGIN_X = 8 * mm
-MARGIN_TOP = 8 * mm
-MARGIN_BOT = 8 * mm
-GUTTER = 7 * mm
+try:
+    pdfmetrics.registerFont(TTFont("LMROMAN", _os.path.join(
+        _os.path.dirname(_os.path.abspath(__file__)), "LatinModern.ttf")))
+    POLICE_NUM = "LMROMAN"
+except Exception:
+    POLICE_NUM = "Times-Bold"
+try:
+    pdfmetrics.registerFont(TTFont("DJCONDB", _os.path.join(
+        _os.path.dirname(_os.path.abspath(__file__)), "DejaVuSansCondensed-Bold.ttf")))
+    POLICE_COND = "DJCONDB"
+except Exception:
+    POLICE_COND = "Helvetica-Bold"
+GRIS = colors.Color(0.42, 0.42, 0.42)
 
-CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER) / COLS_PAGE
-CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - GUTTER) / ROWS_PAGE
-HDR_H = 9 * mm
+PLAGES = [("B", 1, 15), ("I", 16, 30), ("N", 31, 45),
+          ("G", 46, 60), ("O", 61, 75), ("90", 76, 90)]
+
+# ── Géométrie mesurée sur la maquette (image 1103×1426 px, A4 portrait) ──
+_IMG_W, _IMG_H = 1103, 1426
+_COL_PX = [120, 293, 467, 638, 812, 984]                 # 6 colonnes (B I N G O 90)
+_ROW_PX = [[219, 322, 425, 529, 633],                    # carte 1 : 5 rangées
+           [927, 1032, 1136, 1239, 1344]]                # carte 2 : 5 rangées
+_CIRC_DX = -34     # rond : décalage x (px)
+_RIGHT_DX = 46     # 2e chiffre : décalage x à droite (px)
+_RAYON = 41        # rayon du rond (px)
+
+
+def _x(px):
+    return px / _IMG_W * PAGE_W
+
+
+def _y(py):
+    return PAGE_H - py / _IMG_H * PAGE_H
+
+COL_X = [_x(p) for p in _COL_PX]
+ROW_Y = [[_y(p) for p in carte] for carte in _ROW_PX]
+CIRC_DX = _CIRC_DX / _IMG_W * PAGE_W
+RIGHT_DX = _RIGHT_DX / _IMG_W * PAGE_W
+CIRCLE_D = 2 * _RAYON / _IMG_W * PAGE_W
+_CELL_W_PT = 171 / _IMG_W * PAGE_W
+_CELL_H_PT = 104 / _IMG_H * PAGE_H
+# N° de série : discret, en haut à gauche de chaque carte
+_SER_PX = [(60, 95), (60, 803)]
+
+
+def _fond():
+    d = _os.path.dirname(_os.path.abspath(__file__))
+    p = _os.path.join(d, "ohana90_2series_fond.png")
+    if _os.path.exists(p):
+        return p
+    try:
+        for f in _os.listdir(d):
+            if "ohana90_2series_fond" in f.lower() and f.lower().endswith(".png"):
+                return _os.path.join(d, f)
+    except Exception:
+        pass
+    return _os.path.join(d, "ohana90_2series_fond.png")
+_IMG_FOND = _fond()
+
+
+def _t_gros():
+    t = 34.0
+    while t > 8 and (stringWidth("88", POLICE_NUM, t) > CIRCLE_D * 0.74
+                     or t * 0.70 > CIRCLE_D * 0.82):
+        t -= 0.5
+    return t
+T_GROS = _t_gros()
+
+_CIRC_RIGHT = CIRC_DX + CIRCLE_D / 2
+_CELL_RIGHT = _CELL_W_PT / 2
+_AVAIL_W = (_CELL_RIGHT - 2) - (_CIRC_RIGHT + 2)
+
+
+def _t_petit():
+    t = 42.0
+    while t > 8 and (stringWidth("88", POLICE_COND, t) > _AVAIL_W
+                     or t * 0.70 > _CELL_H_PT * 0.80):
+        t -= 0.5
+    return min(t, T_GROS * 1.08)
+T_PETIT = _t_petit()
 
 
 def _gen_carte(rng):
-    """Par colonne : 10 numéros distincts (8 pour N et G — le FREE SPACE les enjambe).
-    Retourne cols[c] = liste de paires (cerclé, petit) par case, haut -> bas."""
-    cols = []
-    for ci, (pmin, pmax) in enumerate(PLAGES):
-        n_cases = 4 if ci in (2, 3) else 5
-        tirage = rng.sample(range(pmin, pmax + 1), n_cases * 2)
-        paires = [(tirage[2 * i], tirage[2 * i + 1]) for i in range(n_cases)]
-        cols.append(paires)
-    return cols
+    """Par colonne : 5 cases de 2 numéros distincts triés (toutes les cases)."""
+    carte = {}
+    for lettre, a, b in PLAGES:
+        nums = rng.sample(range(a, b + 1), 5 * 2)
+        carte[lettre] = [sorted(nums[i * 2:i * 2 + 2]) for i in range(5)]
+    return carte
 
 
-def _dessiner_carte(c, x0, y0, cols_paires, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id="", nom_centre=""):
-    police_ch, gris_ch = _style_chiffres(style)
-    # ⭐⭐ 14/08 (sceau Maeva : « peut-on alléger la couleur sur OHANA 90
-    # 2 séries ») : LA COULEUR DEVIENT PASTEL.
-    # ⚠️ On ne touche PAS aux chiffres — ils restent en gris, pleinement
-    # lisibles. Seuls le cadre, la grille, les cercles et les lettres
-    # s'éclaircissent : on les mélange à 55 % de blanc.
-    _brut = colors.HexColor(couleur_hex)
-    _PALE = 0.55                      # 0 = blanc · 1 = la couleur d'origine
-    col = colors.Color(1 - (1 - _brut.red) * _PALE,
-                       1 - (1 - _brut.green) * _PALE,
-                       1 - (1 - _brut.blue) * _PALE)
-    cell_w = CARD_W / 6
-
-    # Ligne d'identité au-dessus de la carte — le nom du jeu apparaît TOUJOURS
-    ident = "OHANA 90 \u00b7 2 s\u00e9ries  \u2014  Carte N\u00b0 %06d" % serie
-    if titre_jeu and "OHANA" not in titre_jeu.strip().upper():
-        ident += "  \u00b7  " + titre_jeu.strip()
-    if telephone:
-        ident += "  \u00b7  " + telephone
-    c.setFillColor(col); c.setFont(POLICE, 5.5)
-    c.drawCentredString(x0 + CARD_W / 2, y0 + CARD_H + 1.6 * mm, ident[:90])
-
-    # Bordure carte
-    c.setStrokeColor(col); c.setLineWidth(0.9)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 1.5 * mm, stroke=1, fill=0)
-    if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
-
-    # En-tête B I N G O 90 + MARATHON au-dessus du G (fidèle au modèle)
-    hdr_bas = y0 + CARD_H - HDR_H
-    c.setStrokeColor(col); c.setLineWidth(0.6)
-    c.line(x0, hdr_bas, x0 + CARD_W, hdr_bas)
-    for i in range(1, 6):
-        c.line(x0 + i * cell_w, hdr_bas, x0 + i * cell_w, y0 + CARD_H)
-    c.setFillColor(col)
-    for i, lettre in enumerate(LETTRES):
-        cx = x0 + (i + 0.5) * cell_w
-        if lettre == "G":  # G — MARATHON au-dessus
-            c.setFont(POLICE, 4.5)
-            c.drawCentredString(cx, y0 + CARD_H - 3.0 * mm, "MARATHON")
-            c.setFont(POLICE, 10)
-            c.drawCentredString(cx, hdr_bas + 1.6 * mm, lettre)
-        else:
-            c.setFont(POLICE, 13)
-            c.drawCentredString(cx, hdr_bas + 2.2 * mm, lettre)
-
-    # Grille 5×5 : séparateurs pointillés discrets (fidèle au modèle)
-    grid_h = hdr_bas - (y0 + 2.2 * mm)   # petit pied : la dernière rangée ne touche JAMAIS le trait de fond
-    cell_h = grid_h / 5
-    c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.3)
-    c.setDash(1.5, 1.8)
-    for i in range(1, 6):
-        c.line(x0 + i * cell_w, y0, x0 + i * cell_w, hdr_bas)
-    for i in range(1, 5):
-        yp = hdr_bas - i * cell_h - 2.2   # pointillé descendu au CENTRE exact du couloir d'encre
-        c.line(x0, yp, x0 + CARD_W, yp)
-    c.setDash()
-
-    # Les cases : cercle + petit numéro (colonne N : la case centrale = FREE SPACE)
-    rayon = min(cell_w, cell_h) * 0.325  # bulle plafonnée : elle affleure le pointillé sans le franchir
-    # ⚠️⚠️ 11/09 : LA TAILLE DU CHIFFRE S'ADAPTE AU CERCLE. Elle était en
-    #    dur à 42 pt, calibrée pour l'ancienne écriture ; avec Latin Modern
-    #    les nombres à deux chiffres (« 22 », « 44 ») débordaient de la
-    #    bulle. Le rayon, lui, ne peut pas grandir — il affleure déjà le
-    #    pointillé. On réduit donc la taille jusqu'à ce que la DIAGONALE du
-    #    chiffre tienne dans le cercle, quelle que soit l'écriture.
-    t_cercle, t_petit = 42, 36
-    while t_cercle > 10:
-        _l = _sw92("88", police_ch, t_cercle)
-        _h = t_cercle * 0.72
-        if ((_l / 2) ** 2 + (_h / 2) ** 2) ** 0.5 <= rayon * 0.92:
-            break
-        t_cercle -= 0.5
-    # ⚠️ le PETIT NUMÉRO suit la même réduction : il gardait 36 pt en dur
-    #    et se retrouvait plus gros que celui de la bulle. On conserve le
-    #    rapport d'origine (36/42) quelle que soit la taille retenue.
-    t_petit = t_cercle * (36.0 / 42.0)
-    for ci, paires in enumerate(cols_paires):
-        idx = 0
-        for ri in range(5):
-            case_x = x0 + ci * cell_w
-            case_y = hdr_bas - (ri + 1) * cell_h
-            if ci in (2, 3) and ri == 2:
-                if ci == 3:
-                    continue  # la moitié droite du FREE SPACE est déjà dessinée
-                # ── FREE SPACE : grand rectangle enjambant N et G (fidèle au modèle) ──
-                c.setStrokeColor(col); c.setLineWidth(0.6)
-                c.roundRect(case_x + 1.5 * mm, case_y + 1.2 * mm,
-                            2 * cell_w - 3 * mm, cell_h - 2.4 * mm, 1.5 * mm, stroke=1, fill=0)
-                # ✒️ 11/09 : avec une personnalisation, le NOM remplace
-                #    « FREE / SPACE » et le numéro de carte reste au milieu.
-                #    ⚠️ SANS QR le texte est VRAIMENT CENTRÉ dans le grand
-                #    rectangle ; avec QR il se recale à gauche pour lui
-                #    laisser la place.
-                _perso = (nom_centre or "").strip()
-                fx = case_x + (cell_w * 0.62 if evenement_id else cell_w)
-                c.setFillColor(col)
-                if _perso:
-                    _lg = _lignes_centre(_perso)
-                    _larg = (2 * cell_w - 6 * mm) * (0.52 if evenement_id else 0.88)
-                    _th = 10.0
-                    while _th > 3.4 and _sw92(_lg[0], _POLICE_SCRIPT, _th) > _larg:
-                        _th -= 0.25
-                    c.setFont(_POLICE_SCRIPT, _th)
-                    c.drawCentredString(fx, case_y + cell_h * 0.66, _lg[0])
-                    c.setFont(POLICE, 6.5)
-                    c.drawCentredString(fx, case_y + cell_h * 0.42, "%06d" % serie)
-                    if len(_lg) > 1:
-                        _tb9 = 5.5
-                        while _tb9 > 3.0 and _sw92(_lg[1], POLICE, _tb9) > _larg:
-                            _tb9 -= 0.25
-                        c.setFont(POLICE, _tb9)
-                        c.drawCentredString(fx, case_y + cell_h * 0.17, _lg[1])
-                else:
-                    c.setFont(POLICE, 5.5)
-                    c.drawCentredString(fx, case_y + cell_h * 0.68, "FREE")
-                    c.setFont(POLICE, 6.5)
-                    c.drawCentredString(fx, case_y + cell_h * 0.44, "%06d" % serie)
-                    c.setFont(POLICE, 5.5)
-                    c.drawCentredString(fx, case_y + cell_h * 0.18, "SPACE")
-                if _sec and evenement_id:
-                    try:
-                        _q = min(cell_h - 3.5 * mm, 13.0 * mm)
-                        _sec.carton_qr(c, case_x + 2 * cell_w - _q - 3.0 * mm,
-                                       case_y + (cell_h - _q) / 2, _q, evenement_id, serie)
-                    except Exception:
-                        pass
-                continue
-            n_cercle, n_petit = paires[idx]; idx += 1
-            # ⭐ 11/09 (sceau Maeva : « centre-les bien dans chaque carré ») :
-            #    L'ENSEMBLE BULLE + PETIT NUMÉRO EST CENTRÉ. La bulle était
-            #    posée à 0,34 de la case et le petit à 0,755, des fractions
-            #    en dur : le bloc était décalé. On mesure maintenant la
-            #    largeur réellement occupée et on la centre.
-            _lp0 = _sw92("88", police_ch, t_petit)
-            _larg_bloc = 2 * rayon + _lp0 * 1.08
-            ccx = case_x + max(rayon + 0.4 * mm, (cell_w - _larg_bloc) / 2 + rayon)
-            _px_petit = ccx + rayon + _lp0 * 0.58
-            _haut_bloc = 2 * rayon + t_petit * 0.82
-            _marge_v = max(0.4 * mm, (cell_h - _haut_bloc) / 2)
-            ccy = case_y + min(cell_h - rayon - 0.4 * mm, cell_h - _marge_v - rayon)
-            _py_petit = max(case_y + cell_h * 0.05, ccy - rayon - t_petit * 0.62)
-            # ⭐ le cercle passe de 0,7 à 0,5 : 2e poste de toner après les chiffres
-            c.setStrokeColor(col if False else GRIS); c.setLineWidth(0.5)
-            c.setStrokeColor(col)
-            c.circle(ccx, ccy, rayon, stroke=1, fill=0)
-            if _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, n_cercle, ccx, ccy - t_cercle * 0.36, t_cercle, gris_ch, police_ch)
-                _sec.chiffre_micro(c, n_petit, _px_petit, _py_petit, t_petit, gris_ch, police_ch)
-            else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, t_cercle)
-                c.drawCentredString(ccx, ccy - t_cercle * 0.36, str(n_cercle))
-                c.setFont(police_ch, t_petit)
-                c.drawCentredString(_px_petit, _py_petit, str(n_petit))
-
-
-def generer_pdf(nb_cartes=2, serie_start=1, theme="", couleur=True,
-                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id="", page_start=1):
+def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleur=True,
+                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="",
+                telephone="", page_start=1, evenement_id="", style="", motif="",
+                **_ignore):
+    n_ = nb_cartes if nb_cartes is not None else nb_tickets
+    n_ = max(1, int(n_ if n_ else CARTES_PAGE))
     buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
-
-    nb_cartes = max(1, min(int(nb_cartes), 10000))
-    par_page = COLS_PAGE * ROWS_PAGE
-    nb_pages = (nb_cartes + par_page - 1) // par_page
-
-    rng = random.Random(976000 + int(serie_start))
+    c = canvas.Canvas(buf, pagesize=(PAGE_W, PAGE_H), pageCompression=1)
+    rng = random.Random(int(serie_start) * 100003 + 601)
     serie = int(serie_start)
-    # 📄 la page continue d'une rame à l'autre (sceau Maeva 12/08)
-    no_page = max(1, int(page_start))
     faites = 0
+    try:
+        page_dep = max(1, int(page_start))
+    except Exception:
+        page_dep = 1
 
-    for _ in range(nb_pages):
-        # en-tête de page + traits de découpe pointillés (fidèle au modèle)
-        if nom_evenement:
-            c.setFillColor(colors.black); c.setFont(POLICE, 8)
-            # ⚠️⚠️ 18/09 : ICI LE NOM NE PEUT PAS DESCENDRE (sceau Maeva :
-            #    « rapprocher la personnalisation de la grille » — fait sur
-            #    les six autres jeux, impossible sur celui-ci).
-            #    LA RAISON : ce carton porte SA PROPRE LIGNE D'IDENTITÉ
-            #    (« OHANA 90 · 2 séries — Carte N° … ») juste au-dessus de
-            #    son cadre, centrée comme le nom. Le nom est déjà à moins
-            #    d'un point d'elle : le descendre le ferait passer PAR-DESSUS.
-            #    ⭐ En revanche le NUMÉRO DE PAGE file à droite : il était
-            #      centré et tombait en plein milieu de cette ligne
-            #      d'identité, qu'il rendait illisible. Ça, c'est corrigé.
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 4 * mm,
-                                nom_evenement.replace("|", " ").replace("  ", " ").strip())
-        c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 6)
-        if nom_evenement:
-            c.drawRightString(PAGE_W - 6 * mm, PAGE_H - 4 * mm, "%03d" % no_page)
-        else:
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 6.4 * mm, "%03d" % no_page)
-        c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.4)
-        c.setDash(3, 3)
-        c.line(3 * mm, PAGE_H / 2, PAGE_W - 3 * mm, PAGE_H / 2)
-        c.setDash()
-
-        for row in range(ROWS_PAGE):
-            for col_i in range(COLS_PAGE):
-                if faites >= nb_cartes:
-                    break
-                pos = row * COLS_PAGE + col_i
-                x0 = MARGIN_X + col_i * (CARD_W + GUTTER)
-                y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER)
-                cols_paires = _gen_carte(rng)
-                coul = (couleur_perso if (couleur and couleur_perso)
-                        else SERIES_2[pos] if couleur else "#9A9A9A")
-                _dessiner_carte(c, x0, y0, cols_paires, coul, serie, titre_jeu, telephone,
-                                nom_centre=nom_evenement,
-                                style=style, evenement_id=evenement_id)
-                serie += 1
-                faites += 1
-
+    while faites < n_:
+        try:
+            c.drawImage(_IMG_FOND, 0, 0, PAGE_W, PAGE_H,
+                        preserveAspectRatio=False, mask="auto")
+        except Exception:
+            pass
+        for k in range(CARTES_PAGE):
+            if faites >= n_:
+                break
+            carte = _gen_carte(rng)
+            rows_y = ROW_Y[k]
+            for col_i, (lettre, a, b) in enumerate(PLAGES):
+                cx = COL_X[col_i]
+                for row in range(5):
+                    petit, grand = carte[lettre][row]
+                    cy = rows_y[row]
+                    c.setFillColor(GRIS)
+                    c.setFont(POLICE_NUM, T_GROS)
+                    c.drawCentredString(cx + CIRC_DX, cy - T_GROS * 0.34, str(petit))
+                    c.setFont(POLICE_COND, T_PETIT)
+                    c.drawCentredString(cx + RIGHT_DX, cy - T_PETIT * 0.34, str(grand))
+            # N° de série (discret, haut-gauche)
+            sx, sy = _SER_PX[k]
+            c.setFillColor(GRIS)
+            c.setFont(POLICE_NUM, 9.0)
+            c.drawString(_x(sx), _y(sy), "N° %05d" % serie)
+            serie += 1
+            faites += 1
+        if page_dep > 1 or faites > CARTES_PAGE:
+            c.setFillColor(GRIS)
+            c.setFont("Helvetica", 6.0)
+            nfe = page_dep + (faites - 1) // CARTES_PAGE
+            c.drawRightString(PAGE_W - 6 * mm, PAGE_H - 9 * mm, "%03d" % nfe)
         c.showPage()
-        no_page += 1
-
     c.save()
     buf.seek(0)
     return buf
-
-
-if __name__ == "__main__":
-    pdf = generer_pdf(nb_cartes=2, couleur=True,
-                      nom_evenement="ASSOCIATION TE MANU", titre_jeu="Grand Loto",
-                      telephone="89.22.23.05")
-    with open("test_ohana90_2series.pdf", "wb") as f:
-        f.write(pdf.read())
-    print("OHANA 90 2 séries généré")
