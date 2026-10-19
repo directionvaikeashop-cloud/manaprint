@@ -166,6 +166,7 @@ from generators import lover
 from generators import tictac
 from generators import kapunka
 from generators import sunset
+from generators import royal
 from generators import igo
 from generators import kea
 from generators import moon
@@ -768,6 +769,7 @@ JEUX_AVEC_IMAGE = {
     "tictac",
     "kapunka",
     "sunset",
+    "royal",
     "sangogo",
     "vanira",
     "joker",
@@ -1077,6 +1079,7 @@ _enregistrer_paire("lover",         "LOVER","❤️", 12, lover.generer_pdf)
 _enregistrer_paire("tictac",        "TIC TAC","🕐", 8, tictac.generer_pdf)
 _enregistrer_paire("kapunka",       "KAPUNKA","🌺", 8, kapunka.generer_pdf)
 _enregistrer_paire("sunset",        "SUNSET","🌅", 8, sunset.generer_pdf)
+_enregistrer_paire("royal",         "ROYAL","👑", 10, royal.generer_pdf)
 _enregistrer_paire("igo",           "IGO",        "🎱", 12, igo.generer_pdf)
 _enregistrer_paire("kea",           "KEA",        "🌿", 12, kea.generer_pdf)
 _enregistrer_paire("moon",          "MOON",       "🌙", 8,  moon.generer_pdf)
@@ -1980,6 +1983,7 @@ _PLAGES_CALLER = {
     "tictac": (1, 90),
     "kapunka": (1, 75),
     "sunset": (1, 90),
+    "royal": (1, 90),
     "igo": (16, 75),
     "kea": (35, 67),
     "moon": (1, 75),
