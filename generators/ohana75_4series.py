@@ -44,6 +44,10 @@ PLAGES = [("B", 1, 15), ("I", 16, 30), ("N", 31, 45), ("G", 46, 60), ("O", 61, 7
 
 # ── Géométrie mesurée sur la maquette (image 1491×1055 px, A4 paysage) ──
 _IMG_W, _IMG_H = 1491, 1055
+from reportlab.lib.units import mm as _mm
+MARGE = 4.5 * _mm                     # marge anti-rognage (Konica)
+_AVW = PAGE_W - 2 * MARGE
+_AVH = PAGE_H - 2 * MARGE
 _COL_PX = [91, 235, 375, 518, 662, 828, 972, 1115, 1258, 1401]   # 2 cartes × 5 colonnes
 _ROW_PX = [172, 250, 330, 409, 487, 705, 783, 861, 936, 1009]    # 2 cartes × 5 rangées
 _CIRC_DX = -33     # rond : décalage x (px)
@@ -53,19 +57,19 @@ _FREE_ROW = 2      # rangée centrale (N du milieu) = FREE / série
 
 
 def _x(px):
-    return px / _IMG_W * PAGE_W
+    return MARGE + px / _IMG_W * _AVW
 
 
 def _y(py):
-    return PAGE_H - py / _IMG_H * PAGE_H
+    return (PAGE_H - MARGE) - py / _IMG_H * _AVH
 
 COL_X = [_x(p) for p in _COL_PX]
 ROW_Y = [_y(p) for p in _ROW_PX]
-CIRC_DX = _CIRC_DX / _IMG_W * PAGE_W
-RIGHT_DX = _RIGHT_DX / _IMG_W * PAGE_W
-CIRCLE_D = 2 * _RAYON / _IMG_W * PAGE_W
-_CELL_W_PT = 142 / _IMG_W * PAGE_W
-_CELL_H_PT = 77 / _IMG_H * PAGE_H
+CIRC_DX = _CIRC_DX / _IMG_W * _AVW
+RIGHT_DX = _RIGHT_DX / _IMG_W * _AVW
+CIRCLE_D = 2 * _RAYON / _IMG_W * _AVW
+_CELL_W_PT = 142 / _IMG_W * _AVW
+_CELL_H_PT = 77 / _IMG_H * _AVH
 
 
 def _fond():
@@ -133,7 +137,7 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
 
     while faites < n_:
         try:
-            c.drawImage(_IMG_FOND, 0, 0, PAGE_W, PAGE_H,
+            c.drawImage(_IMG_FOND, MARGE, MARGE, _AVW, _AVH,
                         preserveAspectRatio=False, mask="auto")
         except Exception:
             pass
