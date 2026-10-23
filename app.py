@@ -131,6 +131,7 @@ from generators import wow6
 from generators import maia as maiagen
 from generators import corsica as corsicagen
 from generators import bno
+from generators import bno8
 from generators import ngo
 from generators import ngo_maq
 from generators import diamant
@@ -1038,7 +1039,7 @@ _enregistrer_paire("wow4",          "WOW 4","🎆", 12, wow4.generer_pdf)
 _enregistrer_paire("wow6",          "WOW 6","\U0001f4a5", 16,  wow6.generer_pdf)
 _enregistrer_paire("maia",          "MAIA \u00b7 Ma\u00efa", "🍌", 12, maiagen.generer_pdf)
 _enregistrer_paire("corsica",       "CORSICA \u00b7 l'\u00eele de la beaut\u00e9", "\u2b50", 8, corsicagen.generer_pdf)
-_enregistrer_paire("bno",           "BNO","🎯", 16, bno.generer_pdf)
+_enregistrer_paire("bno",           "BNO","🎯", 16, bno8.generer_pdf)
 _enregistrer_paire("bno_casino",    "BNO CASINO","🎰", 12, bno.generer_pdf_casino)
 _enregistrer_paire("ngo",           "NGO","🎳", 16, ngo_maq.generer_pdf)
 _enregistrer_paire("ngo_casino",    "NGO CASINO","🎰", 12, ngo.generer_pdf_casino)
