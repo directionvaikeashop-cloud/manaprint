@@ -92,6 +92,21 @@ _R_ROND = 7.9
 _POLICE_P15 = _POLICE_ECO
 _GRIS_P15 = colors.Color(0.14, 0.14, 0.14)   # objet distinct : sert à reconnaître la gamme
 
+def _chiffre_plein(c, texte, x_centre, y_bas, taille, couleur, police, epaisseur=None):
+    """Chiffre PLEIN (gras) — rendu identique au mode rapide, jamais de microtexte."""
+    from reportlab.pdfbase.pdfmetrics import stringWidth as _sw
+    c.saveState()
+    c.setFillColor(couleur); c.setFont(police, taille)
+    if epaisseur:
+        t = c.beginText(0, 0); t.setFont(police, taille); t.setTextRenderMode(2)
+        c.setStrokeColor(couleur); c.setLineWidth(max(0.2, taille * float(epaisseur)))
+        t.setTextOrigin(x_centre - _sw(str(texte), police, taille) / 2.0, y_bas)
+        t.textOut(str(texte)); c.drawText(t)
+    else:
+        c.drawCentredString(x_centre, y_bas, str(texte))
+    c.restoreState()
+
+
 def _style_chiffres(style):
     """Retourne (police, gris) des chiffres selon la gamme choisie."""
     if str(style).lower() in ("p15", "premium"):
@@ -263,12 +278,7 @@ def _dessiner_carte(c, x0, y0, rangs, couleur_hex, serie, encre,
                 continue
             if i % 2 == 0:
                 # GRAND numéro
-                if _sec:
-                    _sec.chiffre_micro(c, n, cx, cy, t_grand, gris_ch, police_ch,
-                                       epaisseur=_GRAS_TRAIT)
-                else:
-                    c.setFillColor(gris_ch); c.setFont(police_ch, t_grand)
-                    c.drawCentredString(cx, cy, str(n))
+                _chiffre_plein(c, n, cx, cy, t_grand, gris_ch, police_ch, _GRAS_TRAIT)
             else:
                 # numéro dans un ROND POINTILLÉ — aligné sur les grands numéros
                 cyc = cy + (t_grand - t_cercle) * 0.35   # même centre optique que les grands
@@ -276,12 +286,7 @@ def _dessiner_carte(c, x0, y0, rangs, couleur_hex, serie, encre,
                 c.setDash(1.4, 1.6)
                 c.circle(cx, cyc + t_cercle * 0.36, _rr * mm, stroke=1, fill=0)
                 c.setDash()
-                if _sec:
-                    _sec.chiffre_micro(c, n, cx, cyc, t_cercle, gris_ch, police_ch,
-                                       epaisseur=_GRAS_TRAIT)
-                else:
-                    c.setFillColor(gris_ch); c.setFont(police_ch, t_cercle)
-                    c.drawCentredString(cx, cyc, str(n))
+                _chiffre_plein(c, n, cx, cyc, t_cercle, gris_ch, police_ch, _GRAS_TRAIT)
 
     # 🎯 QR dans la zone droite réservée
     if _sec and evenement_id:
