@@ -5801,6 +5801,23 @@ _DECOR = "m15.3,998.6c14.7,998.5,13.5,998.2,12.7,998.1c11.3,997.9,10.0,997.2,9.7
 
 
 
+# ═════════════════════════════════════════════════════════════════════
+# 🎵 MÉLODIE — inscription du 24/10/2026 (création RANIHEI, 10 boules)
+#    Portée musicale, 10 ovales (2 par colonne B·I·N·G·O), 1 à 75 sans trou.
+# ═════════════════════════════════════════════════════════════════════
+from generators import melodie          # 🎵 création RANIHEI (portée musicale)
+
+JEUX_PROPRIETAIRE["melodie"] = "ranihei"
+_GRIS_POSES = _imposer_gris_maison()
+
+# ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+_enregistrer_paire("melodie", "MÉLODIE · 10 boules", "\U0001f3b5", 8, melodie.generer_pdf)
+
+_PLAGES_CALLER["melodie"] = (1, 75)
+# 🎵 MÉLODIE : 75 boules classique, 2 par colonne B·I·N·G·O — 1 à 75 sans trou.
+_BOULES_CALLER["melodie"] = [n for n in range(1, 76)]
+print("[RANIHEI] MÉLODIE inscrite — %d jeux au catalogue" % len(REGISTRE_JEUX))
+
 # ═══════════════════════════════════════════════════════════════════════════
 # 🎁 GÉNÉRATEUR DE RAMES PANACHÉES (sceau Maeva 24/10)
 #    Un bouton par rame déjà composée. Chaque rame = 1 feuille de COUVERTURE
