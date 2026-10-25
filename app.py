@@ -5842,19 +5842,19 @@ print("[RANIHEI] BÂBORD TRIBORD inscrit — %d jeux au catalogue" % len(REGISTR
 #    Téléchargement direct (pas de quota, c'est un outil interne).
 # ═══════════════════════════════════════════════════════════════════════════
 _PANACHE_RAMES = {
-    "rame1": {"titre": "Rame 1 sur 3", "jeux": [
+    "rame1": {"titre": "SELECT 1", "jeux": [
         ("ROYAL","royal"),("TESLA","tesla"),("60 BOULES","boules60"),("CALLER","caller"),
         ("ITALIA","italia"),("LOVE","love"),("DUAL DAB 75","dual_dab"),("OHANA 75 · 10 boules","ohana75_10b"),
         ("OHANA 75 · 8 boules","ohana75_8b"),("OHANA 75 · 20 boules","ohana20b"),("CHAMPAGNE","champagne"),
         ("TAHAA","tahaa"),("JOIE","joie"),("BNG","bng"),("4 COIN","quatre_coin"),("OLIVE","olive"),
         ("ING","ing"),("SICILE","sicile"),("OK","ok"),("MISS 75","miss75")]},
-    "rame2": {"titre": "Rame 2 sur 3", "jeux": [
+    "rame2": {"titre": "SELECT 2", "jeux": [
         ("BROWN 8 boules","brown8"),("LUNDI PAIR 74","lundi_pair74"),("CERF VOLANT","cerf_volant"),("ROMA","roma6"),
         ("LETTRE L","lettre_l"),("LETTRE U","lettre_u"),("IGO","igo"),("LOVER","lover"),("TIC TAC","tictac"),
         ("ALOHA 75","aloha75"),("BGO","bgo"),("BN 90","bn90"),("LUNES 75","lunes75"),("NGO","ngo"),
         ("WOW 6","wow6"),("INO","ino"),("TAP TAP","taptap"),("VISION","vision"),("PERLE 90","poe_parau"),
         ("BNO 8 boules","bno")]},
-    "rame3": {"titre": "Rame 3 sur 3", "jeux": [
+    "rame3": {"titre": "SELECT 3", "jeux": [
         ("KING 40","king"),("TEA","tea"),("OAOA","oaoa"),("OHANA 75 · 8b / 18 grilles","ohana75_8b18"),
         ("OHANA 75 · 10b / 18 grilles","ohana75_10b18"),("POW 9 boules","pow9"),("POW 6 boules","pow6"),
         ("WIN","win"),("SUN","sun"),("MOON","moon"),("TRIPLE ACTION 75","triple_action"),
@@ -5864,7 +5864,7 @@ _PANACHE_RAMES = {
 _PANACHE_RAMES["complete"] = {"titre": "Rame complète",
     "jeux": _PANACHE_RAMES["rame1"]["jeux"] + _PANACHE_RAMES["rame2"]["jeux"] + _PANACHE_RAMES["rame3"]["jeux"]}
 
-_PANACHE_RAMES["r4"] = {"titre": "90 R et 10 T", "jeux": [
+_PANACHE_RAMES["r4"] = {"titre": "SELECT 90 R et 10 T", "jeux": [
     ("OHANA 75 · 8 boules","ohana75_8b"),("OHANA 75 · 10 boules","ohana75_10b"),
     ("OHANA 75 · 20 boules","ohana20b"),("TIC TAC","tictac"),("ROYAL","royal"),
     ("SICILE","sicile"),("BÂBORD TRIBORD","babord"),("ROMA","roma6"),("MÉLODIE","melodie"),
