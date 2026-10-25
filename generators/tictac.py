@@ -33,8 +33,11 @@ BANDS = [(1, 11), (12, 22), (23, 34), (35, 45),
 
 # ── Géométrie mesurée sur la maquette (image 1491×1055 px, A4 paysage) ──
 _IMG_W, _IMG_H = 1491, 1055
-_SX = PAGE_W / _IMG_W
-_SY = PAGE_H / _IMG_H
+MARGE = 4.5 * mm                 # marge anti-rognage (Konica)
+_AVW = PAGE_W - 2 * MARGE
+_AVH = PAGE_H - 2 * MARGE
+_SX = _AVW / _IMG_W
+_SY = _AVH / _IMG_H
 
 PASTILLES = [
     [(198,192,37), (288,228,37), (310,306,34), (282,384,37), (196,422,38), (112,384,36), (88,308,34), (110,228,36)],
@@ -50,11 +53,11 @@ NBOXES = [[332, 85, 40, 55], [703, 85, 41, 55], [1068, 85, 49, 55], [1418, 85, 5
 
 
 def _x(px):
-    return px / _IMG_W * PAGE_W
+    return MARGE + px / _IMG_W * _AVW
 
 
 def _y(py):
-    return PAGE_H - py / _IMG_H * PAGE_H
+    return (PAGE_H - MARGE) - py / _IMG_H * _AVH
 
 
 def _fond():
@@ -113,7 +116,7 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
 
     while faites < n_:
         try:
-            c.drawImage(_IMG_FOND, 0, 0, PAGE_W, PAGE_H,
+            c.drawImage(_IMG_FOND, MARGE, MARGE, _AVW, _AVH,
                         preserveAspectRatio=False, mask="auto")
         except Exception:
             pass
