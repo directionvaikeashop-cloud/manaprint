@@ -102,6 +102,21 @@ _GRAS_TRAIT = 0.026
 _POLICE_P15 = _POLICE_ECO
 _GRIS_P15 = colors.Color(0.14, 0.14, 0.14)   # objet distinct : sert à reconnaître la gamme
 
+def _chiffre_plein(c, texte, x_centre, y_bas, taille, couleur, police, epaisseur=None):
+    """Chiffre PLEIN (gras) — rendu identique au mode rapide, jamais de microtexte."""
+    from reportlab.pdfbase.pdfmetrics import stringWidth as _sw
+    c.saveState()
+    c.setFillColor(couleur); c.setFont(police, taille)
+    if epaisseur:
+        t = c.beginText(0, 0); t.setFont(police, taille); t.setTextRenderMode(2)
+        c.setStrokeColor(couleur); c.setLineWidth(max(0.2, taille * float(epaisseur)))
+        t.setTextOrigin(x_centre - _sw(str(texte), police, taille) / 2.0, y_bas)
+        t.textOut(str(texte)); c.drawText(t)
+    else:
+        c.drawCentredString(x_centre, y_bas, str(texte))
+    c.restoreState()
+
+
 def _style_chiffres(style):
     """Retourne (police, gris) des chiffres selon la gamme choisie."""
     if str(style).lower() in ("p15", "premium"):
@@ -115,7 +130,8 @@ def _style_chiffres(style):
 #    jusqu'à ce que la DIAGONALE du chiffre tienne dans le rond, quelle que
 #    soit l'écriture réellement chargée (le repli DejaVu compris).
 #    ⚠️ LE ROND NE GRANDIT PAS : c'est lui qui commande.
-_R_ROND = 6.6 * mm
+_T_GROS = 44.0
+_R_ROND = 7.5 * mm
 _T_ROND = 30.0
 while _T_ROND > 12:
     _l = _pm.stringWidth("88", _POLICE_ECO, _T_ROND); _h = _T_ROND * 0.72
@@ -219,8 +235,15 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
 
     gauche = x0 + 12 * mm
     droite = x0 + CARD_W - 24 * mm  # 24 mm réservés à droite : la maison du QR
-    pas = (droite - gauche) / 7.0
-    xs = [gauche + i * pas for i in range(8)]
+    # ⭐ Les 2 numéros d'une MÊME plage sont collés (paire serrée) : un seul coup
+    #    de tampon couvre les deux. Grand écart entre les 4 paires.
+    _INTRA = 16 * mm                 # distance entre les 2 numéros d'une paire
+    _slot = (droite - gauche) / 4.0  # une paire par quart
+    xs = []
+    for _j in range(4):
+        _pc = gauche + (_j + 0.5) * _slot
+        xs.append(_pc - _INTRA / 2)   # gros chiffre (gauche)
+        xs.append(_pc + _INTRA / 2)   # rond (droite)
 
     for i, (val, rond) in enumerate(nums):
         x = xs[i]
@@ -233,7 +256,7 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
             if rond:
                 c.setStrokeColor(col); c.setLineWidth(0.7)
                 c.setDash([1.4, 1.4])
-                c.circle(x, cy, 6.6 * mm, stroke=1, fill=0)
+                c.circle(x, cy, _R_ROND, stroke=1, fill=0)
                 c.setDash([])
                 _smor.poser_numero_image(c, val, x, cy, 10.5, 8.5, gris_ch)
             else:
@@ -243,22 +266,12 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
             # petit chiffre dans rond pointillé
             c.setStrokeColor(col); c.setLineWidth(0.7)
             c.setDash([1.4, 1.4])
-            c.circle(x, cy, 6.6 * mm, stroke=1, fill=0)
+            c.circle(x, cy, _R_ROND, stroke=1, fill=0)
             c.setDash([])
-            if _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, val, x, cy - _T_ROND * 0.36, _T_ROND, gris_ch, police_ch,
-                                   epaisseur=_GRAS_TRAIT)
-            else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, _T_ROND)
-                c.drawCentredString(x, cy - _T_ROND * 0.36, str(val))
+            _chiffre_plein(c, val, x, cy - _T_ROND * 0.36, _T_ROND, gris_ch, police_ch, _GRAS_TRAIT)
         else:
             # gros chiffre
-            if _sec:
-                _sec.chiffre_micro(c, val, x, cy - 12.5, 35, gris_ch, police_ch,
-                                   epaisseur=_GRAS_TRAIT)
-            else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, 35)
-                c.drawCentredString(x, cy - 12.5, str(val))
+            _chiffre_plein(c, val, x, cy - _T_GROS * 0.357, _T_GROS, gris_ch, police_ch, _GRAS_TRAIT)
 
     # QR de vérification par grille (anti-duplication) — coin bas-droit
     if _sec and evenement_id:
