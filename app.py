@@ -5818,6 +5818,23 @@ _PLAGES_CALLER["melodie"] = (1, 75)
 _BOULES_CALLER["melodie"] = [n for n in range(1, 76)]
 print("[RANIHEI] MÉLODIE inscrite — %d jeux au catalogue" % len(REGISTRE_JEUX))
 
+# ═════════════════════════════════════════════════════════════════════
+# ⚓ BÂBORD TRIBORD — inscription du 24/10/2026 (création RANIHEI, 8 boules)
+#    Gouvernail, 8 bulles : 2B·2I·2G·2O -> B 1-15, I 16-30, G 46-60, O 61-75.
+# ═════════════════════════════════════════════════════════════════════
+from generators import babord_tribord   # ⚓ création RANIHEI (gouvernail)
+
+JEUX_PROPRIETAIRE["babord"] = "ranihei"
+_GRIS_POSES = _imposer_gris_maison()
+
+# ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+_enregistrer_paire("babord", "BÂBORD TRIBORD · 8 boules", "\u2693", 8, babord_tribord.generer_pdf)
+
+_PLAGES_CALLER["babord"] = (1, 75)
+# ⚓ BÂBORD TRIBORD : B 1-15, I 16-30, G 46-60, O 61-75 (pas de N, 31-45 ne sort jamais).
+_BOULES_CALLER["babord"] = [n for n in range(1, 31)] + [n for n in range(46, 76)]
+print("[RANIHEI] BÂBORD TRIBORD inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+
 # ═══════════════════════════════════════════════════════════════════════════
 # 🎁 GÉNÉRATEUR DE RAMES PANACHÉES (sceau Maeva 24/10)
 #    Un bouton par rame déjà composée. Chaque rame = 1 feuille de COUVERTURE
@@ -5846,6 +5863,14 @@ _PANACHE_RAMES = {
 }
 _PANACHE_RAMES["complete"] = {"titre": "Rame complète",
     "jeux": _PANACHE_RAMES["rame1"]["jeux"] + _PANACHE_RAMES["rame2"]["jeux"] + _PANACHE_RAMES["rame3"]["jeux"]}
+
+_PANACHE_RAMES["r4"] = {"titre": "90 R et 10 T", "jeux": [
+    ("OHANA 75 · 8 boules","ohana75_8b"),("OHANA 75 · 10 boules","ohana75_10b"),
+    ("OHANA 75 · 20 boules","ohana20b"),("TIC TAC","tictac"),("ROYAL","royal"),
+    ("SICILE","sicile"),("BÂBORD TRIBORD","babord"),("ROMA","roma6"),("MÉLODIE","melodie"),
+    ("SANGOGO","sangogo"),("SPEED 90","speed90"),("JOKER","joker"),("RAROMATAI 75","raromatai75"),
+    ("RAROMATAI 90","raromatai90"),("POMARE","pomare"),("TALON","talon"),("HUNTER","hunter"),
+    ("ÉCHEC ET MAT","echec_et_mat"),("UNITÉ","unite"),("HOANUI","hoanui")]}
 
 
 def _panache_couverture(titre, jeux, feuilles):
