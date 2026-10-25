@@ -32,8 +32,11 @@ NOIR = colors.Color(0, 0, 0)
 PLAGE = {"A": (1, 30), "B": (31, 40), "C": (41, 50), "D": (51, 90)}
 
 _IMG_W, _IMG_H = 1024, 1536
-_SX = PAGE_W / _IMG_W
-_SY = PAGE_H / _IMG_H
+MARGE = 4.5 * mm                 # marge anti-rognage (Konica)
+_AVW = PAGE_W - 2 * MARGE
+_AVH = PAGE_H - 2 * MARGE
+_SX = _AVW / _IMG_W
+_SY = _AVH / _IMG_H
 
 CARTONS = [
     [(106,111,31,'A'), (205,140,30,'B'), (221,214,30,'B'), (313,214,31,'C'), (327,140,30,'C'), (425,112,31,'D')],
@@ -51,11 +54,11 @@ SER_CENTERS = [[86, 24], [586, 25], [86, 325], [586, 325], [86, 630], [586, 630]
 
 
 def _x(px):
-    return px / _IMG_W * PAGE_W
+    return MARGE + px / _IMG_W * _AVW
 
 
 def _y(py):
-    return PAGE_H - py / _IMG_H * PAGE_H
+    return (PAGE_H - MARGE) - py / _IMG_H * _AVH
 
 
 def _fond():
@@ -110,7 +113,7 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
 
     while faites < n_:
         try:
-            c.drawImage(_IMG_FOND, 0, 0, PAGE_W, PAGE_H,
+            c.drawImage(_IMG_FOND, MARGE, MARGE, _AVW, _AVH,
                         preserveAspectRatio=False, mask="auto")
         except Exception:
             pass
