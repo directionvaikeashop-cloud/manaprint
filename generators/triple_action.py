@@ -153,11 +153,16 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
                 grand_x=x0+CW*0.73
                 c.setStrokeColor(col_cercle); c.setLineWidth(0.8)
                 c.circle(cercle_x, cercle_y, rayon, stroke=1, fill=0)
-                c.setFillColor(col)
-                c.setFont(POLICE_NUM,tbulle)
-                c.drawCentredString(cercle_x, cercle_y-tbulle*0.34, str(n_cercle))
-                c.setFont(POLICE_NUM,tnum)
-                c.drawCentredString(grand_x,  cercle_y-tnum*0.34, str(n_grand))
+                # ⭐ 25/10 (Maeva : chiffres TRIPLE ACTION trop fins) : on épaissit
+                #   les 2 chiffres principaux par un CONTOUR centré (remplir+contourer),
+                #   sans changer l'écriture Latin Modern.
+                c.setFillColor(col); c.setStrokeColor(col)
+                for _xx, _tt, _val in ((cercle_x, tbulle, n_cercle), (grand_x, tnum, n_grand)):
+                    _t = c.beginText(_xx - _sw(str(_val), POLICE_NUM, _tt)/2.0, cercle_y - _tt*0.34)
+                    _t.setFont(POLICE_NUM, _tt); _t.setTextRenderMode(2)
+                    c.setLineWidth(max(0.3, _tt*0.035))
+                    _t.textOut(str(_val)); c.drawText(_t)
+                c._code.append('0 Tr')
                 # 3e chiffre : condensée grasse, logé dans la place libre sous la bulle,
                 #   taille maxi qui tient sans toucher la bulle ni le trait.
                 slot_bas = gy + 2.0                      # juste au-dessus du trait
