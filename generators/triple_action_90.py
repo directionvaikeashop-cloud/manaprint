@@ -140,11 +140,16 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
             for ci,cell in enumerate(carte["cells"]):
                 n1,n2,n3=grille[ci]   # triés : 1er=bulle, 2e=grand, 3e=petit
                 bx,by=cell["bulle"]; gx,gy=cell["grand"]; px,py=cell["petit"]
-                c.setFillColor(col)
-                c.setFont(POLICE_NUM,T_BULLE)
-                c.drawCentredString(bx, by-T_BULLE*0.34, str(n1))
-                c.setFont(POLICE_NUM,T_GRAND)
-                c.drawCentredString(gx, gy-T_GRAND*0.34, str(n2))
+                # ⭐ 25/10 (Maeva : chiffres TRIPLE ACTION trop fins) : les 2 chiffres
+                #   principaux épaissis par un CONTOUR centré (remplir+contourer),
+                #   sans changer l'écriture Latin Modern.
+                c.setFillColor(col); c.setStrokeColor(col)
+                for _xx, _yy, _tt, _val in ((bx, by, T_BULLE, n1), (gx, gy, T_GRAND, n2)):
+                    _t = c.beginText(_xx - _sw(str(_val), POLICE_NUM, _tt)/2.0, _yy - _tt*0.34)
+                    _t.setFont(POLICE_NUM, _tt); _t.setTextRenderMode(2)
+                    c.setLineWidth(max(0.3, _tt*0.035))
+                    _t.textOut(str(_val)); c.drawText(_t)
+                c._code.append('0 Tr')
                 # 3e chiffre : condensé gras, en gris (économie de toner)
                 c.setFillColor(col if couleur else GRIS_TROIS)
                 c.setFont(POLICE_PETIT3,T_PETIT)
