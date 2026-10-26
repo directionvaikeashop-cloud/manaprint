@@ -121,8 +121,18 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
             #   (rayon du bulbe propre à chaque goutte), centré sur le ventre réel.
             for (cx,cy,r),val in zip(ovales, nums):
                 f=2.0*r*_FACTOR
-                c.setFont(POLICE_NUM, f)
-                c.drawCentredString(cx, cy - f*_VCEN, str(val))
+                # ⭐ 25/10 (Maeva : « le gras de SICILE comme ROYAL ») : on
+                #   épaissit le chiffre par un CONTOUR centré sur la lettre
+                #   (remplir+contourer), sans changer l'écriture Latin Modern.
+                t=c.beginText(cx - pdfmetrics.stringWidth(str(val),POLICE_NUM,f)/2.0,
+                              cy - f*_VCEN)
+                t.setFont(POLICE_NUM, f)
+                t.setTextRenderMode(2)            # remplir ET contourer
+                c.setStrokeColor(col)
+                c.setLineWidth(max(0.3, f*0.035))
+                t.textOut(str(val))
+                c.drawText(t)
+                c._code.append('0 Tr')            # sinon le mode de rendu reste actif
             c.setFillColor(GRIS); c.setFont(POLICE_PETIT,T_SER)
             c.drawRightString(ser[0], ser[1], "%05d"%serie)
             serie+=1; faites+=1

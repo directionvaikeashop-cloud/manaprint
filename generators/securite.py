@@ -56,6 +56,35 @@ def mode_rapide_actif():
     return getattr(_mode_local, "rapide", False)
 
 
+# ♻️ MODE ÉCONOMIE GRIS (Maeva, 25/10) : pour la gamme ÉCO N&B.
+# Règle demandée : « les images en gris, les chiffres gras en gris, les
+# chiffres fins restent en noir ». Les images sont grisées en amont (dans
+# app.py, _variante) ; ici on gère la COULEUR DES CHIFFRES selon la graisse :
+#   - chiffre GRAS (police Bold ou épaisseur demandée) -> gris soutenu
+#     (lisible en salle, nettement moins d'encre qu'un gros chiffre noir plein)
+#   - chiffre FIN -> noir franc (peu d'encre de toute façon, et bien net)
+# Interrupteur isolé par thread, comme le mode rapide.
+GRIS_CHIFFRE_ECO = colors.Color(0.32, 0.32, 0.32)
+
+
+def activer_eco_gris(actif=True):
+    """Active/désactive le mode économie gris pour le thread de fabrication courant."""
+    _mode_local.eco_gris = bool(actif)
+
+
+def eco_gris_actif():
+    return getattr(_mode_local, "eco_gris", False)
+
+
+def _couleur_eco_gris(couleur, police, epaisseur):
+    """Renvoie la couleur à utiliser pour un chiffre en mode économie gris :
+    gris si le chiffre est gras, noir s'il est fin. Hors mode : couleur inchangée."""
+    if not eco_gris_actif():
+        return couleur
+    gras = ("Bold" in (police or "")) or bool(epaisseur)
+    return GRIS_CHIFFRE_ECO if gras else colors.black
+
+
 # SIGNATURE TUKEA (sceau Maeva, 05/08) — pour l'offre « PDF seul ».
 # Le client emporte le fichier : il l'imprimera, et le photocopiera. Le QR
 # de verification n'a plus de sens hors de nos machines ; a sa place, notre
@@ -272,7 +301,9 @@ def chiffre_micro(c, texte, x_centre, y_bas, taille, couleur, police, taille_mic
     microtexte -> PDF ultra-légers, impression RAPIDE (retour terrain).
     La sécurité ÉCO reste assurée par le cadre microtexte + le QR unique.
     🏦 GAMME PREMIUM (Bold) : chiffres "billet de banque" complets.
-    🖨️ Mode boutique rapide : chiffres pleins pour TOUTES les gammes."""
+    🖨️ Mode boutique rapide : chiffres pleins pour TOUTES les gammes.
+    ♻️ Mode économie gris : gras -> gris soutenu, fin -> noir (voir plus haut)."""
+    couleur = _couleur_eco_gris(couleur, police, epaisseur)
     if police == _POLICE_RAPIDE or mode_rapide_actif():
         c.saveState()
         c.setFillColor(couleur)
