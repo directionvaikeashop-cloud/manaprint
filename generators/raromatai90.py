@@ -204,9 +204,11 @@ def _dessiner_feuille(c, grilles, serie_debut, style="eco"):
     _POLICE_NUM = "Helvetica-Bold"
     _lg_c = _pw * LARG_CASE
     _ht_c = _ph * HAUT_CASE
-    _t_num = 25.0
-    while _t_num > 6 and (_lg_rm("88", _POLICE_NUM, _t_num) > _lg_c * 0.90
-                          or _t_num * 0.72 > _ht_c * 0.82):
+    # ⭐ 25/10 (sceau Maeva : « grossis les chiffres de RAROMATAI ») : plafond
+    #    relevé de 25 à 34 pt, garde-fous élargis (il y a la place à côté de l'icône).
+    _t_num = 34.0
+    while _t_num > 6 and (_lg_rm("88", _POLICE_NUM, _t_num) > _lg_c * 1.18
+                          or _t_num * 0.72 > _ht_c * 0.92):
         _t_num -= 0.5
 
     for ig, valeurs in enumerate(grilles):
