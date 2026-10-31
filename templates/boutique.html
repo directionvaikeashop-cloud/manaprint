@@ -128,12 +128,24 @@ async function loadCat(){
     const r=await fetch('/api/jeux'); const d=await r.json();
     const all=(d.jeux||[]);
     const byId={}; all.forEach(j=>byId[j.id]=j);
-    CATALOGUE = all.filter(j=>j.id.endsWith('_nb') && !j.vendu_par).map(j=>{
+    // 🚫 jeux retirés de la boutique internationale (restent dispo sur manaprint.app)
+    const EXCLUS = new Set(["pol_classic","rubis75_classic","losange_classic","ani_classic",
+      "wow4_classic","wow6_classic","moon_classic","dual_dab_classic","brown8_classic",
+      "boules60_classic","lagoon_classic","win_classic","kai_classic","sun_classic",
+      "wiz_classic","rai_classic","tahaa_classic","bgo5"]);
+    CATALOGUE = all.filter(j=>j.id.endsWith('_nb') && !j.vendu_par && !EXCLUS.has(j.id.slice(0,-3))).map(j=>{
       const base=j.id.slice(0,-3);
       const coulId=base+'_couleur';
-      return {base, nbId:j.id, coulId: byId[coulId]?coulId:null,
-              nom:j.nom.replace(/\s*·.*$/,'').trim()||j.nom, emoji:j.emoji||''};
+      // nom complet distinct : on enlève seulement la gamme/image en fin
+      // ("· SANS IMAGE (N&B)", "(N&B)"…) et on garde "OHANA 75 · 8 boules" etc.
+      let nm=(j.nom||'')
+        .replace(/\s*\((N&B|Couleur|Colour)\)\s*$/i,'')
+        .replace(/\s*·\s*(SANS IMAGE|AVEC IMAGE|PREMIUM)\s*$/i,'')
+        .trim() || j.nom;
+      return {base, nbId:j.id, coulId: byId[coulId]?coulId:null, nom:nm, emoji:j.emoji||''};
     });
+    // 🔤 rangé de A à Z (en ignorant l'emoji)
+    CATALOGUE.sort((a,b)=>a.nom.localeCompare(b.nom,'fr',{sensitivity:'base'}));
     renderGrid();
     const sel=document.getElementById('sampleSel');
     if(sel){ CATALOGUE.forEach(p=>{ const o=document.createElement('option'); o.value=p.nbId; o.textContent=(p.emoji?p.emoji+' ':'')+p.nom; sel.appendChild(o); }); }
