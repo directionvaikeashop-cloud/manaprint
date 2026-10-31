@@ -132,6 +132,7 @@ from generators import maia as maiagen
 from generators import corsica as corsicagen
 from generators import bno
 from generators import bno8
+from generators import bno6
 from generators import ngo
 from generators import ngo_maq
 from generators import diamant
@@ -743,11 +744,131 @@ def _enregistrer_jeu(jeu_id, nom, emoji, cartes_par_feuille, generer, kwarg_nb="
     except Exception as e:
         print(f"[JEU A4 ABSENT] {nom} : {e}")
 
+# ♻️ ÉCONOMIE GRIS (sceau Maeva 25/10) — gamme ÉCO N&B :
+#   • les IMAGES/fonds passent en gris (éclaircies de 50 %) -> moins d'encre ;
+#   • les CHIFFRES GRAS passent en gris soutenu, les CHIFFRES FINS restent noirs
+#     (géré dans securite.activer_eco_gris).
+# ⚠️ N'affecte QUE la gamme ÉCO en N&B : la couleur et la gamme PREMIUM (P15)
+#    ne changent pas. Chaque fabrication tourne dans son thread : on protège le
+#    remplacement des chemins d'images par un verrou et on restaure aussitôt,
+#    pour ne jamais salir une génération couleur qui tournerait en parallèle.
+# ⚠️ Anti-panne : au moindre pépin on retombe sur une génération normale.
+import threading as _threading_eco
+_ECO_LOCK = _threading_eco.RLock()
+_ECO_PNG_CACHE = {}
+# ⚠️ Jeux dont l'IMAGE porte des libellés à lire (colonnes, ordre des boules…)
+#    ET dont le fond d'origine est trop PÂLE : au lieu de l'éclaircir, on
+#    l'ASSOMBRIT pour que les textes du fond deviennent bien lisibles.
+#    (HUNTER : sceau Maeva 25/10 « les images de HUNTER ne sont plus lisibles »)
+_ECO_IMG_ASSOMBRIR = {"hunter"}
+
+
+def _png_grise(chemin):
+    """Copie grise/éclaircie d'un PNG (transparence préservée), mise en cache."""
+    rep = _ECO_PNG_CACHE.get(chemin)
+    if rep and os.path.exists(rep):
+        return rep
+    try:
+        from PIL import Image as _Img
+        base = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "generators", "_eco_gris_cache")
+        os.makedirs(base, exist_ok=True)
+        im = _Img.open(chemin).convert("LA")          # gris + canal alpha
+        l, a = im.split()
+        l = l.point(lambda p: int(255 - (255 - p) * 0.5))   # éclaircit 50 %
+        im = _Img.merge("LA", (l, a))
+        out = os.path.join(base, hashlib.md5(chemin.encode("utf-8")).hexdigest() + ".png")
+        im.save(out)
+        _ECO_PNG_CACHE[chemin] = out
+        return out
+    except Exception:
+        return chemin
+
+
+def _png_assombrir(chemin):
+    """Copie ASSOMBRIE d'un PNG trop pâle (transparence préservée), en cache :
+    l'encre est multipliée pour rendre les libellés du fond bien lisibles."""
+    cle = "DARK::" + chemin
+    rep = _ECO_PNG_CACHE.get(cle)
+    if rep and os.path.exists(rep):
+        return rep
+    try:
+        from PIL import Image as _Img
+        base = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "generators", "_eco_gris_cache")
+        os.makedirs(base, exist_ok=True)
+        im = _Img.open(chemin).convert("LA")
+        l, a = im.split()
+        l = l.point(lambda p: max(0, int(255 - (255 - p) * 6.0)))   # assombrit x6
+        im = _Img.merge("LA", (l, a))
+        out = os.path.join(base, "dark_" + hashlib.md5(chemin.encode("utf-8")).hexdigest() + ".png")
+        im.save(out)
+        _ECO_PNG_CACHE[cle] = out
+        return out
+    except Exception:
+        return chemin
+
+
+def _generer_eco_gris(fn, kwargs):
+    """Exécute fn en mode économie gris : images grisées (chemins PNG du module
+    remplacés le temps de la fabrication) + chiffres éco-gris via securite."""
+    try:
+        from generators import securite as _sec_eco
+    except Exception:
+        _sec_eco = None
+    g = getattr(fn, "__globals__", None)
+    if g is None:
+        return fn(**kwargs)
+    _modname = getattr(fn, "__module__", "").rsplit(".", 1)[-1]
+    _assombrir_image = _modname in _ECO_IMG_ASSOMBRIR   # fond pâle -> on l'assombrit
+    try:
+        from reportlab.lib import colors as _cols_eco
+        _GRIS_ENCRE = _cols_eco.Color(0.32, 0.32, 0.32)
+    except Exception:
+        _cols_eco = None
+        _GRIS_ENCRE = None
+
+    def _encre_noire(v):
+        """True si v est une couleur neutre (grise) et sombre : l'encre des
+        chiffres/décor dessinés en noir. On la relève alors au gris éco."""
+        if _cols_eco is None or not isinstance(v, _cols_eco.Color):
+            return False
+        try:
+            r, gg, b = v.rgb()
+        except Exception:
+            return False
+        if max(abs(r - gg), abs(r - b), abs(gg - b)) > 0.04:   # couleur -> on ne touche pas
+            return False
+        return max(r, gg, b) < 0.30                            # gris très foncé / noir
+
+    with _ECO_LOCK:
+        sauv = {}
+        try:
+            for k, v in list(g.items()):
+                if isinstance(v, str) and v.lower().endswith(".png") and os.path.exists(v):
+                    sauv[k] = v
+                    g[k] = _png_assombrir(v) if _assombrir_image else _png_grise(v)
+                elif _GRIS_ENCRE is not None and _encre_noire(v):
+                    sauv[k] = v
+                    g[k] = _GRIS_ENCRE
+            if _sec_eco is not None:
+                _sec_eco.activer_eco_gris(True)
+            return fn(**kwargs)
+        finally:
+            if _sec_eco is not None:
+                _sec_eco.activer_eco_gris(False)
+            for k, v in sauv.items():
+                g[k] = v
+
+
 def _variante(fn, couleur_force, style_force="eco"):
     """Crée une version d'un générateur qui force la couleur (True/False) et la gamme."""
     def _w(**kwargs):
         kwargs["couleur"] = couleur_force
         kwargs["style"] = style_force
+        # ♻️ gamme ÉCO N&B -> règle économie gris (images grises + chiffres éco)
+        if (not couleur_force) and style_force == "eco":
+            return _generer_eco_gris(fn, kwargs)
         return fn(**kwargs)
     return _w
 
@@ -942,6 +1063,7 @@ TARIF_NB_150 = {
     "bn90",           # BN 90
     "bgo5",           # BGO 5 boules
     "bno",            # BNO 8 boules (la normale)
+    "bno6",           # BNO 6 boules (maquette 29/10)
     "ino",            # INO 5 boules (la normale)
     "rubis90",        # RUBIS 90
 }
@@ -1040,6 +1162,7 @@ _enregistrer_paire("wow6",          "WOW 6","\U0001f4a5", 16,  wow6.generer_pdf)
 _enregistrer_paire("maia",          "MAIA \u00b7 Ma\u00efa", "🍌", 12, maiagen.generer_pdf)
 _enregistrer_paire("corsica",       "CORSICA \u00b7 l'\u00eele de la beaut\u00e9", "\u2b50", 8, corsicagen.generer_pdf)
 _enregistrer_paire("bno",           "BNO","🎯", 16, bno8.generer_pdf)
+_enregistrer_paire("bno6",          "BNO · 6 boules","🎯", 16, bno6.generer_pdf)
 _enregistrer_paire("bno_casino",    "BNO CASINO","🎰", 12, bno.generer_pdf_casino)
 _enregistrer_paire("ngo",           "NGO","🎳", 16, ngo_maq.generer_pdf)
 _enregistrer_paire("ngo_casino",    "NGO CASINO","🎰", 12, ngo.generer_pdf_casino)
@@ -1953,6 +2076,7 @@ _PLAGES_CALLER = {
     "maia": (30, 59),
     "corsica": (1, 80),
     "bno": (1, 75),
+    "bno6": (1, 75),
     "bno_casino": (1, 75),
     "ngo": (31, 75),
     "ngo_casino": (31, 75),
@@ -2112,6 +2236,7 @@ _BOULES_CALLER = {
     "ohana20b_myst": list(range(1, 76)) + sorted(_MONTANT_CODES),        # 94 💰
     "avinda_myst": list(range(1, 76)) + sorted(_LETTRE_CODES),   # 87 boules 🍷🅰️
     "bno": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(61, 76)],
+    "bno6": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(61, 76)],
     "bno_casino": [n for n in range(1, 16)] + [n for n in range(31, 46)] + [n for n in range(61, 76)] + _PIONS_CALLER,
     "ing_casino": [n for n in range(16, 61)] + _PIONS_CALLER,
     "ngo_casino": [n for n in range(31, 76)] + _PIONS_CALLER,
@@ -2703,6 +2828,121 @@ def essais_restants():
     return jsonify({"ok": True, "restants": max(0, db.NB_ESSAIS_MAX - utilises)})
 
 
+@app.route("/boutique", methods=["GET"])
+def boutique_internationale():
+    """🌍 Boutique internationale : catalogue photos + panier, livraison PDF.
+    Page autonome ; si le client n'a pas encore d'accès international, la page
+    montre un petit formulaire d'entrée (nom/email/pays)."""
+    return render_template("boutique.html", acces=session.get("acces"))
+
+
+@app.route("/api/boutique/checkout", methods=["POST"])
+def boutique_checkout():
+    """🛒 Paiement du panier de la boutique internationale — SANS formulaire de
+    personnalisation (achat direct de paquets). Carte uniquement, livraison PDF.
+    Réutilise le circuit panier/Stripe existant : le PDF est livré après paiement
+    exactement comme pour une commande normale."""
+    import json as _json
+    if session.get("acces") != "international":
+        return jsonify({"ok": False, "message": "Réservé aux clients internationaux."}), 403
+    data = request.get_json(force=True, silent=True) or {}
+    items = data.get("items") or []
+    if not isinstance(items, list) or not (1 <= len(items) <= 10):
+        return jsonify({"ok": False, "message": "Le panier doit contenir entre 1 et 10 articles."}), 400
+    # 💶 Prix FIXE par paquet (euros × 119,33 F, arrondis) ; couleur = ×2.
+    #    100 feuilles 3 € · 250 feuilles 7 € · 500 feuilles 12 € (minimum 100).
+    _PACKS_XPF = {
+        (100, False): 358,  (100, True): 716,
+        (250, False): 835,  (250, True): 1671,
+        (500, False): 1432, (500, True): 2864,
+    }
+    panier_id = db.creer_panier(session.get("identifiant"))
+    for pos, item in enumerate(items, 1):
+        programme = str(item.get("programme", "")).strip()
+        if programme not in REGISTRE_JEUX or "_p15" in programme:
+            return jsonify({"ok": False, "message": f"Article {pos} : jeu inconnu."}), 400
+        _pro = JEUX_PROPRIETAIRE.get(_base_jeu(programme))
+        if _pro not in (None, ENSEIGNE_MAISON):
+            return jsonify({"ok": False, "message": f"Article {pos} : ce jeu est vendu ailleurs."}), 403
+        try:
+            nbf = int(item.get("nb_feuilles", 0))
+        except Exception:
+            nbf = 0
+        couleur = REGISTRE_JEUX[programme].get("couleur", False)
+        if (nbf, couleur) not in _PACKS_XPF:
+            return jsonify({"ok": False,
+                "message": f"Article {pos} : choisis un paquet de 100, 250 ou 500 feuilles."}), 400
+        pack_xpf = _PACKS_XPF[(nbf, couleur)]
+        prix_feuille = pack_xpf / float(nbf)   # ceil(prix_feuille*nbf) == pack_xpf
+        params_perso = _json.dumps({"origine_boutique": "international",
+                                    "titre_jeu": REGISTRE_JEUX[programme]["nom"]}, ensure_ascii=False)
+        db.creer_commande(
+            identifiant=session.get("identifiant"),
+            origine="international",
+            programme=programme,
+            couleur=couleur,
+            nb_feuilles=nbf,
+            mode_paiement="stripe",
+            params_perso=params_perso,
+            panier_id=panier_id,
+            prix_feuille=prix_feuille,
+        )
+    if not STRIPE_SECRET_KEY:
+        return jsonify({"ok": False,
+                        "message": "\U0001f4b3 Card payment is momentarily unavailable."}), 400
+    try:
+        url, total = _session_stripe_panier(panier_id)
+        return jsonify({"ok": True, "url": url, "montant": total, "panier_id": panier_id})
+    except Exception as e:
+        print(f"[BOUTIQUE] stripe : {e}")
+        return jsonify({"ok": False,
+                        "message": "\U0001f4b3 Card payment momentarily unavailable, please retry."}), 502
+
+
+@app.route("/api/boutique/echantillon", methods=["POST"])
+def boutique_echantillon():
+    """🎁 Échantillon gratuit — 5 feuilles, SANS carte, SANS formulaire, 1 fois
+    par email. Stratégie « try first, then business » : le client teste la
+    qualité, puis achète ses paquets."""
+    import json as _json, random as _rnd
+    if session.get("acces") != "international":
+        return jsonify({"ok": False, "message": "Réservé aux clients internationaux."}), 403
+    ident = session.get("identifiant") or ""
+    data = request.get_json(force=True, silent=True) or {}
+    programme = str(data.get("programme", "")).strip()
+    if programme not in REGISTRE_JEUX or "_p15" in programme:
+        return jsonify({"ok": False, "message": "Unknown game."}), 400
+    _pro = JEUX_PROPRIETAIRE.get(_base_jeu(programme))
+    if _pro not in (None, ENSEIGNE_MAISON):
+        return jsonify({"ok": False, "message": "This game is sold elsewhere."}), 403
+    # 🎁 un seul échantillon gratuit par email
+    if ident:
+        try:
+            with db.get_db() as conn:
+                row = conn.execute(
+                    "SELECT 1 FROM commandes WHERE identifiant = ? "
+                    "AND mode_paiement = 'echantillon_boutique' LIMIT 1", (ident,)).fetchone()
+            if row:
+                return jsonify({"ok": False,
+                    "message": "You already used your free sample. Pick a pack to continue 🌺"}), 409
+        except Exception as e:
+            print(f"[ECHANTILLON] check : {e}")
+    couleur = REGISTRE_JEUX[programme].get("couleur", False)
+    cpf = REGISTRE_JEUX[programme]["cartes_par_feuille"]
+    perso = {"nom_evenement": "", "titre_jeu": REGISTRE_JEUX[programme]["nom"],
+             "date_lieu": "", "telephone": ""}
+    pdf = generer_jeu(programme, 5 * cpf, couleur, perso, serie_start=_rnd.randint(1, 900000))
+    try:
+        db.creer_commande(identifiant=ident, origine="international", programme=programme,
+                          couleur=couleur, nb_feuilles=5, mode_paiement="echantillon_boutique",
+                          params_perso=_json.dumps({"echantillon": True}, ensure_ascii=False),
+                          prix_feuille=0)
+    except Exception as e:
+        print(f"[ECHANTILLON] record : {e}")
+    return send_file(pdf, mimetype="application/pdf", as_attachment=True,
+                     download_name="MANAPRINT_free_sample.pdf")
+
+
 @app.route("/api/jeux", methods=["GET"])
 def api_jeux():
     """Liste des jeux du registre universel (pour construire le menu côté page)."""
@@ -2913,7 +3153,13 @@ def _valider_creer_commande(data, mode_paiement="manuel", panier_id=None):
         # pour l'impression directe par clé USB sans pause.
         "impression_rapide": bool(data.get("impression_rapide")),
         # 🎨 l'offre choisie en couleur : "pdf" (fichier seul) ou "impression"
-        "offre": ("pdf" if (couleur and (data.get("offre") or "").strip().lower() == "pdf")
+        # ⚠️ 26/10 (sceau Maeva) : les CLIENTS SANS MACHINE (polynésiens) ne
+        #    peuvent plus commander de PDF seul — leur commande couleur passe en
+        #    « impression » (le PDF part chez le partenaire, qui garde la vente
+        #    du fichier). Les clients INTERNATIONAUX et PACIFIC INK (machine à
+        #    eux) gardent le fichier PDF : eux impriment eux-mêmes.
+        "offre": ("pdf" if (couleur and (data.get("offre") or "").strip().lower() == "pdf"
+                            and session.get("acces") in ("international", "pacific_ink"))
                   else ("impression" if couleur else "")),
     })
 
@@ -3381,6 +3627,14 @@ def generer_commande(commande_id):
 
     import json as _json
     perso = _json.loads(cmd["params_perso"] or "{}")
+    # ⚠️ 26/10 (sceau Maeva) : un client POLYNÉSIEN (sans machine) ne télécharge
+    #    pas le PDF des cartons — sa commande est imprimée par le partenaire, qui
+    #    garde la vente du fichier. L'international et Pacific Ink (machine à eux)
+    #    ainsi que les anciennes commandes « PDF seul » peuvent récupérer.
+    if session.get("acces") == "polynesien" and perso.get("offre") != "pdf":
+        return jsonify({"ok": False, "message":
+                        "Cette commande est imprimée par ton partenaire — "
+                        "tu récupères tes cartons directement chez lui."}), 403
     couleur = bool(cmd["couleur"])
     nb_feuilles = cmd["nb_feuilles"]
     programme = cmd["programme"]
@@ -5834,6 +6088,42 @@ _PLAGES_CALLER["babord"] = (1, 75)
 # ⚓ BÂBORD TRIBORD : B 1-15, I 16-30, G 46-60, O 61-75 (pas de N, 31-45 ne sort jamais).
 _BOULES_CALLER["babord"] = [n for n in range(1, 31)] + [n for n in range(46, 76)]
 print("[RANIHEI] BÂBORD TRIBORD inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+
+# ═════════════════════════════════════════════════════════════════════
+# 🏴‍☠️ BATEAU PIRATE — inscription du 26/10/2026 (création RANIHEI, 5 bulles)
+#    5 plages de 15, SENS HORAIRE depuis le haut-gauche :
+#      haut-gauche 1-15, haut-droite 16-30, milieu-droite 31-45,
+#      bas-centre 46-60, milieu-gauche 61-75.
+# ═════════════════════════════════════════════════════════════════════
+from generators import bateau_pirate   # ☠ création RANIHEI (bateau pirate)
+
+JEUX_PROPRIETAIRE["bateau_pirate"] = "ranihei"
+_GRIS_POSES = _imposer_gris_maison()
+
+# ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+_enregistrer_paire("bateau_pirate", "BATEAU PIRATE · 5 boules", "☠️", 8, bateau_pirate.generer_pdf)
+
+_PLAGES_CALLER["bateau_pirate"] = (1, 75)
+# ☠ BATEAU PIRATE : 5 plages de 15 -> 1 à 75 sans trou.
+_BOULES_CALLER["bateau_pirate"] = [n for n in range(1, 76)]
+print("[RANIHEI] BATEAU PIRATE inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+
+# ═════════════════════════════════════════════════════════════════════
+# 👵 MÉMÉ — inscription du 26/10/2026 (création RANIHEI, 5 bulles)
+#    5 plages de 15, rangée gauche->droite : 1-15, 16-30, 31-45, 46-60, 61-75.
+# ═════════════════════════════════════════════════════════════════════
+from generators import meme   # 👵 création RANIHEI (mémé qui tresse un collier)
+
+JEUX_PROPRIETAIRE["meme"] = "ranihei"
+_GRIS_POSES = _imposer_gris_maison()
+
+# ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+_enregistrer_paire("meme", "MÉMÉ · 5 boules", "\U0001f475", 8, meme.generer_pdf)
+
+_PLAGES_CALLER["meme"] = (1, 75)
+# 👵 MÉMÉ : 5 plages de 15 -> 1 à 75 sans trou.
+_BOULES_CALLER["meme"] = [n for n in range(1, 76)]
+print("[RANIHEI] MÉMÉ inscrite — %d jeux au catalogue" % len(REGISTRE_JEUX))
 
 # ═══════════════════════════════════════════════════════════════════════════
 # 🎁 GÉNÉRATEUR DE RAMES PANACHÉES (sceau Maeva 24/10)
