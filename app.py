@@ -3034,14 +3034,61 @@ def _dossier_apercus():
         d = "/tmp"
     return d
 
+_APERCU_SIG_CACHE = {}
+def _apercu_signature(jeu_id):
+    """Empreinte du générateur d'un jeu (son code + la taille de ses images de
+    fond). Quand elle change, la vignette en cache est REFAITE -> les photos du
+    catalogue suivent les mises à jour des jeux (fini les vieilles images figées)."""
+    if jeu_id in _APERCU_SIG_CACHE:
+        return _APERCU_SIG_CACHE[jeu_id]
+    import hashlib as _hl, inspect as _insp
+    sig = ""
+    try:
+        fn = REGISTRE_JEUX[jeu_id]["generer"]
+        try:
+            _fv = dict(zip(fn.__code__.co_freevars,
+                           [c.cell_contents for c in (fn.__closure__ or [])]))
+            src_fn = _fv.get("fn", fn)
+        except Exception:
+            src_fn = fn
+        h = _hl.md5()
+        try:
+            with open(_insp.getsourcefile(src_fn), "rb") as _fh:
+                h.update(_fh.read())
+        except Exception:
+            pass
+        try:
+            for v in getattr(src_fn, "__globals__", {}).values():
+                if isinstance(v, str) and v.lower().endswith(".png") and os.path.exists(v):
+                    h.update(("%s:%d" % (os.path.basename(v), os.path.getsize(v))).encode())
+        except Exception:
+            pass
+        sig = h.hexdigest()[:12]
+    except Exception:
+        sig = ""
+    _APERCU_SIG_CACHE[jeu_id] = sig
+    return sig
+
 def _fabriquer_apercu(jeu_id):
-    """Fabrique (si absente) la vignette PNG d'une variante. Renvoie le chemin ou None."""
+    """Fabrique (ou REFAIT si le jeu a changé) la vignette PNG. Renvoie le chemin
+    ou None. Une signature stockée à côté (.sig) dit si la photo est à jour."""
     chemin = os.path.join(_dossier_apercus(), jeu_id + ".png")
+    sigfile = chemin + ".sig"
+    sig = _apercu_signature(jeu_id)
     if os.path.exists(chemin):
-        return chemin
+        if not sig:
+            return chemin                      # on ne sait pas signer -> garder le cache
+        try:
+            if open(sigfile).read().strip() == sig:
+                return chemin                  # photo déjà à jour
+        except Exception:
+            pass                               # pas de .sig lisible -> on refait une fois
     with _APERCU_LOCK:
-        if os.path.exists(chemin):
-            return chemin
+        try:
+            if os.path.exists(chemin) and sig and open(sigfile).read().strip() == sig:
+                return chemin
+        except Exception:
+            pass
         try:
             import pypdfium2 as _pdfium
             jeu = REGISTRE_JEUX[jeu_id]
@@ -3052,10 +3099,16 @@ def _fabriquer_apercu(jeu_id):
             image.save(chemin + ".tmp", "PNG", optimize=True)
             os.replace(chemin + ".tmp", chemin)   # écriture atomique (réflexe TUKEA)
             doc.close()
+            try:
+                if sig:
+                    with open(sigfile, "w") as _sf:
+                        _sf.write(sig)
+            except Exception:
+                pass
             return chemin
         except Exception as e:
             print(f"[APERCU] échec {jeu_id} : {e}")
-            return None
+            return chemin if os.path.exists(chemin) else None
 
 
 def _prechauffer_apercus():
@@ -3095,7 +3148,8 @@ def apercu_jeu(jeu_id):
     if not chemin:
         return "aperçu indisponible", 503
     reponse = send_file(chemin, mimetype="image/png")
-    reponse.headers["Cache-Control"] = "public, max-age=86400"
+    # cache court : si une photo est rafraîchie, les clients la voient vite
+    reponse.headers["Cache-Control"] = "public, max-age=3600, must-revalidate"
     return reponse
 
 
