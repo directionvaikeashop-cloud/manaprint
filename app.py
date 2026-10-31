@@ -740,7 +740,11 @@ def _enregistrer_jeu(jeu_id, nom, emoji, cartes_par_feuille, generer, kwarg_nb="
             "cartes_par_feuille": cartes_par_feuille,
             "generer": generer, "kwarg_nb": kwarg_nb, "couleur": couleur,
         }
-        print(f"[JEU A4 INSTALLE] {emoji} {nom}")
+        # 🔇 démarrage silencieux : ~940 variantes -> ~940 lignes au boot,
+        #    ce qui saturait les logs Railway (rate limit). Activable au besoin
+        #    avec la variable d'environnement MANAPRINT_LOG_DEMARRAGE=1.
+        if os.environ.get("MANAPRINT_LOG_DEMARRAGE") == "1":
+            print(f"[JEU A4 INSTALLE] {emoji} {nom}")
     except Exception as e:
         print(f"[JEU A4 ABSENT] {nom} : {e}")
 
@@ -2836,6 +2840,24 @@ def boutique_internationale():
     return render_template("boutique.html", acces=session.get("acces"))
 
 
+def _boutique_deja_achete(identifiant):
+    """A-t-il DÉJÀ une commande payée (vrai achat, pas un échantillon) ?
+    Sert au bonus « 50 feuilles offertes à la 1re commande ». En cas de doute,
+    on renvoie True (pas de bonus) — on ne risque jamais de l'offrir en boucle."""
+    if not identifiant:
+        return True
+    try:
+        with db.get_db() as conn:
+            row = conn.execute(
+                "SELECT 1 FROM commandes WHERE identifiant = ? AND mode_paiement = 'stripe' "
+                "AND statut IN ('payee','generee','fabriquee','envoyee') LIMIT 1",
+                (identifiant,)).fetchone()
+        return bool(row)
+    except Exception as e:
+        print(f"[BONUS] check : {e}")
+        return True
+
+
 @app.route("/api/boutique/checkout", methods=["POST"])
 def boutique_checkout():
     """🛒 Paiement du panier de la boutique internationale — SANS formulaire de
@@ -2857,6 +2879,11 @@ def boutique_checkout():
         (500, False): 1432, (500, True): 2864,
     }
     panier_id = db.creer_panier(session.get("identifiant"))
+    # 🎁 bonus « 50 feuilles offertes » : seulement si aucune commande payée
+    #    auparavant (vrai premier achat), ajouté au PREMIER jeu du panier.
+    premier_achat = not _boutique_deja_achete(session.get("identifiant"))
+    bonus_donne = False
+    BONUS_FEUILLES = 50
     for pos, item in enumerate(items, 1):
         programme = str(item.get("programme", "")).strip()
         if programme not in REGISTRE_JEUX or "_p15" in programme:
@@ -2873,15 +2900,25 @@ def boutique_checkout():
             return jsonify({"ok": False,
                 "message": f"Article {pos} : choisis un paquet de 100, 250 ou 500 feuilles."}), 400
         pack_xpf = _PACKS_XPF[(nbf, couleur)]
-        prix_feuille = pack_xpf / float(nbf)   # ceil(prix_feuille*nbf) == pack_xpf
-        params_perso = _json.dumps({"origine_boutique": "international",
-                                    "titre_jeu": REGISTRE_JEUX[programme]["nom"]}, ensure_ascii=False)
+        # 🎁 +50 feuilles offertes sur le 1er jeu d'une 1re commande : le client
+        #    paie le prix du paquet, mais reçoit nbf+50 feuilles dans son PDF.
+        nbf_gen = nbf
+        bonus = False
+        if premier_achat and not bonus_donne:
+            nbf_gen = nbf + BONUS_FEUILLES
+            bonus = True
+            bonus_donne = True
+        prix_feuille = pack_xpf / float(nbf_gen)   # ceil(prix_feuille*nbf_gen) == pack_xpf
+        _pp = {"origine_boutique": "international", "titre_jeu": REGISTRE_JEUX[programme]["nom"]}
+        if bonus:
+            _pp["bonus_50"] = True
+        params_perso = _json.dumps(_pp, ensure_ascii=False)
         db.creer_commande(
             identifiant=session.get("identifiant"),
             origine="international",
             programme=programme,
             couleur=couleur,
-            nb_feuilles=nbf,
+            nb_feuilles=nbf_gen,
             mode_paiement="stripe",
             params_perso=params_perso,
             panier_id=panier_id,
