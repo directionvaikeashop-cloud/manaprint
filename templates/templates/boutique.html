@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MANAPRINT — International Store</title>
+<style>
+:root{--teal:#0f766e;--teald:#0b5a54;--coral:#f2714e;--sand:#fbf6ec;--ink:#1f2937;--muted:#6b7280;--line:#e5e7eb}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--sand)}
+header{background:var(--teal);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+header .brand{font-weight:800;letter-spacing:.5px}
+header .brand small{display:block;font-weight:400;opacity:.8;font-size:.7rem}
+.cartbtn{background:none;border:0;color:#fff;cursor:pointer;font-size:1.3rem;position:relative}
+.badge{position:absolute;top:-6px;right:-10px;background:var(--coral);border-radius:999px;font-size:.62rem;font-weight:700;min-width:17px;height:17px;line-height:17px;text-align:center;padding:0 3px}
+.wrap{max-width:1040px;margin:0 auto;padding:16px}
+h1{font-size:1.3rem;margin:.2rem 0}
+.lead{color:var(--muted);font-size:.9rem;margin:0 0 14px}
+.gate{max-width:420px;margin:40px auto;background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px}
+.gate label{display:block;font-size:.8rem;color:var(--muted);margin:10px 0 4px}
+.gate input{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:1rem}
+.btn{background:var(--teal);color:#fff;border:0;border-radius:12px;padding:12px 18px;font-size:1rem;font-weight:700;cursor:pointer}
+.btn.coral{background:var(--coral)}
+.btn:disabled{opacity:.5;cursor:default}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.card .ph{background:#fff;aspect-ratio:1/1.3;display:flex;align-items:flex-start;justify-content:center;overflow:hidden;border-bottom:1px solid var(--line)}
+.card .ph img{width:100%;height:100%;object-fit:cover;object-position:top}
+.card .body{padding:11px;display:flex;flex-direction:column;gap:8px;flex:1}
+.card .nm{font-weight:700;font-size:.92rem;line-height:1.2}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{border:0;background:#fff;padding:5px 9px;font-size:.78rem;cursor:pointer;color:var(--muted)}
+.seg button.on{background:var(--coral);color:#fff;font-weight:700}
+select{padding:7px;border:1px solid var(--line);border-radius:9px;font-size:.82rem;flex:1;min-width:120px}
+.price{font-weight:800;color:var(--teal);font-size:1.05rem}
+.price small{display:block;color:var(--muted);font-weight:500;font-size:.7rem}
+.add{background:var(--teal);color:#fff;border:0;border-radius:10px;padding:9px;font-weight:700;cursor:pointer;font-size:.85rem}
+.add:active{transform:translateY(1px)}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;z-index:30}
+.ov.show{display:block}
+.drawer{position:fixed;top:0;right:0;height:100%;width:min(420px,92vw);background:#fff;z-index:31;transform:translateX(100%);transition:.25s;display:flex;flex-direction:column}
+.drawer.show{transform:none}
+.drawer h2{margin:0;padding:16px;border-bottom:1px solid var(--line);font-size:1.1rem}
+.citems{flex:1;overflow:auto;padding:12px}
+.ci{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.ci img{width:44px;height:58px;object-fit:cover;object-position:top;border:1px solid var(--line);border-radius:4px}
+.ci .x{margin-left:auto;background:none;border:0;color:var(--coral);cursor:pointer;font-size:1.1rem}
+.cfoot{padding:16px;border-top:1px solid var(--line)}
+.ctot{display:flex;justify-content:space-between;font-weight:800;font-size:1.1rem;margin-bottom:12px}
+.msg{font-size:.85rem;margin-top:10px;line-height:1.5}
+.empty{color:var(--muted);font-size:.9rem;text-align:center;margin-top:30px}
+.note{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:.82rem;color:var(--muted);margin-bottom:14px;line-height:1.5}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">MANAPRINT<small>International Store · manaprint.app</small></div>
+  <button class="cartbtn" onclick="openCart()">🛒<span class="badge" id="badge" style="display:none">0</span></button>
+</header>
+
+{% if acces != 'international' %}
+<div class="gate">
+  <h1>Welcome 🌺</h1>
+  <p class="lead">Enter your details to browse the international store. You'll receive your bingo cards as <b>PDF</b> (download &amp; print anywhere).</p>
+  <label>Name</label><input id="g-nom" autocomplete="name">
+  <label>Email</label><input id="g-email" type="email" autocomplete="email">
+  <label>Country</label><input id="g-pays" autocomplete="country-name">
+  <p id="g-msg" class="msg" style="color:var(--coral)"></p>
+  <button class="btn" style="width:100%;margin-top:14px" onclick="enter()">Enter the store →</button>
+</div>
+{% else %}
+<div class="wrap">
+  <h1>International Store</h1>
+  <p class="lead">Pick your games, choose a pack, pay by card — your PDFs are delivered right after payment.</p>
+  <div class="note" style="border-color:var(--coral);background:#fff7f3">
+    🎁 <b>Try before you buy — 5 free sheets!</b> No card, no commitment. Pick a game and download your free sample:
+    <div class="row" style="margin-top:8px">
+      <select id="sampleSel" style="flex:2;min-width:150px"><option value="">Choose a game…</option></select>
+      <button class="btn coral" style="padding:9px 14px;font-size:.9rem" onclick="getSample()">🎁 Free sample</button>
+    </div>
+    <p id="samplemsg" class="msg" style="margin-top:6px"></p>
+  </div>
+  <div class="note">💳 Payment by card (Visa / Mastercard). 📄 Delivery by <b>PDF only</b> — print them yourself anywhere in the world.<br>
+  Packs (B&amp;W): <b>100 sheets 3€</b> · <b>250 sheets 7€</b> · <b>500 sheets 12€</b>. Colour ×2. Minimum order: 100 sheets.</div>
+  <div id="grid" class="grid"><p class="empty">Loading the catalogue…</p></div>
+</div>
+{% endif %}
+
+<div class="ov" id="ov" onclick="closeCart()"></div>
+<div class="drawer" id="drawer">
+  <h2>🛒 My cart</h2>
+  <div class="citems" id="citems"></div>
+  <div class="cfoot">
+    <div class="ctot"><span>Total</span><span id="ctot">0 €</span></div>
+    <button class="btn coral" id="pay" style="width:100%" onclick="checkout()">💳 Pay by card</button>
+    <p id="cmsg" class="msg"></p>
+  </div>
+</div>
+
+<script>
+const ACCES = {{ 'true' if acces == 'international' else 'false' }};
+const XPF_PER_EUR = 119.33;
+// Prix par PAQUET, en euros. Couleur = ×2.
+const PACKS = {100:{nb:3, coul:6}, 250:{nb:7, coul:14}, 500:{nb:12, coul:24}};
+const SIZES = [100,250,500];
+let CATALOGUE=[], CART=[];
+
+function enter(){
+  const nom=document.getElementById('g-nom').value.trim();
+  const email=document.getElementById('g-email').value.trim();
+  const pays=document.getElementById('g-pays').value.trim();
+  const m=document.getElementById('g-msg');
+  if(!nom||email.indexOf('@')<0){ m.textContent='Please enter your name and a valid email.'; return; }
+  fetch('/api/client-international',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({nom,email,pays})})
+   .then(r=>r.json()).then(d=>{ if(d.ok){ location.reload(); } else { m.textContent=d.message||'Error.'; }})
+   .catch(()=>{ m.textContent='Network error, please retry.'; });
+}
+
+function eur(x){ return (Number.isInteger(x)? x : x.toFixed(2))+' €'; }
+function xpf(e){ return Math.round(e*XPF_PER_EUR).toLocaleString('en-US')+' F'; }
+function packPrice(size,coul){ return coul?PACKS[size].coul:PACKS[size].nb; }
+
+async function loadCat(){
+  try{
+    const r=await fetch('/api/jeux'); const d=await r.json();
+    const all=(d.jeux||[]);
+    const byId={}; all.forEach(j=>byId[j.id]=j);
+    CATALOGUE = all.filter(j=>j.id.endsWith('_nb') && !j.vendu_par).map(j=>{
+      const base=j.id.slice(0,-3);
+      const coulId=base+'_couleur';
+      return {base, nbId:j.id, coulId: byId[coulId]?coulId:null,
+              nom:j.nom.replace(/\s*·.*$/,'').trim()||j.nom, emoji:j.emoji||''};
+    });
+    renderGrid();
+    const sel=document.getElementById('sampleSel');
+    if(sel){ CATALOGUE.forEach(p=>{ const o=document.createElement('option'); o.value=p.nbId; o.textContent=(p.emoji?p.emoji+' ':'')+p.nom; sel.appendChild(o); }); }
+  }catch(e){ document.getElementById('grid').innerHTML='<p class="empty">Could not load the catalogue. Please retry.</p>'; }
+}
+
+function getSample(){
+  const sel=document.getElementById('sampleSel'); const m=document.getElementById('samplemsg');
+  const programme=sel.value;
+  if(!programme){ m.style.color='var(--coral)'; m.textContent='Please choose a game first.'; return; }
+  m.style.color='var(--muted)'; m.textContent='Preparing your free sample…';
+  fetch('/api/boutique/echantillon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({programme})})
+   .then(async r=>{
+     if(r.ok && (r.headers.get('content-type')||'').indexOf('pdf')>=0){
+       const blob=await r.blob(); const u=URL.createObjectURL(blob);
+       const a=document.createElement('a'); a.href=u; a.download='MANAPRINT_free_sample.pdf'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(u);
+       m.style.color='var(--teal)'; m.innerHTML='✓ Your free sample is downloading! Liked it? <b>Pick your packs below 👇</b>';
+     } else {
+       let msg='Could not prepare the sample.'; try{ const d=await r.json(); msg=d.message||msg; }catch(e){}
+       m.style.color='var(--coral)'; m.textContent=msg;
+     }
+   }).catch(()=>{ m.style.color='var(--coral)'; m.textContent='Network error, please retry.'; });
+}
+
+function renderGrid(){
+  const g=document.getElementById('grid');
+  if(!CATALOGUE.length){ g.innerHTML='<p class="empty">No games available.</p>'; return; }
+  g.innerHTML='';
+  CATALOGUE.forEach((p,idx)=>{
+    const c=document.createElement('div'); c.className='card';
+    const opts=SIZES.map(n=>'<option value="'+n+'">'+n+' sheets</option>').join('');
+    const canCoul=!!p.coulId;
+    c.innerHTML =
+      '<div class="ph"><img loading="lazy" src="/apercu/'+p.nbId+'.png" alt="" onerror="this.style.visibility=\'hidden\'"></div>'+
+      '<div class="body">'+
+        '<div class="nm">'+(p.emoji?p.emoji+' ':'')+p.nom+'</div>'+
+        '<div class="row"><div class="seg" data-seg="'+idx+'">'+
+           '<button class="on" onclick="setMode('+idx+',false,this)">B&amp;W</button>'+
+           (canCoul?'<button onclick="setMode('+idx+',true,this)">Colour</button>':'')+
+        '</div></div>'+
+        '<div class="row"><select id="qty'+idx+'" onchange="refPrice('+idx+')">'+opts+'</select>'+
+           '<span class="price" id="pr'+idx+'"></span></div>'+
+        '<button class="add" onclick="addToCart('+idx+')">🛒 Add to cart</button>'+
+      '</div>';
+    g.appendChild(c);
+    p._coul=false;
+    refPrice(idx);
+  });
+}
+
+function setMode(idx,coul,btn){
+  if(coul && !CATALOGUE[idx].coulId) return;
+  CATALOGUE[idx]._coul=coul;
+  const seg=btn.parentElement; [...seg.children].forEach(b=>b.classList.remove('on')); btn.classList.add('on');
+  refPrice(idx);
+}
+function refPrice(idx){
+  const n=parseInt(document.getElementById('qty'+idx).value,10);
+  const e=packPrice(n,CATALOGUE[idx]._coul);
+  document.getElementById('pr'+idx).innerHTML=eur(e)+'<small>'+xpf(e)+'</small>';
+}
+function addToCart(idx){
+  const p=CATALOGUE[idx];
+  const n=parseInt(document.getElementById('qty'+idx).value,10);
+  const coul=!!p._coul;
+  const programme= coul? p.coulId : p.nbId;
+  const e=packPrice(n,coul);
+  CART.push({programme, nbId:p.nbId, nom:p.nom, emoji:p.emoji, nb_feuilles:n, couleur:coul, eur:e});
+  updBadge(); flash(idx);
+}
+function flash(idx){ const b=document.querySelectorAll('.add')[idx]; if(!b)return; const t=b.textContent; b.textContent='✓ Added'; setTimeout(()=>b.textContent=t,900); }
+function updBadge(){ const b=document.getElementById('badge'); if(CART.length){b.style.display='';b.textContent=CART.length;}else{b.style.display='none';} }
+
+function openCart(){ renderCart(); document.getElementById('ov').classList.add('show'); document.getElementById('drawer').classList.add('show'); }
+function closeCart(){ document.getElementById('ov').classList.remove('show'); document.getElementById('drawer').classList.remove('show'); }
+function renderCart(){
+  const box=document.getElementById('citems'); let tot=0;
+  if(!CART.length){ box.innerHTML='<p class="empty">Your cart is empty.</p>'; document.getElementById('ctot').textContent='0 €'; document.getElementById('pay').disabled=true; return; }
+  document.getElementById('pay').disabled=false;
+  box.innerHTML='';
+  CART.forEach((it,i)=>{ tot+=it.eur;
+    const d=document.createElement('div'); d.className='ci';
+    d.innerHTML='<img src="/apercu/'+it.nbId+'.png" alt="">'+
+      '<div><div style="font-weight:700;font-size:.85rem">'+(it.emoji?it.emoji+' ':'')+it.nom+'</div>'+
+      '<div style="font-size:.75rem;color:var(--muted)">'+it.nb_feuilles+' sheets · '+(it.couleur?'Colour':'B&W')+' · '+eur(it.eur)+'</div></div>'+
+      '<button class="x" onclick="rm('+i+')">✕</button>';
+    box.appendChild(d);
+  });
+  document.getElementById('ctot').textContent=eur(tot)+'  ·  '+xpf(tot);
+}
+function rm(i){ CART.splice(i,1); updBadge(); renderCart(); }
+
+function checkout(){
+  if(!CART.length) return;
+  const m=document.getElementById('cmsg'); m.style.color='var(--muted)'; m.textContent='Redirecting to secure card payment…';
+  document.getElementById('pay').disabled=true;
+  const items=CART.map(it=>({programme:it.programme, nb_feuilles:it.nb_feuilles}));
+  fetch('/api/boutique/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items})})
+   .then(r=>r.json()).then(d=>{
+     if(d.ok && d.url){ window.location=d.url; }
+     else { m.style.color='var(--coral)'; m.textContent=d.message||'Payment unavailable.'; document.getElementById('pay').disabled=false; }
+   }).catch(()=>{ m.style.color='var(--coral)'; m.textContent='Network error, please retry.'; document.getElementById('pay').disabled=false; });
+}
+
+if(ACCES) loadCat();
+</script>
+</body>
+</html>
