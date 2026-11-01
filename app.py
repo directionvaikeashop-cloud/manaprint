@@ -4046,6 +4046,31 @@ def lancer_fabrication(commande_id, seulement_rapport=False):
             note_taille = ("" if piece_cartons is not None else
                            "\n\u26a0\ufe0f PDF trop volumineux pour l'email : "
                            "utilisez le lien de téléchargement ci-dessous.\n")
+            # 🔗📧 31/10 (sceau Maeva : « privilégie l'envoi par email ») — REVENTE :
+            #    si l'enseigne a saisi l'email de SON client, le PDF lui part
+            #    DIRECTEMENT (pièce jointe + lien de secours). C'est elle qui
+            #    encaisse ; nous ne faisons que livrer le carton au client final.
+            _email_vente = (perso.get("email_client_vente") or "").strip()
+            if _email_vente:
+                _ens_vente = perso.get("titre_jeu") or part.get("nom", "")
+                _corps_vente = (
+                    "Bonjour,\n\n"
+                    f"Voici vos cartons de loto, de la part de {_ens_vente}.\n\n"
+                    f"  • Jeu : {cmd['programme']} — {cmd['nb_feuilles']} feuille(s)\n\n"
+                    "Le PDF prêt à imprimer est en pièce jointe."
+                    + note_taille +
+                    (f"\n\U0001f517 Lien de téléchargement direct :\n{lien_cartons}\n" if lien_cartons else "") +
+                    f"\n— {_ens_vente} (via MANAPRINT)"
+                )
+                try:
+                    _okv, _mv = envoyer_email_pdf(
+                        _email_vente,
+                        f"Vos cartons de loto — {_ens_vente}",
+                        _corps_vente, piece_cartons,
+                        f"cartons_{cmd['programme']}.pdf")
+                    print(f"[REVENTE] cmd {commande_id} -> {_email_vente} : {_okv} ({_mv})")
+                except Exception as _ev:
+                    print(f"[REVENTE] cmd {commande_id} : envoi client impossible : {_ev}")
             sujet = f"MANAPRINT — Commande #{commande_id} à imprimer"
             corps = (
                 f"Bonjour {part['nom']},\n\n"
@@ -4974,12 +4999,21 @@ def _partenaire_fabriquer_un(slug, part, data):
     _couleur_perso = str(data.get("couleur_perso") or "").strip()
     if not _re_cp.match(r"^#[0-9a-fA-F]{6}$", _couleur_perso):
         _couleur_perso = ""
+    # 📧 31/10 (sceau Maeva : « privilégie l'envoi par email ») — REVENTE :
+    #    l'email du client final, s'il a été saisi. À la fabrication, le PDF
+    #    lui part directement (voir lancer_fabrication). On n'accepte qu'une
+    #    adresse plausible ; sinon on l'ignore (il reste le lien à partager).
+    _email_vente = str(data.get("email_client_vente") or "").strip()[:120]
+    if "@" not in _email_vente or "." not in _email_vente:
+        _email_vente = ""
     perso = _json.dumps({
         "theme": "", "nom_evenement": enseigne, "titre_jeu": enseigne,
         "couleur_perso": _couleur_perso, "date_lieu": part.get("zone", ""), "telephone": telephone,
         "partenaire": slug,
         # 🖨️ la case « Impression rapide » de l'espace partenaire
         "impression_rapide": bool(data.get("impression_rapide", True)),
+        # 📧 email du client final pour la revente (vide = pas d'envoi direct)
+        "email_client_vente": _email_vente,
     })
     commande_id, _ = db.creer_commande(
         identifiant=enseigne, origine="polynesien",
@@ -5083,6 +5117,10 @@ def boutique_partenaire_checkout():
     #    n'est donné QUE pour SES propres créations — jamais le jeu d'une
     #    autre enseigne. On réutilise le lien-jeton du coffre déjà en place.
     revente_glob = bool(data.get("revente"))
+    # 📧 (sceau Maeva : « privilégie l'envoi par email ») : l'email du client
+    #    final, saisi une fois pour la revente. On l'applique UNIQUEMENT aux
+    #    lignes de revente sur une création de l'enseigne (jamais ailleurs).
+    email_vente_glob = str(data.get("email_client_vente") or "").strip()
     resultats, nb_ok, nb_ko = [], 0, 0
     for pos, it in enumerate(items, 1):
         if not isinstance(it, dict):
@@ -5096,14 +5134,20 @@ def boutique_partenaire_checkout():
             if v in (None, ""):
                 v = perso.get(cle)
             return defaut if v in (None, "") else v
+        _prog = str(it.get("programme") or "")
+        _revente = bool(it.get("revente", revente_glob))
+        _mien = (JEUX_PROPRIETAIRE.get(_base_jeu(_prog)) == slug)
         ligne = {
-            "programme": str(it.get("programme") or ""),
+            "programme": _prog,
             "nb_feuilles": it.get("nb_feuilles"),
             "titre": _choix("titre"),
             "telephone": _choix("telephone"),
             "couleur_perso": _choix("couleur_perso"),
             "impression_rapide": bool(it.get("impression_rapide",
                                        perso.get("impression_rapide", True))),
+            # 📧 email du client : seulement pour une revente de SA création
+            "email_client_vente": ((it.get("email_client_vente") or email_vente_glob)
+                                   if (_revente and _mien) else ""),
         }
         try:
             res = _partenaire_fabriquer_un(slug, part, ligne)
@@ -5118,19 +5162,21 @@ def boutique_partenaire_checkout():
         except Exception:
             payload = {}
         payload.setdefault("ok", False)
-        # 🔗 le lien de vente à partager — seulement si demandé, si la
-        #    fabrication a réussi, ET si le jeu est bien une création de
-        #    l'enseigne (sinon on fabrique normalement mais sans lien).
-        if payload.get("ok") and bool(it.get("revente", revente_glob)):
-            _prog = str(it.get("programme") or "")
+        # 🔗📧 revente : seulement si demandé et si la fabrication a réussi.
+        #    Pour SA création -> on privilégie l'email au client (si saisi) et
+        #    on fournit AUSSI le lien à partager (secours). Jeu d'une autre
+        #    enseigne -> fabriqué normalement, mais pas de lien ni d'email.
+        if payload.get("ok") and _revente:
             _cid = payload.get("commande_id")
-            if JEUX_PROPRIETAIRE.get(_base_jeu(_prog)) == slug and _cid:
+            if _mien and _cid:
                 _lien = "/lot/%s/%s/cartons.pdf" % (_cid, _jeton_lot(_cid))
                 payload["lien_vente"] = request.url_root.rstrip("/") + _lien
+                if ligne.get("email_client_vente"):
+                    payload["email_vente"] = ligne["email_client_vente"]
             else:
                 payload["revente_refusee"] = (
-                    "\U0001f512 Lien de vente non généré : vous ne pouvez "
-                    "proposer à la vente que VOS propres créations.")
+                    "\U0001f512 Revente impossible : vous ne pouvez proposer "
+                    "à la vente que VOS propres créations.")
         resultats.append(payload)
         if payload.get("ok"):
             nb_ok += 1
