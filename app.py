@@ -5070,6 +5070,12 @@ def boutique_partenaire_checkout():
     items = data.get("items") or []
     if not isinstance(items, list) or not (1 <= len(items) <= 10):
         return jsonify({"ok": False, "message": "Le panier doit contenir entre 1 et 10 articles."}), 400
+    # 🎨 31/10 (sceau Maeva : « ajoute un outil à personnaliser le PDF au besoin ») :
+    #    une personnalisation FACULTATIVE, valable pour tout le panier —
+    #    nom d'enseigne imprimé, téléphone, une couleur imposée, impression
+    #    rapide. Vide = on garde les réglages par défaut du partenaire (son
+    #    enseigne, arc-en-ciel). Chaque article peut aussi porter la sienne.
+    perso = data.get("perso") if isinstance(data.get("perso"), dict) else {}
     resultats, nb_ok, nb_ko = [], 0, 0
     for pos, it in enumerate(items, 1):
         if not isinstance(it, dict):
@@ -5077,11 +5083,20 @@ def boutique_partenaire_checkout():
             nb_ko += 1
             continue
         # on ne transmet QUE ce que la fabrique attend : jeu, nombre, options.
+        # L'article prime sur la personnalisation globale, qui prime sur le défaut.
+        def _choix(cle, defaut=""):
+            v = it.get(cle)
+            if v in (None, ""):
+                v = perso.get(cle)
+            return defaut if v in (None, "") else v
         ligne = {
             "programme": str(it.get("programme") or ""),
             "nb_feuilles": it.get("nb_feuilles"),
-            "couleur_perso": it.get("couleur_perso") or "",
-            "impression_rapide": bool(it.get("impression_rapide", True)),
+            "titre": _choix("titre"),
+            "telephone": _choix("telephone"),
+            "couleur_perso": _choix("couleur_perso"),
+            "impression_rapide": bool(it.get("impression_rapide",
+                                       perso.get("impression_rapide", True))),
         }
         try:
             res = _partenaire_fabriquer_un(slug, part, ligne)
