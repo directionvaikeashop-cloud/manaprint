@@ -59,15 +59,23 @@ select{padding:7px;border:1px solid var(--line);border-radius:9px;font-size:.82r
   <button class="cartbtn" onclick="openCart()">🛒<span class="badge" id="badge" style="display:none">0</span></button>
 </header>
 
-{% if acces != 'international' %}
+{% if acces == 'polynesien' %}
+<div class="gate">
+  <h1>Ia ora na 🌺</h1>
+  <p class="lead">Cette boutique internationale (livraison <b>PDF</b>) est réservée aux clients <b>hors Polynésie française</b>.<br><br>
+  En Polynésie, commandez vos cartons sur <b><a href="https://cheztukea.app" style="color:var(--teal)">cheztukea.app</a></b> ou chez <b>2KEA &amp; Associé — Papeete</b>, et générez vos jeux sur <b><a href="/" style="color:var(--teal)">manaprint.app</a></b>. 🌴</p>
+</div>
+{% elif acces != 'international' %}
 <div class="gate">
   <h1>Welcome 🌺</h1>
   <p class="lead">Enter your details to browse the international store. You'll receive your bingo cards as <b>PDF</b> (download &amp; print anywhere).</p>
   <label>Name</label><input id="g-nom" autocomplete="name">
   <label>Email</label><input id="g-email" type="email" autocomplete="email">
   <label>Country</label><input id="g-pays" autocomplete="country-name">
+  <label>Phone</label><input id="g-tel" type="tel" autocomplete="tel" placeholder="+1 555 …">
   <p id="g-msg" class="msg" style="color:var(--coral)"></p>
   <button class="btn" style="width:100%;margin-top:14px" onclick="enter()">Enter the store →</button>
+  <p class="msg" style="color:var(--muted);font-size:.78rem;margin-top:10px">🌴 In French Polynesia? Order on cheztukea.app instead.</p>
 </div>
 {% else %}
 <div class="wrap">
@@ -112,10 +120,12 @@ function enter(){
   const nom=document.getElementById('g-nom').value.trim();
   const email=document.getElementById('g-email').value.trim();
   const pays=document.getElementById('g-pays').value.trim();
+  const telephone=document.getElementById('g-tel').value.trim();
   const m=document.getElementById('g-msg');
   if(!nom||email.indexOf('@')<0){ m.textContent='Please enter your name and a valid email.'; return; }
-  fetch('/api/client-international',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({nom,email,pays})})
+  if(!telephone){ m.textContent='Please enter your phone number.'; return; }
+  fetch('/api/boutique/entrer',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({nom,email,pays,telephone})})
    .then(r=>r.json()).then(d=>{ if(d.ok){ location.reload(); } else { m.textContent=d.message||'Error.'; }})
    .catch(()=>{ m.textContent='Network error, please retry.'; });
 }
