@@ -6457,6 +6457,26 @@ _PLAGES_CALLER["meme"] = (1, 75)
 _BOULES_CALLER["meme"] = [n for n in range(1, 76)]
 print("[RANIHEI] MÉMÉ inscrite — %d jeux au catalogue" % len(REGISTRE_JEUX))
 
+# ═════════════════════════════════════════════════════════════════════
+# 🔫 GUN — inscription du 31/10/2026 (création RANIHEI, maquette fournie).
+#    5 cercles « viseur » en haut = LES PLAGES DU B·I·N·G·O :
+#      B 1-15 · I 16-30 · N 31-45 · G 46-60 · O 61-75 (un numéro par cercle).
+#    Décision Maeva : 5 cercles PARTOUT (les cartons de droite de la maquette,
+#    qui n'en avaient que 4, deviennent identiques à ceux de gauche).
+# ═════════════════════════════════════════════════════════════════════
+from generators import gun   # 🔫 création RANIHEI (main + pistolet, impacts)
+
+JEUX_PROPRIETAIRE["gun"] = "ranihei"
+_GRIS_POSES = _imposer_gris_maison()
+
+# ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+_enregistrer_paire("gun", "GUN · 5 boules", "\U0001f52b", 8, gun.generer_pdf)
+
+_PLAGES_CALLER["gun"] = (1, 75)
+# 🔫 GUN : les 5 plages du BINGO -> 1 à 75 sans trou.
+_BOULES_CALLER["gun"] = [n for n in range(1, 76)]
+print("[RANIHEI] GUN inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+
 # ═══════════════════════════════════════════════════════════════════════════
 # 🎁 GÉNÉRATEUR DE RAMES PANACHÉES (sceau Maeva 24/10)
 #    Un bouton par rame déjà composée. Chaque rame = 1 feuille de COUVERTURE
