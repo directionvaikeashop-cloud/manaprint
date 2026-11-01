@@ -6497,6 +6497,27 @@ _PLAGES_CALLER["rurutu"] = (1, 75)
 _BOULES_CALLER["rurutu"] = [n for n in range(1, 76)]
 print("[RANIHEI] RURUTU inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
 
+# ═════════════════════════════════════════════════════════════════════
+# 🐙 TUBUAI — inscription du 31/10/2026 (création RANIHEI, maquette fournie).
+#    Scène sous-marine (pieuvre ORAVA + requin TUAI) + 6 cercles autour =
+#    LES PLAGES DU BINGO 90 (6 plages de 15) :
+#      gauche  haut->bas : 1-15 · 16-30 · 31-45
+#      droite  haut->bas : 46-60 · 61-75 · 76-90
+#    -> crieur 1 à 90 sans trou.
+# ═════════════════════════════════════════════════════════════════════
+from generators import tubuai   # 🐙 création RANIHEI (pieuvre + requin, Tubuai)
+
+JEUX_PROPRIETAIRE["tubuai"] = "ranihei"
+_GRIS_POSES = _imposer_gris_maison()
+
+# ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+_enregistrer_paire("tubuai", "TUBUAI · 6 boules", "\U0001f419", 8, tubuai.generer_pdf)
+
+_PLAGES_CALLER["tubuai"] = (1, 90)
+# 🐙 TUBUAI : BINGO 90 -> 6 plages de 15, 1 à 90 sans trou.
+_BOULES_CALLER["tubuai"] = [n for n in range(1, 91)]
+print("[RANIHEI] TUBUAI inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+
 # ═══════════════════════════════════════════════════════════════════════════
 # 🎁 GÉNÉRATEUR DE RAMES PANACHÉES (sceau Maeva 24/10)
 #    Un bouton par rame déjà composée. Chaque rame = 1 feuille de COUVERTURE
