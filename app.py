@@ -6477,6 +6477,26 @@ _PLAGES_CALLER["gun"] = (1, 75)
 _BOULES_CALLER["gun"] = [n for n in range(1, 76)]
 print("[RANIHEI] GUN inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
 
+# ═════════════════════════════════════════════════════════════════════
+# 🌴 RURUTU — inscription du 31/10/2026 (création RANIHEI, maquette fournie).
+#    Paysage de Rurutu + 6 cercles en UNE rangée = 2 groupes de 3 :
+#      groupe gauche  : 1-15 · 16-45 · 46-75
+#      groupe droite  : 1-15 · 16-45 · 46-75
+#    -> chaque groupe de 3 couvre 1 à 75 ; crieur 1 à 75 sans trou.
+# ═════════════════════════════════════════════════════════════════════
+from generators import rurutu   # 🌴 création RANIHEI (paysage de l'île de Rurutu)
+
+JEUX_PROPRIETAIRE["rurutu"] = "ranihei"
+_GRIS_POSES = _imposer_gris_maison()
+
+# ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+_enregistrer_paire("rurutu", "RURUTU · 6 boules", "\U0001f334", 8, rurutu.generer_pdf)
+
+_PLAGES_CALLER["rurutu"] = (1, 75)
+# 🌴 RURUTU : plages 1-15, 16-45, 46-75 -> 1 à 75 sans trou.
+_BOULES_CALLER["rurutu"] = [n for n in range(1, 76)]
+print("[RANIHEI] RURUTU inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+
 # ═══════════════════════════════════════════════════════════════════════════
 # 🎁 GÉNÉRATEUR DE RAMES PANACHÉES (sceau Maeva 24/10)
 #    Un bouton par rame déjà composée. Chaque rame = 1 feuille de COUVERTURE
