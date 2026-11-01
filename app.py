@@ -2832,12 +2832,48 @@ def essais_restants():
     return jsonify({"ok": True, "restants": max(0, db.NB_ESSAIS_MAX - utilises)})
 
 
+_GEO_IP_CACHE = {}
+def _ip_client():
+    """IP réelle du visiteur (derrière le proxy Railway)."""
+    xff = request.headers.get("X-Forwarded-For", "") or request.headers.get("X-Real-IP", "")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.remote_addr or ""
+
+def _pays_de_ip(ip):
+    """Code pays ISO d'une IP (via ip-api.com) — mis en cache, tolérant aux
+    pannes (renvoie None en cas d'échec : on ne bloque alors personne à tort)."""
+    if not ip:
+        return None
+    if ip in _GEO_IP_CACHE:
+        return _GEO_IP_CACHE[ip]
+    pays = None
+    try:
+        if not (ip.startswith(("10.", "192.168.", "127.", "172.")) or ip in ("::1", "localhost")):
+            import urllib.request as _ur, json as _gj
+            with _ur.urlopen("http://ip-api.com/json/%s?fields=countryCode" % ip, timeout=2) as _r:
+                pays = (_gj.loads(_r.read().decode()).get("countryCode") or "").upper() or None
+    except Exception:
+        pays = None
+    _GEO_IP_CACHE[ip] = pays
+    return pays
+
+def _visiteur_en_polynesie():
+    """True si le visiteur est (très probablement) EN Polynésie française (IP)."""
+    try:
+        return _pays_de_ip(_ip_client()) == "PF"
+    except Exception:
+        return False
+
+
 @app.route("/boutique", methods=["GET"])
 def boutique_internationale():
     """🌍 Boutique internationale : catalogue photos + panier, livraison PDF.
-    Page autonome ; si le client n'a pas encore d'accès international, la page
-    montre un petit formulaire d'entrée (nom/email/pays)."""
-    return render_template("boutique.html", acces=session.get("acces"))
+    🔒 Bloquée pour le marché polynésien (session polynésienne OU visiteur
+    localisé en Polynésie), qui passe par cheztukea.app / 2KEA."""
+    acces = session.get("acces")
+    bloque = (acces != "international") and (acces == "polynesien" or _visiteur_en_polynesie())
+    return render_template("boutique.html", acces=acces, bloque=bloque)
 
 
 @app.route("/api/boutique/entrer", methods=["POST"])
@@ -2854,6 +2890,11 @@ def boutique_entrer():
         return jsonify({"ok": False, "message": "Name and a valid email are required."}), 400
     if not tel:
         return jsonify({"ok": False, "message": "A phone number is required."}), 400
+    # 🔒 blocage géographique : visiteur localisé en Polynésie -> refusé
+    if _visiteur_en_polynesie():
+        return jsonify({"ok": False, "polynesien": True, "message":
+            "This international store is reserved for clients outside French Polynesia. "
+            "In French Polynesia, order on cheztukea.app or at 2KEA & Associé — Papeete."}), 403
     pays_bas = pays.lower()
     _polynesie = any(w in pays_bas for w in
                      ("polyn", "tahiti", "moorea", "papeete", "bora", "tuamotu", "marquis"))
