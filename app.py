@@ -2968,10 +2968,10 @@ def boutique_echantillon():
     cpf = REGISTRE_JEUX[programme]["cartes_par_feuille"]
     perso = {"nom_evenement": "", "titre_jeu": REGISTRE_JEUX[programme]["nom"],
              "date_lieu": "", "telephone": ""}
-    pdf = generer_jeu(programme, 5 * cpf, couleur, perso, serie_start=_rnd.randint(1, 900000))
+    pdf = generer_jeu(programme, 20 * cpf, couleur, perso, serie_start=_rnd.randint(1, 900000))
     try:
         db.creer_commande(identifiant=ident, origine="international", programme=programme,
-                          couleur=couleur, nb_feuilles=5, mode_paiement="echantillon_boutique",
+                          couleur=couleur, nb_feuilles=20, mode_paiement="echantillon_boutique",
                           params_perso=_json.dumps({"echantillon": True}, ensure_ascii=False),
                           prix_feuille=0)
     except Exception as e:
