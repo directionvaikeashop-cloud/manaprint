@@ -2840,6 +2840,33 @@ def boutique_internationale():
     return render_template("boutique.html", acces=session.get("acces"))
 
 
+@app.route("/api/boutique/entrer", methods=["POST"])
+def boutique_entrer():
+    """🔒 Entrée SÉCURISÉE de la boutique internationale. Un client polynésien
+    (numéro 87/88/89/40 ou pays = Polynésie) est refusé : la boutique PDF à bas
+    prix n'est pas pour le marché local, qui passe par cheztukea.app / 2KEA."""
+    data = request.get_json(force=True, silent=True) or {}
+    nom = (data.get("nom") or "").strip()
+    email = (data.get("email") or "").strip()
+    pays = (data.get("pays") or "").strip()
+    tel = (data.get("telephone") or "").strip()
+    if not nom or "@" not in email:
+        return jsonify({"ok": False, "message": "Name and a valid email are required."}), 400
+    if not tel:
+        return jsonify({"ok": False, "message": "A phone number is required."}), 400
+    pays_bas = pays.lower()
+    _polynesie = any(w in pays_bas for w in
+                     ("polyn", "tahiti", "moorea", "papeete", "bora", "tuamotu", "marquis"))
+    if est_numero_polynesien(tel) or _polynesie:
+        return jsonify({"ok": False, "polynesien": True, "message":
+            "This international store is reserved for clients outside French Polynesia. "
+            "In French Polynesia, order on cheztukea.app or at 2KEA & Associé — Papeete."}), 403
+    db.enregistrer_client_intl(nom, email, pays)
+    session["acces"] = "international"
+    session["identifiant"] = email
+    return jsonify({"ok": True})
+
+
 def _boutique_deja_achete(identifiant):
     """A-t-il DÉJÀ une commande payée (vrai achat, pas un échantillon) ?
     Sert au bonus « 50 feuilles offertes à la 1re commande ». En cas de doute,
