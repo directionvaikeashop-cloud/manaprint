@@ -82,6 +82,32 @@ select{padding:7px;border:1px solid var(--line);border-radius:9px;font-size:.82r
   <div class="note">📄 Livraison <b>PDF</b> à votre enseigne. 🖨️ Feuilles par paquets de 25, jusqu'à 500 par article.
   <a href="/espace-partenaire" style="color:var(--teal);font-weight:700;text-decoration:none">→ Mon espace partenaire (mes commandes, mes prix, mes articles)</a></div>
   <div class="note" style="border-color:#38bdf8;background:#f0f9ff">🎱 <b>Besoin de tirer les numéros ?</b> Le crieur en ligne, sans installation : <a href="/caller" target="_blank" rel="noopener" style="color:var(--teal);font-weight:700;text-decoration:none">manaprint.app/caller →</a></div>
+  <div class="note" style="border-color:var(--coral)">
+    <div class="row" style="justify-content:space-between;cursor:pointer" onclick="togglePerso()">
+      <b>⚙️ Personnaliser mes cartons (facultatif)</b>
+      <span id="persoArrow" style="color:var(--coral);font-weight:700">▸</span>
+    </div>
+    <div id="persoBox" style="display:none;margin-top:10px">
+      <p style="margin:0 0 8px">S'applique à tout le panier. Laissez vide pour garder vos réglages habituels.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><label style="font-size:.78rem;color:var(--muted)">Nom sur les cartons</label>
+          <input id="p-titre" placeholder="(votre enseigne)" style="width:100%;padding:9px;border:1px solid var(--line);border-radius:9px"></div>
+        <div><label style="font-size:.78rem;color:var(--muted)">Téléphone sur les cartons</label>
+          <input id="p-tel" placeholder="(votre numéro)" style="width:100%;padding:9px;border:1px solid var(--line);border-radius:9px"></div>
+      </div>
+      <div class="row" style="margin-top:10px;gap:14px">
+        <label style="font-size:.82rem;display:flex;align-items:center;gap:7px">
+          <input type="checkbox" id="p-coulon" onchange="document.getElementById('p-coul').style.display=this.checked?'inline-block':'none'">
+          Imposer une couleur
+          <input type="color" id="p-coul" value="#0f766e" style="display:none;width:40px;height:28px;border:1px solid var(--line);border-radius:6px;padding:0">
+        </label>
+        <label style="font-size:.82rem;display:flex;align-items:center;gap:7px">
+          <input type="checkbox" id="p-rapide" checked> Impression rapide
+        </label>
+      </div>
+      <p style="margin:8px 0 0;font-size:.75rem;color:var(--muted)">La couleur imposée ne s'applique qu'aux jeux en <b>Couleur</b> ; les jeux N&amp;B n'y touchent pas.</p>
+    </div>
+  </div>
   <div id="grid" class="grid"><p class="empty">Chargement du catalogue…</p></div>
 </div>
 {% endif %}
@@ -193,12 +219,27 @@ function renderCart(){
 }
 function rm(i){ CART.splice(i,1); updBadge(); renderCart(); }
 
+function togglePerso(){
+  const b=document.getElementById('persoBox'), a=document.getElementById('persoArrow');
+  const open=b.style.display==='none'; b.style.display=open?'block':'none'; a.textContent=open?'▾':'▸';
+}
+function getPerso(){
+  const g=id=>{const e=document.getElementById(id);return e?e:null;};
+  const perso={};
+  const t=(g('p-titre')||{}).value||''; if(t.trim()) perso.titre=t.trim();
+  const tel=(g('p-tel')||{}).value||''; if(tel.trim()) perso.telephone=tel.trim();
+  if((g('p-coulon')||{}).checked) perso.couleur_perso=(g('p-coul')||{}).value||'';
+  perso.impression_rapide = (g('p-rapide')||{checked:true}).checked;
+  return perso;
+}
+
 function checkout(){
   if(!CART.length) return;
   const m=document.getElementById('cmsg'); m.innerHTML='<p class="msg" style="color:var(--muted)">Fabrication en cours…</p>';
   document.getElementById('pay').disabled=true;
   const items=CART.map(it=>({programme:it.programme, nb_feuilles:it.nb_feuilles}));
-  fetch('/api/boutique-partenaire/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items})})
+  const perso=getPerso();
+  fetch('/api/boutique-partenaire/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items, perso})})
    .then(r=>r.json()).then(d=>{
      const res=(d.resultats||[]);
      let html='';
