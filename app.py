@@ -5076,6 +5076,13 @@ def boutique_partenaire_checkout():
     #    rapide. Vide = on garde les réglages par défaut du partenaire (son
     #    enseigne, arc-en-ciel). Chaque article peut aussi porter la sienne.
     perso = data.get("perso") if isinstance(data.get("perso"), dict) else {}
+    # 🔗 31/10 (sceau Maeva : « mettre une option pour RANIHEI si elle veut
+    #    vendre ces PDF — seulement ces créations ») : si l'enseigne coche
+    #    « revente », on lui rend un LIEN PUBLIC à partager à son client
+    #    (pas de paiement en ligne : elle encaisse comme elle veut). Le lien
+    #    n'est donné QUE pour SES propres créations — jamais le jeu d'une
+    #    autre enseigne. On réutilise le lien-jeton du coffre déjà en place.
+    revente_glob = bool(data.get("revente"))
     resultats, nb_ok, nb_ko = [], 0, 0
     for pos, it in enumerate(items, 1):
         if not isinstance(it, dict):
@@ -5111,6 +5118,19 @@ def boutique_partenaire_checkout():
         except Exception:
             payload = {}
         payload.setdefault("ok", False)
+        # 🔗 le lien de vente à partager — seulement si demandé, si la
+        #    fabrication a réussi, ET si le jeu est bien une création de
+        #    l'enseigne (sinon on fabrique normalement mais sans lien).
+        if payload.get("ok") and bool(it.get("revente", revente_glob)):
+            _prog = str(it.get("programme") or "")
+            _cid = payload.get("commande_id")
+            if JEUX_PROPRIETAIRE.get(_base_jeu(_prog)) == slug and _cid:
+                _lien = "/lot/%s/%s/cartons.pdf" % (_cid, _jeton_lot(_cid))
+                payload["lien_vente"] = request.url_root.rstrip("/") + _lien
+            else:
+                payload["revente_refusee"] = (
+                    "\U0001f512 Lien de vente non généré : vous ne pouvez "
+                    "proposer à la vente que VOS propres créations.")
         resultats.append(payload)
         if payload.get("ok"):
             nb_ok += 1
