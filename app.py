@@ -4845,15 +4845,24 @@ def api_partenaire_mes_commandes():
 
 @app.route("/api/partenaire/generer", methods=["POST"])
 def api_partenaire_generer():
-    """🖨️ MA FABRIQUE (vision Maeva, née pour RANIHEI de Raiatea) : le partenaire
+    """\U0001f5a8️ MA FABRIQUE (vision Maeva, née pour RANIHEI de Raiatea) : le partenaire
     génère lui-même ses PDF, à SON enseigne — OFFERT (décision Maeva 29/07 :
     le dû 1,5 F ne s'applique qu'aux commandes de SES clients qui personnalisent
     pour leurs tournois). Les cartons arrivent dans SA liste (bouton ⬇️)."""
-    import json as _json
     slug, part = _partenaire_session()
     if not slug:
         return jsonify({"ok": False, "message": "connexion requise"}), 403
     data = request.get_json(force=True, silent=True) or {}
+    return _partenaire_fabriquer_un(slug, part, data)
+
+
+def _partenaire_fabriquer_un(slug, part, data):
+    """\U0001f3ed LE CŒUR DE LA FABRIQUE PARTENAIRE, extrait pour être réutilisé
+    par la boutique partenaire (catalogue + panier) : une ligne de panier = un
+    appel ici. Prix, quotas et règles 2KEA sont EXACTEMENT ceux de la fabrique
+    classique — rien n'est dupliqué, donc rien ne peut diverger. Rend ce qu'une
+    vue Flask rendrait : jsonify(...)[, code]."""
+    import json as _json
     programme = str(data.get("programme") or "")
     if programme not in REGISTRE_JEUX or "_p15" in programme:
         return jsonify({"ok": False, "message": "Choisissez un jeu (gamme \u00c9CO) dans la liste."}), 400
@@ -5012,6 +5021,73 @@ def api_partenaire_generer():
                     "message": (f"\U0001f5a8\ufe0f Fabrique #{commande_id} lanc\u00e9e : {nb_feuilles} feuilles de "
                                 f"{jeu.get('emoji','')} {jeu.get('nom', programme)} \u00e0 l'enseigne \u00ab {enseigne} \u00bb \u2014 "
                                 "appuyez sur \u21bb dans 1-2 minutes, le bouton \u2b07\ufe0f Cartons appara\u00eetra." + _sup)})
+
+
+@app.route("/boutique-partenaire", methods=["GET"])
+def boutique_partenaires_catalogue():
+    """La BOUTIQUE DES PARTENAIRES : exactement la même vitrine que la
+    boutique internationale (catalogue photos + panier), mais RÉSERVÉE à nos
+    partenaires (RANIHEI, FUN&CO, COCOTIE MER…) et AUX PRIX PARTENAIRES.
+    — On garde nos prix : chaque article passe par la fabrique partenaire
+      habituelle (_partenaire_fabriquer_un) : offert dans le forfait, 1,5 F
+      au-delà, droits sur le jeu d'une autre enseigne — RIEN n'est dupliqué.
+    — Juste catalogue + panier : AUCUN échantillon gratuit, AUCUN bonus
+      première commande (ce sont des offres grand public, pas pour les pros).
+    Le PDF arrive dans « Mes commandes » de l'espace partenaire (bouton ⬇️)."""
+    part = PARTENAIRES.get(session.get("partenaire_slug") or "")
+    return render_template("boutique_partenaire.html",
+                           connecte=bool(part),
+                           nom=(part or {}).get("nom", ""),
+                           zone=(part or {}).get("zone", ""))
+
+
+@app.route("/api/boutique-partenaire/checkout", methods=["POST"])
+def boutique_partenaire_checkout():
+    """Paiement du panier partenaire : une ligne = une fabrication, aux
+    PRIX PARTENAIRES. On délègue CHAQUE ligne à _partenaire_fabriquer_un, donc
+    quotas, dépassements et droits sont traités exactement comme dans la
+    fabrique classique. Pas d'échantillon ni de bonus ici : juste le panier."""
+    slug, part = _partenaire_session()
+    if not slug:
+        return jsonify({"ok": False, "message": "Connectez-vous avec votre code partenaire."}), 403
+    data = request.get_json(force=True, silent=True) or {}
+    items = data.get("items") or []
+    if not isinstance(items, list) or not (1 <= len(items) <= 10):
+        return jsonify({"ok": False, "message": "Le panier doit contenir entre 1 et 10 articles."}), 400
+    resultats, nb_ok, nb_ko = [], 0, 0
+    for pos, it in enumerate(items, 1):
+        if not isinstance(it, dict):
+            resultats.append({"ok": False, "message": f"Article {pos} : invalide."})
+            nb_ko += 1
+            continue
+        # on ne transmet QUE ce que la fabrique attend : jeu, nombre, options.
+        ligne = {
+            "programme": str(it.get("programme") or ""),
+            "nb_feuilles": it.get("nb_feuilles"),
+            "couleur_perso": it.get("couleur_perso") or "",
+            "impression_rapide": bool(it.get("impression_rapide", True)),
+        }
+        try:
+            res = _partenaire_fabriquer_un(slug, part, ligne)
+        except Exception as e:
+            print("[BOUTIQUE-PART] fabrication impossible :", e)
+            resultats.append({"ok": False, "message": f"Article {pos} : erreur interne."})
+            nb_ko += 1
+            continue
+        resp, _code = (res if isinstance(res, tuple) else (res, 200))
+        try:
+            payload = resp.get_json(silent=True) or {}
+        except Exception:
+            payload = {}
+        payload.setdefault("ok", False)
+        resultats.append(payload)
+        if payload.get("ok"):
+            nb_ok += 1
+        else:
+            nb_ko += 1
+    return jsonify({"ok": nb_ok > 0, "nb_ok": nb_ok, "nb_ko": nb_ko,
+                    "resultats": resultats})
+
 
 
 _PRIX_PART_LOCK = _threading.Lock()
