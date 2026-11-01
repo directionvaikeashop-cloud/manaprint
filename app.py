@@ -366,6 +366,15 @@ JEUX_PROPRIETAIRE = {
     "blossom_pearl": "ranihei",       # 🌸 création RANIHEI du 23/09
     "makemo": "ranihei",              # 🏝️ création RANIHEI du 23/09
     "tureia_ranihei": "ranihei",      # 🐢 création RANIHEI du 23/09
+    # 🌺 31/10 (sceau Maeva) : RANIHEI confirme TOUS ses générateurs. On
+    #    enregistre les dix qui manquaient encore — ce sont SES dessins,
+    #    elle les fabrique librement et GRATUITEMENT (voir plus bas la règle
+    #    « son propre jeu = offert sans plafond »). Une autre enseigne qui
+    #    les fabrique doit la feuille à 1,5 F, comme pour tous les autres.
+    "arearea": "ranihei", "babord": "ranihei", "bateau_pirate": "ranihei",
+    "dragon_or": "ranihei", "fafapiti": "ranihei", "sunset": "ranihei",
+    "tictac": "ranihei", "kapunka": "ranihei", "melodie": "ranihei",
+    "meme": "ranihei",
 }
 PRIX_FEUILLE_DROIT = 1.5     # ce que doit une enseigne sur le jeu d'une autre
 
@@ -4916,8 +4925,15 @@ def _partenaire_fabriquer_un(slug, part, data):
 
     # 🏠 la maison n'a ni quota ni plafond sur ses propres fabrications
     _maison = (slug == ENSEIGNE_MAISON)
-    _faits_jeu = 0 if _maison else _feuilles_faites_sur_jeu(slug, programme)
-    _reste_jeu = 10 ** 9 if _maison else max(0, QUOTA_PAR_JEU - _faits_jeu)
+    # 🌺 31/10 (sceau Maeva) : UNE ENSEIGNE NE PAIE JAMAIS SON PROPRE JEU.
+    #    « Quand elles génèrent leurs PDF, elles ne paient rien. » Le dessin
+    #    lui appartient : comme la maison, ni quota ni plafond ni 1,5 F sur
+    #    SES jeux. (Sur le jeu d'une AUTRE enseigne, le droit s'applique
+    #    toujours — c'est traité juste au-dessus en fabrique_droit.)
+    _mien = (_proprio == slug)
+    _gratuit = _maison or _mien
+    _faits_jeu = 0 if _gratuit else _feuilles_faites_sur_jeu(slug, programme)
+    _reste_jeu = 10 ** 9 if _gratuit else max(0, QUOTA_PAR_JEU - _faits_jeu)
     _nom_jeu = REGISTRE_JEUX.get(programme, {}).get("nom", programme)
     if _mode == "fabrique_droit":
         pass                      # déjà payant : le quota ne s'applique pas
@@ -4932,7 +4948,7 @@ def _partenaire_fabriquer_un(slug, part, data):
                  f"pour finir votre cr\u00e9dit, puis les suivantes vous seront "
                  f"compt\u00e9es \u00e0 {PRIX_FEUILLE_QUOTA} F la feuille.")}), 400
 
-    _quota = None if _maison else QUOTA_HABILLES.get(slug)
+    _quota = None if _gratuit else QUOTA_HABILLES.get(slug)
     if _quota is not None and _base_jeu(programme) in JEUX_AVEC_IMAGE:
         _faites = _feuilles_habillees_faites(slug)
         _reste = max(0, int(_quota) - _faites)
