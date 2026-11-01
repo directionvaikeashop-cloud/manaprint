@@ -110,9 +110,14 @@ select{padding:7px;border:1px solid var(--line);border-radius:9px;font-size:.82r
   </div>
   <div class="note" style="border-color:var(--teal);background:#eefcf8">
     <label style="font-size:.9rem;display:flex;align-items:center;gap:9px;cursor:pointer">
-      <input type="checkbox" id="p-revente"> <b>🔗 Je veux un lien à partager pour revendre mes PDF</b>
+      <input type="checkbox" id="p-revente" onchange="document.getElementById('reventeBox').style.display=this.checked?'block':'none'"> <b>🔗 Je veux vendre mes PDF (revente)</b>
     </label>
-    <p style="margin:6px 0 0">Après la fabrication, vous recevez un <b>lien de téléchargement</b> à envoyer à votre client (WhatsApp, Messenger…). Vous l'encaissez comme vous voulez — aucun paiement en ligne. <b>Uniquement pour vos propres créations.</b></p>
+    <div id="reventeBox" style="display:none;margin-top:8px">
+      <p style="margin:0 0 8px">📧 <b>De préférence, envoi direct par email à votre client.</b> Indiquez son adresse : il reçoit le PDF dès qu'il est prêt. Vous l'encaissez comme vous voulez — aucun paiement en ligne.</p>
+      <label style="font-size:.78rem;color:var(--muted)">Email du client (facultatif)</label>
+      <input id="p-emailvente" type="email" placeholder="client@exemple.com" style="width:100%;padding:9px;border:1px solid var(--line);border-radius:9px">
+      <p style="margin:7px 0 0;font-size:.75rem;color:var(--muted)">Sans email, vous recevez un <b>lien à partager</b> (WhatsApp, Messenger…). <b>Uniquement pour vos propres créations.</b></p>
+    </div>
   </div>
   <div id="grid" class="grid"><p class="empty">Chargement du catalogue…</p></div>
 </div>
@@ -253,7 +258,8 @@ function checkout(){
   const items=CART.map(it=>({programme:it.programme, nb_feuilles:it.nb_feuilles}));
   const perso=getPerso();
   const revente=(document.getElementById('p-revente')||{checked:false}).checked;
-  fetch('/api/boutique-partenaire/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items, perso, revente})})
+  const email_client_vente=((document.getElementById('p-emailvente')||{}).value||'').trim();
+  fetch('/api/boutique-partenaire/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items, perso, revente, email_client_vente})})
    .then(r=>r.json()).then(d=>{
      const res=(d.resultats||[]);
      let html='';
@@ -261,10 +267,14 @@ function checkout(){
        const it=CART[i]||{};
        const titre=(it.emoji?it.emoji+' ':'')+(it.nom||'Article '+(i+1));
        let corps=(x.message||'')+(x.supplement||'');
+       if(x.email_vente){
+         corps+='<div style="margin-top:8px;padding:8px;border:1px solid var(--teal);border-radius:8px;background:#fff">'+
+           '📧 <b>PDF envoyé par email à '+x.email_vente+'</b> dès qu\'il est prêt (1-2 min). À vous d\'encaisser votre client.</div>';
+       }
        if(x.lien_vente){
          const lid='lv'+i;
          corps+='<div style="margin-top:8px;padding:8px;border:1px dashed var(--teal);border-radius:8px;background:#fff">'+
-           '🔗 <b>Lien à envoyer à votre client :</b><br>'+
+           '🔗 <b>'+(x.email_vente?'Lien de secours (ou à partager) :':'Lien à envoyer à votre client :')+'</b><br>'+
            '<input id="'+lid+'" readonly value="'+x.lien_vente+'" style="width:100%;margin-top:5px;padding:7px;border:1px solid var(--line);border-radius:7px;font-size:.78rem" onclick="this.select()">'+
            '<button class="btn" style="margin-top:6px;padding:7px 12px;font-size:.82rem" onclick="copier(\''+lid+'\',this)">📋 Copier le lien</button>'+
            '<p style="margin:5px 0 0;font-size:.72rem;color:var(--muted)">Le PDF sera prêt sur ce lien dans 1-2 min. À vous d\'encaisser votre client.</p>'+
