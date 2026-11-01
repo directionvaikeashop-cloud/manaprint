@@ -108,6 +108,12 @@ select{padding:7px;border:1px solid var(--line);border-radius:9px;font-size:.82r
       <p style="margin:8px 0 0;font-size:.75rem;color:var(--muted)">La couleur imposée ne s'applique qu'aux jeux en <b>Couleur</b> ; les jeux N&amp;B n'y touchent pas.</p>
     </div>
   </div>
+  <div class="note" style="border-color:var(--teal);background:#eefcf8">
+    <label style="font-size:.9rem;display:flex;align-items:center;gap:9px;cursor:pointer">
+      <input type="checkbox" id="p-revente"> <b>🔗 Je veux un lien à partager pour revendre mes PDF</b>
+    </label>
+    <p style="margin:6px 0 0">Après la fabrication, vous recevez un <b>lien de téléchargement</b> à envoyer à votre client (WhatsApp, Messenger…). Vous l'encaissez comme vous voulez — aucun paiement en ligne. <b>Uniquement pour vos propres créations.</b></p>
+  </div>
   <div id="grid" class="grid"><p class="empty">Chargement du catalogue…</p></div>
 </div>
 {% endif %}
@@ -219,6 +225,13 @@ function renderCart(){
 }
 function rm(i){ CART.splice(i,1); updBadge(); renderCart(); }
 
+function copier(id,btn){
+  const e=document.getElementById(id); if(!e) return;
+  e.select(); e.setSelectionRange(0,99999);
+  const done=()=>{ const t=btn.textContent; btn.textContent='✓ Copié !'; setTimeout(()=>btn.textContent=t,1500); };
+  if(navigator.clipboard){ navigator.clipboard.writeText(e.value).then(done).catch(()=>{try{document.execCommand('copy');done();}catch(_){}}); }
+  else { try{document.execCommand('copy');done();}catch(_){} }
+}
 function togglePerso(){
   const b=document.getElementById('persoBox'), a=document.getElementById('persoArrow');
   const open=b.style.display==='none'; b.style.display=open?'block':'none'; a.textContent=open?'▾':'▸';
@@ -239,14 +252,26 @@ function checkout(){
   document.getElementById('pay').disabled=true;
   const items=CART.map(it=>({programme:it.programme, nb_feuilles:it.nb_feuilles}));
   const perso=getPerso();
-  fetch('/api/boutique-partenaire/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items, perso})})
+  const revente=(document.getElementById('p-revente')||{checked:false}).checked;
+  fetch('/api/boutique-partenaire/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items, perso, revente})})
    .then(r=>r.json()).then(d=>{
      const res=(d.resultats||[]);
      let html='';
      res.forEach((x,i)=>{
        const it=CART[i]||{};
        const titre=(it.emoji?it.emoji+' ':'')+(it.nom||'Article '+(i+1));
-       html+='<div class="res '+(x.ok?'ok':'ko')+'"><b>'+titre+'</b><br>'+((x.message||'')+(x.supplement||''))+'</div>';
+       let corps=(x.message||'')+(x.supplement||'');
+       if(x.lien_vente){
+         const lid='lv'+i;
+         corps+='<div style="margin-top:8px;padding:8px;border:1px dashed var(--teal);border-radius:8px;background:#fff">'+
+           '🔗 <b>Lien à envoyer à votre client :</b><br>'+
+           '<input id="'+lid+'" readonly value="'+x.lien_vente+'" style="width:100%;margin-top:5px;padding:7px;border:1px solid var(--line);border-radius:7px;font-size:.78rem" onclick="this.select()">'+
+           '<button class="btn" style="margin-top:6px;padding:7px 12px;font-size:.82rem" onclick="copier(\''+lid+'\',this)">📋 Copier le lien</button>'+
+           '<p style="margin:5px 0 0;font-size:.72rem;color:var(--muted)">Le PDF sera prêt sur ce lien dans 1-2 min. À vous d\'encaisser votre client.</p>'+
+         '</div>';
+       }
+       if(x.revente_refusee){ corps+='<br><span style="color:var(--coral)">'+x.revente_refusee+'</span>'; }
+       html+='<div class="res '+(x.ok?'ok':'ko')+'"><b>'+titre+'</b><br>'+corps+'</div>';
      });
      if(d.ok){
        html+='<p class="msg" style="color:var(--teal)">✓ C\'est lancé ! Retrouvez vos PDF dans <a href="/espace-partenaire" style="color:var(--teal);font-weight:700">Mes commandes</a> (bouton ⬇️, sous 1-2 min).</p>';
