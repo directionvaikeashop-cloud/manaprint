@@ -774,6 +774,11 @@ _ECO_PNG_CACHE = {}
 #    l'ASSOMBRIT pour que les textes du fond deviennent bien lisibles.
 #    (HUNTER : sceau Maeva 25/10 « les images de HUNTER ne sont plus lisibles »)
 _ECO_IMG_ASSOMBRIR = {"hunter"}
+# ⬜ 03/11 (sceau Maeva : « 4 COIN et BNO 6, à l'impression la grille n'était
+#    plus en fond blanc mais gris ») : pour ces deux jeux, on N'ÉCLAIRCIT PAS
+#    le fond — la grille reste BLANCHE (traits noirs nets). Les CHIFFRES, eux,
+#    gardent leur gris d'économie comme tous les autres jeux.
+_ECO_IMG_GARDER_BLANC = {"quatre_coin", "bno6"}
 
 
 def _png_grise(chemin):
@@ -834,6 +839,7 @@ def _generer_eco_gris(fn, kwargs):
         return fn(**kwargs)
     _modname = getattr(fn, "__module__", "").rsplit(".", 1)[-1]
     _assombrir_image = _modname in _ECO_IMG_ASSOMBRIR   # fond pâle -> on l'assombrit
+    _garder_blanc = _modname in _ECO_IMG_GARDER_BLANC   # ⬜ fond/grille laissé BLANC
     try:
         from reportlab.lib import colors as _cols_eco
         _GRIS_ENCRE = _cols_eco.Color(0.32, 0.32, 0.32)
@@ -859,6 +865,8 @@ def _generer_eco_gris(fn, kwargs):
         try:
             for k, v in list(g.items()):
                 if isinstance(v, str) and v.lower().endswith(".png") and os.path.exists(v):
+                    if _garder_blanc:
+                        continue                 # ⬜ grille laissée BLANCHE (pas d'éclaircissement)
                     sauv[k] = v
                     g[k] = _png_assombrir(v) if _assombrir_image else _png_grise(v)
                 elif _GRIS_ENCRE is not None and _encre_noire(v):
@@ -5186,6 +5194,152 @@ def boutique_partenaire_checkout():
                     "resultats": resultats})
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# 🪪 BOUTIQUE MEMBRE (sceau Maeva 02/11) : les clients MEMBRES commandent en
+#    ligne avec UN SEUL CODE commun, aux PRIX MEMBRE, et paient par VIREMENT
+#    ou ESPÈCES (jamais de carte). Livraison = RETRAIT / impression chez 2KEA.
+#    La commande N'EST PAS fabriquée automatiquement : elle part par EMAIL à
+#    2KEA (qui prépare, encaisse et remet). On garde aussi une trace en JSON.
+# ═══════════════════════════════════════════════════════════════════════════
+CODE_MEMBRE = os.environ.get("MANAPRINT_CODE_MEMBRE", "MEMBRE-2KEA")
+PRIX_MEMBRE_NB = int(os.environ.get("PRIX_MEMBRE_NB", "6"))        # F / feuille N&B
+PRIX_MEMBRE_COUL = int(os.environ.get("PRIX_MEMBRE_COUL", "12"))   # F / feuille couleur
+RAME3_MEMBRE = int(os.environ.get("RAME3_MEMBRE", "7500"))         # 3 rames de 500
+RAME1_MEMBRE = int(os.environ.get("RAME1_MEMBRE", "3000"))         # 1 rame de 500
+_EMAIL_2KEA = PARTENAIRES.get("2kea_papeete", {}).get("email") or SMTP_USER or "directionvaikeashop@gmail.com"
+
+
+def _chemin_commandes_membres():
+    base = os.path.dirname(os.environ.get("MANAPRINT_DB", "/tmp/manaprint.db")) or "/tmp"
+    return os.path.join(base, "commandes_membres.json")
+
+
+def _journal_commande_membre(enreg):
+    """Garde une trace de la commande membre (fichier JSON) — best-effort."""
+    import json as _json
+    chemin = _chemin_commandes_membres()
+    try:
+        try:
+            with open(chemin, encoding="utf-8") as f:
+                tout = _json.load(f) or []
+        except Exception:
+            tout = []
+        tout.append(enreg)
+        with open(chemin + ".tmp", "w", encoding="utf-8") as f:
+            _json.dump(tout, f, ensure_ascii=False, indent=1)
+        os.replace(chemin + ".tmp", chemin)
+    except Exception as e:
+        print("[MEMBRE] journal impossible :", e)
+
+
+@app.route("/boutique-membre", methods=["GET"])
+def boutique_membre():
+    """🪪 Boutique MEMBRE : code commun, prix membre, paiement virement/espèces,
+    retrait chez 2KEA. Ouverte au marché local (pas de blocage géographique)."""
+    return render_template("boutique_membre.html",
+                           connecte=bool(session.get("membre")),
+                           prix_nb=PRIX_MEMBRE_NB, prix_coul=PRIX_MEMBRE_COUL,
+                           rame3=RAME3_MEMBRE, rame1=RAME1_MEMBRE)
+
+
+@app.route("/api/membre/entrer", methods=["POST"])
+def membre_entrer():
+    d = request.get_json(force=True, silent=True) or {}
+    if _normaliser_code(d.get("code")) == _normaliser_code(CODE_MEMBRE):
+        session["membre"] = True
+        return jsonify({"ok": True})
+    return jsonify({"ok": False, "message": "Code membre incorrect — vérifiez lettres et chiffres."})
+
+
+@app.route("/api/membre/commander", methods=["POST"])
+def membre_commander():
+    """🪪 Enregistre la commande d'un membre et l'envoie par EMAIL à 2KEA.
+    Aucune fabrication auto, aucun paiement en ligne : 2KEA prépare, encaisse
+    (virement/espèces) et remet au retrait."""
+    if not session.get("membre"):
+        return jsonify({"ok": False, "message": "Entrez d'abord votre code membre."}), 403
+    data = request.get_json(force=True, silent=True) or {}
+    nom = (data.get("nom") or "").strip()[:60]
+    tel = (data.get("telephone") or "").strip()[:24]
+    paiement = (data.get("paiement") or "").strip().lower()
+    if not nom or not tel:
+        return jsonify({"ok": False, "message": "Indiquez votre nom et votre téléphone."}), 400
+    if paiement not in ("virement", "espece"):
+        return jsonify({"ok": False, "message": "Choisissez le règlement : virement ou espèces."}), 400
+    paie_lbl = "Virement" if paiement == "virement" else "Espèces"
+
+    lignes = []       # (libellé, détail, montant)
+    total = 0
+    # ── les rames panachées (prix fixes membre) ──
+    try:
+        n3 = max(0, int(data.get("rame3") or 0))
+        n1 = max(0, int(data.get("rame1") or 0))
+    except Exception:
+        n3 = n1 = 0
+    if n3:
+        m = n3 * RAME3_MEMBRE
+        lignes.append((f"{n3} × Offre 3 rames panachées (3×500 feuilles)",
+                       f"{RAME3_MEMBRE} F l'offre", m)); total += m
+    if n1:
+        m = n1 * RAME1_MEMBRE
+        lignes.append((f"{n1} × Rame panachée (500 feuilles)",
+                       f"{RAME1_MEMBRE} F la rame", m)); total += m
+    # ── les jeux du catalogue (prix membre à la feuille) ──
+    items = data.get("items") or []
+    if isinstance(items, list):
+        for it in items[:40]:
+            if not isinstance(it, dict):
+                continue
+            prog = str(it.get("programme") or "")
+            nom_jeu = str(it.get("nom") or prog)[:50]
+            coul = bool(it.get("couleur"))
+            try:
+                nbf = int(it.get("nb_feuilles") or 0)
+            except Exception:
+                nbf = 0
+            if prog not in REGISTRE_JEUX or nbf <= 0:
+                continue
+            pu = PRIX_MEMBRE_COUL if coul else PRIX_MEMBRE_NB
+            m = nbf * pu
+            lignes.append((f"{nbf} feuilles {nom_jeu} ({'Couleur' if coul else 'N&B'})",
+                           f"{pu} F/feuille", m)); total += m
+    if not lignes:
+        return jsonify({"ok": False, "message": "Votre panier est vide."}), 400
+
+    # ── le mail de commande à 2KEA ──
+    corps = [f"NOUVELLE COMMANDE MEMBRE — {nom}",
+             f"Téléphone : {tel}",
+             f"Règlement : {paie_lbl}",
+             "Livraison : RETRAIT / impression chez 2KEA",
+             "", "Détail :"]
+    for lib, det, m in lignes:
+        corps.append(f"  • {lib}  —  {det}  =  {m} F")
+    corps.append("")
+    corps.append(f"TOTAL : {total} F  ({paie_lbl})")
+    corps.append("")
+    corps.append("— Boutique membre MANAPRINT / 2KEA & Associé — manaprint.app")
+    corps_txt = "\n".join(corps)
+
+    import datetime as _dt
+    enreg = {"date": _dt.datetime.utcnow().isoformat(timespec="seconds"),
+             "nom": nom, "telephone": tel, "paiement": paiement,
+             "total": total, "lignes": [[l, d, m] for (l, d, m) in lignes]}
+    _journal_commande_membre(enreg)
+
+    ok, msg = envoyer_email_simple(
+        _EMAIL_2KEA,
+        f"\U0001faaa Commande membre — {nom} — {total} F ({paie_lbl})",
+        corps_txt, copie=(SMTP_USER if SMTP_USER and SMTP_USER != _EMAIL_2KEA else None))
+    if not ok:
+        # l'email a échoué mais la commande est journalisée : on ne la perd pas
+        print("[MEMBRE] email 2KEA non parti :", msg)
+    return jsonify({"ok": True, "total": total, "paiement": paie_lbl,
+                    "message": ("✅ Commande enregistrée ! 2KEA vous contacte pour le "
+                                f"règlement ({paie_lbl}) et le retrait. Tél. 89 22 23 05.")})
+
+
+
+
 
 _PRIX_PART_LOCK = _threading.Lock()
 
@@ -6517,6 +6671,26 @@ _PLAGES_CALLER["tubuai"] = (1, 90)
 # 🐙 TUBUAI : BINGO 90 -> 6 plages de 15, 1 à 90 sans trou.
 _BOULES_CALLER["tubuai"] = [n for n in range(1, 91)]
 print("[RANIHEI] TUBUAI inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+
+# ═════════════════════════════════════════════════════════════════════
+# 🚗 CARBASS — inscription du 01/11/2026 (création TUKEA / 2KEA & Associé).
+#    Voiture sono (coffre + enceintes) + 5 cercles = plages de 1 à 50 :
+#      haut-gauche 1-10 · bas-gauche 11-20 · haut-droite 21-30 ·
+#      bas-droite 31-40 · bas-centre 41-50  -> crieur 1 à 50 sans trou.
+#    ⚠️ C'est un jeu de LA MAISON (TUKEA = 2KEA), pas de RANIHEI.
+# ═════════════════════════════════════════════════════════════════════
+from generators import carbass   # 🚗 création 2KEA (voiture sono CARBASS)
+
+JEUX_PROPRIETAIRE["carbass"] = "2kea_papeete"
+_GRIS_POSES = _imposer_gris_maison()
+
+# ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+_enregistrer_paire("carbass", "CARBASS · 5 boules", "\U0001f697", 8, carbass.generer_pdf)
+
+_PLAGES_CALLER["carbass"] = (1, 50)
+# 🚗 CARBASS : 5 plages de 10 -> 1 à 50 sans trou.
+_BOULES_CALLER["carbass"] = [n for n in range(1, 51)]
+print("[2KEA] CARBASS inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
 
 # ═══════════════════════════════════════════════════════════════════════════
 # 🎁 GÉNÉRATEUR DE RAMES PANACHÉES (sceau Maeva 24/10)
