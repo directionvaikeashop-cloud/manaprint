@@ -135,6 +135,21 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
     except Exception:
         page_dep = 1
 
+    # 🖊️ 03/11 (sceau Maeva) : PERSONNALISATION (nom, téléphone, date) à DROITE
+    #    du mot « OHANA 75 » de chaque carte — même façon que le 2 séries.
+    #    Champs vides = feuille standard inchangée.
+    _p_nom = (titre_jeu or nom_evenement or "").strip()[:22]
+    _p_tel = (telephone or "").strip()[:18]
+    _p_date = (date_lieu or "").strip()[:18]
+    _PERSO = []
+    if _p_nom:
+        _PERSO.append((_p_nom, 11.0))
+    if _p_tel:
+        _PERSO.append(("Tél. " + _p_tel, 10.0))
+    if _p_date:
+        _PERSO.append((_p_date, 10.0))
+    _PERSO_CX = [_x(635), _x(1379)]      # à droite du titre : carte gauche / droite
+
     while faites < n_:
         try:
             c.drawImage(_IMG_FOND, MARGE, MARGE, _AVW, _AVH,
@@ -165,6 +180,15 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
                 c.setFillColor(GRIS)
                 c.setFont(POLICE_NUM, 9.0)
                 c.drawCentredString(cxN, cyN - 9.0 * 0.34, "N° %05d" % serie)
+                # 🖊️ personnalisation À DROITE du titre « OHANA 75 » de cette carte
+                if _PERSO:
+                    _tcy = _ROW_PX[CR * 5] - 106     # centre exact des glyphes du titre « OHANA 75 »
+                    c.setFillColor(colors.Color(0.1, 0.1, 0.1))
+                    _nn = len(_PERSO)
+                    for _i, (_txt, _fs) in enumerate(_PERSO):
+                        _py = _tcy + (_i - (_nn - 1) / 2.0) * 17
+                        c.setFont("Helvetica-Bold", _fs)
+                        c.drawCentredString(_PERSO_CX[CC], _y(_py) - _fs * 0.34, _txt)
                 serie += 1
                 faites += 1
         if page_dep > 1 or faites > CARTES_PAGE:
