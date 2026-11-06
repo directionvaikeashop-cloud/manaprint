@@ -205,6 +205,14 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
                 c.setFillColor(gris_ch); c.setFont(police_ch, t)
                 c.drawCentredString(cx, cyc - t * 0.36, str(val))
 
+    # ⭐ 06/11 (sceau Maeva) : le N° de SÉRIE dans la case du milieu (vide),
+    #    comme sur l'OHANA — discret, gris, centré.
+    _ccx = (X_COL[2] + X_COL[3]) / 2
+    _ccy = (Y_ROW[2] + Y_ROW[3]) / 2
+    c.setFillColor(GRIS); c.setFont(POLICE, 6.0)
+    c.drawCentredString(_ccx, _ccy + 0.6 * mm, "N°")
+    c.drawCentredString(_ccx, _ccy - 2.0 * mm, "%06d" % serie)
+
     # ⭐ 30/09 (sceau Maeva : « pas de QR sur ces jeux ») : la case centrale
     #    reste LIBRE, point. Plus de QR : il demandait 12 mm pour rester
     #    scannable et ne tenait plus dans une case devenue reguliere. Le P15
