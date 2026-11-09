@@ -1,226 +1,185 @@
 # -*- coding: utf-8 -*-
-"""
-MANAPRINT — Générateur GAMBIER (format A4)
-8 cartes/page — archipel dessiné maison avec ses îles, 6 grands numéros.
-Numéros tirés dans 1-75 · QR de sécurité · série · microtexte · Tèl par défaut 89 22 23 05.
-Dessins vectoriels originaux MANAPRINT.
-"""
-import io
-import math
-import random
+"""MANAPRINT — GAMBIER 7 boules · NOUVELLE MAQUETTE fournie par Maeva (08/11/2026).
+8 cartons / feuille A4 PORTRAIT (grille 2 colonnes x 4 rangées).
+Chaque carton = « GAMBIER – 2KEA & Associé – Papeete », la pastille
+« Carte N° », la carte du lagon (Mangareva, Aukena, Taravai, Agakauitai,
+Akamaru, Makaroa, Maria) et 7 CASES : 3 à gauche, 3 à droite, 1 en bas au centre.
+Jeu inchangé : 7 numéros tirés de 1 à 75, rangés du plus petit au plus grand
+(la gauche de haut en bas, puis la case du bas, puis la droite de haut en bas).
+La maquette (carton complet) est reprise TELLE QUELLE comme image de fond,
+répétée 8 fois ; on ajoute seulement les 7 chiffres et le numéro de carte."""
+import io, os as _os, random
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
-from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-
-try:
-    from generators import securite as _sec
-except Exception:
-    try:
-        import securite as _sec
-    except Exception:
-        _sec = None
-
-try:
-    pdfmetrics.registerFont(TTFont("DJL", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    POLICE = "DJL"
-except Exception:
-    POLICE = "Helvetica"
-
-RAINBOW = ["#E53935", "#FB8C00", "#F9A825", "#43A047", "#00ACC1",
-           "#1E88E5", "#3949AB", "#8E24AA", "#D81B60", "#6D4C41"]
-GRIS_CLAIR = colors.Color(0.80, 0.80, 0.80)
-PALE = colors.Color(0.86, 0.86, 0.86)
-PALE2 = colors.Color(0.90, 0.90, 0.90)
-
-try:
-    pdfmetrics.registerFont(TTFont("DJLECO", "/usr/share/fonts/truetype/dejavu/DejaVuSans-ExtraLight.ttf"))
-    _POLICE_ECO = "DJLECO"
-except Exception:
-    _POLICE_ECO = "Helvetica"
-_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
-
-
-def _style_chiffres(style):
-    if str(style).lower() in ("p15", "premium"):
-        return "Helvetica-Bold", colors.Color(0.55, 0.55, 0.55)
-    return _POLICE_ECO, _GRIS_ECO
-
-
-import os as _os
-_GAMBIER_IMG = None
-
-
-def _charger_gambier():
-    """L'illustration des îles Gambier (licence à fournir par Maeva),
-    pâlie en filigrane. Anti-panne : archipel vectoriel maison en secours."""
-    global _GAMBIER_IMG
-    if _GAMBIER_IMG is not None:
-        return _GAMBIER_IMG
-    try:
-        from PIL import Image as _Image
-        chemin = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "gambier_archipel.png")
-        brut = _Image.open(chemin)
-        if brut.mode in ("RGBA", "LA", "P"):
-            brut = brut.convert("RGBA")
-            fondb = _Image.new("RGBA", brut.size, (255, 255, 255, 255))
-            brut = _Image.alpha_composite(fondb, brut)
-        img = brut.convert("L")
-        img = img.point(lambda p: int(255 - (255 - p) * 0.45))
-        _GAMBIER_IMG = img.convert("RGB")
-    except Exception:
-        _GAMBIER_IMG = False
-    return _GAMBIER_IMG
-
+from reportlab.pdfbase.pdfmetrics import stringWidth
 
 PAGE_W, PAGE_H = A4
-COLS_PAGE = 2
-ROWS_PAGE = 4
-MARGIN_X = 8 * mm
-MARGIN_TOP = 9 * mm
-MARGIN_BOT = 8 * mm
-GUTTER_X = 4 * mm
-GUTTER_Y = 4 * mm
-CARD_W = (PAGE_W - 2 * MARGIN_X - (COLS_PAGE - 1) * GUTTER_X) / COLS_PAGE
-CARD_H = (PAGE_H - MARGIN_TOP - MARGIN_BOT - (ROWS_PAGE - 1) * GUTTER_Y) / ROWS_PAGE
-
+CARTES_PAGE = 8
+COLS_PAGE, ROWS_PAGE = 2, 4
 NB_NUMS = 7
-# ordre de LECTURE : les numéros triés s'y posent du plus petit au plus grand
-# ordre de LECTURE EN COLONNES : la montée descend la gauche puis la droite
-POSITIONS = [(0.16, 0.74), (0.16, 0.48), (0.155, 0.30), (0.46, 0.15), (0.84, 0.76), (0.84, 0.52), (0.84, 0.30)]
-TAILLE_CHIFFRE = 32
+PLAGE = (1, 75)
+POLICE = "Helvetica-Bold"
+GRIS = colors.Color(0.18, 0.18, 0.18)
+RAINBOW = ["#E53935", "#FB8C00", "#F9A825", "#43A047", "#00ACC1",
+           "#1E88E5", "#3949AB", "#8E24AA", "#D81B60", "#6D4C41"]
+
+# le n° de carte, dans le style de la pastille (gras italique)
+try:
+    pdfmetrics.registerFont(TTFont("GAMSERIE", "/usr/share/fonts/truetype/dejavu/DejaVuSans-BoldOblique.ttf"))
+    _POLICE_SERIE = "GAMSERIE"
+except Exception:
+    _POLICE_SERIE = "Helvetica-BoldOblique"
+
+# carton-modèle (528 x 361 px)
+_IMG_W, _IMG_H = 528.0, 361.0
+# les 7 cases : (x0, y0, x1, y1) en px, dans l'ORDRE de lecture
+_CASES = [
+    (25, 77, 138, 147),    # gauche haut
+    (25, 161, 139, 230),   # gauche milieu
+    (26, 247, 140, 318),   # gauche bas
+    (193, 280, 334, 343),  # bas centre
+    (392, 77, 506, 147),   # droite haut
+    (392, 161, 506, 230),  # droite milieu
+    (392, 247, 506, 318),  # droite bas
+]
+# n° de carte : là où était « 00003 » dans la pastille
+# (x gauche, ligne de base, hauteur des chiffres — en px)
+_SERIE_X, _SERIE_BASE, _SERIE_HCAP = 287.0, 64.0, 15.0
+
+# grille 2 x 4, bloc centré (même méthode que ARCHER / MONTRE)
+_MARGE = 12
+_GAP_X = 8
+_GAP_Y = 6
+_avail_w = PAGE_W - 2 * _MARGE
+_avail_h = PAGE_H - 2 * _MARGE
+_cw_w = (_avail_w - _GAP_X) / 2.0
+_ch_w = _cw_w * (_IMG_H / _IMG_W)
+if 4 * _ch_w + 3 * _GAP_Y <= _avail_h:
+    _CW, _CH = _cw_w, _ch_w
+else:
+    _CH = (_avail_h - 3 * _GAP_Y) / 4.0
+    _CW = _CH * (_IMG_W / _IMG_H)
+_BLOC_W = 2 * _CW + _GAP_X
+_BLOC_H = 4 * _CH + 3 * _GAP_Y
+_X0 = (PAGE_W - _BLOC_W) / 2.0
+_YTOP = (PAGE_H - _BLOC_H) / 2.0
+_SCALE = _CW / _IMG_W
 
 
-def _dessiner_fond(c, x0, y0, w, h):
-    """Les GAMBIER : l'illustration en filigrane —
-    et l'archipel vectoriel maison en roue de secours si l'image manque."""
-    img = _charger_gambier()
-    if img:
-        from reportlab.lib.utils import ImageReader
-        iw, ih = img.size
-        zone_w, zone_h = w * 0.94, h * 0.78
-        ratio = min(zone_w / iw, zone_h / ih)
-        dw, dh = iw * ratio, ih * ratio
-        c.drawImage(ImageReader(img), x0 + (w - dw) / 2, y0 + h * 0.05 + (zone_h - dh) / 2, dw, dh,
-                    mask=[238, 255, 238, 255, 238, 255])
-        return
-    # ── repli : les VRAIES îles Gambier, dessinées maison ──
-    # (la géographie est un fait du monde : le GRAND RÉCIF UNIQUE en ellipse
-    #  pointillée qui enserre toutes les îles hautes du groupe)
-    rcx, rcy = x0 + w * 0.50, y0 + h * 0.46
-    rw, rh = w * 0.30, h * 0.33
-    c.setStrokeColor(PALE); c.setLineWidth(0.7); c.setDash(2, 2)
-    c.ellipse(rcx - rw, rcy - rh, rcx + rw, rcy + rh, stroke=1, fill=0)
-    c.setDash()
-    ILES = [
-        # (nom, x, y, largeur mm, hauteur mm, côté de l'étiquette : g/d/b/h)
-        ("Mangareva",  0.475, 0.660, 3.4, 2.2, "h"),
-        ("Aukena",     0.590, 0.585, 1.3, 1.0, "d"),
-        ("Taravai",    0.400, 0.520, 2.0, 1.6, "g"),
-        ("Agakauitai", 0.415, 0.415, 1.2, 1.0, "g"),
-        ("Akamaru",    0.585, 0.440, 1.4, 1.1, "d"),
-        ("Makaroa",    0.520, 0.310, 1.1, 0.9, "d"),
-        ("Kamaka",     0.495, 0.215, 1.1, 0.9, "b"),
-    ]
-    for nomile, px, py, lw, lh, cote in ILES:
-        cx, cy = x0 + w * px, y0 + h * (0.10 + py * 0.72)
-        c.setFillColor(PALE)
-        c.ellipse(cx - lw * mm / 2, cy - lh * mm / 2, cx + lw * mm / 2, cy + lh * mm / 2, stroke=0, fill=1)
-        c.ellipse(cx - lw * mm * 0.25, cy - lh * mm * 0.10, cx + lw * mm * 0.58, cy + lh * mm * 0.60, stroke=0, fill=1)
-        c.setFillColor(colors.Color(0.55, 0.55, 0.55)); c.setFont(POLICE, 3.2)
-        if cote == "g":
-            c.drawRightString(cx - lw * mm / 2 - 0.8 * mm, cy - 1.0, nomile)
-        elif cote == "d":
-            c.drawString(cx + lw * mm / 2 + 0.8 * mm, cy - 1.0, nomile)
-        elif cote == "b":
-            c.drawCentredString(cx, cy - lh * mm / 2 - 1.6 * mm, nomile)
-        else:
-            c.drawCentredString(cx, cy + lh * mm / 2 + 0.7 * mm, nomile)
+def _fond():
+    return _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "gambier_carton.png")
+_IMG_FOND = _fond()
 
 
-def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
-    police_ch, gris_ch = _style_chiffres(style)
-    col = colors.HexColor(couleur_hex)
-
-    c.setStrokeColor(col); c.setLineWidth(0.9)
-    c.roundRect(x0, y0, CARD_W, CARD_H, 2 * mm, stroke=1, fill=0)
-    if _sec:
-        _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
-
-    _dessiner_fond(c, x0, y0, CARD_W, CARD_H)
-
-    # en-tête : nom du jeu toujours affiché + titre client + notre signature
-    hdr_y = y0 + CARD_H - 4.2 * mm
-    titre = "GAMBIER 7 boules"
-    if titre_jeu and titre_jeu.strip().upper() != titre.upper():
-        titre += "  —  " + titre_jeu.strip()
-    titre += "  " + (telephone or "")
-    c.setFillColor(col); c.setFont(POLICE, 4.6)
-    c.drawCentredString(x0 + CARD_W / 2, hdr_y, titre[:64])
-    c.setFillColor(col); c.setFont(POLICE, 6)
-    c.drawCentredString(x0 + CARD_W / 2, hdr_y - 4.2 * mm, "Carte N° %05d" % serie)
-
-    # le téléphone en pied gauche (comme les billets du fenua)
-    c.setFillColor(colors.Color(0.45, 0.45, 0.45)); c.setFont(POLICE, 4.5)
-    c.drawString(x0 + 2.5 * mm, y0 + 2.2 * mm, "Tèl : " + (telephone or ""))
+def _origine(idx):
+    col = idx % COLS_PAGE
+    rang = idx // COLS_PAGE
+    x = _X0 + col * (_CW + _GAP_X)
+    y = PAGE_H - _YTOP - (rang + 1) * _CH - rang * _GAP_Y
+    return x, y
 
 
-    for i, (px, py) in enumerate(POSITIONS[:len(nums)]):
-        cx = x0 + CARD_W * px
-        cy = y0 + CARD_H * py
-
-        if _sec:
-            _sec.chiffre_micro(c, nums[i], cx, cy - TAILLE_CHIFFRE * 0.36, TAILLE_CHIFFRE, gris_ch, police_ch)
-        else:
-            c.setFillColor(gris_ch); c.setFont(police_ch, TAILLE_CHIFFRE)
-            c.drawCentredString(cx, cy - TAILLE_CHIFFRE * 0.36, str(nums[i]))
-
-    # QR de vérification (anti-duplication) — bas-droit
-    if _sec and evenement_id:
-        try:
-            _q = 10 * mm
-            _sec.carton_qr(c, x0 + CARD_W - _q - 2.5 * mm, y0 + 2.2 * mm, _q, evenement_id, serie)
-        except Exception:
-            pass
+def _px(x0, px):
+    return x0 + px / _IMG_W * _CW
 
 
-def generer_pdf(nb_cartes=8, serie_start=1, theme="", couleur=True,
-                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id="", motif="", page_start=1):
-    telephone = (telephone or "").strip() or "89 22 23 05"
+def _py(y0, py):
+    return y0 + _CH * (1 - py / _IMG_H)
+
+
+def _taille_case():
+    """Une seule taille pour les 7 cases : la plus grande qui laisse « 88 »
+    (pire cas) DANS la plus petite case, sans toucher le bord."""
+    w = min(x1 - x0 for x0, y0, x1, y1 in _CASES) * _SCALE
+    h = min(y1 - y0 for x0, y0, x1, y1 in _CASES) * _SCALE
+    t = h * 0.70 / 0.717
+    while t > 6 and stringWidth("88", POLICE, t) > w * 0.78:
+        t -= 0.5
+    return t
+_T_NUM = _taille_case()
+
+
+def _numeros(rng):
+    """7 numéros DIFFÉRENTS de 1 à 75, du plus petit au plus grand."""
+    return sorted(rng.sample(range(PLAGE[0], PLAGE[1] + 1), NB_NUMS))
+
+
+def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleur=True,
+                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="",
+                telephone="", page_start=1, evenement_id="", style="", motif="", **_ig):
+    n_ = nb_cartes if nb_cartes is not None else nb_tickets
+    n_ = max(1, int(n_ if n_ else CARTES_PAGE))
     buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
-    nb_cartes = max(1, min(int(nb_cartes), 10000))
-    par_page = COLS_PAGE * ROWS_PAGE
-    nb_pages = (nb_cartes + par_page - 1) // par_page
+    c = canvas.Canvas(buf, pagesize=(PAGE_W, PAGE_H), pageCompression=1)
     rng = random.Random(951000 + int(serie_start))
     serie = int(serie_start)
-    # 📄 la page continue d'une rame à l'autre (sceau Maeva 12/08)
-    no_page = max(1, int(page_start))
-    faites = 0
-    for _ in range(nb_pages):
-        if nom_evenement:
-            c.setFillColor(colors.black); c.setFont(POLICE, 9)
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 5 * mm, nom_evenement)
-        c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 6)
-        c.drawCentredString(PAGE_W / 2, PAGE_H - 7.2 * mm, "%03d" % no_page)
-        for row in range(ROWS_PAGE):
-            for col_i in range(COLS_PAGE):
-                if faites >= nb_cartes:
-                    break
-                x0 = MARGIN_X + col_i * (CARD_W + GUTTER_X)
-                y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
-                nums = sorted(rng.sample(range(1, 76), NB_NUMS))  # ordre chronologique 1 -> 75
-                coul = (couleur_perso if (couleur and couleur_perso)
-                        else RAINBOW[(serie - 1) % len(RAINBOW)] if couleur else "#9A9A9A")
-                _dessiner_carte(c, x0, y0, nums, coul, serie, titre_jeu, telephone,
-                                style=style, evenement_id=evenement_id)
-                serie += 1
-                faites += 1
+    faits = 0
+    try:
+        page_dep = max(1, int(page_start))
+    except Exception:
+        page_dep = 1
+
+    col_imposee = None
+    if couleur and couleur_perso:
+        try:
+            col_imposee = colors.HexColor(couleur_perso)
+        except Exception:
+            col_imposee = None
+
+    # taille du n° : hauteur des anciens chiffres, mais jamais plus large que
+    # la place qui reste dans la pastille (bord droit à x=372 px)
+    t_serie = _SERIE_HCAP * _SCALE / 0.729
+    while t_serie > 4 and stringWidth("00000", _POLICE_SERIE, t_serie) > (364 - _SERIE_X) * _SCALE:
+        t_serie -= 0.25
+    no_page = page_dep
+    while faits < n_:
+        # en-tête de page (rame personnalisée) + n° de feuille
+        entete = "  ·  ".join(t for t in ((nom_evenement or "").strip(),
+                                          (date_lieu or "").strip()) if t)
+        if entete:
+            c.setFillColor(colors.black)
+            c.setFont("Helvetica-Bold", 8)
+            c.drawCentredString(PAGE_W / 2.0, PAGE_H - _YTOP / 2.0 - 3, entete)
+        c.setFillColor(colors.Color(0.6, 0.6, 0.6))
+        c.setFont("Helvetica", 6)
+        c.drawRightString(PAGE_W - 14, PAGE_H - _YTOP / 2.0 - 3, "%03d" % no_page)
+
+        for idx in range(CARTES_PAGE):
+            if faits >= n_:
+                break
+            x0, y0 = _origine(idx)
+            try:
+                c.drawImage(_IMG_FOND, x0, y0, _CW, _CH,
+                            preserveAspectRatio=False, mask="auto")
+            except Exception:
+                pass
+            if couleur:
+                col = col_imposee or colors.HexColor(RAINBOW[serie % len(RAINBOW)])
+            else:
+                col = GRIS
+            # n° de carte dans la pastille « Carte N° »
+            c.setFillColor(colors.black)
+            c.setFont(_POLICE_SERIE, t_serie)
+            c.drawString(_px(x0, _SERIE_X), _py(y0, _SERIE_BASE), "%05d" % serie)
+            # les 7 chiffres, centrés dans leurs cases
+            c.setFillColor(col)
+            c.setFont(POLICE, _T_NUM)
+            for (bx0, by0, bx1, by1), num in zip(_CASES, _numeros(rng)):
+                cx = _px(x0, (bx0 + bx1) / 2.0)
+                cy = _py(y0, (by0 + by1) / 2.0)
+                c.drawCentredString(cx, cy - _T_NUM * 0.717 / 2.0, str(num))
+            serie += 1
+            faits += 1
         c.showPage()
         no_page += 1
     c.save()
     buf.seek(0)
     return buf
+
+
+if __name__ == "__main__":
+    open("test_gambier.pdf", "wb").write(generer_pdf(nb_cartes=8, couleur=False).read())
+    print("GAMBIER genere")
