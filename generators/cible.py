@@ -73,10 +73,9 @@ def _py(y):
     return PAGE_H * (1 - y / _IMG_H)
 
 
-def _taille_num():
-    """La plus grande taille où « 88 » (pire cas) tient ENTIER dans le rond
-    blanc de la plus petite cible (coins du texte dans le cercle, marge 8 %)."""
-    r = min(c[2] for ct in CARTONS for v in ct["pots"].values() for c in v)
+def _taille_pour(r):
+    """La plus grande taille où « 88 » (pire cas) tient ENTIER dans un rond
+    blanc de rayon r px (coins du texte dans le cercle, marge 8 %)."""
     r_pt = r / _IMG_W * PAGE_W * 0.92
     t = 2 * r_pt / _CAP
     while t > 6:
@@ -86,7 +85,17 @@ def _taille_num():
             break
         t -= 0.25
     return t
-_T_NUM = _taille_num()
+
+
+# ⭐ 15/11 (Maeva : « le pt de chiffre ») : DEUX tailles — les 6 grandes
+#    cibles (B, I, N) ne sont plus bridées par les 2 petites du centre (G, O).
+#    Chaque taille = le maximum où « 88 » tient dans la plus petite cible de
+#    son groupe.
+_R_GRANDES = min(c[2] for ct in CARTONS for k in ("B", "I", "N") for c in ct["pots"][k])
+_R_PETITES = min(c[2] for ct in CARTONS for k in ("G", "O") for c in ct["pots"][k])
+_T_GRANDES = _taille_pour(_R_GRANDES)
+_T_PETITES = _taille_pour(_R_PETITES)
+_T_NUM = _T_PETITES
 
 
 def _taille_serie():
@@ -153,11 +162,12 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
             c.drawString(_px(x0), _py(y1), "%06d" % serie)
             # les 8 chiffres, au centre des cibles
             c.setFillColor(col)
-            c.setFont(POLICE, _T_NUM)
             nums = _numeros(rng)
             for k, cibles in ct["pots"].items():
+                t = _T_PETITES if k in ("G", "O") else _T_GRANDES
+                c.setFont(POLICE, t)
                 for (cx, cy, _r), v in zip(cibles, nums[k]):
-                    c.drawCentredString(_px(cx), _py(cy) - _T_NUM * _CAP / 2.0, str(v))
+                    c.drawCentredString(_px(cx), _py(cy) - t * _CAP / 2.0, str(v))
             serie += 1
             faits += 1
         c.showPage()
