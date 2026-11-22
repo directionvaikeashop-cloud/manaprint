@@ -51,6 +51,87 @@ for _m in ('drawString','drawRightString','drawCentredString','drawCenteredStrin
     _pn_wrap(_m)
 
 
+# ════════════════════════════════════════════════════════════════════
+# ⬜ FONDS DE GRILLE TOUJOURS BLANCS (sceau Maeva 08/11/2026)
+# « les fonds de grille étaient tout gris » (MONTRE, BNO 6, ARCHER, 1 DOLLAR,
+# et 40 images au total). Cause : le fond des images n'était pas d'un BLANC
+# PUR (252-254 au lieu de 255) — invisible à l'écran, mais la Konica
+# l'imprime en trame grise sur toute la grille.
+# Garde-fou UNIQUE pour tous les jeux, présents ET futurs : juste avant de
+# poser une image PNG sur la feuille, on remet tout le « presque blanc »
+# (gris très clair, >= 232, couleurs franches épargnées) en blanc pur 255. Traits, dessins et couleurs ne
+# bougent pas. La copie nettoyée est faite une seule fois puis gardée.
+import threading as _thr_blanc
+_BLANC_SEUIL = 232
+_BLANC_CACHE = {}
+_BLANC_LOCK = _thr_blanc.RLock()
+_BLANC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "generators", "_blanc_cache")
+
+
+def _png_fond_blanc(chemin):
+    """Chemin d'une copie du PNG au fond BLANC PUR (ou le chemin d'origine si
+    l'image était déjà propre ou illisible)."""
+    try:
+        cle = (chemin, os.path.getmtime(chemin))
+    except Exception:
+        return chemin
+    with _BLANC_LOCK:
+        rep = _BLANC_CACHE.get(cle)
+        if rep is not None and (rep == chemin or os.path.exists(rep)):
+            return rep
+        rep = chemin
+        try:
+            # ⚠️ Pillow SEUL (numpy n'est pas installé sur le serveur)
+            from PIL import Image as _ImgB, ImageChops as _ChB
+            im = _ImgB.open(chemin)
+            alpha = im.mode in ("RGBA", "LA", "PA") or ("transparency" in im.info)
+            if alpha:
+                im = im.convert("RGBA")
+                canal_a = im.getchannel("A")
+            rgb = im.convert("RGB")
+            r, g, b = rgb.split()
+            mx = _ChB.lighter(_ChB.lighter(r, g), b)
+            mn = _ChB.darker(_ChB.darker(r, g), b)
+            sat = _ChB.subtract(mx, mn)
+            clair = mn.point(lambda v: 255 if v >= _BLANC_SEUIL else 0)      # très clair
+            neutre = sat.point(lambda v: 255 if v <= 12 else 0)              # gris, pas une couleur
+            masque = _ChB.darker(clair, neutre)                              # ET logique
+            pas_pur = mx.point(lambda v: 255 if v < 255 else 0)
+            presque = _ChB.darker(masque, pas_pur)
+            n_px = rgb.size[0] * rgb.size[1]
+            if presque.histogram()[255] > 0.01 * n_px:   # fond « presque blanc » -> on nettoie
+                blanc = _ImgB.new("RGB", rgb.size, (255, 255, 255))
+                rgb = _ImgB.composite(blanc, rgb, masque)
+                if alpha:
+                    rgb.putalpha(canal_a)
+                os.makedirs(_BLANC_DIR, exist_ok=True)
+                out = os.path.join(_BLANC_DIR, hashlib.md5(
+                    ("%s|%s" % cle).encode("utf-8")).hexdigest() + ".png")
+                tmp = out + ".tmp"
+                rgb.save(tmp, format="PNG")
+                os.replace(tmp, out)
+                rep = out
+        except Exception as _e_blanc:
+            print("[FOND BLANC] image laissée telle quelle :", chemin, repr(_e_blanc))
+            rep = chemin
+        _BLANC_CACHE[cle] = rep
+        return rep
+
+
+def _blanc_wrap(nom):
+    orig = getattr(_canvas_pn.Canvas, nom, None)
+    if orig is None or getattr(orig, '_blanc_wrapped', False):
+        return
+    def w(self, image, *a, **k):
+        if isinstance(image, str) and image.lower().endswith(".png") and os.path.exists(image):
+            image = _png_fond_blanc(image)
+        return orig(self, image, *a, **k)
+    w._blanc_wrapped = True
+    setattr(_canvas_pn.Canvas, nom, w)
+for _m in ('drawImage', 'drawInlineImage'):
+    _blanc_wrap(_m)
+
+
 import database as db
 from generators import bingo
 from generators import triple_action
@@ -778,7 +859,21 @@ _ECO_IMG_ASSOMBRIR = {"hunter"}
 #    plus en fond blanc mais gris ») : pour ces deux jeux, on N'ÉCLAIRCIT PAS
 #    le fond — la grille reste BLANCHE (traits noirs nets). Les CHIFFRES, eux,
 #    gardent leur gris d'économie comme tous les autres jeux.
-_ECO_IMG_GARDER_BLANC = {"quatre_coin", "bno6"}
+_ECO_IMG_GARDER_BLANC = {"quatre_coin", "bno6", "wow6", "societe", "gambier", "carbass"}   # 08/11 : + SOCIÉTÉ, GAMBIER (nouvelles maquettes, traits nets)
+# ⭐ 21/11 (Maeva : « grille en gris uni, sans taches » + « chiffres bien
+#    noirs et gras ») : les jeux refaits et VALIDÉS le 21/11 ont déjà leur
+#    économie de toner dans le dessin (grille gris uni, 2 tons francs). En
+#    ÉCO N&B on ne les retouche PAS : ni grille éclaircie, ni chiffres grisés.
+_ECO_VALIDES_21_11 = {
+    "p12_marathon", "p6_marathon", "ohana75_4series", "ohana75_8boules", "sicile",
+    "salute", "dual_dab", "joie", "lundi_pair74", "oaoa", "lunes75", "ino8", "royal",
+    "ohana75_10boules", "pow9", "pow6", "rai", "kea", "vai", "sun", "boules60",
+    "tahaa", "kai", "win", "mardi_pair90", "tubuai", "flash_quines_allonge", "tea",
+    "pol", "rubis75", "wiz", "wow4", "lover", "quatre_coin", "aloha75", "boules40",
+    # 2e envoi du 21/11
+    "hiva_oa", "fatu_hiva", "nuku_hiva", "cible", "volley", "pingpong_go",
+    "petanque", "briquet", "tun", "triplex",
+}
 
 
 def _png_grise(chemin):
@@ -838,6 +933,8 @@ def _generer_eco_gris(fn, kwargs):
     if g is None:
         return fn(**kwargs)
     _modname = getattr(fn, "__module__", "").rsplit(".", 1)[-1]
+    if _modname in _ECO_VALIDES_21_11:
+        return fn(**kwargs)            # ⭐ 21/11 : déjà en gris uni + chiffres noirs
     _assombrir_image = _modname in _ECO_IMG_ASSOMBRIR   # fond pâle -> on l'assombrit
     _garder_blanc = _modname in _ECO_IMG_GARDER_BLANC   # ⬜ fond/grille laissé BLANC
     try:
@@ -1199,7 +1296,7 @@ _enregistrer_paire("oaoa",          "OAOA","⭕", 12, oaoa.generer_pdf)
 _enregistrer_paire("lagoon",        "LAGOON 5 boules","🏝️", 8, lagoon.generer_pdf)
 _enregistrer_paire("havai",         "HAVAI","🌋", 8,  havai.generer_pdf)  # 2×4 = 8 cartons/feuille (corrigé 04/08 : 6 déclarés → 188 pages au lieu de 250)
 _enregistrer_paire("flash_debout",  "FLASH QUINES DEBOUT","⚡", 8,  flash_debout.generer_pdf)
-_enregistrer_paire("dual_dab",      "DUAL DAB 75","🤜", 8,  dual_dab.generer_pdf)
+_enregistrer_paire("dual_dab",      "DUAL DAB 75","🤜", 4,  dual_dab.generer_pdf)   # ⭐ 21/11 : 4 tickets A4 paysage, gros chiffres
 JEUX_AVEC_IMAGE.discard("cerf_volant")   # 08/10 : passe en tracé (SANS IMAGE)
 _enregistrer_paire("cerf_volant",   "CERF VOLANT","🪁", 12,  cerf_volant.generer_pdf)
 _enregistrer_paire("bubulle",       "BUBULLE",    "\U0001fae7", 8,  bubulle.generer_pdf)
@@ -1277,7 +1374,7 @@ _enregistrer_paire("unite",         "UNIT\u00c9",     "\U0001f497", 10, unite.ge
 _enregistrer_paire("talon",         "TALON",      "\u26bd", 12,  talon.generer_pdf)
 _enregistrer_paire("hoanui",        "HOANUI",     "\U0001f932", 8,  hoanui.generer_pdf)
 _enregistrer_paire("cristal",       "LES 7 BOULES DE CRISTAL", "\U0001f52e", 14, cristal.generer_pdf)
-_enregistrer_paire("sicile",        "SICILE",     "\U0001f451", 10, sicile.generer_pdf)
+_enregistrer_paire("sicile",        "SICILE",     "\U0001f451", 8, sicile.generer_pdf)   # ⭐ 21/11 : 8 couronnes par feuille
 _enregistrer_paire("tifai",         "TIFAI",      "\U0001f422", 8,  tifai.generer_pdf)
 _enregistrer_paire("ranihei",       "RANIHEI",    "\U0001f33a", 6,  ranihei.generer_pdf)
 _enregistrer_paire("mabuhai",       "MABUHA\u00cf",   "\U0001f64f", 6,  mabuhai.generer_pdf)
@@ -2109,7 +2206,7 @@ _PLAGES_CALLER = {
     "spacex": (1, 90),
     "champagne": (1, 75),
     "fan90": (1, 90),
-    "oaoa": (16, 75),
+    "oaoa": (1, 75),   # ⭐ 21/11 : O 1-30 · A 31-75 (nouvelle maquette validée)
     "lagoon": (1, 50),
     "bubulle": (1, 75),
     "havai": (1, 75),
@@ -2264,7 +2361,7 @@ _BOULES_CALLER = {
     "tureia": [n for n in range(1, 31)] + [n for n in range(46, 76)],
     "tureia_atoll": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # colonne 31-45 morte
     "fan90": [n for n in range(1, 11)] + [n for n in range(20, 91)],   # sans le 11 à 19
-    "oaoa": [n for n in range(16, 31)] + [n for n in range(61, 76)],   # O 16-30 et A 61-75
+    "oaoa": [n for n in range(1, 76)],   # ⭐ 21/11 : O 1-30 et A 31-75
     "cerf_volant": [n for n in range(1, 31)] + [n for n in range(46, 76)],  # sans le 31-45
     "huahine": [n for n in range(1, 16)] + [n for n in range(46, 61)] + [n for n in range(76, 91)],  # 3 familles : 1-15, 46-60, 76-90
     "bgo": [n for n in range(1, 16)] + [n for n in range(46, 76)],  # B 1-15 · G 46-60 · O 61-75
@@ -6598,18 +6695,21 @@ print("[RANIHEI] BATEAU PIRATE inscrit — %d jeux au catalogue" % len(REGISTRE_
 # 👵 MÉMÉ — inscription du 26/10/2026 (création RANIHEI, 5 bulles)
 #    5 plages de 15, rangée gauche->droite : 1-15, 16-30, 31-45, 46-60, 61-75.
 # ═════════════════════════════════════════════════════════════════════
-from generators import meme   # 👵 création RANIHEI (mémé qui tresse un collier)
+try:
+    from generators import meme   # 👵 création RANIHEI (mémé qui tresse un collier)
 
-JEUX_PROPRIETAIRE["meme"] = "ranihei"
-_GRIS_POSES = _imposer_gris_maison()
+    JEUX_PROPRIETAIRE["meme"] = "ranihei"
+    _GRIS_POSES = _imposer_gris_maison()
 
-# ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
-_enregistrer_paire("meme", "MÉMÉ · 5 boules", "\U0001f475", 8, meme.generer_pdf)
+    # ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+    _enregistrer_paire("meme", "MÉMÉ · 5 boules", "\U0001f475", 8, meme.generer_pdf)
 
-_PLAGES_CALLER["meme"] = (1, 75)
-# 👵 MÉMÉ : 5 plages de 15 -> 1 à 75 sans trou.
-_BOULES_CALLER["meme"] = [n for n in range(1, 76)]
-print("[RANIHEI] MÉMÉ inscrite — %d jeux au catalogue" % len(REGISTRE_JEUX))
+    _PLAGES_CALLER["meme"] = (1, 75)
+    # 👵 MÉMÉ : 5 plages de 15 -> 1 à 75 sans trou.
+    _BOULES_CALLER["meme"] = [n for n in range(1, 76)]
+    print("[RANIHEI] MÉMÉ inscrite — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_meme:
+    print("[JEU IGNORE] MEME saute au demarrage (fichier manquant/illisible) : %r" % _e_meme)
 
 # ═════════════════════════════════════════════════════════════════════
 # 🔫 GUN — inscription du 31/10/2026 (création RANIHEI, maquette fournie).
@@ -6618,18 +6718,21 @@ print("[RANIHEI] MÉMÉ inscrite — %d jeux au catalogue" % len(REGISTRE_JEUX))
 #    Décision Maeva : 5 cercles PARTOUT (les cartons de droite de la maquette,
 #    qui n'en avaient que 4, deviennent identiques à ceux de gauche).
 # ═════════════════════════════════════════════════════════════════════
-from generators import gun   # 🔫 création RANIHEI (main + pistolet, impacts)
+try:
+    from generators import gun   # 🔫 création RANIHEI (main + pistolet, impacts)
 
-JEUX_PROPRIETAIRE["gun"] = "ranihei"
-_GRIS_POSES = _imposer_gris_maison()
+    JEUX_PROPRIETAIRE["gun"] = "ranihei"
+    _GRIS_POSES = _imposer_gris_maison()
 
-# ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
-_enregistrer_paire("gun", "GUN · 5 boules", "\U0001f52b", 8, gun.generer_pdf)
+    # ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+    _enregistrer_paire("gun", "GUN · 5 boules", "\U0001f52b", 8, gun.generer_pdf)
 
-_PLAGES_CALLER["gun"] = (1, 75)
-# 🔫 GUN : les 5 plages du BINGO -> 1 à 75 sans trou.
-_BOULES_CALLER["gun"] = [n for n in range(1, 76)]
-print("[RANIHEI] GUN inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+    _PLAGES_CALLER["gun"] = (1, 75)
+    # 🔫 GUN : les 5 plages du BINGO -> 1 à 75 sans trou.
+    _BOULES_CALLER["gun"] = [n for n in range(1, 76)]
+    print("[RANIHEI] GUN inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_gun:
+    print("[JEU IGNORE] GUN saute au demarrage (fichier manquant/illisible) : %r" % _e_gun)
 
 # ═════════════════════════════════════════════════════════════════════
 # 🌴 RURUTU — inscription du 31/10/2026 (création RANIHEI, maquette fournie).
@@ -6638,18 +6741,21 @@ print("[RANIHEI] GUN inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
 #      groupe droite  : 1-15 · 16-45 · 46-75
 #    -> chaque groupe de 3 couvre 1 à 75 ; crieur 1 à 75 sans trou.
 # ═════════════════════════════════════════════════════════════════════
-from generators import rurutu   # 🌴 création RANIHEI (paysage de l'île de Rurutu)
+try:
+    from generators import rurutu   # 🌴 création RANIHEI (paysage de l'île de Rurutu)
 
-JEUX_PROPRIETAIRE["rurutu"] = "ranihei"
-_GRIS_POSES = _imposer_gris_maison()
+    JEUX_PROPRIETAIRE["rurutu"] = "ranihei"
+    _GRIS_POSES = _imposer_gris_maison()
 
-# ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
-_enregistrer_paire("rurutu", "RURUTU · 6 boules", "\U0001f334", 8, rurutu.generer_pdf)
+    # ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+    _enregistrer_paire("rurutu", "RURUTU · 6 boules", "\U0001f334", 8, rurutu.generer_pdf)
 
-_PLAGES_CALLER["rurutu"] = (1, 75)
-# 🌴 RURUTU : plages 1-15, 16-45, 46-75 -> 1 à 75 sans trou.
-_BOULES_CALLER["rurutu"] = [n for n in range(1, 76)]
-print("[RANIHEI] RURUTU inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+    _PLAGES_CALLER["rurutu"] = (1, 75)
+    # 🌴 RURUTU : plages 1-15, 16-45, 46-75 -> 1 à 75 sans trou.
+    _BOULES_CALLER["rurutu"] = [n for n in range(1, 76)]
+    print("[RANIHEI] RURUTU inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_rurutu:
+    print("[JEU IGNORE] RURUTU saute au demarrage (fichier manquant/illisible) : %r" % _e_rurutu)
 
 # ═════════════════════════════════════════════════════════════════════
 # 🐙 TUBUAI — inscription du 31/10/2026 (création RANIHEI, maquette fournie).
@@ -6659,18 +6765,21 @@ print("[RANIHEI] RURUTU inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
 #      droite  haut->bas : 46-60 · 61-75 · 76-90
 #    -> crieur 1 à 90 sans trou.
 # ═════════════════════════════════════════════════════════════════════
-from generators import tubuai   # 🐙 création RANIHEI (pieuvre + requin, Tubuai)
+try:
+    from generators import tubuai   # 🐙 création RANIHEI (pieuvre + requin, Tubuai)
 
-JEUX_PROPRIETAIRE["tubuai"] = "ranihei"
-_GRIS_POSES = _imposer_gris_maison()
+    JEUX_PROPRIETAIRE["tubuai"] = "ranihei"
+    _GRIS_POSES = _imposer_gris_maison()
 
-# ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
-_enregistrer_paire("tubuai", "TUBUAI · 6 boules", "\U0001f419", 8, tubuai.generer_pdf)
+    # ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+    _enregistrer_paire("tubuai", "TUBUAI · 6 boules", "\U0001f419", 8, tubuai.generer_pdf)
 
-_PLAGES_CALLER["tubuai"] = (1, 90)
-# 🐙 TUBUAI : BINGO 90 -> 6 plages de 15, 1 à 90 sans trou.
-_BOULES_CALLER["tubuai"] = [n for n in range(1, 91)]
-print("[RANIHEI] TUBUAI inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+    _PLAGES_CALLER["tubuai"] = (1, 90)
+    # 🐙 TUBUAI : BINGO 90 -> 6 plages de 15, 1 à 90 sans trou.
+    _BOULES_CALLER["tubuai"] = [n for n in range(1, 91)]
+    print("[RANIHEI] TUBUAI inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_tubuai:
+    print("[JEU IGNORE] TUBUAI saute au demarrage (fichier manquant/illisible) : %r" % _e_tubuai)
 
 # ═════════════════════════════════════════════════════════════════════
 # 🚗 CARBASS — inscription du 01/11/2026 (création TUKEA / 2KEA & Associé).
@@ -6679,18 +6788,304 @@ print("[RANIHEI] TUBUAI inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
 #      bas-droite 31-40 · bas-centre 41-50  -> crieur 1 à 50 sans trou.
 #    ⚠️ C'est un jeu de LA MAISON (TUKEA = 2KEA), pas de RANIHEI.
 # ═════════════════════════════════════════════════════════════════════
-from generators import carbass   # 🚗 création 2KEA (voiture sono CARBASS)
+try:
+    from generators import carbass   # 🚗 création 2KEA (voiture sono CARBASS)
 
-JEUX_PROPRIETAIRE["carbass"] = "2kea_papeete"
-_GRIS_POSES = _imposer_gris_maison()
+    JEUX_PROPRIETAIRE["carbass"] = "2kea_papeete"
+    _GRIS_POSES = _imposer_gris_maison()
 
-# ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
-_enregistrer_paire("carbass", "CARBASS · 5 boules", "\U0001f697", 8, carbass.generer_pdf)
+    # ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+    _enregistrer_paire("carbass", "CARBASS · 5 boules", "\U0001f697", 8, carbass.generer_pdf)
 
-_PLAGES_CALLER["carbass"] = (1, 50)
-# 🚗 CARBASS : 5 plages de 10 -> 1 à 50 sans trou.
-_BOULES_CALLER["carbass"] = [n for n in range(1, 51)]
-print("[2KEA] CARBASS inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+    _PLAGES_CALLER["carbass"] = (1, 50)
+    # 🚗 CARBASS : 5 plages de 10 -> 1 à 50 sans trou.
+    _BOULES_CALLER["carbass"] = [n for n in range(1, 51)]
+    print("[2KEA] CARBASS inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_carbass:
+    print("[JEU IGNORE] CARBASS saute au demarrage (fichier manquant/illisible) : %r" % _e_carbass)
+
+# ═════════════════════════════════════════════════════════════════════
+# ⌚ MONTRE — inscription du 03/11/2026 (création RANIHEI, maquette fournie).
+#    Montre digitale, 5 cases :
+#      HAUT (écran) : 2 chiffres MULTIPLES DE 5 (5,10,…,75)
+#      BAS : bas-gauche 1-12 · bas-milieu 13-60 · bulle 61-90
+#    -> crieur 1 à 90. Pastille de position 1-8 sur chaque carton.
+# ═════════════════════════════════════════════════════════════════════
+try:
+    from generators import montre   # ⌚ création RANIHEI (montre digitale)
+
+    JEUX_PROPRIETAIRE["montre"] = "ranihei"
+    # ⬜ la montre reste nette (fond blanc, pas d'éclaircissement éco)
+    _ECO_IMG_GARDER_BLANC.add("montre")
+    _GRIS_POSES = _imposer_gris_maison()
+
+    # ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+    _enregistrer_paire("montre", "MONTRE · 5 boules", "⌚", 8, montre.generer_pdf)
+
+    _PLAGES_CALLER["montre"] = (1, 90)
+    # ⌚ MONTRE : haut multiples de 5, bas 1-12 / 13-60 / 61-90 -> crieur 1 à 90.
+    _BOULES_CALLER["montre"] = [n for n in range(1, 91)]
+    print("[RANIHEI] MONTRE inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_montre:
+    print("[JEU IGNORE] MONTRE saute au demarrage (fichier manquant/illisible) : %r" % _e_montre)
+
+# ═════════════════════════════════════════════════════════════════════
+# 🏹 NOUVEAU JEU — ARCHER (RANIHEI & SISTERS), maquette Maeva 03/11.
+#    8 cartons / feuille A4 PORTRAIT. 4 cibles alignées, un numéro au
+#    centre de chacune : cible 1 (grande) 1-20 · cible 2 21-40 ·
+#    cible 3 41-60 · cible 4 (petite) 61-90  -> crieur 1 à 90.
+#    Pastille de position 1-8 sur chaque carton. Propriété RANIHEI.
+# ═════════════════════════════════════════════════════════════════════
+try:
+    from generators import archer   # 🏹 création RANIHEI (tir à l'arc)
+
+    JEUX_PROPRIETAIRE["archer"] = "ranihei"
+    # ⬜ ARCHER reste net (fond ligne claire, pas d'éclaircissement éco)
+    _ECO_IMG_GARDER_BLANC.add("archer")
+    _GRIS_POSES = _imposer_gris_maison()
+
+    # ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+    _enregistrer_paire("archer", "ARCHER · 4 cibles", "🏹", 8, archer.generer_pdf)
+
+    _PLAGES_CALLER["archer"] = (1, 90)
+    # 🏹 ARCHER : cibles 1-20 / 21-40 / 41-60 / 61-90 -> crieur 1 à 90.
+    _BOULES_CALLER["archer"] = [n for n in range(1, 91)]
+    print("[RANIHEI] ARCHER inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_archer:
+    print("[JEU IGNORE] ARCHER saute au demarrage (fichier manquant/illisible) : %r" % _e_archer)
+
+# ═════════════════════════════════════════════════════════════════════
+# 🔥 NOUVEAU JEU — BRIQUET (création 2KEA & Associé), maquette Maeva 08/11.
+#    8 cartons / feuille A4 PORTRAIT. 7 flammes, plages B I N G O lues
+#    par colonne de gauche à droite : B 1 flamme · I 2 · N 1 · G 2 · O 1
+#    -> crieur 1 à 75 (BINGO complet). Jeu de LA MAISON (2KEA).
+# ═════════════════════════════════════════════════════════════════════
+try:
+    from generators import briquet   # 🔥 création 2KEA (briquet et ses 7 flammes)
+
+    JEUX_PROPRIETAIRE["briquet"] = "2kea_papeete"
+    # ⬜ BRIQUET reste net (maquette en traits noirs, pas d'éclaircissement éco)
+    _ECO_IMG_GARDER_BLANC.add("briquet")
+    _GRIS_POSES = _imposer_gris_maison()
+
+    # ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+    _enregistrer_paire("briquet", "BRIQUET · 7 boules", "\U0001f525", 8, briquet.generer_pdf)
+
+    _PLAGES_CALLER["briquet"] = (1, 75)
+    # 🔥 BRIQUET : B 1-15 · I 16-30 · N 31-45 · G 46-60 · O 61-75 -> crieur 1 à 75.
+    _BOULES_CALLER["briquet"] = [n for n in range(1, 76)]
+    print("[2KEA] BRIQUET inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_briquet:
+    print("[JEU IGNORE] BRIQUET saute au demarrage (fichier manquant/illisible) : %r" % _e_briquet)
+
+# ═════════════════════════════════════════════════════════════════════
+# 🍯 NOUVEAU JEU — MIEL (création TUKEA / 2KEA & Associé), maquette Maeva 08/11.
+#    8 cartons / feuille A4 PORTRAIT. 6 pots de miel, B I G O (sans N) :
+#      haut+bas gauche B 1-15 · milieu gauche I 16-30 · milieu droit G 46-60
+#      · haut+bas droit O 61-75  -> crieur 1 à 75 sans 31-45. Jeu de LA MAISON.
+# ═════════════════════════════════════════════════════════════════════
+try:
+    from generators import miel   # 🍯 création 2KEA (pots de miel)
+
+    JEUX_PROPRIETAIRE["miel"] = "2kea_papeete"
+    # ⬜ MIEL reste net (maquette en traits noirs, pas d'éclaircissement éco)
+    _ECO_IMG_GARDER_BLANC.add("miel")
+    _GRIS_POSES = _imposer_gris_maison()
+
+    # ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+    _enregistrer_paire("miel", "MIEL · 6 boules", "\U0001f36f", 8, miel.generer_pdf)
+
+    _PLAGES_CALLER["miel"] = (1, 75)
+    # 🍯 MIEL : B 1-15 · I 16-30 · G 46-60 · O 61-75 -> crieur 1 à 75 SANS le N.
+    _BOULES_CALLER["miel"] = [n for n in range(1, 76) if not (31 <= n <= 45)]
+    print("[2KEA] MIEL inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_miel:
+    print("[JEU IGNORE] MIEL saute au demarrage (fichier manquant/illisible) : %r" % _e_miel)
+
+# ═════════════════════════════════════════════════════════════════════
+# 🎳 NOUVEAU JEU — PÉTANQUE (création 2KEA & Associé), maquette Maeva 09/11.
+#    8 cartons / feuille A4 PORTRAIT. 7 boules, même jeu que le FLIP,
+#    lues par colonne de gauche à droite : 1 · 2 · 1 · 2 · 1 boules
+#      1-18 · 19-36 · 37-54 · 55-72 · 73-90  -> crieur 1 à 90.
+# ═════════════════════════════════════════════════════════════════════
+try:
+    from generators import petanque   # 🎳 création 2KEA (boules de pétanque)
+
+    JEUX_PROPRIETAIRE["petanque"] = "2kea_papeete"
+    # ⬜ PÉTANQUE reste net (maquette en traits noirs, pas d'éclaircissement éco)
+    _ECO_IMG_GARDER_BLANC.add("petanque")
+    _GRIS_POSES = _imposer_gris_maison()
+
+    # ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+    _enregistrer_paire("petanque", "PÉTANQUE · 7 boules", "\U0001f3b3", 8, petanque.generer_pdf)
+
+    _PLAGES_CALLER["petanque"] = (1, 90)
+    # 🎳 PÉTANQUE : 1-18 · 19-36 · 37-54 · 55-72 · 73-90 -> crieur 1 à 90.
+    _BOULES_CALLER["petanque"] = [n for n in range(1, 91)]
+    print("[2KEA] PETANQUE inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_petanque:
+    print("[JEU IGNORE] PETANQUE saute au demarrage (fichier manquant/illisible) : %r" % _e_petanque)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 🏓 PING-PONG GO (création RANIHEI Sisters & Shop, maquette Maeva 15/11)
+#    6 cartons / feuille, 8 paires de raquettes = 16 numéros par carton.
+#    Plages de l'OHANA 75 · 2 séries : B 1-15 · I 16-30 · N 31-45 ·
+#    G 46-60 · O 61-75 -> crieur 1 à 75.
+# ═══════════════════════════════════════════════════════════════════════════
+try:
+    from generators import pingpong_go   # 🏓 création RANIHEI
+
+    JEUX_PROPRIETAIRE["pingpong_go"] = "ranihei"
+    # ⬜ la maquette garde ses traits gris (pas d'éclaircissement éco)
+    _ECO_IMG_GARDER_BLANC.add("pingpong_go")
+    _GRIS_POSES = _imposer_gris_maison()
+
+    # ⚠️ 6 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+    _enregistrer_paire("pingpong_go", "PING-PONG GO · 16 numéros", "\U0001f3d3", 6, pingpong_go.generer_pdf)
+
+    _PLAGES_CALLER["pingpong_go"] = (1, 75)
+    _BOULES_CALLER["pingpong_go"] = [n for n in range(1, 76)]
+    print("[RANIHEI] PING-PONG GO inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_pingpong:
+    print("[JEU IGNORE] PING-PONG GO saute au demarrage (fichier manquant/illisible) : %r" % _e_pingpong)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 🎯 CIBLE (création RANIHEI Sisters & Shop, maquette Maeva 15/11)
+#    6 cartons / feuille, 8 cibles = 8 numéros par carton.
+#    Haut B 1-15 · milieu I 16-30 · bas N 31-45 · centre haut G 46-60 ·
+#    centre bas O 61-75 -> crieur 1 à 75.
+# ═══════════════════════════════════════════════════════════════════════════
+try:
+    from generators import cible   # 🎯 création RANIHEI
+
+    JEUX_PROPRIETAIRE["cible"] = "ranihei"
+    # ⬜ la maquette garde ses traits gris (pas d'éclaircissement éco)
+    _ECO_IMG_GARDER_BLANC.add("cible")
+    _GRIS_POSES = _imposer_gris_maison()
+
+    # ⚠️ 6 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+    _enregistrer_paire("cible", "CIBLE · 8 numéros", "\U0001f3af", 6, cible.generer_pdf)
+
+    _PLAGES_CALLER["cible"] = (1, 75)
+    _BOULES_CALLER["cible"] = [n for n in range(1, 76)]
+    print("[RANIHEI] CIBLE inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_cible:
+    print("[JEU IGNORE] CIBLE saute au demarrage (fichier manquant/illisible) : %r" % _e_cible)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 🏝️ FATU HIVA (maquette Maeva 17/11)
+#    8 cartons / feuille, 16 numéros par carton (rond + case à droite).
+#    Plages OHANA 75 · 2 séries : B 1-15 · I 16-30 · G 46-60 · O 61-75
+#    -> crieur 1 à 75 SANS le N (31-45).
+# ═══════════════════════════════════════════════════════════════════════════
+try:
+    from generators import fatu_hiva   # 🏝️
+
+    # ⬜ la maquette garde ses traits gris (pas d'éclaircissement éco)
+    _ECO_IMG_GARDER_BLANC.add("fatu_hiva")
+    _GRIS_POSES = _imposer_gris_maison()
+
+    # ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+    _enregistrer_paire("fatu_hiva", "FATU HIVA · 16 numéros", "\U0001f3dd️", 8, fatu_hiva.generer_pdf)
+
+    _PLAGES_CALLER["fatu_hiva"] = (1, 75)
+    _BOULES_CALLER["fatu_hiva"] = [n for n in range(1, 76) if not (31 <= n <= 45)]
+    print("[FATU HIVA] inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_fatu:
+    print("[JEU IGNORE] FATU HIVA saute au demarrage (fichier manquant/illisible) : %r" % _e_fatu)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 🗿 HIVA OA (maquette Maeva 17/11)
+#    12 cartons / feuille, 6 numéros : bulle 1-15 · 2 en 16-30 · 1 en 31-45 ·
+#    2 en 60-75 -> crieur 1 à 45 et 60 à 75.
+# ═══════════════════════════════════════════════════════════════════════════
+try:
+    from generators import hiva_oa   # 🗿
+
+    _ECO_IMG_GARDER_BLANC.add("hiva_oa")
+    _GRIS_POSES = _imposer_gris_maison()
+
+    # ⚠️ 12 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+    _enregistrer_paire("hiva_oa", "HIVA OA · 6 numéros", "\U0001f5ff", 12, hiva_oa.generer_pdf)
+
+    _PLAGES_CALLER["hiva_oa"] = (1, 75)
+    _BOULES_CALLER["hiva_oa"] = [n for n in range(1, 76) if not (46 <= n <= 59)]
+    print("[HIVA OA] inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_hivaoa:
+    print("[JEU IGNORE] HIVA OA saute au demarrage (fichier manquant/illisible) : %r" % _e_hivaoa)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 🐢 NUKU HIVA (maquette MARIO, Maeva 17/11)
+#    8 cartons / feuille, 6 bulles : B 1-15 · I 16-30 · N 31-45 · G 46-60 ·
+#    O 61-75 (x2) -> crieur 1 à 75.
+# ═══════════════════════════════════════════════════════════════════════════
+try:
+    from generators import nuku_hiva   # 🐢
+
+    _ECO_IMG_GARDER_BLANC.add("nuku_hiva")
+    _GRIS_POSES = _imposer_gris_maison()
+
+    # ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+    _enregistrer_paire("nuku_hiva", "NUKU HIVA · 6 numéros", "\U0001f422", 8, nuku_hiva.generer_pdf)
+
+    _PLAGES_CALLER["nuku_hiva"] = (1, 75)
+    _BOULES_CALLER["nuku_hiva"] = [n for n in range(1, 76)]
+    print("[NUKU HIVA] inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_nuku:
+    print("[JEU IGNORE] NUKU HIVA saute au demarrage (fichier manquant/illisible) : %r" % _e_nuku)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 🏐 VOLLEY-BALL (création RANIHEI, maquette Maeva 17/11)
+#    8 cartons / feuille, 5 numéros sur les maillots, de gauche à droite :
+#    B 1-15 · I 16-30 · N 31-45 (l'attaquant) · G 46-60 · O 61-75
+#    -> crieur 1 à 75.
+# ═══════════════════════════════════════════════════════════════════════════
+try:
+    from generators import volley   # 🏐 création RANIHEI
+
+    JEUX_PROPRIETAIRE["volley"] = "ranihei"
+    _ECO_IMG_GARDER_BLANC.add("volley")
+    _GRIS_POSES = _imposer_gris_maison()
+
+    # ⚠️ 8 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+    _enregistrer_paire("volley", "VOLLEY-BALL · 5 numéros", "\U0001f3d0", 8, volley.generer_pdf)
+
+    _PLAGES_CALLER["volley"] = (1, 75)
+    _BOULES_CALLER["volley"] = [n for n in range(1, 76)]
+    print("[VOLLEY] inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_volley:
+    print("[JEU IGNORE] VOLLEY saute au demarrage (fichier manquant/illisible) : %r" % _e_volley)
+
+# ═════════════════════════════════════════════════════════════════════
+# ⭐ 21/11 — DEUX JEUX DE LA MAISON AJOUTÉS AU MENU (validés par Maeva)
+#    TUN : 16 cartons / feuille, 3 bulles à 2 numéros (1-10 · 11-20 · 21-30)
+#          -> crieur 1 à 30.
+#    TRIPLE X : 10 cartons / feuille, bulles B·O / I·G / N à 3 numéros
+#          -> crieur 1 à 75.
+# ═════════════════════════════════════════════════════════════════════
+try:
+    from generators import tun   # 🎱 création 2KEA (TUN)
+    JEUX_PROPRIETAIRE["tun"] = "2kea_papeete"
+    _ECO_IMG_GARDER_BLANC.add("tun")
+    # ⚠️ 16 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+    _enregistrer_paire("tun", "TUN · 6 boules", "\U0001f3b1", 16, tun.generer_pdf)
+    _PLAGES_CALLER["tun"] = (1, 30)
+    _BOULES_CALLER["tun"] = [n for n in range(1, 31)]
+    print("[2KEA] TUN inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_tun:
+    print("[JEU IGNORE] TUN saute au demarrage (fichier manquant/illisible) : %r" % _e_tun)
+
+try:
+    from generators import triplex   # ❌ création 2KEA (TRIPLE X)
+    JEUX_PROPRIETAIRE["triplex"] = "2kea_papeete"
+    _ECO_IMG_GARDER_BLANC.add("triplex")
+    # ⚠️ 10 cartons par feuille : doit suivre CARTES_PAGE du générateur.
+    _enregistrer_paire("triplex", "TRIPLE X 75", "\u274c", 10, triplex.generer_pdf)
+    _PLAGES_CALLER["triplex"] = (1, 75)
+    _BOULES_CALLER["triplex"] = [n for n in range(1, 76)]
+    print("[2KEA] TRIPLE X inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_triplex:
+    print("[JEU IGNORE] TRIPLE X saute au demarrage (fichier manquant/illisible) : %r" % _e_triplex)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # 🎁 GÉNÉRATEUR DE RAMES PANACHÉES (sceau Maeva 24/10)
