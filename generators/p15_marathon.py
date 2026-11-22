@@ -144,6 +144,14 @@ SANCTUAIRE = 16.4 * mm    # la case royale du QR : jamais un chiffre touché
 #    commence a serrer.
 _TAILLE_CASES = 30.0
 
+
+# ⭐ 22/11 (Maeva) : la nouvelle gamme COULEUR s'ouvre le 1er décembre 2026
+#    (0 h, heure de Tahiti). Avant, la version couleur reste celle d'avant.
+def _couleur_1er_dec():
+    import datetime as _dtC
+    m = _dtC.datetime.utcnow() - _dtC.timedelta(hours=10)
+    return (m.year, m.month, m.day) >= (2026, 12, 1)
+
 def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
@@ -156,7 +164,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     #    P15 ») : en couleur, le contour et les traits de la grille prennent la
     #    couleur de la carte, fins mais plus épais que le gris pour que la
     #    couleur se voie bien ; une couleur par grille, comme le P12.
-    _en_couleur = couleur_hex.upper() != "#9A9A9A"
+    _en_couleur = couleur_hex.upper() != "#9A9A9A" and _couleur_1er_dec()
     _tr_grille = 0.75 if _en_couleur else 0.3
     # Bordure carte
     c.setStrokeColor(col); c.setLineWidth(2.1 if _en_couleur else 0.7)
@@ -273,7 +281,8 @@ def generer_pdf(nb_cartes=15, serie_start=1, theme="", couleur=True,
                 y0 = MARGIN_BOT + (ROWS_PAGE - 1 - row) * (CARD_H + GUTTER_Y)
                 cols_nums = _gen_carte(rng)
                 coul = (couleur_perso if (couleur and couleur_perso)
-                        else ARC_EN_CIEL[(serie - 1) % len(ARC_EN_CIEL)] if couleur else "#9A9A9A")
+                        else (ARC_EN_CIEL[(serie - 1) % len(ARC_EN_CIEL)] if _couleur_1er_dec() else TURQUOISE)
+                        if couleur else "#9A9A9A")
                 _dessiner_carte(c, x0, y0, cols_nums, coul, serie, titre_jeu, telephone,
                                 style=style, evenement_id=evenement_id)
                 serie += 1
