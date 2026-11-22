@@ -123,7 +123,14 @@ def _blanc_wrap(nom):
     if orig is None or getattr(orig, '_blanc_wrapped', False):
         return
     def w(self, image, *a, **k):
-        if isinstance(image, str) and image.lower().endswith(".png") and os.path.exists(image):
+        # ⭐ 21/11 : les copies ÉCO (déjà éclaircies et nettoyées) ne passent PAS
+        #    au blanchiment — sinon leurs traits pâles (billets 1000 F, 500 F…)
+        #    étaient pris pour du « presque blanc » et le dessin disparaissait.
+        #    Idem pour les images des BILLETS (500, 1000, 5000, 1 dollar) : leur
+        #    dessin a été éclairci exprès (validé) — on n'y touche plus.
+        if (isinstance(image, str) and image.lower().endswith(".png") and os.path.exists(image)
+                and "_eco_gris_cache" not in image
+                and not os.path.basename(image).lower().startswith("billet")):
             image = _png_fond_blanc(image)
         return orig(self, image, *a, **k)
     w._blanc_wrapped = True
@@ -888,7 +895,7 @@ def _png_grise(chemin):
         os.makedirs(base, exist_ok=True)
         im = _Img.open(chemin).convert("LA")          # gris + canal alpha
         l, a = im.split()
-        l = l.point(lambda p: int(255 - (255 - p) * 0.5))   # éclaircit 50 %
+        l = l.point(lambda p: 255 if p >= 246 else int(255 - (255 - p) * 0.5))   # éclaircit 50 % · fond presque blanc -> blanc pur (Konica)
         im = _Img.merge("LA", (l, a))
         out = os.path.join(base, hashlib.md5(chemin.encode("utf-8")).hexdigest() + ".png")
         im.save(out)
