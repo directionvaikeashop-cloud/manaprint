@@ -93,21 +93,8 @@ try:
 except Exception:
     _POLICE_ECO = "Helvetica-Bold"
     _POLICE_P15_G = "Helvetica-Bold"
-_GRIS_ECO = colors.Color(0.26, 0.26, 0.26)
-# ⭐⭐ 25/09 (sceau Maeva : « la règle de foncer les chiffres comme sur le
-#    OHANA 75 2 séries ») : LE P6 REJOINT LA RÈGLE DU 23/09.
-#    Le TRAIT du chiffre passe de rien à 0,026 de sa taille, et le gris
-#    de 0,35 à 0,26 en même temps — sinon le trait plus large reste pâle.
-#    ⚠️ L'ÉCRITURE NE CHANGE PAS : Latin Modern reste Latin Modern. Le
-#    trait est centré sur le bord de la lettre, donc il l'épaissit des
-#    deux côtés : c'est un gras, pas une autre police.
-#    ⚠️ ÇA COÛTE DU TONER : mesuré, environ deux fois plus d'encre sur
-#    les chiffres. C'est le prix du gras, le même que sur les OHANA.
-#    Pour régler d'une seule valeur, comme dans les cinq OHANA 75 :
-#       0,010 + gris 0,35 = l'ancien   ·  0,018 + 0,30 = un cran
-#       0,026 + gris 0,26 = ACTUEL     ·  0,034 + 0,22 = très gras
-#       0,044 + gris 0,18 = au maximum
-_GRAS_TRAIT = 0.026
+# ⭐ 18/11 (Maeva : « que les chiffres soient bien noirs ») : 0,35 -> noir franc.
+_GRIS_ECO = colors.Color(0.08, 0.08, 0.08)
 _POLICE_P15 = _POLICE_P15_G
 _GRIS_P15 = colors.Color(0.35, 0.35, 0.35)
 # ⭐⭐ 11/09 (sceau Maeva) : L'ÉCRITURE LATIN MODERN ROMAN dans les deux
@@ -253,14 +240,25 @@ def _carte_jeu(c, cx, cy, val, col, gris_ch):
     _enseigne(c, cx, cy - 4.6 * mm, 1.35 * mm, val % 4, gris_ch)
 
 
+
+# ⭐ 22/11 (Maeva) : la nouvelle gamme COULEUR s'ouvre le 1er décembre 2026
+#    (0 h, heure de Tahiti). Avant, la version couleur reste celle d'avant.
+def _couleur_1er_dec():
+    import datetime as _dtC
+    m = _dtC.datetime.utcnow() - _dtC.timedelta(hours=10)
+    return (m.year, m.month, m.day) >= (2026, 12, 1)
+
 def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", titre_jeu="", style="eco", evenement_id="", cartes=False, nom_centre=""):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
     cell_w = CARD_W / GRID_N
 
     # Bordure
+    # ⭐ 21/11 (Maeva, gamme COULEUR du 1er décembre) : en couleur, contour et
+    #    traits de grille dans la couleur de la carte, fins mais un peu plus épais.
+    _en_couleur = couleur_hex.upper() not in ("#999999", "#9A9A9A") and _couleur_1er_dec()
     c.setStrokeColor(col)
-    c.setLineWidth(0.9)
+    c.setLineWidth(2.0 if _en_couleur else 0.9)
     c.roundRect(x0, y0, CARD_W, CARD_H, 1.8 * mm, stroke=1, fill=0)
     if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
         _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=1.0 * mm)
@@ -280,7 +278,7 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
         cx = x0 + (i + 0.5) * cell_w
         c.drawCentredString(cx, hdr_y + 1.4 * mm, lettre)
 
-    c.setStrokeColor(col); c.setLineWidth(0.4)
+    c.setStrokeColor(col); c.setLineWidth(0.9 if _en_couleur else 0.4)
     c.line(x0, hdr_y, x0 + CARD_W, hdr_y)
 
     # Grille 5×5
@@ -332,26 +330,16 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
                 #    ET moins cher. 38 pt tenait encore, 40 serrait les
                 #    lignes du bas : 34 est le réglage choisi.
                 c.setFillColor(gris_ch); c.setFont(police_ch, 34)
-                if _GRAS_TRAIT:
-                    # remplir ET contourer (mode de rendu 2) : le chiffre
-                    # reste le même, il s'épaissit simplement des deux côtés
-                    _tx = c.beginText(0, 0)
-                    _tx.setFont(police_ch, 34)
-                    _tx.setTextRenderMode(2)
-                    c.setStrokeColor(gris_ch)
-                    c.setLineWidth(max(0.2, 34 * float(_GRAS_TRAIT)))
-                    _tx.setTextOrigin(cx - _sw6(str(nums[ri]), police_ch, 34) / 2.0, cy)
-                    _tx.textOut(str(nums[ri]))
-                    c.drawText(_tx)
-                    c._code.append('0 Tr')   # sinon le mode de rendu reste actif
-                else:
-                    c.drawCentredString(cx, cy, str(nums[ri]))
+                c.drawCentredString(cx, cy, str(nums[ri]))
         if ci > 0:
-            c.setStrokeColor(colors.Color(0.85, 0.85, 0.85)); c.setLineWidth(0.3)
+            if _en_couleur:
+                c.setStrokeColor(col); c.setLineWidth(0.75)
+            else:
+                c.setStrokeColor(colors.Color(0.85, 0.85, 0.85)); c.setLineWidth(0.3)
             c.line(x0 + ci * cell_w, y0 + FOOT_H, x0 + ci * cell_w, hdr_y)
 
     # Pied : N° série + responsable sur chaque grille
-    c.setStrokeColor(col); c.setLineWidth(0.4)
+    c.setStrokeColor(col); c.setLineWidth(0.9 if _en_couleur else 0.4)
     c.line(x0, y0 + FOOT_H, x0 + CARD_W, y0 + FOOT_H)
     c.setFillColor(GREY); c.setFont("Helvetica", 4.5)
     c.drawString(x0 + 1.5 * mm, y0 + 1.3 * mm, f"N° {serie:06d}")
@@ -378,7 +366,7 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
 def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
                 nom_centre=None,
-                style="eco", evenement_id="", cartes=False, page_start=1):
+                style="eco", evenement_id="", cartes=False, page_start=1, **_ig):
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=1)
 
@@ -407,16 +395,7 @@ def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
             while _tnom > 8.0 and _sw6(_nomh, "Helvetica-Bold", _tnom) > PAGE_W - 40 * mm:
                 _tnom -= 0.5
             c.setFillColor(NOIR); c.setFont("Helvetica-Bold", _tnom)
-            # ⭐⭐ 18/09 (sceau Maeva : « la personnalisation du haut, bien la
-            #    rapprocher de la grille ») : LE NOM DESCEND À 8,9 mm.
-            #    ⚠️ MESURÉ sur la feuille : à 7,5 mm le bloc du nom finissait
-            #    à 25,6 pt du bord et la 1re carte commençait à 31,2 pt —
-            #    5,6 pt de blanc entre les deux. À 8,9 mm il n'en reste que
-            #    1,6 pt : le nom touche presque la grille, c'est le maximum
-            #    sans mordre dessus. NE PAS DESCENDRE PLUS BAS.
-            #    ⭐ Au passage le nom s'éloigne du bord (2,2 → 3,6 mm), donc
-            #      il risque moins d'être rogné à l'impression.
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 8.9 * mm, _nomh)
+            c.drawCentredString(PAGE_W / 2, PAGE_H - 7.5 * mm, _nomh)
         # ⭐ 11/09 (sceau Maeva) : QUAND LE CLIENT DONNE SON NOM, C'EST LUI
         #    QUI OCCUPE LE HAUT DE LA FEUILLE — « P6 MARATHON » s'efface au
         #    lieu de se répéter sous la personnalisation. La 2e ligne ne
@@ -432,7 +411,7 @@ def generer_pdf(nb_cartes=6, serie_start=1, theme="", couleur=True,
         if nom_evenement:
             # ⭐ avec une personnalisation, la page et la date filent à
             #    DROITE sur la même ligne : le nom garde tout le centre.
-            c.drawRightString(PAGE_W - 6 * mm, PAGE_H - 8.9 * mm, ligne2)
+            c.drawRightString(PAGE_W - 6 * mm, PAGE_H - 7.5 * mm, ligne2)
         else:
             c.drawCentredString(PAGE_W / 2, PAGE_H - 6 * mm, ligne2)
 
@@ -471,3 +450,12 @@ if __name__ == "__main__":
     with open("test_p6.pdf", "wb") as f:
         f.write(pdf.read())
     print("P6 MARATHON généré")
+
+
+# ⭐ 21/11 : les variantes spéciales restent celles d'avant (fichier p6_marathon_v1.py, inchangé)
+def generer_pdf_casino(**kw):
+    try:
+        from generators import p6_marathon_v1 as _v1
+    except Exception:
+        import p6_marathon_v1 as _v1
+    return _v1.generer_pdf_casino(**kw)
