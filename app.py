@@ -999,7 +999,8 @@ def _generer_eco_gris(fn, kwargs):
 _GAMME_6 = ["#E91E63", "#8E24AA", "#F57C00", "#2E7D32", "#1E63C8", "#D32F2F"]
 _TEINTE_PNG = {"aloha75", "bgo8", "bingo_ball", "bn90", "boules40", "boules60",
                "dual_dab", "gambier", "hoanui", "pomare", "quatre_coin", "salute",
-               "sicile", "talon", "tureia_atoll", "unite"}
+               "sicile", "talon", "tureia_atoll", "unite",
+               "ohana75_2s", "ohana75_4series"}      # ⭐ 22/11 : les OHANA 2 et 4 séries
 _TEINTE_VECT = {"ani", "australes", "bin6", "brown8", "cerf_volant", "champagne",
                 "diamant", "hakari"}
 # ⭐ 22/11 (retours de Maeva sur l'essai) :
@@ -1007,6 +1008,9 @@ _TEINTE_VECT = {"ani", "australes", "bin6", "brown8", "cerf_volant", "champagne"
 _TEINTE_CASES_GRISES = {"brown8", "cerf_volant", "diamant", "champagne", "australes"}
 #  · BINGO BALL : seul le titre « BINGO BALL BINGO » se colore (haut de chaque grille)
 _TEINTE_HAUT_SEUL = {"bingo_ball": 0.25}
+#  · OHANA 75 · 2 séries : les BULLES restent grises (police du chiffre dans la bulle)
+_TEINTE_BULLES_GRISES = {"ohana75_2s": "LMROMAN"}
+from reportlab.lib import colors as _colors_t
 _TEINTE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "generators", "_teinte_cache")
 _TEINTE_LOCK = _threading_eco.RLock()
 _TEINTE_ETAT = _threading_eco.local()
@@ -1078,7 +1082,7 @@ def _teinte_png(chemin, depart, planche, haut=None):
                 break
         mini = min(mini, 200)
         blocs = _teinte_blocs(L, alpha) if planche else [(0, 0) + L.size]
-        sortie = _ImT.new("RGB", L.size, (255, 255, 255))
+        sortie = L.convert("RGB")            # hors grilles (traits de découpe…) : inchangé
         for i, (x0, y0, x1, y1) in enumerate(blocs):
             hx = _GAMME_6[(depart + i) % 6]
             c = [int(hx[k:k + 2], 16) for k in (1, 3, 5)]
@@ -1118,11 +1122,14 @@ def _teinte_wrap(nom):
                 planche = bool(width and height and width > 0.55 * pw and height > 0.45 * ph)
             except Exception:
                 planche = False
+            if getattr(_TEINTE_ETAT, "bulles", None):
+                _TEINTE_ETAT.images.append((image, x, y, width, height, tuple(self._currentMatrix), dict(k)))
             image, n = _teinte_png(image, _TEINTE_ETAT.n, planche,
                                    getattr(_TEINTE_ETAT, "haut", None))
             _TEINTE_ETAT.n += n
         return orig(self, image, x, y, width, height, *a, **k)
     w._teinte_wrapped = True
+    w._orig = orig
     setattr(_canvas_pn.Canvas, nom, w)
 _teinte_wrap("drawImage")
 
@@ -1147,6 +1154,16 @@ def _teinte_hooks_cases():
         return o_do(self, name)
 
     def drawCentredString(self, x, y, text, *a, **k):
+        _pb = getattr(_TEINTE_ETAT, "bulles", None)
+        if _pb and getattr(self, "_fontname", "") == _pb and str(text).strip().isdigit():
+            t = getattr(self, "_fontsize", 0) or 0
+            a0, b0, c0, d0, e0, f0 = self._currentMatrix
+            cx, cy = x, y + 0.34 * t
+            _TEINTE_ETAT.ronds.append((a0 * cx + c0 * cy + e0, b0 * cx + d0 * cy + f0,
+                                       (0.78 * t * (a0 * a0 + b0 * b0) ** 0.5,
+                                        0.93 * t * (c0 * c0 + d0 * d0) ** 0.5)))
+            _TEINTE_ETAT.textes.append((self._fontname, t, getattr(self, "_fillColorObj", None) or _colors_t.black,
+                                        a0 * x + c0 * y + e0, b0 * x + d0 * y + f0, text))
         if getattr(_TEINTE_ETAT, "cases", False) and not getattr(_TEINTE_ETAT, "repasse", False):
             t = getattr(self, "_fontsize", 0) or 0
             if t >= 9 and str(text).strip().isdigit():
@@ -1160,6 +1177,35 @@ def _teinte_hooks_cases():
         return o_dcs(self, x, y, text, *a, **k)
 
     def showPage(self):
+        if getattr(_TEINTE_ETAT, "bulles", None) and _TEINTE_ETAT.images and _TEINTE_ETAT.ronds:
+            # ⭐ 22/11 (Maeva : « les bulles restent en noir et blanc ») : on repose
+            #    l'image d'origine (grise) dans chaque bulle, par-dessus la teinte.
+            try:
+                _o = getattr(_canvas_pn.Canvas.drawImage, "_orig", None)
+                for (px, py, (rx, ry)) in _TEINTE_ETAT.ronds:
+                    for (img, ix, iy, iw, ih, m, kk) in _TEINTE_ETAT.images:
+                        self.saveState()
+                        im = self._currentMatrix
+                        det = im[0] * im[3] - im[1] * im[2]
+                        if abs(det) > 1e-9 and im != (1., 0., 0., 1., 0., 0.):
+                            ia, ib, ic, idd = im[3] / det, -im[1] / det, -im[2] / det, im[0] / det
+                            self.transform(ia, ib, ic, idd, -(ia * im[4] + ic * im[5]), -(ib * im[4] + idd * im[5]))
+                        pth = self.beginPath()
+                        pth.ellipse(px - rx, py - ry, 2 * rx, 2 * ry)
+                        self.clipPath(pth, stroke=0, fill=0)
+                        self.transform(*m)
+                        (_o or _canvas_pn.Canvas.drawImage)(self, img, ix, iy, iw, ih, **kk)
+                        self.restoreState()
+                # les chiffres des bulles, redessinés par-dessus
+                for (fn_, fs_, col_, x_, y_, txt_) in _TEINTE_ETAT.textes:
+                    self.saveState()
+                    self.setFillColor(col_); self.setFont(fn_, fs_)
+                    o_dcs(self, x_, y_, txt_)
+                    self.restoreState()
+            except Exception as _e_b:
+                print("[TEINTE] bulles grises :", repr(_e_b))
+        if getattr(_TEINTE_ETAT, "bulles", None):
+            _TEINTE_ETAT.images, _TEINTE_ETAT.ronds, _TEINTE_ETAT.textes = [], [], []
         if getattr(_TEINTE_ETAT, "cases", False) and _TEINTE_ETAT.poses and _TEINTE_ETAT.chiffres:
             _TEINTE_ETAT.repasse = True
             try:
@@ -1253,6 +1299,8 @@ def _generer_teinte(fn, kwargs, base_id):
                 kwargs["couleur"] = False          # base N&B : chiffres gris foncé
                 _TEINTE_ETAT.actif, _TEINTE_ETAT.n = True, 0
                 _TEINTE_ETAT.haut = _TEINTE_HAUT_SEUL.get(base_id)
+                _TEINTE_ETAT.bulles = _TEINTE_BULLES_GRISES.get(base_id)
+                _TEINTE_ETAT.images, _TEINTE_ETAT.ronds, _TEINTE_ETAT.textes = [], [], []
             else:
                 if base_id in _TEINTE_CASES_GRISES:
                     _TEINTE_ETAT.cases, _TEINTE_ETAT.repasse = True, False
@@ -1267,6 +1315,7 @@ def _generer_teinte(fn, kwargs, base_id):
             _TEINTE_ETAT.actif = False
             _TEINTE_ETAT.cases = False
             _TEINTE_ETAT.haut = None
+            _TEINTE_ETAT.bulles = None
             for k_, v_ in sauv.items():
                 g[k_] = v_
 
