@@ -12,6 +12,7 @@ Arc-en-ciel de 12 couleurs (ou couleur_perso) / gris (N&B). 2 gammes ÉCO/PREMIU
 Caller : entrée « P6 / P12 / P15 MARATHON » (1-75) — boutons PAIRS/IMPAIRS inclus.
 """
 import io
+import os as _os
 import random
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4, landscape
@@ -37,6 +38,19 @@ try:
 except Exception:
     POLICE = "Helvetica"
 
+POLICE_NOIR = "Helvetica"
+POLICE_GRAS = "Helvetica-Bold"
+try:
+    pdfmetrics.registerFont(TTFont("LMROMANB", _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "LatinModern-Bold.ttf")))
+    POLICE_GRAS = "LMROMANB"
+except Exception:
+    pass
+CHIFFRES_GRAS = False      # ⭐ 21/11 : modèle « chiffres bien gros et bien gras »
+try:
+    pdfmetrics.registerFont(TTFont("LMROMAN", _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "LatinModern.ttf")))
+    POLICE_NOIR = "LMROMAN"
+except Exception:
+    pass
 GRIS = colors.Color(0.42, 0.42, 0.42)
 GRIS_CLAIR = colors.Color(0.80, 0.80, 0.80)
 
@@ -56,25 +70,9 @@ try:
     _POLICE_ECO = "DJLECO"
 except Exception:
     _POLICE_ECO = "Helvetica"
-_GRIS_ECO = colors.Color(0.35, 0.35, 0.35)
+_GRIS_ECO = colors.Color(0.50, 0.50, 0.50)
 _POLICE_P15 = "Helvetica-Bold"
-_GRIS_P15 = colors.Color(0.35, 0.35, 0.35)
-# ⭐⭐ 11/09 (sceau Maeva) : L'ÉCRITURE LATIN MODERN ROMAN dans les deux
-#    gammes, et le gris passe de 0,50/0,55 à 0,35.
-#    ⚠️ MESURÉ À TAILLE ÉGALE : cette écriture consomme 61 % de moins que
-#    l'ancienne grasse — c'est elle, la vraie économie de toner, bien plus
-#    que la nuance de gris. Ne jamais la remplacer par une grasse « pour
-#    que ça se voie » : on paierait trois fois plus d'encre pour rien.
-#    ⚠️ LatinModern.ttf est rangé à côté de ce fichier (l'original est en
-#    OTF, illisible par ReportLab). S'il manque, on garde l'ancienne.
-import os as _osM
-try:
-    _pm.registerFont(_TF("LMROMAN", _osM.path.join(
-        _osM.path.dirname(_osM.path.abspath(__file__)), "LatinModern.ttf")))
-    _POLICE_ECO = "LMROMAN"
-    _POLICE_P15 = "LMROMAN"
-except Exception:
-    pass
+_GRIS_P15 = colors.Color(0.55, 0.55, 0.55)
 
 def _style_chiffres(style):
     """Retourne (police, gris) des chiffres selon la gamme choisie."""
@@ -90,7 +88,7 @@ COLONNES = [(1, 15), (16, 30), (31, 45), (46, 60), (61, 75)]
 COLS_PAGE = 4
 ROWS_PAGE = 3
 MARGIN_X = 7 * mm
-MARGIN_TOP = 8 * mm
+MARGIN_TOP = 11.5 * mm   # ⭐ 21/11 : place pour l'en-tête DANS la zone imprimable Konica (> 6 mm du bord)
 MARGIN_BOT = 6 * mm
 GUTTER_X = 4 * mm
 GUTTER_Y = 4 * mm
@@ -101,17 +99,6 @@ HDR_H = 7 * mm             # l'en-tête B·I·N·G·O + série encadrée sous le
 PIED_H = 1.6 * mm          # respiration : la dernière rangée ne touche pas le bord
 
 SANCTUAIRE = 16.0 * mm     # la case royale MARATHON/QR : jamais un chiffre touché
-
-# ⭐ 30/09 — GRILLE ENTIEREMENT REGULIERE (sceau Maeva) :
-#    « il n'y a plus de grille [speciale au centre], je veux que tous les
-#     colonnes soit de la meme taille ». La case centrale reste LIBRE, mais
-#     elle a EXACTEMENT la taille des autres ; chiffres tous egaux, et le QR
-#     se cale sur cette case normale.
-# ⭐ TAILLE MESUREE SUR LA VRAIE POLICE : dans une case reguliere de
-#    13,55 x 10,81 mm, a 35 pt le plus gros chiffre imprime fait
-#    11,60 x 8,55 mm, soit 0,98 mm de blanc de chaque cote et 1,13 mm en
-#    haut et en bas. C'est le maximum confortable.
-_TAILLE_CASES = 35.0
 
 
 def _gen_carte(rng):
@@ -124,16 +111,52 @@ def _gen_carte(rng):
     return cols
 
 
-def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id=""):
+from reportlab.pdfbase.pdfmetrics import stringWidth as _lg_p12
+
+
+def _decouper_sanctuaire(texte):
+    """⭐ Coupe la personnalisation en lignes courtes pour la case centrale.
+
+    Un mot par ligne tant que ça reste raisonnable ; au-delà de trois mots on
+    regroupe pour ne pas empiler dix lignes minuscules.
+    """
+    mots = [m for m in str(texte).replace("\n", " ").split(" ") if m]
+    if not mots:
+        return ["MARA", "THON"]
+    if len(mots) <= 3:
+        return mots
+    # plus de trois mots : on répartit en trois lignes équilibrées
+    n = len(mots)
+    c1, c2 = (n + 2) // 3, 2 * (n + 2) // 3
+    return [" ".join(mots[:c1]), " ".join(mots[c1:c2]), " ".join(mots[c2:])]
+
+
+
+# ⭐ 22/11 (Maeva) : la nouvelle gamme COULEUR s'ouvre le 1er décembre 2026
+#    (0 h, heure de Tahiti). Avant, la version couleur reste celle d'avant.
+def _couleur_1er_dec():
+    import datetime as _dtC
+    m = _dtC.datetime.utcnow() - _dtC.timedelta(hours=10)
+    return (m.year, m.month, m.day) >= (2026, 12, 1)
+
+def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", telephone="", style="eco", evenement_id="", nom_centre=""):
     police_ch, gris_ch = _style_chiffres(style)
     col = colors.HexColor(couleur_hex)
     # Colonnes en croix : la colonne N (centre) élargie pour le sanctuaire
-    _cw = CARD_W / 5                      # ⭐ 30/09 : toutes les colonnes egales
-    LARGEURS = [_cw, _cw, _cw, _cw, _cw]
+    # ⭐ 21/11 (Maeva : « chaque colonne qui reçoit les chiffres doit être
+    #    identique ») : 5 colonnes de MÊME largeur, 5 rangées de MÊME hauteur,
+    #    comme sur son modèle p12_noir — plus de croix élargie au centre.
+    _cw = CARD_W / 5.0
+    LARGEURS = [_cw] * 5
     X_COL = [x0 + sum(LARGEURS[:i]) for i in range(6)]
 
     # Bordure carte arrondie et colorée (fidèle au modèle)
-    c.setStrokeColor(col); c.setLineWidth(1.6)
+    # ⭐ 21/11 (Maeva, gamme COULEUR du 1er décembre) : en couleur, le contour
+    #    et les traits de la grille prennent la couleur de la carte, toujours fins
+    #    mais un peu plus épais que le gris pour que la couleur se voie bien.
+    _en_couleur = couleur_hex.upper() != "#9A9A9A" and _couleur_1er_dec()
+    _trait_grille = (col, 0.75) if _en_couleur else (GRIS_CLAIR, 0.3)
+    c.setStrokeColor(col); c.setLineWidth(2.1 if _en_couleur else 1.6)
     c.roundRect(x0, y0, CARD_W, CARD_H, 2.2 * mm, stroke=1, fill=0)
     if _sec:  # cadre intérieur en microtexte (sécurité anti-photocopie)
         _sec.cadre_micro(c, x0, y0, CARD_W, CARD_H, serie, retrait=0.9 * mm)
@@ -141,7 +164,7 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     # En-tête : les lettres B I N G O dans la couleur de la carte,
     # et le N° de série ENCADRÉ sous le N (fidèle au modèle)
     hdr_bas = y0 + CARD_H - HDR_H
-    c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.3)
+    c.setStrokeColor(_trait_grille[0]); c.setLineWidth(_trait_grille[1])
     c.line(x0, hdr_bas, x0 + CARD_W, hdr_bas)
     for i, lettre in enumerate(LETTRES):
         cx = (X_COL[i] + X_COL[i + 1]) / 2
@@ -161,36 +184,69 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
     # La grille 5×5 en croix : rangée centrale rehaussée pour le sanctuaire
     z_top = hdr_bas
     z_bot = y0 + PIED_H
-    _rh = (z_top - z_bot) / 5           # ⭐ 30/09 : toutes les rangees egales
-    HAUTEURS = [_rh, _rh, _rh, _rh, _rh]
+    _rh = (z_top - z_bot) / 5.0
+    HAUTEURS = [_rh] * 5
     Y_ROW = [z_top - sum(HAUTEURS[:i]) for i in range(6)]   # plafonds des rangées
-    c.setStrokeColor(GRIS_CLAIR); c.setLineWidth(0.3)
+    c.setStrokeColor(_trait_grille[0]); c.setLineWidth(_trait_grille[1])
     for i in range(1, 5):
         c.line(X_COL[i], z_bot, X_COL[i], z_top)
         c.line(x0, Y_ROW[i], x0 + CARD_W, Y_ROW[i])
 
     # Les 24 numéros — ordre libre (fidèle au modèle)
-    taille = _TAILLE_CASES
+    # ⭐ 21/11 (modèle « p12_noir » de Maeva) : chiffres LATIN MODERN NOIRS,
+    #    aussi grands que la case le permet (le « 88 » remplit la largeur).
+    _pol = POLICE_GRAS if CHIFFRES_GRAS else POLICE_NOIR
+    taille = 60.0
+    while taille > 8 and (_lg_p12("88", _pol, taille) > _cw * (0.85 if CHIFFRES_GRAS else 0.90)
+                          or taille * 0.66 > _rh * 0.70):
+        taille -= 0.25
+    _encre = colors.black if gris_ch in (_GRIS_ECO, _GRIS_P15) else gris_ch
     for ci, nums in enumerate(cols_nums):
         cx = (X_COL[ci] + X_COL[ci + 1]) / 2
         rangees = (0, 1, 3, 4) if ci == 2 else (0, 1, 2, 3, 4)
         for val, ri in zip(nums, rangees):
             cyc = (Y_ROW[ri] + Y_ROW[ri + 1]) / 2
-            if _sec:  # chiffres "billet de banque" remplis de microtexte
-                _sec.chiffre_micro(c, val, cx, cyc - taille * 0.36, taille, gris_ch, police_ch)
+            c.setFillColor(_encre)
+            if CHIFFRES_GRAS:
+                c.saveState()
+                c.setStrokeColor(_encre); c.setLineWidth(taille * 0.018); c.setLineJoin(1)
+                _o = c.beginText(); _o.setTextRenderMode(2); _o.setFont(_pol, taille)
+                _o.setTextOrigin(cx - _lg_p12(str(val), _pol, taille) / 2.0, cyc - taille * 0.33)
+                _o.textOut(str(val)); c.drawText(_o)
+                c.restoreState()
             else:
-                c.setFillColor(gris_ch); c.setFont(police_ch, taille)
-                c.drawCentredString(cx, cyc - taille * 0.36, str(val))
+                c.setFont(_pol, taille)
+                c.drawCentredString(cx, cyc - taille * 0.322, str(val))
 
-    # ⭐ 30/09 (sceau Maeva : « pas de QR sur ces jeux ») : plus de QR. La
-    #    case centrale reste LIBRE et garde seulement le mot MARATHON du
-    #    modele. Le QR demandait 12 mm pour rester scannable et ne tenait
-    #    plus dans une case devenue reguliere.
+    # Le SANCTUAIRE central : le QR y loge ENTIER (sans code texte : le scan
+    # dit tout) — ou le mot MARATHON du modèle quand il n'y a pas d'événement
     cx_c = (X_COL[2] + X_COL[3]) / 2
     cy_c = (Y_ROW[2] + Y_ROW[3]) / 2
-    c.setFillColor(GRIS); c.setFont(POLICE, 7.5)
-    c.drawCentredString(cx_c, cy_c + 0.8 * mm, "MARA")
-    c.drawCentredString(cx_c, cy_c - 3.4 * mm, "THON")
+    qr_ok = False
+    if _sec and evenement_id:
+        try:
+            _q = 12.0 * mm
+            qr_ok = _sec.carton_qr(c, cx_c - _q / 2, cy_c - _q / 2, _q, evenement_id, serie,
+                                   avec_code=False)
+        except Exception:
+            qr_ok = False
+    if not qr_ok:
+        # ⭐ 10/09 (sceau Maeva) : QUAND LE CLIENT DONNE UNE PERSONNALISATION,
+        #    c'est ELLE qui s'écrit dans la case centrale, à la place du mot
+        #    « MARATHON » du modèle. Sans personnalisation, on garde MARATHON.
+        #    Le texte est coupé en lignes et la taille descend jusqu'à ce que
+        #    la plus longue tienne dans la case, sans jamais toucher un chiffre.
+        _lignes = _decouper_sanctuaire(nom_centre) if nom_centre else ["MARA", "THON"]
+        _larg_utile = (X_COL[3] - X_COL[2]) * 0.86
+        _t = 7.5
+        while _t > 3.0 and (max(_lg_p12(l, POLICE, _t) for l in _lignes) > _larg_utile
+                            or len(_lignes) * _t * 1.25 > _rh * 0.80):
+            _t -= 0.25
+        c.setFillColor(GRIS); c.setFont(POLICE, _t)
+        _inter = _t * 1.25
+        _depart = cy_c + (len(_lignes) - 1) * _inter / 2 - _t * 0.36
+        for _i, _l in enumerate(_lignes):
+            c.drawCentredString(cx_c, _depart - _i * _inter, _l)
 
     # Signature discrète sous la carte (marque + titre client + téléphone)
     signature = "P12"
@@ -204,7 +260,17 @@ def _dessiner_carte(c, x0, y0, cols_nums, couleur_hex, serie, titre_jeu="", tele
 
 def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="", telephone="",
-                style="eco", evenement_id="", page_start=1):
+                style="eco", evenement_id="", page_start=1, nom_centre=None,
+                nom_gauche="", nom_droite="", series_par_cote=False, demi_total=0, graine=0, gras=False, **_ig):
+    """⭐ 21/11 : `nom_gauche` / `nom_droite` = une personnalisation par MOITIÉ de
+    feuille (les 6 grilles de gauche, les 6 de droite) — en tête de chaque moitié
+    et dans la case centrale de ses grilles (commande HEIPOE samedi / dimanche).
+⭐ `nom_centre` remplit la CASE CENTRALE. Laissé à None, elle reprend
+    `nom_evenement` — c'est le cas courant. On peut donc écrire un texte en
+    tête de feuille et un autre au cœur du carton, si le client le demande.
+    """
+    global CHIFFRES_GRAS
+    CHIFFRES_GRAS = bool(gras)
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=landscape(A4), pageCompression=1)
 
@@ -212,31 +278,31 @@ def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
     par_page = COLS_PAGE * ROWS_PAGE
     nb_pages = (nb_cartes + par_page - 1) // par_page
 
-    rng = random.Random(120300 + int(serie_start))
+    rng = random.Random(120300 + int(serie_start) + int(graine) * 7919)  # ⭐ graine : 2e tirage avec les mêmes numéros
     serie = int(serie_start)
+    # ⭐ 21/11 (HEIPOE) : series_par_cote=True -> DEUX séries indépendantes,
+    #    les 6 grilles de gauche et les 6 de droite partent chacune de serie_start
+    #    (une page = 6 numéros à gauche + les 6 MÊMES numéros à droite).
+    serie_cote = int(serie_start)
     # 📄 la page continue d'une rame à l'autre (sceau Maeva 12/08)
     no_page = max(1, int(page_start))
     faites = 0
 
     for _ in range(nb_pages):
         # en-tête de page
-        if nom_evenement:
-            c.setFillColor(colors.black); c.setFont(POLICE, 8)
-            # ⭐⭐ 18/09 (sceau Maeva : « la personnalisation du haut, bien la
-            #    rapprocher de la grille ») : LE NOM DESCEND CONTRE LA GRILLE.
-            #    ⚠️ MESURÉ sur la feuille : il restait 8,8 pt de blanc entre le bas du
-            #    nom et le haut du premier carton ; il n'en reste plus que 2, c'est
-            #    le maximum sans mordre dessus. NE PAS DESCENDRE PLUS BAS.
-            #    ⭐ Le NUMÉRO DE PAGE file à DROITE sur la même ligne : il était
-            #      centré juste dessous, coincé entre le nom et la grille, et il
-            #      chevauchait le texte. Sans personnalisation il reprend sa place
-            #      centrale, exactement comme avant.
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 6.6 * mm, nom_evenement)
-        c.setFillColor(GRIS_CLAIR); c.setFont(POLICE, 6)
-        if nom_evenement:
-            c.drawRightString(PAGE_W - 6 * mm, PAGE_H - 6.6 * mm, "%03d" % no_page)
-        else:
-            c.drawCentredString(PAGE_W / 2, PAGE_H - 6.4 * mm, "%03d" % no_page)
+        if nom_gauche or nom_droite:
+            c.setFillColor(colors.black); c.setFont("Helvetica-Bold", 10)
+            for _k, _txt in ((0, nom_gauche), (2, nom_droite)):
+                if _txt:
+                    _xc = MARGIN_X + _k * (CARD_W + GUTTER_X) + CARD_W + GUTTER_X / 2.0
+                    c.drawCentredString(_xc, PAGE_H - 9.6 * mm, _txt)
+        elif nom_evenement:
+            c.setFillColor(colors.black); c.setFont("Helvetica-Bold", 10)
+            c.drawCentredString(PAGE_W / 2, PAGE_H - 9.6 * mm, nom_evenement)
+        # ⭐ 21/11 : n° de page en haut à droite, lui aussi dans la zone imprimable
+        if not demi_total:
+            c.setFillColor(GRIS); c.setFont("Helvetica", 7)
+            c.drawRightString(PAGE_W - MARGIN_X, PAGE_H - 9.6 * mm, "%03d" % no_page)
 
         for row in range(ROWS_PAGE):
             for col_i in range(COLS_PAGE):
@@ -248,11 +314,36 @@ def generer_pdf(nb_cartes=12, serie_start=1, theme="", couleur=True,
                 idx = (serie - 1) % len(RAINBOW)
                 coul = (couleur_perso if (couleur and couleur_perso)
                         else RAINBOW[idx] if couleur else "#9A9A9A")
+                if series_par_cote:
+                    _demi = COLS_PAGE // 2
+                    serie = serie_cote + row * _demi + (col_i % _demi)
+                if demi_total:
+                    # ⭐ 21/11 (HEIPOE, 9 rames, série 1→9000) : chaque DEMI-FEUILLE
+                    #    a son numéro — la GAUCHE (samedi) de 1 à demi_total, puis la DROITE
+                    #    continue de demi_total+1 à 2×demi_total ; les grilles suivent.
+                    _demi = COLS_PAGE // 2
+                    _k = row * _demi + (col_i % _demi)
+                    _base = (no_page - 1) * ROWS_PAGE * _demi
+                    serie = _base + _k + 1 + (0 if col_i < _demi else demi_total * ROWS_PAGE * _demi)
                 _dessiner_carte(c, x0, y0, cols_nums, coul, serie, titre_jeu, telephone,
-                                style=style, evenement_id=evenement_id)
+                                style=style, evenement_id=evenement_id,
+                                nom_centre=((nom_gauche if col_i < COLS_PAGE // 2 else nom_droite)
+                                            if (nom_gauche or nom_droite)
+                                            else nom_centre if nom_centre is not None
+                                            else nom_evenement))
                 serie += 1
                 faites += 1
 
+        if demi_total:
+            c.setFillColor(colors.black); c.setFont("Helvetica-Bold", 10)
+            # ⭐ 21/11 (Maeva : « le 1 va sur le samedi ») : GAUCHE 1→demi_total, DROITE la suite
+            c.drawString(MARGIN_X, PAGE_H - 9.6 * mm, "N° %04d" % no_page)
+            c.drawRightString(PAGE_W - MARGIN_X, PAGE_H - 9.6 * mm, "N° %04d" % (demi_total + no_page))
+        if series_par_cote:
+            serie_cote += ROWS_PAGE * (COLS_PAGE // 2)
+            # n° de page aussi au-dessus de la moitié GAUCHE (chaque demi-feuille garde le sien)
+            c.setFillColor(GRIS); c.setFont("Helvetica", 7)
+            c.drawString(MARGIN_X, PAGE_H - 9.6 * mm, "%03d" % no_page)
         c.showPage()
         no_page += 1
 
