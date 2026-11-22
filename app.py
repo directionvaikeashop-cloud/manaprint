@@ -1057,7 +1057,7 @@ def _teinte_blocs(L, alpha):
 def _teinte_png(chemin, depart, planche, haut=None):
     """Copie teintée du PNG : sombre -> couleur, blanc -> blanc. Rend (chemin, nb de couleurs utilisées)."""
     try:
-        cle = (chemin, os.path.getmtime(chemin), depart % 6, planche, haut)
+        cle = (chemin, os.path.getmtime(chemin), depart % 6, planche, haut, tuple(_GAMME_6))
     except Exception:
         return chemin, 1
     rep = _TEINTE_CACHE.get(cle)
