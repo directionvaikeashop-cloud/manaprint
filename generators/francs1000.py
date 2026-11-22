@@ -138,6 +138,11 @@ ZONE_C = (0.0888, 0.7313, 0.1757, 0.8231)
 _IMAGE_BILLET_C = _choisir_image("billet1000_c", _RATIO_BILLET_C)
 
 
+# ⭐ 21/11 : de combien la 2e rangée descend (mm), selon le visage du billet
+DESCENTE_NB = 3.0
+DESCENTE_C = 1.0
+
+
 def _visage(couleur):
     """🎨 Le billet à poser, et ses mesures — selon la commande."""
     if couleur and _os2.path.exists(_IMAGE_BILLET_C):
@@ -248,9 +253,19 @@ def _dessiner_carte(c, x0, y0, nums, couleur_hex, serie, titre_jeu="", telephone
 
     y_haut = zy + zh - etage * 0.62 - taille * 0.34
     y_bas = zy + etage * 0.42 - taille * 0.34
+    # ⭐ 21/11 (demande Maeva) : la DEUXIÈME RANGÉE descend plus bas,
+    #    dans le blanc libre au-dessus du bandeau du bas (sans le toucher).
+    y_bas -= (DESCENTE_C if _est_couleur else DESCENTE_NB) * mm
     for etg, ys in ((haut, y_haut), (bas, y_bas)):
         for k, n in enumerate(etg):
             nx = zx + (k + 0.5) * place
+            # ⭐ 21/11 (demande Maeva) : on GOMME le dessin sous chaque
+            #    numéro (le bâton et la main du rameur passaient sous 56/66)
+            #    — une réserve blanche ajustée au chiffre, il reste net.
+            _lw = c.stringWidth(str(n), police_ch, taille) + 1.6 * mm
+            _hh = taille * 0.72 * ETIRE + 1.4 * mm
+            c.setFillColor(colors.white)
+            c.roundRect(nx - _lw / 2, ys - 0.7 * mm, _lw, _hh, 1.2 * mm, stroke=0, fill=1)
             # ⚠️ l'étirement se fait par une TRANSFORMATION du canevas :
             # on garde l'origine du chiffre en place, on ne l'étire que
             # vers le haut. `saveState`/`restoreState` referment toujours.
