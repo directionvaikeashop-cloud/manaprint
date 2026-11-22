@@ -986,7 +986,292 @@ def _generer_eco_gris(fn, kwargs):
                 g[k] = v
 
 
-def _variante(fn, couleur_force, style_force="eco"):
+# ══ 🎨 COULEUR « DESSIN TEINTÉ » (sceau Maeva 22/11) ═══════════════════
+# Sur les jeux validés par Maeva, la version COULEUR teinte le DESSIN dans
+# la couleur de sa grille — une couleur par grille, dans SA gamme de 6
+# (rose, violet, orange, vert, bleu, rouge) — et les CHIFFRES restent en
+# gris foncé, comme en noir & blanc (lecture la plus nette).
+#  · jeux à IMAGE (PNG) : on fabrique la version N&B, et chaque image posée
+#    est teintée au vol ; une planche qui porte plusieurs grilles est
+#    découpée sur ses gouttières blanches, chaque grille a sa couleur.
+#  · jeux DESSINÉS (vectoriels) : ils teintaient déjà le décor ; on remplace
+#    seulement leur arc-en-ciel de 10 teintes par la gamme de 6.
+_GAMME_6 = ["#E91E63", "#8E24AA", "#F57C00", "#2E7D32", "#1E63C8", "#D32F2F"]
+_TEINTE_PNG = {"aloha75", "bgo8", "bingo_ball", "bn90", "boules40", "boules60",
+               "dual_dab", "gambier", "hoanui", "pomare", "quatre_coin", "salute",
+               "sicile", "talon", "tureia_atoll", "unite"}
+_TEINTE_VECT = {"ani", "australes", "bin6", "brown8", "cerf_volant", "champagne",
+                "diamant", "hakari"}
+# ⭐ 22/11 (retours de Maeva sur l'essai) :
+#  · les CASES / BULLES qui reçoivent les chiffres restent GRISES
+_TEINTE_CASES_GRISES = {"brown8", "cerf_volant", "diamant", "champagne", "australes"}
+#  · BINGO BALL : seul le titre « BINGO BALL BINGO » se colore (haut de chaque grille)
+_TEINTE_HAUT_SEUL = {"bingo_ball": 0.25}
+_TEINTE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "generators", "_teinte_cache")
+_TEINTE_LOCK = _threading_eco.RLock()
+_TEINTE_ETAT = _threading_eco.local()
+_TEINTE_CACHE = {}
+
+
+def _teinte_blocs(L, alpha):
+    """Rectangles des grilles d'une planche (découpe sur les gouttières blanches)."""
+    W, H = L.size
+    blanc = L.point(lambda v: 255 if v >= 245 else 0)
+    if alpha is not None:
+        from PIL import ImageChops as _ChT
+        blanc = _ChT.lighter(blanc, alpha.point(lambda v: 255 if v < 20 else 0))
+    px = blanc.load()
+
+    def lignes_vides(x0, y0, x1, y1, axe):
+        res = []
+        if axe == 0:
+            for y in range(y0, y1):
+                res.append(all(px[x, y] == 255 for x in range(x0, x1, 2)))
+        else:
+            for x in range(x0, x1):
+                res.append(all(px[x, y] == 255 for y in range(y0, y1, 2)))
+        return res
+
+    def bandes(vides, mini):
+        out, deb = [], None
+        for i, v in enumerate(vides + [True]):
+            if not v and deb is None:
+                deb = i
+            elif v and deb is not None:
+                if i - deb >= mini:
+                    out.append((deb, i))
+                deb = None
+        return out
+
+    blocs = []
+    for (ya, yb) in bandes(lignes_vides(0, 0, W, H, 0), max(4, H // 40)):
+        for (xa, xb) in bandes(lignes_vides(0, ya, W, yb, 1), max(4, W // 40)):
+            blocs.append((xa, ya, xb, yb))
+    return blocs or [(0, 0, W, H)]
+
+
+def _teinte_png(chemin, depart, planche, haut=None):
+    """Copie teintée du PNG : sombre -> couleur, blanc -> blanc. Rend (chemin, nb de couleurs utilisées)."""
+    try:
+        cle = (chemin, os.path.getmtime(chemin), depart % 6, planche, haut)
+    except Exception:
+        return chemin, 1
+    rep = _TEINTE_CACHE.get(cle)
+    if rep and os.path.exists(rep[0]):
+        return rep
+    try:
+        from PIL import Image as _ImT
+        im = _ImT.open(chemin)
+        alpha = None
+        if im.mode in ("RGBA", "LA", "PA") or "transparency" in im.info:
+            im = im.convert("RGBA")
+            alpha = im.getchannel("A")
+        L = im.convert("L")
+        # le trait le plus foncé du dessin prend la couleur pleine
+        h = L.histogram()
+        n_enc = sum(h[:240])
+        mini, acc = 0, 0
+        for v in range(240):
+            acc += h[v]
+            if n_enc and acc >= 0.02 * n_enc:
+                mini = v
+                break
+        mini = min(mini, 200)
+        blocs = _teinte_blocs(L, alpha) if planche else [(0, 0) + L.size]
+        sortie = _ImT.new("RGB", L.size, (255, 255, 255))
+        for i, (x0, y0, x1, y1) in enumerate(blocs):
+            hx = _GAMME_6[(depart + i) % 6]
+            c = [int(hx[k:k + 2], 16) for k in (1, 3, 5)]
+            if haut:                       # seul le haut de la grille se colore
+                y1_c = y0 + int((y1 - y0) * haut)
+                sortie.paste(L.crop((x0, y1_c, x1, y1)).convert("RGB"), (x0, y1_c))
+                y1 = y1_c
+            morceau = L.crop((x0, y0, x1, y1))
+
+            def canal(cc):
+                return morceau.point(lambda v, cc=cc: 255 if v >= 242 else
+                                     int(255 - (255 - cc) * min(1.0, (255 - v) / float(max(1, 255 - mini)))))
+            sortie.paste(_ImT.merge("RGB", [canal(cc) for cc in c]), (x0, y0))
+        if alpha is not None:
+            sortie.putalpha(alpha)
+        os.makedirs(_TEINTE_DIR, exist_ok=True)
+        out = os.path.join(_TEINTE_DIR, hashlib.md5(repr(cle).encode("utf-8")).hexdigest() + ".png")
+        sortie.save(out + ".tmp", format="PNG")
+        os.replace(out + ".tmp", out)
+        rep = (out, len(blocs))
+    except Exception as _e_t:
+        print("[TEINTE] image laissée telle quelle :", chemin, repr(_e_t))
+        rep = (chemin, 1)
+    _TEINTE_CACHE[cle] = rep
+    return rep
+
+
+def _teinte_wrap(nom):
+    orig = getattr(_canvas_pn.Canvas, nom, None)
+    if orig is None or getattr(orig, "_teinte_wrapped", False):
+        return
+    def w(self, image, x, y, width=None, height=None, *a, **k):
+        if (getattr(_TEINTE_ETAT, "actif", False) and isinstance(image, str)
+                and image.lower().endswith(".png") and os.path.exists(image)):
+            try:
+                pw, ph = self._pagesize
+                planche = bool(width and height and width > 0.55 * pw and height > 0.45 * ph)
+            except Exception:
+                planche = False
+            image, n = _teinte_png(image, _TEINTE_ETAT.n, planche,
+                                   getattr(_TEINTE_ETAT, "haut", None))
+            _TEINTE_ETAT.n += n
+        return orig(self, image, x, y, width, height, *a, **k)
+    w._teinte_wrapped = True
+    setattr(_canvas_pn.Canvas, nom, w)
+_teinte_wrap("drawImage")
+
+
+# ── cases grises : on note où se posent les formes du décor et les chiffres,
+#    puis, avant de tourner la page, on repasse le décor EN GRIS sur la case
+#    de chaque chiffre (la forme ne peint que des traits : les chiffres restent).
+def _teinte_hooks_cases():
+    C = _canvas_pn.Canvas
+    if getattr(C, "_teinte_cases_ok", False):
+        return
+    o_begin, o_do, o_show, o_dcs = C.beginForm, C.doForm, C.showPage, C.drawCentredString
+
+    def beginForm(self, name, lowerx=0, lowery=0, upperx=None, uppery=None):
+        if getattr(_TEINTE_ETAT, "cases", False):
+            _TEINTE_ETAT.formes[name] = (lowerx, lowery, upperx, uppery)
+        return o_begin(self, name, lowerx, lowery, upperx, uppery)
+
+    def doForm(self, name):
+        if getattr(_TEINTE_ETAT, "cases", False) and not getattr(_TEINTE_ETAT, "repasse", False):
+            _TEINTE_ETAT.poses.append((name, tuple(self._currentMatrix)))
+        return o_do(self, name)
+
+    def drawCentredString(self, x, y, text, *a, **k):
+        if getattr(_TEINTE_ETAT, "cases", False) and not getattr(_TEINTE_ETAT, "repasse", False):
+            t = getattr(self, "_fontsize", 0) or 0
+            if t >= 9 and str(text).strip().isdigit():
+                a0, b0, c0, d0, e0, f0 = self._currentMatrix
+                w = self.stringWidth(str(text), self._fontname, t)
+                cx, cy = x, y + 0.36 * t
+                px, py = a0 * cx + c0 * cy + e0, b0 * cx + d0 * cy + f0
+                sx = (a0 * a0 + b0 * b0) ** 0.5
+                sy = (c0 * c0 + d0 * d0) ** 0.5
+                _TEINTE_ETAT.chiffres.append((px, py, (max(w / 2, 0.6 * t) + 0.26 * t) * sx, 0.70 * t * sy))
+        return o_dcs(self, x, y, text, *a, **k)
+
+    def showPage(self):
+        if getattr(_TEINTE_ETAT, "cases", False) and _TEINTE_ETAT.poses and _TEINTE_ETAT.chiffres:
+            _TEINTE_ETAT.repasse = True
+            try:
+                from reportlab.lib import colors as _cT
+                gris = _cT.HexColor("#555555")
+                vus = set()
+                for (px, py, hw, hh) in _TEINTE_ETAT.chiffres:
+                    cle = (round(px, 1), round(py, 1))
+                    if cle in vus:
+                        continue
+                    vus.add(cle)
+                    for (nom, m) in _TEINTE_ETAT.poses:
+                        bb = _TEINTE_ETAT.formes.get(nom)
+                        if bb and bb[2] is not None:
+                            a0, b0, c0, d0, e0, f0 = m
+                            xs = [a0 * X + c0 * Y + e0 for X in (bb[0], bb[2]) for Y in (bb[1], bb[3])]
+                            ys = [b0 * X + d0 * Y + f0 for X in (bb[0], bb[2]) for Y in (bb[1], bb[3])]
+                            if not (min(xs) <= px <= max(xs) and min(ys) <= py <= max(ys)):
+                                continue
+                        self.saveState()
+                        im = self._currentMatrix
+                        det = im[0] * im[3] - im[1] * im[2]
+                        if abs(det) > 1e-9 and im != (1., 0., 0., 1., 0., 0.):
+                            ia, ib, ic, idd = im[3] / det, -im[1] / det, -im[2] / det, im[0] / det
+                            ie = -(ia * im[4] + ic * im[5]); iff = -(ib * im[4] + idd * im[5])
+                            self.transform(ia, ib, ic, idd, ie, iff)
+                        pth = self.beginPath()
+                        pth.rect(px - hw, py - hh, 2 * hw, 2 * hh)
+                        self.clipPath(pth, stroke=0, fill=0)
+                        self.transform(*m)
+                        self.setFillColor(gris)
+                        self.setStrokeColor(gris)
+                        o_do(self, nom)
+                        self.restoreState()
+                        break
+            except Exception as _e_c:
+                print("[TEINTE] cases grises :", repr(_e_c))
+            _TEINTE_ETAT.repasse = False
+            _TEINTE_ETAT.poses, _TEINTE_ETAT.chiffres = [], []
+        elif getattr(_TEINTE_ETAT, "cases", False):
+            _TEINTE_ETAT.poses, _TEINTE_ETAT.chiffres = [], []
+        return o_show(self)
+
+    C.beginForm, C.doForm, C.showPage, C.drawCentredString = beginForm, doForm, showPage, drawCentredString
+    C._teinte_cases_ok = True
+    # les chiffres « microtexte » passent par securite.chiffre_micro
+    try:
+        from generators import securite as _secT
+        o_cm = _secT.chiffre_micro
+        if not getattr(o_cm, "_teinte", False):
+            def chiffre_micro(c, texte, x_centre, y_bas, taille, *a, **k):
+                if getattr(_TEINTE_ETAT, "cases", False) and not getattr(_TEINTE_ETAT, "repasse", False):
+                    try:
+                        police = a[1] if len(a) > 1 else k.get("police", "Helvetica")
+                        w = c.stringWidth(str(texte), police, taille)
+                        a0, b0, c0, d0, e0, f0 = c._currentMatrix
+                        cx, cy = x_centre, y_bas + 0.36 * taille
+                        sx = (a0 * a0 + b0 * b0) ** 0.5
+                        sy = (c0 * c0 + d0 * d0) ** 0.5
+                        _TEINTE_ETAT.chiffres.append((a0 * cx + c0 * cy + e0, b0 * cx + d0 * cy + f0,
+                                                      (max(w / 2, 0.6 * taille) + 0.26 * taille) * sx, 0.70 * taille * sy))
+                    except Exception:
+                        pass
+                return o_cm(c, texte, x_centre, y_bas, taille, *a, **k)
+            chiffre_micro._teinte = True
+            _secT.chiffre_micro = chiffre_micro
+    except Exception as _e_cm:
+        print("[TEINTE] chiffre_micro :", repr(_e_cm))
+_teinte_hooks_cases()
+
+
+# ⭐ 22/11 (sceau Maeva : « c'est validé, à mettre dans le catalogue à partir
+#    du 1er décembre ») : la couleur « dessin teinté » s'allume TOUTE SEULE
+#    le 1er décembre 2026 à 0 h, heure de Tahiti. Avant, la version couleur
+#    reste celle d'aujourd'hui.
+_TEINTE_DEBUT = (2026, 12, 1)
+
+
+def _teinte_ouverte():
+    import datetime as _dtT
+    maintenant = _dtT.datetime.utcnow() - _dtT.timedelta(hours=10)   # heure de Tahiti
+    return (maintenant.year, maintenant.month, maintenant.day) >= _TEINTE_DEBUT
+
+
+def _generer_teinte(fn, kwargs, base_id):
+    g = getattr(fn, "__globals__", {}) or {}
+    with _TEINTE_LOCK:
+        sauv = {}
+        try:
+            if base_id in _TEINTE_PNG:
+                kwargs["couleur"] = False          # base N&B : chiffres gris foncé
+                _TEINTE_ETAT.actif, _TEINTE_ETAT.n = True, 0
+                _TEINTE_ETAT.haut = _TEINTE_HAUT_SEUL.get(base_id)
+            else:
+                if base_id in _TEINTE_CASES_GRISES:
+                    _TEINTE_ETAT.cases, _TEINTE_ETAT.repasse = True, False
+                    _TEINTE_ETAT.formes, _TEINTE_ETAT.poses, _TEINTE_ETAT.chiffres = {}, [], []
+                for nom_ in ("RAINBOW", "RAINBOW_COLORS", "COULEURS"):
+                    v = g.get(nom_)
+                    if isinstance(v, list) and v and isinstance(v[0], str) and v[0].startswith("#"):
+                        sauv[nom_] = v
+                        g[nom_] = list(_GAMME_6)
+            return fn(**kwargs)
+        finally:
+            _TEINTE_ETAT.actif = False
+            _TEINTE_ETAT.cases = False
+            _TEINTE_ETAT.haut = None
+            for k_, v_ in sauv.items():
+                g[k_] = v_
+
+
+def _variante(fn, couleur_force, style_force="eco", base_id=""):
     """Crée une version d'un générateur qui force la couleur (True/False) et la gamme."""
     def _w(**kwargs):
         kwargs["couleur"] = couleur_force
@@ -994,6 +1279,10 @@ def _variante(fn, couleur_force, style_force="eco"):
         # ♻️ gamme ÉCO N&B -> règle économie gris (images grises + chiffres éco)
         if (not couleur_force) and style_force == "eco":
             return _generer_eco_gris(fn, kwargs)
+        # 🎨 22/11 : couleur « dessin teinté » sur les jeux validés par Maeva
+        if couleur_force and (base_id in _TEINTE_PNG or base_id in _TEINTE_VECT) \
+                and not kwargs.get("couleur_perso") and _teinte_ouverte():
+            return _generer_teinte(fn, kwargs, base_id)
         return fn(**kwargs)
     return _w
 
@@ -1056,11 +1345,11 @@ def _enregistrer_paire(base_id, nom, emoji, cpf, fn, kwarg_nb="nb_cartes"):
     les anciennes commandes se régénèrent à l'identique."""
     _img = _suffixe_image(base_id)
     _enregistrer_jeu(base_id + "_couleur", nom + " · " + _img + " (Couleur)", emoji, cpf,
-                     _variante(fn, True, "eco"),  kwarg_nb=kwarg_nb, couleur=True)
+                     _variante(fn, True, "eco", base_id),  kwarg_nb=kwarg_nb, couleur=True)
     _enregistrer_jeu(base_id + "_nb",      nom + " · " + _img + " (N&B)",     emoji, cpf,
                      _variante(fn, False, "eco"), kwarg_nb=kwarg_nb, couleur=False)
     _enregistrer_jeu(base_id + "_p15_couleur", nom + " · PREMIUM (Couleur)", emoji, cpf,
-                     _variante(fn, True, "p15"),  kwarg_nb=kwarg_nb, couleur=True)
+                     _variante(fn, True, "p15", base_id),  kwarg_nb=kwarg_nb, couleur=True)
     _enregistrer_jeu(base_id + "_p15_nb",      nom + " · PREMIUM (N&B)",     emoji, cpf,
                      _variante(fn, False, "p15"), kwarg_nb=kwarg_nb, couleur=False)
 
