@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f6b66">
+<title>Devis & Factures · Équipe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{--lagon:#0f6b66;--lagon-f:#0a4a47;--lagon-c:#e3f1ef;--corail:#e0533d;--sable:#f6f3ec;--papier:#fff;--fg:#14211f;--muted:#5b6b68;--ligne:#dde4e2;
+--ok:#2e7d32;--ok-c:#e6f4e7;--non:#c62828;--non-c:#fdecea;--att:#b26a00;--att-c:#fff4e0;--bat:#1e63c8;--bat-c:#e7effb;
+--display:"Sora",system-ui,sans-serif;--text:"Inter",system-ui,sans-serif;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--sable);color:var(--fg);font:15px/1.45 var(--text);-webkit-tap-highlight-color:transparent}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+.wrap{max-width:1100px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-left)) 90px max(16px,env(safe-area-inset-right))}
+header{position:sticky;top:0;z-index:20;background:var(--lagon);color:#fff;padding-top:env(safe-area-inset-top)}
+header .wrap{padding-bottom:0;display:flex;align-items:center;gap:8px;min-height:60px}
+.logo{font:800 18px/1.1 var(--display);white-space:nowrap;min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis}
+.logo small{display:block;font:600 11px var(--text);letter-spacing:.14em;text-transform:uppercase;opacity:.8;margin-top:3px}
+.ib{background:rgba(255,255,255,.14);border:0;color:#fff;border-radius:999px;height:40px;min-width:40px;padding:0 14px;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-weight:600;white-space:nowrap;flex:none;text-decoration:none}
+.ib.plein{background:#fff;color:var(--lagon)}
+@media(max-width:560px){.logo{font-size:16px}.logo small,.ib .ln{display:none}.ib{padding:0 10px;height:38px;min-width:38px}}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:10px;margin:14px 0 4px}
+.stat{background:var(--papier);border:1px solid var(--ligne);border-radius:14px;padding:12px 14px}
+.stat small{display:block;color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.stat b{font:800 22px var(--display);font-variant-numeric:tabular-nums;display:block;margin-top:2px}
+.stat span{font-size:13px;color:var(--muted)}
+.rangee{display:flex;gap:8px;overflow-x:auto;padding:10px 0 4px;scrollbar-width:none}
+.rangee::-webkit-scrollbar{display:none}
+.onglet{flex:none;border:1px solid var(--ligne);background:var(--papier);border-radius:999px;padding:8px 14px;font-weight:600;font-size:14px;display:flex;gap:8px;align-items:center}
+.onglet b{font-variant-numeric:tabular-nums;background:var(--lagon-c);color:var(--lagon-f);border-radius:999px;padding:0 8px;font-size:13px}
+.onglet[aria-pressed="true"]{background:var(--lagon-f);color:#fff;border-color:var(--lagon-f)}
+.onglet[aria-pressed="true"] b{background:rgba(255,255,255,.2);color:#fff}
+.recherche{width:100%;border:1px solid var(--ligne);border-radius:12px;padding:11px 14px;background:var(--papier);font-size:16px;margin:8px 0 12px}
+.liste{display:flex;flex-direction:column;gap:8px}
+.doc{background:var(--papier);border:1px solid var(--ligne);border-radius:14px;padding:12px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;text-align:left;width:100%}
+.doc:hover{border-color:var(--lagon)}
+.d-nom{font:700 16px var(--display);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.d-mt{font:800 17px var(--display);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.d-info{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:2px 12px;min-width:0}
+.chip{font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap;justify-self:end;align-self:center}
+.s-brouillon{background:#eceff1;color:#455a64}.s-envoye,.s-emis{background:var(--bat-c);color:var(--bat)}
+.s-accepte,.s-payee{background:var(--ok-c);color:var(--ok)}.s-refuse,.s-annulee{background:var(--non-c);color:var(--non)}
+.s-emise{background:var(--att-c);color:var(--att)}.s-facture{background:var(--lagon-c);color:var(--lagon-f)}
+.s-retard{background:var(--non);color:#fff}
+.vide{text-align:center;color:var(--muted);padding:50px 10px}
+.vide b{display:block;font:700 18px var(--display);color:var(--fg);margin-bottom:6px}
+.voile{position:fixed;inset:0;background:rgba(5,25,23,.5);z-index:40;display:none}
+.feuille{position:fixed;z-index:41;inset:auto 0 0 0;max-height:95vh;background:var(--sable);border-radius:20px 20px 0 0;overflow:auto;display:none;padding-bottom:env(safe-area-inset-bottom)}
+@media(min-width:900px){.feuille{inset:0 0 0 auto;width:720px;max-height:none;border-radius:0}}
+.ouvert .voile,.ouvert .feuille{display:block}
+.f-tete{position:sticky;top:0;background:var(--papier);border-bottom:1px solid var(--ligne);padding:12px 16px;display:flex;gap:10px;align-items:center;z-index:3}
+.f-tete h2{font:800 19px var(--display);margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fermer{border:1px solid var(--ligne);background:var(--sable);border-radius:999px;width:40px;height:40px;font-size:20px;line-height:1;flex:none}
+.f-corps{padding:16px;display:flex;flex-direction:column;gap:14px}
+.bloc{background:var(--papier);border:1px solid var(--ligne);border-radius:14px;padding:14px}
+.bloc h3{font:700 15px var(--display);margin:0 0 10px;color:var(--lagon-f);display:flex;justify-content:space-between;align-items:center;gap:8px}
+label.ch{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted);min-width:0}
+label.ch input,label.ch textarea,label.ch select,.cell{border:1px solid var(--ligne);border-radius:10px;padding:10px;background:var(--papier);font-size:16px;color:var(--fg);font-weight:500;width:100%;min-width:0}
+label.ch textarea{min-height:70px;resize:vertical}
+.form{display:grid;gap:10px}
+.deux{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.trois{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media(max-width:520px){.trois{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.bascule{display:inline-flex;border:1px solid var(--ligne);border-radius:999px;overflow:hidden;background:var(--papier)}
+.bascule button{border:0;background:none;padding:7px 14px;font-weight:700;font-size:13px}
+.bascule button[aria-pressed="true"]{background:var(--lagon-f);color:#fff}
+/* lignes */
+.lg{display:grid;grid-template-columns:minmax(0,1fr) 70px 110px 82px 34px;gap:6px;align-items:start;padding:8px 0;border-top:1px solid var(--ligne)}
+.lg:first-child{border-top:0}
+.lg .mt{grid-column:1/-1;text-align:right;font-weight:700;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:-2px}
+.lg .cell{padding:9px 8px;font-size:15px}
+.lg textarea.cell{resize:vertical;min-height:40px;height:40px}
+.lg .x{border:0;background:var(--non-c);color:var(--non);border-radius:10px;height:40px;font-weight:800}
+.lg-tete{display:grid;grid-template-columns:minmax(0,1fr) 70px 110px 82px 34px;gap:6px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+@media(max-width:560px){.lg,.lg-tete{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 72px 34px}.lg .des{grid-column:1/-1}.lg-tete .h-des{grid-column:1/-1;display:none}}
+.ajout{width:100%;border:2px dashed var(--lagon);background:var(--lagon-c);color:var(--lagon-f);border-radius:12px;padding:11px;font-weight:700;margin-top:8px}
+.totaux{display:grid;gap:4px;margin-top:12px;font-variant-numeric:tabular-nums}
+.totaux div{display:flex;justify-content:space-between;gap:10px}
+.totaux .ttc{background:var(--lagon);color:#fff;border-radius:10px;padding:10px 12px;font:800 20px var(--display);margin-top:4px}
+.totaux small{color:var(--muted)}
+.gros{width:100%;border:0;border-radius:14px;padding:15px;font:700 16px var(--display);background:var(--lagon);color:#fff;text-align:center;text-decoration:none;display:block}
+.gros:disabled{background:#b9c7c5!important;cursor:not-allowed}
+.gros.vert{background:var(--ok)}.gros.bleu{background:var(--bat)}.gros.rouge{background:var(--non)}.gros.wa{background:#25d366;color:#073b1c}
+.leger{width:100%;border:1px solid var(--ligne);background:var(--papier);border-radius:12px;padding:12px;font-weight:600;text-align:center;text-decoration:none;color:var(--fg);display:block}
+.leger.rouge{color:var(--non);border-color:#f3c5c0}
+.ligne2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.lect{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:8px 0;border-top:1px solid var(--ligne)}
+.lect:first-child{border-top:0}
+.lect b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.lect small{color:var(--muted);grid-column:1/-1}
+.infos{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 12px;font-size:14px}
+.infos dt{color:var(--muted)}.infos dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.journal{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto}
+.journal b{color:var(--fg);font-weight:600}
+.bandeau{border-radius:14px;padding:14px 16px;font-weight:600}
+.bandeau.ok{background:var(--ok-c);color:var(--ok)}.bandeau.att{background:var(--att-c);color:var(--att)}.bandeau.bleu{background:var(--bat-c);color:var(--bat)}.bandeau.non{background:var(--non-c);color:var(--non)}
+.bandeau big{display:block;font:800 26px var(--display);margin-top:2px}
+.sauve{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
+.case{display:flex;gap:10px;align-items:flex-start;font-weight:600}
+.case input{width:22px;height:22px;flex:none;margin-top:1px;accent-color:var(--lagon)}
+.connexion{max-width:420px;margin:12vh auto 0;background:var(--papier);border-radius:20px;padding:26px;border:1px solid var(--ligne)}
+.connexion h1{font:800 26px var(--display);margin:0 0 4px;color:var(--lagon-f)}
+.connexion p{color:var(--muted);margin:0 0 18px}
+.err{color:var(--non);font-weight:600;font-size:14px;min-height:20px}
+.toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:max(16px,env(safe-area-inset-bottom));z-index:60;display:flex;flex-direction:column;gap:8px;width:min(94vw,440px)}
+.toast{background:var(--lagon-f);color:#fff;border-radius:14px;padding:12px 14px;box-shadow:0 8px 24px rgba(0,0,0,.25);font-weight:600;animation:mont .3s ease}
+.toast.vert{background:var(--ok)}.toast.rouge{background:var(--non)}
+@keyframes mont{from{transform:translateY(20px);opacity:0}}
+.logo-ap{max-height:60px;max-width:180px;display:block;margin:6px 0;border-radius:6px;background:#f4f7f6}
+:focus-visible{outline:2px solid var(--corail);outline-offset:2px}
+.note{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+{% raw %}
+<script>
+const $ = (s, el=document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const F = n => { n = Math.round(Number(n)||0); return (n<0?"-":"") + Math.abs(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " F"; };
+const frDate = d => d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d.split("-").reverse().join("/") : (d||"");
+function toast(t, cls=""){ const e=document.createElement("div"); e.className="toast "+cls; e.textContent=t; $("#toasts").appendChild(e); setTimeout(()=>e.remove(), 4200); }
+async function api(url, opt={}){
+  const o = {headers:{}, ...opt};
+  if (o.body && !(o.body instanceof FormData)) { o.headers["Content-Type"]="application/json"; o.body=JSON.stringify(o.body); }
+  const r = await fetch(url, o); let j={};
+  try { j = await r.json(); } catch(e) {}
+  if (r.status===403 && j.message && /Connexion/.test(j.message)) { S.connecte=false; rendre(); throw new Error(j.message); }
+  if (!r.ok || j.ok===false) throw new Error(j.message || "Erreur");
+  return j;
+}
+function lsGet(k, d){ try { const v = localStorage.getItem(k); return v===null ? d : v; } catch(e){ return d; } }
+function lsSet(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
+
+const S = { connecte:false, prenom:"", docs:[], entites:{}, stats:{}, favoris:[], clients:[], taux:[], modes:{}, stripe:false,
+  onglet: lsGet("fac_onglet","encaisser"), entite: lsGet("fac_entite",""), q:"", doc:null, vue:null };
+
+const ONGLETS = [
+  ["encaisser","À encaisser", d => d.type==="facture" && d.statut==="emise"],
+  ["payees","Payées", d => d.type==="facture" && d.statut==="payee"],
+  ["devis","Devis", d => d.type==="devis" && d.statut!=="brouillon"],
+  ["brouillons","Brouillons", d => d.statut==="brouillon"],
+  ["tout","Tout", d => true],
+];
+
+async function charger(){
+  const j = await api("/facturation/api/tout");
+  Object.assign(S, {docs:j.documents, entites:j.entites, stats:j.stats, favoris:j.favoris, clients:j.clients,
+    taux:j.taux, modes:j.modes, stripe:j.stripe, prenom:j.prenom, aujourdhui:j.aujourdhui});
+}
+
+async function demarrer(){
+  try { const m = await (await fetch("/livraison/api/moi")).json(); S.connecte = !!m.ok; S.prenom = m.prenom||""; } catch(e){}
+  if (S.connecte) { try { await charger(); } catch(e){ toast(e.message,"rouge"); } }
+  rendre();
+  const p = new URLSearchParams(location.search).get("doc");
+  if (S.connecte && p) ouvrir(+p);
+}
+
+function rendre(){
+  if (!S.connecte) return rendreConnexion();
+  const nomEnt = c => (S.entites[c]||{}).nom || c;
+  const filtre = d => (!S.entite || d.entite===S.entite);
+  const tq = S.q.trim().toLowerCase();
+  const recherche = d => !tq || [d.client,d.numero,d.ile,d.telephone].join(" ").toLowerCase().includes(tq);
+  const ong = ONGLETS.find(o=>o[0]===S.onglet) || ONGLETS[0];
+  const liste = S.docs.filter(filtre).filter(ong[2]).filter(recherche);
+  const ents = Object.keys(S.entites);
+  const st = ents.filter(c=>!S.entite||c===S.entite).reduce((a,c)=>{ const x=S.stats[c]||{}; a.m+=x.encaisse_mois||0; a.e+=x.a_encaisser||0; a.n+=x.nb_a_encaisser||0; return a; }, {m:0,e:0,n:0});
+  $("#app").innerHTML = `
+  <header><div class="wrap">
+    <div class="logo">Devis & Factures<small>${esc(S.entite? nomEnt(S.entite) : "EI TUKEA IMPORT · 2KEA & Associé")}</small></div>
+    <a class="ib" href="/livraison" title="Livraison numérique">🚚<span class="ln"> Livraison</span></a>
+    <button class="ib" id="b-reg" title="Réglages">⚙️<span class="ln"> Réglages</span></button>
+    <button class="ib plein" id="b-nouv">＋<span class="ln"> Nouveau</span></button>
+  </div></header>
+  <div class="wrap">
+    <div class="rangee" role="group" aria-label="Entreprise">
+      <button class="onglet" data-ent="" aria-pressed="${!S.entite}">Les deux</button>
+      ${ents.map(c=>`<button class="onglet" data-ent="${c}" aria-pressed="${S.entite===c}">${esc(nomEnt(c))}</button>`).join("")}
+    </div>
+    <div class="stats">
+      <div class="stat"><small>Encaissé ce mois</small><b>${F(st.m)}</b><span>TTC, factures payées</span></div>
+      <div class="stat"><small>À encaisser</small><b>${F(st.e)}</b><span>${st.n} facture(s) en attente</span></div>
+    </div>
+    <div class="rangee" role="group" aria-label="Filtre">
+      ${ONGLETS.map(o=>`<button class="onglet" data-ong="${o[0]}" aria-pressed="${S.onglet===o[0]}">${o[1]} <b>${S.docs.filter(filtre).filter(o[2]).length}</b></button>`).join("")}
+    </div>
+    <input class="recherche" id="q" type="search" placeholder="Chercher un client, un numéro, une île…" value="${esc(S.q)}">
+    <div class="liste">${liste.length ? liste.map(carte).join("") :
+      `<div class="vide"><b>Rien ici pour l'instant</b>${S.onglet==="encaisser"?"Toutes les factures sont réglées. 🌺":"Touchez « ＋ Nouveau » pour faire un devis ou une facture."}</div>`}</div>
+  </div>
+  <div id="sheet"><div class="voile" id="voile"></div><div class="feuille" id="feuille" role="dialog" aria-modal="true"></div></div>`;
+  $("#b-nouv").onclick = nouveauChoix;
+  $("#b-reg").onclick = reglages;
+  document.querySelectorAll("[data-ent]").forEach(b=>b.onclick=()=>{ S.entite=b.dataset.ent; lsSet("fac_entite",S.entite); rendre(); });
+  document.querySelectorAll("[data-ong]").forEach(b=>b.onclick=()=>{ S.onglet=b.dataset.ong; lsSet("fac_onglet",S.onglet); rendre(); });
+  const q=$("#q"); q.oninput=()=>{ S.q=q.value; const pos=q.selectionStart; rendre(); const n=$("#q"); n.focus(); n.setSelectionRange(pos,pos); };
+  document.querySelectorAll("[data-doc]").forEach(b=>b.onclick=()=>ouvrir(+b.dataset.doc));
+  $("#voile").onclick = fermer;
+}
+
+function carte(d){
+  const nomEnt = (S.entites[d.entite]||{}).nom || d.entite;
+  const chip = d.en_retard ? `<span class="chip s-retard">En retard</span>` : `<span class="chip s-${d.statut}">${esc(d.libelle_statut)}</span>`;
+  return `<button class="doc" data-doc="${d.id}">
+    <div class="d-nom">${esc(d.client || "(client à saisir)")}</div><div class="d-mt">${F(d.total_ttc)}</div>
+    <div class="d-info"><span>${esc(d.libelle_type)} ${esc(d.numero||"brouillon")}</span><span>${esc(d.date_fr)}</span>${d.ile?`<span>${esc(d.ile)}</span>`:""}${S.entite?"":`<span>${esc(nomEnt)}</span>`}${d.livraison_id?`<span>🚚 en livraison</span>`:""}${d.vu_le && d.statut!=="payee"?`<span>👁 vu par le client</span>`:""}</div>${chip}
+  </button>`;
+}
+
+function rendreConnexion(){
+  $("#app").innerHTML = `<div class="wrap"><form class="connexion" id="fc">
+    <h1>Devis & Factures</h1><p>Le même code que la Livraison numérique.</p>
+    <div class="form">
+      <label class="ch">Ton prénom<input name="prenom" autocomplete="given-name" value="${esc(lsGet("liv_prenom",""))}" required></label>
+      <label class="ch">Code de l'équipe<input name="code" autocomplete="off" required></label>
+      <div class="err" id="err"></div>
+      <button class="gros">Entrer</button>
+    </div></form></div>`;
+  $("#fc").onsubmit = async e => {
+    e.preventDefault(); const f = new FormData(e.target);
+    try { await api("/livraison/api/connexion",{method:"POST",body:{prenom:f.get("prenom"),code:f.get("code")}});
+      lsSet("liv_prenom", f.get("prenom")); S.connecte=true; await charger(); rendre(); }
+    catch(er){ $("#err").textContent = er.message; }
+  };
+}
+
+/* ── feuille ─────────────────────────────────────────────── */
+function feuille(titre, html, droite=""){
+  $("#feuille").innerHTML = `<div class="f-tete"><h2>${titre}</h2>${droite}<button class="fermer" id="fx" aria-label="Fermer">×</button></div><div class="f-corps">${html}</div>`;
+  $("#sheet").classList.add("ouvert"); document.body.style.overflow="hidden"; $("#feuille").scrollTop=0;
+  $("#fx").onclick = fermer;
+}
+async function fermer(){
+  if (S.vue==="edit") await sauverMaintenant();
+  $("#sheet").classList.remove("ouvert"); document.body.style.overflow=""; S.doc=null; S.vue=null;
+  history.replaceState(null,"",location.pathname);
+  try { await charger(); } catch(e){}
+  rendre();
+}
+document.addEventListener("keydown", e => { if (e.key==="Escape" && $("#sheet.ouvert")) fermer(); });
+
+function nouveauChoix(){
+  const ents = Object.keys(S.entites);
+  const defEnt = S.entite || lsGet("fac_derniere_ent", ents[0]);
+  feuille("Nouveau", `
+    <div class="bloc"><h3>Pour quelle entreprise ?</h3>
+      <div class="form">${ents.map(c=>`<label class="case"><input type="radio" name="ent" value="${c}" ${c===defEnt?"checked":""}> ${esc(S.entites[c].nom)}</label>`).join("")}</div></div>
+    <div class="ligne2"><button class="gros bleu" data-t="devis">📝 Un devis</button><button class="gros" data-t="facture">🧾 Une facture</button></div>
+    <p class="note">Un brouillon n'a pas encore de numéro : il le reçoit quand tu l'émets. Les numéros se suivent ainsi sans trou.</p>`);
+  document.querySelectorAll("[data-t]").forEach(b=>b.onclick=async()=>{
+    const ent = (document.querySelector("input[name=ent]:checked")||{}).value;
+    lsSet("fac_derniere_ent", ent);
+    try { const j = await api("/facturation/api/documents",{method:"POST",body:{type:b.dataset.t, entite:ent, saisie:lsGet("fac_saisie","ttc")}});
+      S.docs.unshift(j.document); afficher(j.document); } catch(e){ toast(e.message,"rouge"); }
+  });
+}
+
+async function ouvrir(id){
+  try { const j = await api("/facturation/api/documents/"+id); afficher(j.document);
+    history.replaceState(null,"","?doc="+id); } catch(e){ toast(e.message,"rouge"); }
+}
+function afficher(d){ S.doc = d; if (d.statut==="brouillon") editer(); else voir(); }
+
+/* ── calcul (identique au serveur) ───────────────────────── */
+function calcul(lignes, saisie){
+  const pt = {};
+  lignes.forEach(l => { const t=+l.taux||0; const mt=Math.round((parseFloat(String(l.qte).replace(",","."))||0)*(Math.round(parseFloat(String(l.prix).replace(/\s/g,"").replace(",","."))||0))); pt[t]=(pt[t]||0)+mt; });
+  const v = Object.keys(pt).map(Number).sort((a,b)=>b-a).map(t => { const b=pt[t]; let ht,tva;
+    if (saisie==="ht"){ ht=b; tva=Math.round(b*t/100); } else { ht=Math.round(b/(1+t/100)); tva=b-ht; } return {taux:t,ht,tva,ttc:ht+tva}; });
+  return {ventilation:v, ht:v.reduce((a,x)=>a+x.ht,0), tva:v.reduce((a,x)=>a+x.tva,0), ttc:v.reduce((a,x)=>a+x.ttc,0)};
+}
+function blocTotaux(k){
+  return `<div class="totaux">
+    ${k.ventilation.map(v=>`<div><small>TVA ${v.taux} % sur ${F(v.ht)}</small><small>${F(v.tva)}</small></div>`).join("")}
+    <div><span>Total HT</span><b>${F(k.ht)}</b></div>
+    <div><span>Total TVA</span><b>${F(k.tva)}</b></div>
+    <div class="ttc"><span>Total TTC</span><span>${F(k.ttc)}</span></div></div>`;
+}
+
+/* ── édition d'un brouillon ──────────────────────────────── */
+let minuteur = null, enCours = null;
+function planifier(){ clearTimeout(minuteur); const s=$("#sauve"); if(s) s.textContent="…"; minuteur = setTimeout(sauverMaintenant, 700); }
+async function sauverMaintenant(){
+  clearTimeout(minuteur);
+  if (S.vue!=="edit" || !S.doc) return;
+  const d = S.doc, corps = {};
+  ["client","adresse","tahiti_client","telephone","email","ile","objet","date","echeance","conditions","notes","entite","saisie"].forEach(k=>corps[k]=d[k]??"");
+  corps.a_livrer = !!d.a_livrer;
+  corps.lignes = d.lignes.map(l=>({designation:l.designation, qte:l.qte, prix:l.prix, taux:l.taux}));
+  try { enCours = api("/facturation/api/documents/"+d.id,{method:"PATCH",body:corps}); const j = await enCours;
+    d.numero = j.document.numero; const s=$("#sauve"); if(s) s.textContent="✓ enregistré"; }
+  catch(e){ const s=$("#sauve"); if(s) s.textContent="⚠️ non enregistré"; }
+  finally { enCours=null; }
+}
+
+function editer(){
+  S.vue = "edit";
+  const d = S.doc;
+  if (!d.lignes.length) d.lignes.push({designation:"", qte:1, prix:"", taux: d.type==="devis"?16:16});
+  const ents = Object.keys(S.entites);
+  const titre = (d.type==="devis"?"📝 Devis":"🧾 Facture")+" — brouillon";
+  feuille(titre, `
+    <div class="bloc"><div class="deux">
+      <label class="ch">Entreprise<select id="e-entite">${ents.map(c=>`<option value="${c}" ${d.entite===c?"selected":""}>${esc(S.entites[c].nom)}</option>`).join("")}</select></label>
+      <label class="ch">Date<input type="date" id="e-date" value="${esc(d.date)}"></label>
+    </div>
+    <div class="deux" style="margin-top:10px">
+      <label class="ch">${d.type==="devis"?"Valable jusqu'au":"Échéance"}<input type="date" id="e-echeance" value="${esc(d.echeance||"")}"></label>
+      <label class="ch">Objet (facultatif)<input id="e-objet" value="${esc(d.objet||"")}" placeholder="ex. Lot de cartons — loto du 6 déc."></label>
+    </div></div>
+
+    <div class="bloc"><h3>Client</h3><div class="form">
+      <label class="ch">Nom du client ou de l'association<input id="e-client" list="dl-clients" value="${esc(d.client||"")}" autocomplete="off" placeholder="Tape les premières lettres…"></label>
+      <datalist id="dl-clients">${S.clients.map(c=>`<option value="${esc(c.client)}">${esc([c.ile,c.telephone].filter(Boolean).join(" · "))}</option>`).join("")}</datalist>
+      <div class="deux"><label class="ch">Téléphone<input id="e-telephone" inputmode="tel" value="${esc(d.telephone||"")}"></label>
+      <label class="ch">Email<input id="e-email" type="email" inputmode="email" value="${esc(d.email||"")}"></label></div>
+      <div class="deux"><label class="ch">Île<input id="e-ile" value="${esc(d.ile||"")}"></label>
+      <label class="ch">N° TAHITI du client<input id="e-tahiti_client" value="${esc(d.tahiti_client||"")}" placeholder="si professionnel"></label></div>
+      <label class="ch">Adresse<textarea id="e-adresse" rows="2">${esc(d.adresse||"")}</textarea></label>
+    </div></div>
+
+    <div class="bloc"><h3>Articles <span class="bascule" role="group" aria-label="Prix saisis">
+      <button data-s="ttc" aria-pressed="${d.saisie!=="ht"}">Prix TTC</button><button data-s="ht" aria-pressed="${d.saisie==="ht"}">Prix HT</button></span></h3>
+      <div class="lg-tete"><span class="h-des">Désignation</span><span>Qté</span><span>Prix ${d.saisie==="ht"?"HT":"TTC"}</span><span>TVA</span><span></span></div>
+      <div id="lignes"></div>
+      <datalist id="dl-art">${S.favoris.map(f=>`<option value="${esc(f.designation)}">${F(f.prix)} · ${f.taux} %</option>`).join("")}</datalist>
+      <button class="ajout" id="b-ajout">＋ Ajouter une ligne</button>
+      <div id="tot"></div>
+    </div>
+
+    <div class="bloc"><div class="form">
+      <label class="ch">Conditions (apparaissent sur le document)<textarea id="e-conditions" rows="2" placeholder="ex. Paiement à la commande · Retrait en boutique à Papeete">${esc(d.conditions||"")}</textarea></label>
+      <label class="ch">Note interne (jamais montrée au client)<textarea id="e-notes" rows="2">${esc(d.notes||"")}</textarea></label>
+      ${d.type==="facture"?`<label class="case"><input type="checkbox" id="e-livrer" ${d.a_livrer?"checked":""}> Une fois payée, l'envoyer toute seule dans « À préparer » (Livraison numérique)</label>`:""}
+    </div></div>
+
+    <div class="bloc"><div class="form">
+      <label class="case"><input type="checkbox" id="e-mail" ${d.email?"checked":""}> Envoyer aussi par email au client (PDF joint)</label>
+      <button class="gros ${d.type==="devis"?"bleu":""}" id="b-emettre">${d.type==="devis"?"📝 Émettre le devis":"🧾 Émettre la facture"}</button>
+      <div class="ligne2"><a class="leger" id="b-apercu" href="/facturation/api/documents/${d.id}/pdf" target="_blank" rel="noopener">👁 Aperçu PDF</a>
+      <button class="leger rouge" id="b-suppr">🗑 Supprimer</button></div>
+      <p class="note">Une fois émis, le document reçoit son numéro et ne se modifie plus (c'est la règle pour les factures). Pour corriger une facture émise : « Annuler par un avoir », puis « Dupliquer ».</p>
+    </div></div>`, `<span class="sauve" id="sauve">✓ enregistré</span>`);
+
+  const lier = (id, k, evt="input") => { const el=$("#"+id); if(!el) return; el.addEventListener(evt, ()=>{ d[k]=el.value; planifier(); }); };
+  ["client","telephone","email","ile","tahiti_client","adresse","objet","conditions","notes"].forEach(k=>lier("e-"+k,k));
+  lier("e-date","date","change"); lier("e-echeance","echeance","change"); lier("e-entite","entite","change");
+  $("#e-client").addEventListener("change", ()=>{
+    const c = S.clients.find(x=>x.client.toLowerCase()===$("#e-client").value.trim().toLowerCase()); if (!c) return;
+    ["telephone","email","ile","tahiti_client","adresse"].forEach(k=>{ if(!d[k] && c[k]){ d[k]=c[k]; $("#e-"+k).value=c[k]; } });
+    if (d.email) $("#e-mail").checked = true;
+    planifier();
+  });
+  const liv=$("#e-livrer"); if (liv) liv.onchange=()=>{ d.a_livrer = liv.checked?1:0; planifier(); };
+  document.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{ d.saisie=b.dataset.s; lsSet("fac_saisie",d.saisie); planifier(); editer(); });
+  $("#b-ajout").onclick=()=>{ const der=d.lignes[d.lignes.length-1]; d.lignes.push({designation:"",qte:1,prix:"",taux:der?der.taux:16}); dessinerLignes(true); };
+  $("#b-apercu").onclick = async e => { e.preventDefault(); const w = window.open("about:blank","_blank"); await sauverMaintenant(); if (w) w.location = "/facturation/api/documents/"+d.id+"/pdf?t="+Date.now(); };
+  $("#b-suppr").onclick = async ()=>{ const b=$("#b-suppr"); if (!b.dataset.ok){ b.dataset.ok=1; b.textContent="Touchez encore pour confirmer"; return; }
+    clearTimeout(minuteur); try { await api("/facturation/api/documents/"+d.id,{method:"DELETE"}); S.vue=null; toast("Brouillon supprimé"); fermer(); } catch(e){ toast(e.message,"rouge"); } };
+  $("#b-emettre").onclick = async ()=>{
+    await sauverMaintenant();
+    const b=$("#b-emettre"); b.disabled=true;
+    try { const j = await api("/facturation/api/documents/"+d.id+"/action",{method:"POST",body:{action:"emettre", email:$("#e-mail").checked}});
+      toast("📄 "+j.document.libelle_type+" "+j.document.numero+(j.document.type==="facture"?" émise":" émis")+(j.document.email_part?" · email en route":""),"vert");
+      S.doc=j.document; voir(); }
+    catch(e){ toast(e.message,"rouge"); b.disabled=false; }
+  };
+  dessinerLignes();
+}
+
+function dessinerLignes(focusDernier=false){
+  const d = S.doc, box = $("#lignes");
+  box.innerHTML = d.lignes.map((l,i)=>`<div class="lg" data-i="${i}">
+    <input class="cell des" list="dl-art" data-k="designation" placeholder="Désignation" value="${esc(l.designation)}" aria-label="Désignation">
+    <input class="cell" data-k="qte" inputmode="decimal" value="${esc(l.qte)}" aria-label="Quantité">
+    <input class="cell" data-k="prix" inputmode="numeric" value="${esc(l.prix)}" placeholder="0" aria-label="Prix">
+    <select class="cell" data-k="taux" aria-label="TVA">${S.taux.map(t=>`<option value="${t.taux}" ${+l.taux===t.taux?"selected":""}>${t.taux} %</option>`).join("")}</select>
+    <button class="x" data-x="${i}" aria-label="Retirer la ligne">×</button>
+    <div class="mt" data-mt="${i}"></div></div>`).join("");
+  box.querySelectorAll(".lg").forEach(row=>{
+    const i=+row.dataset.i;
+    row.querySelectorAll("[data-k]").forEach(el=>{
+      el.addEventListener(el.tagName==="SELECT"?"change":"input", ()=>{
+        d.lignes[i][el.dataset.k] = el.dataset.k==="taux" ? +el.value : el.value;
+        if (el.dataset.k==="designation"){
+          const f = S.favoris.find(x=>x.designation===el.value);
+          if (f && (d.lignes[i].prix==="" || d.lignes[i].prix==null)){ d.lignes[i].prix=f.prix; d.lignes[i].taux=f.taux;
+            row.querySelector("[data-k=prix]").value=f.prix; row.querySelector("[data-k=taux]").value=f.taux; }
+        }
+        majTotaux(); planifier();
+      });
+    });
+  });
+  box.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>{ d.lignes.splice(+b.dataset.x,1); if(!d.lignes.length) d.lignes.push({designation:"",qte:1,prix:"",taux:16}); dessinerLignes(); planifier(); });
+  majTotaux();
+  if (focusDernier){ const all = box.querySelectorAll("input.des"); all[all.length-1].focus(); }
+}
+function majTotaux(){
+  const d=S.doc;
+  d.lignes.forEach((l,i)=>{ const e=document.querySelector(`[data-mt="${i}"]`); if(!e) return;
+    const mt=Math.round((parseFloat(String(l.qte).replace(",","."))||0)*(Math.round(parseFloat(String(l.prix).replace(/\s/g,"").replace(",","."))||0)));
+    e.textContent = mt ? F(mt)+(d.saisie==="ht"?" HT":" TTC") : ""; });
+  $("#tot").innerHTML = blocTotaux(calcul(d.lignes, d.saisie||"ttc"));
+}
+
+/* ── document émis ───────────────────────────────────────── */
+function voir(){
+  S.vue = "voir";
+  const d = S.doc, k = d.calcul;
+  const wa = d.wa_client ? `https://wa.me/${d.wa_client}?text=${encodeURIComponent(d.message_wa)}` : `https://wa.me/?text=${encodeURIComponent(d.message_wa)}`;
+  let bandeau = "";
+  if (d.statut==="emise") bandeau = `<div class="bandeau att">À encaisser${d.echeance?` · échéance ${esc(d.echeance_fr)}`:""}<big>${F(k.ttc)}</big>${d.vu_le?`👁 Vu par le client le ${esc(d.vu_le)}`:""}</div>`;
+  else if (d.statut==="payee") bandeau = `<div class="bandeau ok">✅ Payée le ${esc(frDate(d.paye_le))} · ${esc(d.libelle_mode)}<big>${F(k.ttc)}</big>${d.livraison?`🚚 Livraison : ${esc(d.livraison.libelle)}`:""}</div>`;
+  else if (d.statut==="annulee") bandeau = `<div class="bandeau non">❌ Annulée${d.lie?` par l'avoir ${esc(d.lie.numero)}`:""}</div>`;
+  else if (d.statut==="envoye") bandeau = `<div class="bandeau bleu">Devis envoyé · en attente de réponse<big>${F(k.ttc)}</big>${d.vu_le?`👁 Vu par le client le ${esc(d.vu_le)}`:""}</div>`;
+  else if (d.statut==="accepte") bandeau = `<div class="bandeau ok">✅ Devis accepté${d.accepte_le?` le ${esc(d.accepte_le)}`:""}<big>${F(k.ttc)}</big></div>`;
+  else if (d.statut==="refuse") bandeau = `<div class="bandeau non">Devis refusé</div>`;
+  else if (d.statut==="facture") bandeau = `<div class="bandeau ok">➡️ Transformé en facture${d.lie&&d.lie.numero?` ${esc(d.lie.numero)}`:""}</div>`;
+  else if (d.statut==="emis") bandeau = `<div class="bandeau bleu">Avoir émis<big>${F(k.ttc)}</big></div>`;
+
+  let actions = "";
+  if (d.type==="facture" && d.statut==="emise") actions += `
+    <div class="bloc"><h3>Encaisser</h3><div class="form">
+      <div class="deux"><label class="ch">Mode<select id="p-mode">${Object.entries(S.modes).filter(([m])=>m!=="carte").map(([m,l])=>`<option value="${m}">${esc(l)}</option>`).join("")}</select></label>
+      <label class="ch">Payée le<input type="date" id="p-le" value="${esc(S.aujourdhui||"")}"></label></div>
+      <button class="gros vert" id="b-payee">💶 Marquer payée</button>
+      ${d.a_livrer?`<p class="note">Elle partira toute seule dans « À préparer » de la Livraison numérique.</p>`:""}
+      ${S.stripe?`<p class="note">💳 Le client peut aussi payer par carte depuis son lien : la facture passera payée toute seule.</p>`:""}
+    </div></div>`;
+  if (d.type==="devis" && ["envoye","accepte","refuse"].includes(d.statut)) actions += `
+    <div class="bloc"><div class="form">
+      <button class="gros" id="b-transf">➡️ Transformer en facture</button>
+      <div class="ligne2"><button class="leger" data-act="accepte">✅ Accepté</button><button class="leger" data-act="refuse">✗ Refusé</button></div>
+    </div></div>`;
+  if (d.type==="facture" && d.statut==="payee" && !d.livraison) actions += `<button class="gros bleu" data-act="livraison">🚚 Envoyer en préparation (Livraison)</button>`;
+  if (d.livraison) actions += `<a class="leger" href="/livraison">🚚 Voir la commande dans la Livraison numérique</a>`;
+
+  feuille(`${d.type==="devis"?"📝":d.type==="avoir"?"↩️":"🧾"} ${esc(d.libelle_type)} ${esc(d.numero||"")}`, `
+    ${bandeau}
+    <div class="bloc"><h3>Envoyer au client</h3><div class="form">
+      <a class="gros wa" href="${wa}" target="_blank" rel="noopener">WhatsApp — message tout prêt</a>
+      <div class="ligne2"><button class="leger" id="b-mail">✉️ Email ${d.email?"":"(pas d'email)"}</button><button class="leger" id="b-lien">🔗 Copier le lien</button></div>
+      <a class="leger" href="/facturation/api/documents/${d.id}/pdf" target="_blank" rel="noopener">📄 Ouvrir le PDF</a>
+    </div></div>
+    ${actions}
+    <div class="bloc"><h3>${esc(d.client)}</h3><dl class="infos">
+      <dt>Entreprise</dt><dd>${esc(d.vendeur.nom)}</dd>
+      <dt>Date</dt><dd>${esc(d.date_fr)}</dd>
+      ${d.telephone?`<dt>Téléphone</dt><dd>${esc(d.telephone)}</dd>`:""}
+      ${d.email?`<dt>Email</dt><dd>${esc(d.email)}</dd>`:""}
+      ${d.ile?`<dt>Île</dt><dd>${esc(d.ile)}</dd>`:""}
+      ${d.objet?`<dt>Objet</dt><dd>${esc(d.objet)}</dd>`:""}
+      ${d.origine&&d.origine.numero?`<dt>Origine</dt><dd>${esc(d.origine.type==="devis"?"Devis ":"Facture ")}${esc(d.origine.numero)}</dd>`:""}
+    </dl></div>
+    <div class="bloc"><h3>Articles</h3>
+      ${d.lignes.map(l=>`<div class="lect"><span>${esc(l.qte)} × ${esc(l.designation)}</span><b>${F(l.montant)}</b><small>${F(l.prix)} ${d.saisie==="ht"?"HT":"TTC"} · TVA ${l.taux} %</small></div>`).join("")}
+      ${blocTotaux(k)}
+    </div>
+    <div class="bloc"><h3>Note interne</h3><textarea class="cell" id="v-notes" rows="2" placeholder="Visible par l'équipe seulement">${esc(d.notes||"")}</textarea></div>
+    <div class="bloc"><div class="form">
+      <button class="leger" data-act="dupliquer">⧉ Dupliquer (nouveau brouillon)</button>
+      ${d.type==="facture"&&d.statut==="payee"?`<button class="leger" data-act="non_payee">↩️ Annuler le paiement</button>`:""}
+      ${d.type==="facture"&&["emise","payee"].includes(d.statut)?`<button class="leger rouge" id="b-avoir">Annuler par un avoir</button>`:""}
+    </div></div>
+    <div class="bloc"><h3>Historique</h3><div class="journal">${(d.journal||[]).map(j=>`<div>${esc(j.le)} · <b>${esc(j.qui)}</b> — ${esc(j.quoi)}</div>`).join("")}</div></div>
+  `);
+  const act = async (a, extra={}) => {
+    try { const j = await api("/facturation/api/documents/"+d.id+"/action",{method:"POST",body:{action:a,...extra}}); return j.document; }
+    catch(e){ toast(e.message,"rouge"); return null; }
+  };
+  const bp=$("#b-payee"); if (bp) bp.onclick = async ()=>{ bp.disabled=true; const n = await act("payee",{mode:$("#p-mode").value, le:$("#p-le").value});
+    if (n){ toast("💶 Payée"+(n.livraison?" · partie en préparation 🚚":""),"vert"); S.doc=n; voir(); } else bp.disabled=false; };
+  const bt=$("#b-transf"); if (bt) bt.onclick = async ()=>{ const n = await act("transformer"); if (n){ toast("Facture créée en brouillon — vérifie et émets-la","vert"); S.doc=n; editer(); } };
+  const ba=$("#b-avoir"); if (ba) ba.onclick = async ()=>{ if (!ba.dataset.ok){ ba.dataset.ok=1; ba.textContent="Touchez encore : un avoir annule cette facture"; return; }
+    const n = await act("avoir"); if (n){ toast("Avoir "+n.numero+" émis","vert"); S.doc=n; voir(); } };
+  document.querySelectorAll("[data-act]").forEach(b=>b.onclick = async ()=>{ const n = await act(b.dataset.act);
+    if (!n) return; S.doc=n; if (n.statut==="brouillon"){ toast("Copie créée"); editer(); } else { voir(); } });
+  $("#b-mail").onclick = async ()=>{ if (!d.email) return toast("Ajoute l'email du client (Dupliquer pour corriger un document émis)","rouge");
+    const n = await act("email"); if (n) toast("✉️ Email en route vers "+d.email,"vert"); };
+  $("#b-lien").onclick = async ()=>{ try { await navigator.clipboard.writeText(d.lien); toast("🔗 Lien copié"); } catch(e){ prompt("Lien du client :", d.lien); } };
+  const vn=$("#v-notes"); let tn=null; vn.oninput=()=>{ clearTimeout(tn); tn=setTimeout(()=>api("/facturation/api/documents/"+d.id,{method:"PATCH",body:{notes:vn.value}}).catch(()=>{}),700); };
+}
+
+/* ── réglages ────────────────────────────────────────────── */
+function reglages(){
+  S.vue="reglages";
+  const ents = Object.keys(S.entites);
+  const debutMois = (S.aujourdhui||"").slice(0,8)+"01";
+  feuille("⚙️ Réglages", `
+    ${ents.map(c=>{ const e=S.entites[c]; return `<div class="bloc" data-e="${c}"><h3>${esc(e.nom)}</h3><div class="form">
+      <label class="ch">Nom affiché<input data-f="nom" value="${esc(e.nom)}"></label>
+      <label class="ch">Adresse<textarea data-f="adresse" rows="2">${esc(e.adresse)}</textarea></label>
+      <div class="deux"><label class="ch">N° TAHITI<input data-f="tahiti" value="${esc(e.tahiti)}" placeholder="obligatoire sur les factures"></label>
+      <label class="ch">RCS<input data-f="rcs" value="${esc(e.rcs)}"></label></div>
+      <div class="deux"><label class="ch">Téléphone<input data-f="tel" value="${esc(e.tel)}"></label>
+      <label class="ch">Email<input data-f="email" value="${esc(e.email)}"></label></div>
+      <label class="ch">Coordonnées bancaires (pour les virements)<textarea data-f="banque" rows="2" placeholder="Banque · IBAN · BIC">${esc(e.banque)}</textarea></label>
+      <label class="ch">Petit mot en bas des documents<input data-f="pied" value="${esc(e.pied)}"></label>
+      <label class="ch">Couleur<input type="color" data-f="couleur" value="${esc(e.couleur||"#0f6b66")}" style="height:44px;padding:4px"></label>
+      <div><b style="font-size:13px;color:var(--muted)">Logo</b>${e.logo?`<img class="logo-ap" src="/facturation/logo/${c}?t=${Date.now()}" alt="Logo ${esc(e.nom)}">`:`<div class="note">Pas encore de logo</div>`}</div>
+      <div class="ligne2"><label class="leger" style="cursor:pointer">🖼 ${e.logo?"Changer":"Ajouter"} le logo<input type="file" accept="image/*" data-logo="${c}" hidden></label>
+      ${e.logo?`<button class="leger rouge" data-logosup="${c}">Retirer le logo</button>`:"<span></span>"}</div>
+      <button class="gros" data-sauve="${c}">Enregistrer</button>
+      ${!e.tahiti?`<p class="note" style="color:var(--att)">⚠️ Pense à remplir le N° TAHITI : c'est une mention obligatoire des factures (DICP).</p>`:""}
+    </div></div>`; }).join("")}
+    <div class="bloc"><h3>Pour la comptable</h3><div class="form">
+      <div class="deux"><label class="ch">Du<input type="date" id="x-de" value="${esc(debutMois)}"></label><label class="ch">Au<input type="date" id="x-a" value="${esc(S.aujourdhui||"")}"></label></div>
+      <label class="ch">Entreprise<select id="x-ent"><option value="">Les deux</option>${ents.map(c=>`<option value="${c}">${esc(S.entites[c].nom)}</option>`).join("")}</select></label>
+      <button class="gros" id="b-export">⬇️ Journal des ventes (Excel)</button>
+      <p class="note">Une ligne par facture et par avoir, avec le HT et la TVA à 16 %, 13 %, 5 % et 0 %.</p>
+    </div></div>`);
+  document.querySelectorAll("[data-sauve]").forEach(b=>b.onclick=async()=>{
+    const c=b.dataset.sauve, box=document.querySelector(`[data-e="${c}"]`), corps={code:c};
+    box.querySelectorAll("[data-f]").forEach(el=>corps[el.dataset.f]=el.value);
+    try { const j=await api("/facturation/api/entites",{method:"POST",body:corps}); S.entites=j.entites; toast("✓ "+S.entites[c].nom+" enregistrée","vert"); reglages(); } catch(e){ toast(e.message,"rouge"); }
+  });
+  document.querySelectorAll("[data-logo]").forEach(inp=>inp.onchange=async()=>{
+    if (!inp.files[0]) return; const fd=new FormData(); fd.append("logo",inp.files[0]);
+    try { const j=await api(`/facturation/api/entites/${inp.dataset.logo}/logo`,{method:"POST",body:fd}); S.entites=j.entites; toast("🖼 Logo ajouté","vert"); reglages(); } catch(e){ toast(e.message,"rouge"); }
+  });
+  document.querySelectorAll("[data-logosup]").forEach(b=>b.onclick=async()=>{
+    try { const j=await api(`/facturation/api/entites/${b.dataset.logosup}/logo`,{method:"DELETE"}); S.entites=j.entites; reglages(); } catch(e){ toast(e.message,"rouge"); }
+  });
+  $("#b-export").onclick=()=>{ location.href=`/facturation/api/export.csv?de=${$("#x-de").value}&a=${$("#x-a").value}&entite=${$("#x-ent").value}`; };
+}
+
+demarrer();
+</script>
+{% endraw %}
+</body>
+</html>
