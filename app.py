@@ -7451,6 +7451,26 @@ except Exception as _e_noel:
     print("[JEU IGNORE] NOËL saute au demarrage (fichier manquant/illisible) : %r" % _e_noel)
 
 
+# ═════════════════════════════════════════════════════════════════════
+# 🎰 22/11 — CASINO (maquette de Maeva) : 8 cartes / feuille A4 paysage
+#    jetons B 1-15 · N 31-45 · O 61-75 / I 16-30 · G 46-60 -> crieur 1 à 75
+#    ⚠️ slug « casino_bingo » : « …_casino » est déjà pris par les variantes
+#       casino de SUN, POW, WIN, BNO, NGO, ING.
+# ═════════════════════════════════════════════════════════════════════
+try:
+    from generators import casino_bingo   # 🎰 création 2KEA (CASINO)
+    JEUX_PROPRIETAIRE["casino_bingo"] = "2kea_papeete"
+    _ECO_VALIDES_21_11.add("casino_bingo")   # fond déjà en gris uni
+    JEUX_AVEC_IMAGE.add("casino_bingo")
+    _enregistrer_paire("casino_bingo", "CASINO · 5 jetons", "\U0001f3b0", 8, casino_bingo.generer_pdf)
+    _PLAGES_CALLER["casino_bingo"] = (1, 75)
+    _BOULES_CALLER["casino_bingo"] = [n for n in range(1, 76)]
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[2KEA] CASINO inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_casino:
+    print("[JEU IGNORE] CASINO saute au demarrage (fichier manquant/illisible) : %r" % _e_casino)
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # 🎁 GÉNÉRATEUR DE RAMES PANACHÉES (sceau Maeva 24/10)
 #    Un bouton par rame déjà composée. Chaque rame = 1 feuille de COUVERTURE
