@@ -7508,6 +7508,24 @@ except Exception as _e_tpow:
     print("[JEU IGNORE] TRIPLE POWER saute au demarrage (fichier manquant/illisible) : %r" % _e_tpow)
 
 
+# ═════════════════════════════════════════════════════════════════════
+# 🔋 22/11 — TRIPLE I NI'A (maquette de Maeva) : 10 tickets / feuille A4 portrait
+#    batteries de 3 numéros, plages de TRIPLE ACTION 75 -> crieur 1 à 75
+# ═════════════════════════════════════════════════════════════════════
+try:
+    from generators import triple_inia   # 🔋 création 2KEA (TRIPLE I NI'A)
+    JEUX_PROPRIETAIRE["triple_inia"] = "2kea_papeete"
+    _ECO_VALIDES_21_11.add("triple_inia")   # fond déjà en gris uni
+    JEUX_AVEC_IMAGE.add("triple_inia")
+    _enregistrer_paire("triple_inia", "TRIPLE I NI'A 75", "\U0001f50b", 10, triple_inia.generer_pdf, kwarg_nb="nb_tickets")
+    _PLAGES_CALLER["triple_inia"] = (1, 75)
+    _BOULES_CALLER["triple_inia"] = [n for n in range(1, 76)]
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[2KEA] TRIPLE I NI'A inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_tinia:
+    print("[JEU IGNORE] TRIPLE I NI'A saute au demarrage (fichier manquant/illisible) : %r" % _e_tinia)
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # 🎁 GÉNÉRATEUR DE RAMES PANACHÉES (sceau Maeva 24/10)
 #    Un bouton par rame déjà composée. Chaque rame = 1 feuille de COUVERTURE
