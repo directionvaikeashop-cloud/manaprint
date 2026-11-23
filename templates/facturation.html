@@ -331,7 +331,7 @@ function editer(){
       <div class="lg-tete"><span class="h-des">Désignation</span><span>Qté</span><span>Prix ${d.saisie==="ht"?"HT":"TTC"}</span><span>TVA</span><span></span></div>
       <div id="lignes"></div>
       <datalist id="dl-art">${S.favoris.map(f=>`<option value="${esc(f.designation)}">${F(f.prix)} · ${f.taux} %</option>`).join("")}</datalist>
-      <button class="ajout" id="b-ajout">＋ Ajouter une ligne</button>
+      <div class="ligne2" style="margin-top:8px"><button class="ajout" id="b-cat" style="margin-top:0;background:#fff4e0;border-color:#b26a00;color:#8a5a00">🛒 Article du catalogue</button><button class="ajout" id="b-ajout" style="margin-top:0">＋ Ligne libre</button></div>
       <div id="tot"></div>
     </div>
 
@@ -360,6 +360,7 @@ function editer(){
   });
   const liv=$("#e-livrer"); if (liv) liv.onchange=()=>{ d.a_livrer = liv.checked?1:0; planifier(); };
   document.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{ d.saisie=b.dataset.s; lsSet("fac_saisie",d.saisie); planifier(); editer(); });
+  $("#b-cat").onclick=()=>choisirArticle(d);
   $("#b-ajout").onclick=()=>{ const der=d.lignes[d.lignes.length-1]; d.lignes.push({designation:"",qte:1,prix:"",taux:der?der.taux:16}); dessinerLignes(true); };
   $("#b-apercu").onclick = async e => { e.preventDefault(); const w = window.open("about:blank","_blank"); await sauverMaintenant(); if (w) w.location = "/facturation/api/documents/"+d.id+"/pdf?t="+Date.now(); };
   $("#b-suppr").onclick = async ()=>{ const b=$("#b-suppr"); if (!b.dataset.ok){ b.dataset.ok=1; b.textContent="Touchez encore pour confirmer"; return; }
@@ -408,6 +409,54 @@ function majTotaux(){
     const mt=Math.round((parseFloat(String(l.qte).replace(",","."))||0)*(Math.round(parseFloat(String(l.prix).replace(/\s/g,"").replace(",","."))||0)));
     e.textContent = mt ? F(mt)+(d.saisie==="ht"?" HT":" TTC") : ""; });
   $("#tot").innerHTML = blocTotaux(calcul(d.lignes, d.saisie||"ttc"));
+}
+
+/* ── 🛒 articles du catalogue de la boutique ─────────────── */
+let CAT = null;
+async function choisirArticle(d){
+  const box = document.createElement("div");
+  box.style.cssText="position:fixed;inset:0;z-index:70;background:rgba(5,25,23,.55);display:flex;align-items:flex-end;justify-content:center";
+  box.innerHTML = `<div style="background:var(--sable);width:min(720px,100%);max-height:92vh;border-radius:20px 20px 0 0;display:flex;flex-direction:column;overflow:hidden">
+    <div class="f-tete"><h2>🛒 Article du catalogue</h2><button class="fermer" id="ca-x" aria-label="Fermer">×</button></div>
+    <div style="padding:12px 16px;display:grid;gap:8px;background:var(--papier);border-bottom:1px solid var(--ligne)">
+      <div class="bascule" role="group" aria-label="Tarif" id="ca-tarif" style="align-self:start"><button data-t="m" aria-pressed="true">⭐ Membre</button><button data-t="nm" aria-pressed="false">Non-membre</button><button data-t="pro" aria-pressed="false">💼 Pro</button></div>
+      <input class="recherche" id="ca-q" placeholder="Chercher un jeu, un tampon…" style="margin:0">
+    </div>
+    <div id="ca-liste" style="overflow:auto;padding:10px 16px 20px;display:flex;flex-direction:column;gap:8px"><div class="note">Chargement du catalogue…</div></div></div>`;
+  document.body.appendChild(box);
+  const fermerCat=()=>box.remove();
+  box.querySelector("#ca-x").onclick=fermerCat; box.onclick=e=>{ if(e.target===box) fermerCat(); };
+  let tarif = lsGet("fac_tarif","m");
+  const majTarif=()=>box.querySelectorAll("[data-t]").forEach(b=>b.setAttribute("aria-pressed", b.dataset.t===tarif));
+  box.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{ tarif=b.dataset.t; lsSet("fac_tarif",tarif); majTarif(); dessiner(); });
+  majTarif();
+  try { if (!CAT) CAT = await api("/facturation/api/catalogue"); }
+  catch(e){ box.querySelector("#ca-liste").innerHTML = `<div class="bandeau non">${esc(e.message)}</div>`; return; }
+  const ttc2prix = ttc => d.saisie==="ht" ? Math.round(ttc/1.16) : ttc;      // jeux et tampons : 16 %
+  const ajouterL = (designation, prixTTC) => {
+    const vide = d.lignes.findIndex(l=>!String(l.designation||"").trim() && !l.prix);
+    const ligne = {designation, qte:1, prix:ttc2prix(prixTTC), taux:16};
+    if (vide>=0) d.lignes[vide]=ligne; else d.lignes.push(ligne);
+    dessinerLignes(); planifier(); toast("＋ "+designation);
+  };
+  function dessiner(){
+    const q = box.querySelector("#ca-q").value.trim().toLowerCase();
+    const pro = CAT.pro || {};
+    const L = CAT.produits.filter(p=>!q || p.nom.toLowerCase().includes(q));
+    box.querySelector("#ca-liste").innerHTML = (tarif==="pro" ? `<div class="bandeau" style="background:#efe7fb;color:#4a2a7a">💼 Carton de 1 500 feuilles à ${F(pro.prix)} · prix pro à partir du ${esc((pro.debut||"").split("-").reverse().join("/"))}</div>` : "")
+     + (L.length ? L.map((p,i)=>{
+      let b="";
+      if (p.article) b = (p.options.length ? p.options : [""]).map(o=>`<button class="leger" style="width:auto;padding:9px 12px" data-a="${esc(p.nom+(o?" — "+o:""))}" data-p="${p.prix}">${esc(o||"Ajouter")} · ${F(p.prix)}</button>`).join("");
+      else if (tarif==="pro") b = `<button class="leger" style="width:auto;padding:9px 12px" data-a="${esc(p.nom+" — carton 1 500 feuilles (PRO)")}" data-p="${pro.prix}">💼 Carton 1 500 f. · ${F(pro.prix)}</button>`;
+      else { const p25 = tarif==="m"?p.m25:p.nm25, p500 = tarif==="m"?p.m500:p.nm500;
+        b = (p25?`<button class="leger" style="width:auto;padding:9px 12px" data-a="${esc(p.nom+" — paquet de 25 feuilles")}" data-p="${p25}">25 f. · ${F(p25)}</button>`:"")
+          + (p500?`<button class="leger" style="width:auto;padding:9px 12px" data-a="${esc(p.nom+" — rame de 500 feuilles")}" data-p="${p500}">500 f. · ${F(p500)}</button>`:""); }
+      return `<div class="bloc" style="padding:10px 12px"><b>${p.article?"🖊️":"🎱"} ${esc(p.nom)}</b><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${b}</div></div>`;
+    }).join("") : `<div class="note">Rien trouvé.</div>`);
+    box.querySelectorAll("[data-a]").forEach(x=>x.onclick=()=>ajouterL(x.dataset.a, +x.dataset.p));
+  }
+  box.querySelector("#ca-q").oninput=dessiner;
+  dessiner();
 }
 
 /* ── document émis ───────────────────────────────────────── */
