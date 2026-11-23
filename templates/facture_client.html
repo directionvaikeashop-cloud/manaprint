@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f6b66">
+<meta name="robots" content="noindex">
+<title>Votre document · Chez TUKEA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{--c:#0f6b66;--sable:#f6f3ec;--papier:#fff;--fg:#14211f;--muted:#5b6b68;--ligne:#dde4e2;--ok:#2e7d32;--ok-c:#e6f4e7;--att:#b26a00;--att-c:#fff4e0;--non:#c62828;--non-c:#fdecea;
+--display:"Sora",system-ui,sans-serif;--text:"Inter",system-ui,sans-serif;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--sable);color:var(--fg);font:15px/1.5 var(--text)}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px 60px}
+.haut{background:var(--c);color:#fff;padding:28px 0 64px}
+.haut .wrap{padding-bottom:0}
+.haut img{max-height:54px;max-width:180px;background:#fff;border-radius:10px;padding:6px;display:block;margin-bottom:12px}
+.haut small{letter-spacing:.14em;text-transform:uppercase;font-weight:600;font-size:12px;opacity:.85}
+.haut h1{font:800 28px/1.15 var(--display);margin:6px 0 2px}
+.haut p{margin:0;opacity:.9}
+.carte{background:var(--papier);border:1px solid var(--ligne);border-radius:18px;padding:18px;margin-top:-44px;box-shadow:0 10px 30px rgba(10,40,38,.08)}
+.carte+.carte{margin-top:14px}
+.montant{text-align:center;padding:6px 0 14px}
+.montant small{color:var(--muted);font-weight:600}
+.montant b{display:block;font:800 40px/1.1 var(--display);font-variant-numeric:tabular-nums;margin-top:4px}
+.etat{display:block;text-align:center;border-radius:12px;padding:10px;font-weight:700;margin-bottom:12px}
+.etat.ok{background:var(--ok-c);color:var(--ok)}.etat.att{background:var(--att-c);color:var(--att)}.etat.non{background:var(--non-c);color:var(--non)}
+.bt{display:block;width:100%;border:0;border-radius:14px;padding:16px;font:700 17px var(--display);background:var(--c);color:#fff;text-align:center;text-decoration:none;cursor:pointer;margin-top:10px}
+.bt.vert{background:var(--ok)}.bt.leger{background:var(--papier);color:var(--fg);border:1px solid var(--ligne);font:600 15px var(--text)}
+.bt.wa{background:#25d366;color:#073b1c}
+.bt:disabled{opacity:.6}
+.l{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:10px 0;border-top:1px solid var(--ligne)}
+.l:first-child{border-top:0}
+.l b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.l small{grid-column:1/-1;color:var(--muted)}
+.tot{display:grid;gap:4px;margin-top:10px;font-variant-numeric:tabular-nums}
+.tot div{display:flex;justify-content:space-between}
+.tot .g{font:800 19px var(--display);border-top:2px solid var(--fg);padding-top:8px;margin-top:4px}
+h2{font:700 16px var(--display);margin:0 0 8px;color:var(--c)}
+.mini{font-size:13px;color:var(--muted)}
+.merci{background:var(--ok);color:#fff;border-radius:16px;padding:18px;text-align:center;margin-bottom:14px}
+.merci b{display:block;font:800 22px var(--display)}
+.infos{font-size:14px;color:var(--muted)}
+.infos b{color:var(--fg)}
+.vide{text-align:center;padding:80px 16px;color:var(--muted)}
+.vide b{display:block;font:800 22px var(--display);color:var(--fg);margin-bottom:8px}
+:focus-visible{outline:2px solid #e0533d;outline-offset:2px}
+</style>
+</head>
+<body>
+{% if introuvable %}
+<div class="vide"><b>Document introuvable</b>Ce lien n'est plus valable. Contactez-nous au 89 22 23 05.</div>
+{% else %}
+<div id="app"><div class="vide">Chargement…</div></div>
+{% raw %}
+<script>
+const CODE = location.pathname.split("/")[2];
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const F = n => { n = Math.round(Number(n)||0); return (n<0?"-":"") + Math.abs(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " F"; };
+const frDate = d => d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d.split("-").reverse().join("/") : (d||"");
+const merci = new URLSearchParams(location.search).get("merci");
+
+async function charger(){
+  const r = await fetch(`/f/${CODE}/donnees`, {cache:"no-store"});
+  const j = await r.json();
+  if (!j.ok) { $("#app").innerHTML = `<div class="vide"><b>Document introuvable</b></div>`; return; }
+  rendre(j.document, j.document.wa_boutique);
+}
+
+function rendre(d, waB){
+  const v = d.vendeur, k = d.calcul;
+  document.documentElement.style.setProperty("--c", v.couleur || "#0f6b66");
+  document.title = `${d.libelle_type} ${d.numero} · ${v.nom}`;
+  let etat = "";
+  if (d.statut==="payee") etat = `<span class="etat ok">✅ Payée le ${esc(frDate(d.paye_le))} — merci !</span>`;
+  else if (d.statut==="emise") etat = `<span class="etat att">À régler${d.echeance?` avant le ${esc(d.echeance_fr)}`:""}</span>`;
+  else if (d.statut==="accepte" || d.statut==="facture") etat = `<span class="etat ok">✅ Devis accepté — merci !</span>`;
+  else if (d.statut==="refuse") etat = `<span class="etat non">Devis refusé</span>`;
+  else if (d.statut==="annulee") etat = `<span class="etat non">Cette facture a été annulée</span>`;
+  else if (d.statut==="envoye") etat = `<span class="etat att">Devis valable${d.echeance?` jusqu'au ${esc(d.echeance_fr)}`:""}</span>`;
+  $("#app").innerHTML = `
+  <div class="haut"><div class="wrap">
+    ${v.logo?`<img src="/facturation/logo/${esc(v.code)}" alt="${esc(v.nom)}">`:""}
+    <small>${esc(v.nom)}</small>
+    <h1>Ia ora na ${esc(d.client)} 🌺</h1>
+    <p>${esc(d.libelle_type)} n° ${esc(d.numero)} · ${esc(d.date_fr)}</p>
+  </div></div>
+  <div class="wrap">
+    <div class="carte">
+      ${merci && d.statut==="payee" ? `<div class="merci"><b>Paiement reçu ✅</b>Māuruuru ! Votre commande part en préparation.</div>` : ""}
+      ${merci && d.statut==="emise" ? `<div class="etat att">Paiement en cours de confirmation… la page se met à jour toute seule.</div>` : ""}
+      <div class="montant"><small>Total TTC</small><b>${F(k.ttc)}</b></div>
+      ${etat}
+      ${d.peut_payer?`<button class="bt" id="b-payer">💳 Payer par carte</button><p class="mini" style="text-align:center">Paiement sécurisé par Stripe.</p>`:""}
+      ${d.peut_accepter?`<button class="bt vert" id="b-acc">✅ J'accepte ce devis</button>`:""}
+      <a class="bt leger" href="/f/${CODE}/pdf" target="_blank" rel="noopener">📄 Voir le PDF</a>
+      <a class="bt leger" href="/f/${CODE}/pdf?dl=1">⬇️ Télécharger</a>
+    </div>
+    <div class="carte">
+      <h2>Détail</h2>
+      ${d.objet?`<p class="infos"><b>${esc(d.objet)}</b></p>`:""}
+      ${d.lignes.map(l=>`<div class="l"><span>${esc(l.qte)} × ${esc(l.designation)}</span><b>${F(l.montant)}</b><small>${F(l.prix)} ${d.saisie==="ht"?"HT":"TTC"} l'unité · TVA ${l.taux} %</small></div>`).join("")}
+      <div class="tot">
+        <div><span>Total HT</span><span>${F(k.ht)}</span></div>
+        ${k.ventilation.map(x=>`<div class="mini"><span>TVA ${x.taux} %</span><span>${F(x.tva)}</span></div>`).join("")}
+        <div class="g"><span>Total TTC</span><span>${F(k.ttc)}</span></div>
+      </div>
+      ${d.conditions?`<p class="mini">${esc(d.conditions)}</p>`:""}
+      ${d.type==="facture" && d.statut==="emise" && v.banque?`<p class="mini"><b>Par virement :</b><br>${esc(v.banque).replace(/\n/g,"<br>")}</p>`:""}
+    </div>
+    <div class="carte">
+      <h2>Une question ?</h2>
+      <p class="infos"><b>${esc(v.nom)}</b><br>${esc(v.adresse)}${v.tahiti?`<br>N° TAHITI ${esc(v.tahiti)}`:""}</p>
+      ${waB?`<a class="bt wa" href="https://wa.me/${waB}?text=${encodeURIComponent("Ia ora na, au sujet de "+d.libelle_type.toLowerCase()+" "+d.numero)}" target="_blank" rel="noopener">WhatsApp</a>`:""}
+      ${v.tel?`<a class="bt leger" href="tel:${esc(v.tel.replace(/\s/g,""))}">📞 ${esc(v.tel)}</a>`:""}
+    </div>
+  </div>`;
+  const bp = $("#b-payer");
+  if (bp) bp.onclick = async () => {
+    bp.disabled = true; bp.textContent = "Ouverture du paiement…";
+    try { const r = await fetch(`/f/${CODE}/payer`, {method:"POST"}); const j = await r.json();
+      if (j.ok && j.url) location.href = j.url; else { bp.disabled=false; bp.textContent="💳 Payer par carte"; alert(j.message || "Réessayez"); } }
+    catch(e){ bp.disabled=false; bp.textContent="💳 Payer par carte"; }
+  };
+  const ba = $("#b-acc");
+  if (ba) ba.onclick = async () => {
+    if (!ba.dataset.ok){ ba.dataset.ok=1; ba.textContent="Touchez encore pour confirmer ✅"; return; }
+    ba.disabled = true;
+    const r = await fetch(`/f/${CODE}/accepter`, {method:"POST"}); const j = await r.json();
+    if (j.ok) charger(); else { ba.disabled=false; alert(j.message||"Réessayez"); }
+  };
+  if (merci && d.statut==="emise") setTimeout(charger, 4000);
+}
+charger();
+</script>
+{% endraw %}
+{% endif %}
+</body>
+</html>
