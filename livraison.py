@@ -384,7 +384,7 @@ def api_creer():
              (d.get("origine") or "main")[:20], "recue", _maintenant(), _qui(), _maintenant()))
         lid = cur.lastrowid
         if not (d.get("ref") or "").strip():
-            c.execute("UPDATE livraisons SET ref=? WHERE id=?", ("TK-%04d" % lid, lid))
+            c.execute("UPDATE livraisons SET ref=? WHERE id=?", ("LV-%04d" % lid, lid))
         for i, (q, n) in enumerate(articles):
             c.execute("INSERT INTO livraison_articles (livraison_id, ordre, qte, designation) VALUES (?,?,?,?)",
                       (lid, i, q, n))
@@ -584,6 +584,71 @@ def api_flux():
 @_equipe_requise
 def photo_equipe(pid):
     return _servir_photo(pid, None)
+
+
+# ── 🛒 22/11 : les commandes PAYÉES de cheztukea.app arrivent toutes seules ──
+# La boutique appelle cette adresse avec la clé secrète partagée
+# (variable MANAPRINT_IMPORT_CLE, la même sur les 2 projets Railway).
+CLE_IMPORT = os.environ.get("MANAPRINT_IMPORT_CLE", "").strip()
+MODES_RETRAIT = {"retrait": "Retrait en boutique", "coursier": "Coursier du client"}
+PAIEMENTS = {"carte": "💳 Carte (en ligne)", "especes": "💵 Espèces", "virement": "🏦 Virement"}
+
+
+@bp.route("/livraison/api/import", methods=["POST"])
+def api_import():
+    cle = (request.headers.get("X-Cle-Boutique") or "").strip()
+    if not CLE_IMPORT or not secrets.compare_digest(cle, CLE_IMPORT):
+        return jsonify({"ok": False, "message": "clé refusée"}), 403
+    d = request.get_json(force=True, silent=True) or {}
+    ref = (str(d.get("ref") or "")).strip()[:40]
+    client = (str(d.get("client") or "")).strip()[:80]
+    arts = []
+    for a in (d.get("articles") or [])[:200]:
+        try:
+            q = str(int(a.get("qte") or 1))
+        except Exception:
+            q = "1"
+        nom = (str(a.get("designation") or "")).strip()[:160]
+        if nom:
+            arts.append((q, nom))
+    if not ref or not client or not arts:
+        return jsonify({"ok": False, "message": "commande incomplète"}), 400
+    with _db() as c:
+        deja = c.execute("SELECT id, code FROM livraisons WHERE ref=? AND origine='boutique'", (ref,)).fetchone()
+        if deja:
+            lien = _dossier(c, deja["id"])["lien"]
+            return jsonify({"ok": True, "deja": True, "lien": lien})
+        notes = []
+        if d.get("mode"):
+            notes.append(MODES_RETRAIT.get(d["mode"], str(d["mode"])))
+        if d.get("adresse"):
+            notes.append("Adresse : " + str(d["adresse"])[:200])
+        pai = PAIEMENTS.get(d.get("paiement") or "carte", str(d.get("paiement") or ""))
+        try:
+            reste = int(d.get("reste") or 0)
+        except Exception:
+            reste = 0
+        notes.append("%s — payée%s" % (pai, (" (acompte) · reste %s F au retrait" % "{:,}".format(reste).replace(",", " ")) if reste > 0 else ""))
+        if d.get("note"):
+            notes.append("Note du client : " + str(d["note"])[:300])
+        code = secrets.token_urlsafe(6).replace("-", "x").replace("_", "y")
+        now = _maintenant()
+        cur = c.execute(
+            "INSERT INTO livraisons (code, ref, client, telephone, email, ile, notes, origine,"
+            " statut, cree_le, cree_par, maj_le) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (code, ref, client, (str(d.get("telephone") or "")).strip()[:30],
+             (str(d.get("email") or "")).strip()[:120], (str(d.get("ile") or "")).strip()[:60],
+             " · ".join(notes)[:600], "boutique", "recue", now, "cheztukea.app", now))
+        lid = cur.lastrowid
+        for i, (q, n) in enumerate(arts):
+            c.execute("INSERT INTO livraison_articles (livraison_id, ordre, qte, designation) VALUES (?,?,?,?)",
+                      (lid, i, q, n))
+        c.execute("INSERT INTO livraison_journal (livraison_id, le, qui, quoi, type) VALUES (?,?,?,?,?)",
+                  (lid, now, "cheztukea.app", "🛒 Commande %s payée sur la boutique — arrivée toute seule (%d articles)"
+                   % (ref, len(arts)), "creation"))
+        c.execute("UPDATE livraisons SET maj_le=? WHERE id=?", (now, lid))
+        lien = _dossier(c, lid, hote="manaprint.app")["lien"]
+    return jsonify({"ok": True, "lien": lien})
 
 
 # ── API client (lien public par code) ─────────────────────────────────────
