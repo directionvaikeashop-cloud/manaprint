@@ -4124,6 +4124,19 @@ def webhook_stripe():
             panier_id = int(sess["metadata"]["panier_id"])
         except Exception:
             panier_id = 0
+        # 🧾 22/11 : paiement d'une FACTURE (outil devis & facturation)
+        try:
+            _fac_code = sess["metadata"]["facture_code"]
+        except Exception:
+            _fac_code = ""
+        if _fac_code and not panier_id:
+            try:
+                import facturation as _fac
+                _fac.paiement_stripe_confirme(_fac_code, sess["id"])
+                print(f"[STRIPE WEBHOOK] facture {_fac_code} payée")
+            except Exception as _e_fac:
+                print(f"[STRIPE WEBHOOK] facture {_fac_code} : {_e_fac!r}")
+            return jsonify({"ok": True})
         if panier_id:
             cmds = db.marquer_panier_payee(panier_id)
             if cmds is None:
@@ -8659,3 +8672,17 @@ try:
     print("[LIVRAISON] espace équipe /livraison et suivi client /suivi prêts")
 except Exception as _e_liv:
     print("[LIVRAISON] non chargé :", repr(_e_liv))
+
+
+# ══ 🧾 DEVIS & FACTURATION (22/11, idée de Maeva) ═════════════════════
+# Notre propre outil à la place de Zervant : EI TUKEA IMPORT + 2KEA & Associé,
+# TVA Polynésie, numéros qui se suivent, PDF, email, paiement par carte.
+# Une facture PAYÉE part toute seule dans « À préparer » de la Livraison.
+#   équipe  -> manaprint.app/facturation   (même code que /livraison)
+#   client  -> manaprint.app/f/<code>
+try:
+    import facturation as _facturation
+    app.register_blueprint(_facturation.bp)
+    print("[FACTURATION] devis & factures /facturation et lien client /f prêts")
+except Exception as _e_fac:
+    print("[FACTURATION] non chargé :", repr(_e_fac))
