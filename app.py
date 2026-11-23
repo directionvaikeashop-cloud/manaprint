@@ -7471,6 +7471,24 @@ except Exception as _e_casino:
     print("[JEU IGNORE] CASINO saute au demarrage (fichier manquant/illisible) : %r" % _e_casino)
 
 
+# ═════════════════════════════════════════════════════════════════════
+# 🂡 22/11 — L'AS DES AS (maquette de Maeva) : 10 tickets / feuille A4 portrait
+#    4 cartes : 1-15 · 16-30 · 31-45 · 46-75  -> crieur 1 à 75
+# ═════════════════════════════════════════════════════════════════════
+try:
+    from generators import as_des_as   # 🂡 création 2KEA (L'AS DES AS)
+    JEUX_PROPRIETAIRE["as_des_as"] = "2kea_papeete"
+    _ECO_VALIDES_21_11.add("as_des_as")      # fond déjà en gris uni
+    JEUX_AVEC_IMAGE.add("as_des_as")
+    _enregistrer_paire("as_des_as", "L'AS DES AS · 4 boules", "\U0001f0a1", 10, as_des_as.generer_pdf)
+    _PLAGES_CALLER["as_des_as"] = (1, 75)
+    _BOULES_CALLER["as_des_as"] = [n for n in range(1, 76)]
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[2KEA] L'AS DES AS inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_asdesas:
+    print("[JEU IGNORE] L'AS DES AS saute au demarrage (fichier manquant/illisible) : %r" % _e_asdesas)
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # 🎁 GÉNÉRATEUR DE RAMES PANACHÉES (sceau Maeva 24/10)
 #    Un bouton par rame déjà composée. Chaque rame = 1 feuille de COUVERTURE
