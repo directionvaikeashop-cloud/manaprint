@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0f6b66">
-<title>Devis & Factures · Équipe</title>
+<title>MANA DEVIS · Équipe</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
 <style>
@@ -174,7 +174,7 @@ function rendre(){
   const st = ents.filter(c=>!S.entite||c===S.entite).reduce((a,c)=>{ const x=S.stats[c]||{}; a.m+=x.encaisse_mois||0; a.e+=x.a_encaisser||0; a.n+=x.nb_a_encaisser||0; return a; }, {m:0,e:0,n:0});
   $("#app").innerHTML = `
   <header><div class="wrap">
-    <div class="logo">Devis & Factures<small>${esc(S.entite? nomEnt(S.entite) : "EI TUKEA IMPORT · 2KEA & Associé")}</small></div>
+    <div class="logo">MANA DEVIS<small>${esc(S.entite? nomEnt(S.entite) : "EI TUKEA IMPORT · 2KEA & Associé")}</small></div>
     <a class="ib" href="/livraison" title="Livraison numérique">🚚<span class="ln"> Livraison</span></a>
     <button class="ib" id="b-reg" title="Réglages">⚙️<span class="ln"> Réglages</span></button>
     <button class="ib plein" id="b-nouv">＋<span class="ln"> Nouveau</span></button>
@@ -216,7 +216,7 @@ function carte(d){
 
 function rendreConnexion(){
   $("#app").innerHTML = `<div class="wrap"><form class="connexion" id="fc">
-    <h1>Devis & Factures</h1><p>Le même code que la Livraison numérique.</p>
+    <h1>MANA DEVIS</h1><p>Devis & factures · le même code que la Livraison numérique.</p>
     <div class="form">
       <label class="ch">Ton prénom<input name="prenom" autocomplete="given-name" value="${esc(lsGet("liv_prenom",""))}" required></label>
       <label class="ch">Code de l'équipe<input name="code" autocomplete="off" required></label>
@@ -428,7 +428,7 @@ function voir(){
   let actions = "";
   if (d.type==="facture" && d.statut==="emise") actions += `
     <div class="bloc"><h3>Encaisser</h3><div class="form">
-      <div class="deux"><label class="ch">Mode<select id="p-mode">${Object.entries(S.modes).filter(([m])=>m!=="carte").map(([m,l])=>`<option value="${m}">${esc(l)}</option>`).join("")}</select></label>
+      <div class="deux"><label class="ch">Mode<select id="p-mode">${["especes","virement","tpe","cheque","autre"].filter(m=>S.modes[m]).map(m=>`<option value="${m}">${esc(S.modes[m])}</option>`).join("")}</select></label>
       <label class="ch">Payée le<input type="date" id="p-le" value="${esc(S.aujourdhui||"")}"></label></div>
       <button class="gros vert" id="b-payee">💶 Marquer payée</button>
       ${d.a_livrer?`<p class="note">Elle partira toute seule dans « À préparer » de la Livraison numérique.</p>`:""}
