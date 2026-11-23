@@ -7432,6 +7432,25 @@ try:
 except Exception as _e_triplex:
     print("[JEU IGNORE] TRIPLE X saute au demarrage (fichier manquant/illisible) : %r" % _e_triplex)
 
+# ═════════════════════════════════════════════════════════════════════
+# 🎄 22/11 — NOËL (maquette de Maeva) : 8 cartes / feuille A4 paysage
+#    bulles B 1-15 · I 16-30 · N 31-45 · G 46-60 · O 61-75
+#    + le LOSANGE en haut 76-90  -> crieur 1 à 90
+# ═════════════════════════════════════════════════════════════════════
+try:
+    from generators import noel   # 🎄 création 2KEA (NOËL)
+    JEUX_PROPRIETAIRE["noel"] = "2kea_papeete"
+    _ECO_VALIDES_21_11.add("noel")      # fond déjà en gris uni : pas d'éclaircissement ÉCO
+    JEUX_AVEC_IMAGE.add("noel")
+    _enregistrer_paire("noel", "NOËL · 6 boules", "\U0001f384", 8, noel.generer_pdf)
+    _PLAGES_CALLER["noel"] = (1, 90)
+    _BOULES_CALLER["noel"] = [n for n in range(1, 91)]
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[2KEA] NOËL inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_noel:
+    print("[JEU IGNORE] NOËL saute au demarrage (fichier manquant/illisible) : %r" % _e_noel)
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # 🎁 GÉNÉRATEUR DE RAMES PANACHÉES (sceau Maeva 24/10)
 #    Un bouton par rame déjà composée. Chaque rame = 1 feuille de COUVERTURE
