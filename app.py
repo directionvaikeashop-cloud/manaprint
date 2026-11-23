@@ -7489,6 +7489,25 @@ except Exception as _e_asdesas:
     print("[JEU IGNORE] L'AS DES AS saute au demarrage (fichier manquant/illisible) : %r" % _e_asdesas)
 
 
+# ═════════════════════════════════════════════════════════════════════
+# ⚡ 22/11 — TRIPLE POWER (maquette de Maeva) : 10 tickets / feuille A4 portrait
+#    règle de TRIPLE ACTION 75 : B 1-15 · I 16-30 · G 46-60 · O 61-75,
+#    3 numéros par ligne -> crieur 1-30 et 46-75 (pas de N)
+# ═════════════════════════════════════════════════════════════════════
+try:
+    from generators import triple_power   # ⚡ création 2KEA (TRIPLE POWER)
+    JEUX_PROPRIETAIRE["triple_power"] = "2kea_papeete"
+    _ECO_VALIDES_21_11.add("triple_power")   # fond déjà en gris uni
+    JEUX_AVEC_IMAGE.add("triple_power")
+    _enregistrer_paire("triple_power", "TRIPLE POWER 75", "\u26a1", 10, triple_power.generer_pdf, kwarg_nb="nb_tickets")
+    _PLAGES_CALLER["triple_power"] = (1, 75)
+    _BOULES_CALLER["triple_power"] = [n for n in range(1, 31)] + [n for n in range(46, 76)]
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[2KEA] TRIPLE POWER inscrit — %d jeux au catalogue" % len(REGISTRE_JEUX))
+except Exception as _e_tpow:
+    print("[JEU IGNORE] TRIPLE POWER saute au demarrage (fichier manquant/illisible) : %r" % _e_tpow)
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # 🎁 GÉNÉRATEUR DE RAMES PANACHÉES (sceau Maeva 24/10)
 #    Un bouton par rame déjà composée. Chaque rame = 1 feuille de COUVERTURE
