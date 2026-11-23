@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""MANAPRINT — DEVIS & FACTURATION (22/11/2026, idée de Maeva : « et si on
+"""MANA DEVIS — DEVIS & FACTURATION (22/11/2026, idée de Maeva : « et si on
 créait nous-mêmes notre outil de devis et facturation »).
 
 Remplace Zervant, et se branche sur la LIVRAISON NUMÉRIQUE :
@@ -762,6 +762,7 @@ def _envoyer_email(did, qui, hote):
 <div style="font-size:30px;font-weight:bold;color:#0a4a47;text-align:center;margin:10px 0">%s</div>
 <p style="text-align:center;margin:22px 0"><a href="%s" style="background:%s;color:#fff;text-decoration:none;font-weight:bold;padding:14px 26px;border-radius:12px;display:inline-block">%s</a></p>
 <p style="font-size:13px;color:#5b6b68">Le PDF est joint à cet email. Une question ? Répondez simplement, ou appelez-nous au %s.</p>
+<p style="font-size:11px;color:#9aa6a3;text-align:center;margin-top:18px">Envoyé avec MANA DEVIS</p>
 </td></tr></table></td></tr></table></body></html>""" % (
                     _h.escape(v.get("couleur") or "#0f6b66"), _h.escape(v["nom"]), _h.escape(prenom),
                     _h.escape(d["libelle_type"]), _h.escape(d["numero"] or ""), phrase,
@@ -937,6 +938,37 @@ def api_tout():
     return jsonify({"ok": True, "documents": docs, "entites": ent, "stats": stats, "favoris": favoris,
                     "clients": clients, "taux": [{"taux": t, "libelle": LIB_TAUX[t]} for t in TAUX_TVA],
                     "modes": MODES, "stripe": bool(_cle_stripe()), "prenom": _qui(), "aujourdhui": _aujourdhui()})
+
+
+# ── 🛒 catalogue de la boutique (jeux, tampons, prix membre / non-membre / pro) ──
+_CATALOGUE = {"le": None, "data": None}
+
+
+@bp.route("/facturation/api/catalogue")
+@_equipe_requise
+def api_catalogue():
+    """Articles et prix de cheztukea.app (caisse), lus avec la clé partagée MANAPRINT_IMPORT_CLE.
+    Gardés 5 minutes en mémoire."""
+    import time
+    import urllib.request
+    if _CATALOGUE["data"] and time.time() - _CATALOGUE["le"] < 300 and not request.args.get("frais"):
+        return jsonify(_CATALOGUE["data"])
+    cle = os.environ.get("MANAPRINT_IMPORT_CLE", "").strip()
+    url = os.environ.get("CHEZTUKEA_CATALOGUE_URL", "").strip() or "https://cheztukea.app/api/catalogue-prive"
+    if not cle:
+        return jsonify({"ok": False, "message": "Clé MANAPRINT_IMPORT_CLE absente sur Railway"}), 400
+    try:
+        req = urllib.request.Request(url, headers={"X-Cle-Boutique": cle, "User-Agent": "MANADEVIS/1.0"})
+        with urllib.request.urlopen(req, timeout=20) as rep:
+            data = json.loads(rep.read().decode("utf-8"))
+    except Exception as e:
+        if _CATALOGUE["data"]:
+            return jsonify(_CATALOGUE["data"])
+        return jsonify({"ok": False, "message": "Catalogue de la boutique injoignable : %s" % str(e)[:120]}), 502
+    if not data.get("ok"):
+        return jsonify({"ok": False, "message": data.get("erreur") or "refusé"}), 502
+    _CATALOGUE.update(le=time.time(), data=data)
+    return jsonify(data)
 
 
 @bp.route("/facturation/api/documents", methods=["POST"])
