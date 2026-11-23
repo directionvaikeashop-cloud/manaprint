@@ -8551,3 +8551,17 @@ _enregistrer_paire("jeu6", "6", "\U00000036\U0000fe0f\U000020e3", 15, jeu6gen.ge
 CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
 print("[6] nouveau jeu · crieur %s (B.I.N.G.O + 76-90) · 15 cartons/feuille · %d jeux"
       % (_PLAGES_CALLER["jeu6"], len(REGISTRE_JEUX)))
+
+
+# ══ 🚚 LIVRAISON NUMÉRIQUE (22/11, idée de Maeva) ══════════════════════
+# Préparation des commandes (je valide / je ne valide pas), notification
+# « commande préparée », photos du bateau envoyées au client par un lien.
+# Tout le code est dans livraison.py + templates/livraison_*.html :
+#   équipe  -> manaprint.app/livraison
+#   client  -> manaprint.app/suivi/<code>
+try:
+    import livraison as _livraison
+    app.register_blueprint(_livraison.bp)
+    print("[LIVRAISON] espace équipe /livraison et suivi client /suivi prêts")
+except Exception as _e_liv:
+    print("[LIVRAISON] non chargé :", repr(_e_liv))
