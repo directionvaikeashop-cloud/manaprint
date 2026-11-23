@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f6b66">
+<title>Suivi de commande · Chez TUKEA</title>
+<meta property="og:title" content="Votre commande Chez TUKEA">
+<meta property="og:description" content="Suivez la préparation et l'envoi de votre commande, avec les photos du bateau.">
+<meta property="og:image" content="/static/catalogue_couverture.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root{--lagon:#0f6b66;--lagon-f:#0a4a47;--lagon-c:#e3f1ef;--corail:#e0533d;--sable:#f6f3ec;--fg:#14211f;--muted:#5b6b68;--ligne:#e3e7e5;--ok:#2e7d32;--non:#c62828;--bat:#1e63c8;
+--display:"Sora",system-ui,sans-serif;--text:"Inter",system-ui,sans-serif;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--sable);color:var(--fg);font:16px/1.5 var(--text)}
+.hero{background:radial-gradient(120% 90% at 85% 0%,#1e8a83 0%,#0f6b66 45%,#0a4a47 100%);color:#fff;padding:calc(env(safe-area-inset-top) + 26px) 20px 70px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;left:-10%;right:-10%;bottom:-40px;height:90px;background:var(--sable);border-radius:50% 50% 0 0/100% 100% 0 0}
+.hero .in{max-width:640px;margin:0 auto;position:relative;z-index:1}
+.marque{font:600 12px var(--text);letter-spacing:.16em;text-transform:uppercase;opacity:.85}
+.hero h1{font:800 clamp(28px,7vw,40px)/1.05 var(--display);margin:10px 0 6px}
+.hero p{margin:0;opacity:.9}
+.vague{position:absolute;right:-20px;top:20px;font-size:90px;opacity:.12;transform:rotate(-8deg)}
+main{max-width:640px;margin:-46px auto 0;padding:0 16px calc(40px + env(safe-area-inset-bottom));position:relative;z-index:2;display:flex;flex-direction:column;gap:14px}
+.carte{background:#fff;border-radius:18px;padding:18px;box-shadow:0 6px 24px rgba(10,74,71,.08);border:1px solid var(--ligne)}
+.statut{display:flex;align-items:center;gap:14px}
+.pastille{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-size:28px;background:var(--lagon-c);flex:none}
+.statut h2{font:800 22px var(--display);margin:0}
+.statut small{color:var(--muted)}
+.frise{list-style:none;margin:18px 0 0;padding:0;position:relative}
+.frise li{display:flex;gap:12px;padding:0 0 18px 0;position:relative}
+.frise li:last-child{padding-bottom:0}
+.frise li::before{content:"";position:absolute;left:13px;top:28px;bottom:0;width:2px;background:var(--ligne)}
+.frise li:last-child::before{display:none}
+.frise .pt{width:28px;height:28px;border-radius:50%;border:2px solid var(--ligne);background:#fff;flex:none;display:grid;place-items:center;font-size:14px;color:#fff;position:relative;z-index:1}
+.frise li.fait .pt{background:var(--lagon);border-color:var(--lagon)}
+.frise li.fait::before{background:var(--lagon)}
+.frise li.encours .pt{border-color:var(--lagon);box-shadow:0 0 0 6px rgba(15,107,102,.15);animation:pouls 1.8s infinite}
+@keyframes pouls{50%{box-shadow:0 0 0 10px rgba(15,107,102,.05)}}
+.frise b{display:block;font-weight:700}
+.frise span{font-size:13px;color:var(--muted)}
+.frise li:not(.fait):not(.encours) b{color:#9aa7a4}
+h3{font:700 17px var(--display);margin:0 0 10px;color:var(--lagon-f)}
+.art{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--ligne)}
+.art:first-of-type{border-top:0}
+.art .q{font:700 14px var(--display);background:var(--lagon-c);color:var(--lagon-f);border-radius:8px;min-width:34px;text-align:center;padding:3px 6px}
+.art .n{flex:1;font-weight:600}
+.art .n small{display:block;font-weight:500;color:var(--non);font-size:13px}
+.art .e{font-size:18px}
+.art.non .n{color:#8a9592}.art.non .n .nm{text-decoration:line-through}
+.galerie{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.galerie button{padding:0;border:0;border-radius:12px;overflow:hidden;aspect-ratio:4/3;background:#dfe6e4;cursor:zoom-in}
+.galerie button:first-child{grid-column:1/-1;aspect-ratio:16/10}
+.galerie img{width:100%;height:100%;object-fit:cover;display:block}
+.bateau{display:flex;gap:12px;align-items:center;background:#e7effb;color:var(--bat);border-radius:12px;padding:12px;font-weight:600;margin-bottom:12px}
+.bateau span{font-size:26px}
+.contact{display:block;text-align:center;text-decoration:none;background:#25d366;color:#073b1c;font:700 16px var(--display);border-radius:14px;padding:15px}
+.pied{text-align:center;color:var(--muted);font-size:13px}
+.pied a{color:var(--lagon)}
+dialog{border:0;padding:0;background:transparent;max-width:96vw;max-height:92vh}
+dialog::backdrop{background:rgba(3,20,19,.9)}
+dialog img{max-width:96vw;max-height:86vh;border-radius:10px;display:block}
+dialog button{position:fixed;top:calc(env(safe-area-inset-top) + 12px);right:12px;border:0;border-radius:999px;width:44px;height:44px;font-size:24px;background:#fff}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:50;overflow:hidden}
+.confetti i{position:absolute;top:-12px;width:9px;height:14px;border-radius:2px;animation:tombe 2.6s ease-in forwards}
+@keyframes tombe{to{transform:translateY(110vh) rotate(540deg);opacity:.6}}
+@media (prefers-reduced-motion:reduce){.confetti{display:none}.frise li.encours .pt{animation:none}}
+.introuvable{max-width:520px;margin:20vh auto;text-align:center;padding:20px}
+:focus-visible{outline:2px solid var(--corail);outline-offset:2px}
+</style>
+</head>
+<body>
+{% if introuvable %}
+<div class="introuvable"><div style="font-size:50px">🌊</div><h1 style="font-family:Sora,sans-serif">Lien introuvable</h1><p>Ce lien de suivi n'existe pas ou a été mal copié. Appelez Chez TUKEA au 89 22 23 05.</p></div>
+{% else %}
+<header class="hero"><div class="in"><div class="vague">🌺</div>
+  <div class="marque">Chez TUKEA · 2KEA &amp; Associé</div>
+  <h1 id="titre">Votre commande</h1>
+  <p id="sous">Chargement…</p>
+</div></header>
+<main id="main"></main>
+<dialog id="boite"><button type="button" id="bf" aria-label="Fermer">×</button><img id="bimg" alt=""></dialog>
+<script>window.SUIVI_CODE = "{{ code }}";</script>
+{% raw %}
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ICONES = {recue:'🧾', preparation:'🧺', preparee:'✅', bateau:'🚢', livree:'🏝️'};
+const DETAIL = {recue:'Nous avons bien reçu votre commande.', preparation:'Notre équipe prépare vos articles.', preparee:'Tout est prêt et emballé.', bateau:'Vos colis sont chargés au bateau.', livree:'Votre commande est arrivée.'};
+let dernierStatut = null;
+function confettis() {
+  const box = document.createElement('div'); box.className = 'confetti';
+  const cols = ['#0f6b66','#e0533d','#f5b700','#2e7d32','#1e63c8','#e91e63'];
+  for (let i = 0; i < 70; i++) { const p = document.createElement('i'); p.style.left = Math.random()*100 + 'vw'; p.style.background = cols[i % cols.length]; p.style.animationDelay = (Math.random()*0.8) + 's'; box.appendChild(p); }
+  document.body.appendChild(box); setTimeout(() => box.remove(), 3800);
+}
+async function charger() {
+  let d;
+  try { const r = await fetch('/suivi/' + encodeURIComponent(window.SUIVI_CODE) + '/donnees', {cache:'no-store'}); d = await r.json(); } catch(e) { return; }
+  if (!d.ok) return;
+  const c = d.commande;
+  const idx = c.statuts.findIndex(s => s.cle === c.statut);
+  $('#titre').textContent = 'Ia ora na ' + ((c.client || '').split(' ')[0] || '') + ' 🌺';
+  $('#sous').textContent = 'Commande ' + (c.ref || '') + (c.ile ? ' · pour ' + c.ile : '');
+  const dates = {recue: c.cree_le, preparee: c.prepare_le, bateau: c.bateau_le, livree: c.livre_le};
+  const frise = c.statuts.map((s, i) => {
+    const cls = i < idx ? 'fait' : i === idx ? (s.cle === 'livree' ? 'fait' : 'fait encours') : '';
+    const sous = i <= idx && dates[s.cle] ? esc(dates[s.cle]) : (i === idx + 1 ? 'Prochaine étape' : '');
+    return `<li class="${cls}"><div class="pt">${i <= idx ? '✓' : ''}</div><div><b>${esc(s.libelle)}</b><span>${sous}</span></div></li>`;
+  }).join('');
+  const ok = c.articles.filter(a => a.etat === 'ok').length, non = c.articles.filter(a => a.etat === 'non').length;
+  const photos = c.photos || [];
+  $('#main').innerHTML = `
+    <section class="carte"><div class="statut"><div class="pastille">${ICONES[c.statut] || '📦'}</div>
+      <div><h2>${esc(c.libelle)}</h2><small>${esc(DETAIL[c.statut] || '')}</small></div></div>
+      <ol class="frise">${frise}</ol></section>
+    ${photos.length || c.statut === 'bateau' || c.statut === 'livree' ? `<section class="carte"><h3>📸 Au bateau</h3>
+      ${c.bateau || c.depart ? `<div class="bateau"><span>🚢</span><div>${esc(c.bateau || 'Bateau')}${c.depart ? '<br><small style="font-weight:500">Départ : ' + esc(c.depart) + '</small>' : ''}</div></div>` : ''}
+      ${photos.length ? `<div class="galerie">${photos.map(p => `<button type="button" data-src="/suivi/${encodeURIComponent(window.SUIVI_CODE)}/photo/${p.id}"><img loading="lazy" src="/suivi/${encodeURIComponent(window.SUIVI_CODE)}/photo/${p.id}" alt="Photo du chargement de votre commande"></button>`).join('')}</div>
+        <p style="color:var(--muted);font-size:13px;margin:10px 0 0">Photos prises par notre équipe au dépôt de vos colis.</p>` : '<p style="color:var(--muted);margin:0">Les photos arrivent bientôt.</p>'}
+    </section>` : (c.bateau || c.depart ? `<section class="carte"><div class="bateau" style="margin:0"><span>🚢</span><div>Envoi prévu${c.bateau ? ' par le ' + esc(c.bateau) : ''}${c.depart ? '<br><small style="font-weight:500">Départ : ' + esc(c.depart) + '</small>' : ''}</div></div></section>` : '')}
+    <section class="carte"><h3>🧺 Vos articles <span style="font:600 13px Inter,sans-serif;color:var(--muted)">${ok ? ok + ' prêt(s)' : ''}${non ? ' · ' + non + ' indisponible(s)' : ''}</span></h3>
+      ${c.articles.map(a => `<div class="art ${a.etat}"><span class="q">${esc(a.qte)}</span><span class="n"><span class="nm">${esc(a.designation)}</span>${a.etat === 'non' ? `<small>Indisponible${a.motif ? ' · ' + esc(a.motif) : ''}</small>` : ''}</span><span class="e">${a.etat === 'ok' ? '✅' : a.etat === 'non' ? '⚠️' : '⏳'}</span></div>`).join('')}
+    </section>
+    <a class="contact" target="_blank" rel="noopener" href="https://wa.me/${esc(c.wa_boutique)}?text=${encodeURIComponent('Ia ora na, je vous contacte pour ma commande ' + (c.ref || '') + '.')}">💬 Une question ? Écrivez-nous</a>
+    <p class="pied">Chez TUKEA · 2KEA &amp; Associé · <a href="tel:${esc(c.tel_boutique)}">${esc(c.tel_boutique)}</a><br>Cette page se met à jour toute seule.<br><a href="/static/catalogue.html">Voir notre catalogue</a></p>`;
+  document.querySelectorAll('[data-src]').forEach(b => b.onclick = () => { $('#bimg').src = b.dataset.src; $('#boite').showModal(); });
+  const cle = 'suivi_vu_' + window.SUIVI_CODE;
+  let vu = null; try { vu = localStorage.getItem(cle); } catch(e) {}
+  if ((c.statut === 'preparee' || c.statut === 'bateau' || c.statut === 'livree') && vu !== c.statut && dernierStatut !== c.statut) confettis();
+  try { localStorage.setItem(cle, c.statut); } catch(e) {}
+  dernierStatut = c.statut;
+}
+$('#bf').onclick = () => $('#boite').close();
+$('#boite').addEventListener('click', e => { if (e.target.id === 'boite') e.target.close(); });
+charger(); setInterval(() => { if (!document.hidden) charger(); }, 30000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) charger(); });
+</script>
+{% endraw %}
+{% endif %}
+</body>
+</html>
