@@ -1,112 +1,99 @@
 # -*- coding: utf-8 -*-
-"""MANAPRINT — MIEL · 6 boules (création TUKEA / 2KEA & Associé), maquette Maeva 08/11/2026.
-8 cartons / feuille A4 PORTRAIT (grille 2 colonnes x 4 rangées).
-Chaque carton = « TUKEA », le 89 22 23 05, 6 POTS DE MIEL où l'on pose un
-numéro chacun (+ le pot « MIEL » et les abeilles en décor).
-Plages B I G O (sceau Maeva 08/11), lues par COLONNE de gauche à droite :
-   colonne gauche (haut + bas)  -> B  1-15 (le plus petit en haut)
+"""MANAPRINT — MIEL · 6 boules (création TUKEA / 2KEA & Associé).
+NOUVELLE MAQUETTE de Maeva (24/11/2026, « miel_12_A4 ») reprise TELLE QUELLE :
+12 billets / feuille A4 PAYSAGE (3 colonnes x 4 rangées), traits de coupe en pointillés.
+Chaque billet : N° de série, TUKEA entre deux fleurs de lys, ☎ 89 22 23 05,
+6 pots de miel (un numéro par pot), bol de miel + abeilles en bas.
+Plages B I G O (inchangées), la lettre posée sur le couvercle de chaque pot (24/11), lues par COLONNE de gauche à droite :
+   pots de gauche (haut + bas)  -> B  1-15 (le plus petit en haut)
    pot milieu gauche            -> I 16-30
    pot milieu droit             -> G 46-60
-   colonne droite (haut + bas)  -> O 61-75 (le plus petit en haut)
+   pots de droite (haut + bas)  -> O 61-75 (le plus petit en haut)
    -> crieur 1 à 75 SANS le N (31-45).
-La maquette (carton complet) est reprise TELLE QUELLE comme image de fond,
-répétée 8 fois ; on ajoute seulement les 6 chiffres et le numéro de série
-(discret, dans le coin haut gauche resté vide)."""
+Le tout est réduit pour garder 6 mm de marge d'impression (Konica / Sharp)."""
 import io, os as _os, random
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import landscape, A4
 from reportlab.lib import colors
-from reportlab.pdfbase.pdfmetrics import stringWidth
 
-PAGE_W, PAGE_H = A4
-CARTES_PAGE = 8
-COLS_PAGE, ROWS_PAGE = 2, 4
-POLICE = "Helvetica-Bold"
-NOIR = colors.Color(0.10, 0.10, 0.10)
+PAGE_W, PAGE_H = landscape(A4)
+COLS, RANGS = 3, 4
+CARTES_PAGE = COLS * RANGS                # 12
+CELL_W, CELL_H = 280.6299, 148.8189
+NOIR = colors.black
+POLICE_NUM, T_NUM = "Helvetica-Bold", 26  # comme la maquette (gras 26 pt, les chiffres prennent la place du pot)
 RAINBOW = ["#E53935", "#FB8C00", "#F9A825", "#43A047", "#00ACC1",
            "#1E88E5", "#3949AB", "#8E24AA", "#D81B60", "#6D4C41"]
 
-# carton-modèle (537 x 360 px)
-_IMG_W, _IMG_H = 537.0, 360.0
-# ventre blanc de chaque pot (x0, y0, x1, y1) en px
-_POT_HG = (40, 77, 148, 153)
-_POT_BG = (40, 260, 151, 340)
-_POT_MG = (121, 155, 236, 236)
-_POT_MD = (303, 156, 419, 237)
-_POT_HD = (390, 76, 501, 153)
-_POT_BD = (386, 259, 500, 339)
-# (pots de haut en bas, plage) — dans une colonne de 2, le plus petit en haut
-COLONNES = [
-    ([_POT_HG, _POT_BG], (1, 15)),    # B
-    ([_POT_MG], (16, 30)),            # I
-    ([_POT_MD], (46, 60)),            # G
-    ([_POT_HD, _POT_BD], (61, 75)),   # O
+_ICI = _os.path.dirname(_os.path.abspath(__file__))
+_IMG = {k: _os.path.join(_ICI, "miel_v2_%s.png" % k) for k in ("pot", "lys", "bol")}
+
+_POLICE_TEL = "Helvetica"
+try:      # ☎ de la maquette (police DejaVu déjà présente dans generators/)
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    pdfmetrics.registerFont(TTFont("DJV_TEL", _os.path.join(_ICI, "DejaVuSans-Bold.ttf")))
+    _POLICE_TEL = "DJV_TEL"
+except Exception:
+    pass
+
+_POT_W, _POT_H = 51.02362, 48.18898
+_HG, _HD = (9.92126, 87.02362), (219.685, 87.02362)
+_MG, _MD = (63.77953, 51.30709), (165.8268, 51.30709)
+_BG, _BD = (9.92126, 4.535433), (219.685, 4.535433)
+COLONNES = [               # (pots, plage, lettre affichée sur le couvercle — 24/11, comme le CARBASS)
+    ([_HG, _BG], (1, 15), "B"),
+    ([_MG], (16, 30), "I"),
+    ([_MD], (46, 60), "G"),
+    ([_HD, _BD], (61, 75), "O"),
 ]
-_VENTRE_Y = 0.54          # centre du chiffre, en part de la hauteur du ventre
-# n° de série, coin haut gauche (x gauche, ligne de base) en px
-_SERIE_X, _SERIE_BASE = 24.0, 36.0
 
-# grille 2 x 4, bloc centré (même méthode que ARCHER / BRIQUET)
-_MARGE = 12
-_GAP_X = 8
-_GAP_Y = 6
-_avail_w = PAGE_W - 2 * _MARGE
-_avail_h = PAGE_H - 2 * _MARGE
-_cw_w = (_avail_w - _GAP_X) / 2.0
-_ch_w = _cw_w * (_IMG_H / _IMG_W)
-if 4 * _ch_w + 3 * _GAP_Y <= _avail_h:
-    _CW, _CH = _cw_w, _ch_w
-else:
-    _CH = (_avail_h - 3 * _GAP_Y) / 4.0
-    _CW = _CH * (_IMG_W / _IMG_H)
-_BLOC_W = 2 * _CW + _GAP_X
-_BLOC_H = 4 * _CH + 3 * _GAP_Y
-_X0 = (PAGE_W - _BLOC_W) / 2.0
-_YTOP = (PAGE_H - _BLOC_H) / 2.0
-_SCALE = _CW / _IMG_W
+MARGE_SURE = 6 * 72 / 25.4
+ECHELLE = min((PAGE_W - 2 * MARGE_SURE) / PAGE_W, (PAGE_H - 2 * MARGE_SURE) / PAGE_H)
+DECAL_X = (PAGE_W - PAGE_W * ECHELLE) / 2.0
+DECAL_Y = (PAGE_H - PAGE_H * ECHELLE) / 2.0
 
 
-def _fond():
-    return _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "miel_carton.png")
-_IMG_FOND = _fond()
-
-
-def _origine(idx):
-    col = idx % COLS_PAGE
-    rang = idx // COLS_PAGE
-    x = _X0 + col * (_CW + _GAP_X)
-    y = PAGE_H - _YTOP - (rang + 1) * _CH - rang * _GAP_Y
-    return x, y
-
-
-def _px(x0, px):
-    return x0 + px / _IMG_W * _CW
-
-
-def _py(y0, py):
-    return y0 + _CH * (1 - py / _IMG_H)
-
-
-def _taille_pot():
-    """La plus grande taille où « 88 » (pire cas) tient dans le plus petit ventre."""
-    pots = [p for fl, _ in COLONNES for p in fl]
-    w = min(x1 - x0 for x0, y0, x1, y1 in pots) * _SCALE
-    h = min(y1 - y0 for x0, y0, x1, y1 in pots) * _SCALE
-    t = h * 0.64 / 0.717
-    while t > 6 and stringWidth("88", POLICE, t) > w * 0.74:
-        t -= 0.5
-    return t
-_T_NUM = _taille_pot()
+def _image(c, cle, x, y, w, h):
+    try:
+        c.drawImage(_IMG[cle], x, y, w, h, preserveAspectRatio=False, mask="auto")
+    except Exception:
+        pass
 
 
 def _numeros(rng):
-    """[(pot, numéro), ...] : chaque colonne tire dans sa plage, numéros
-    différents, le plus petit en haut."""
-    sortie = []
-    for pots, (lo, hi) in COLONNES:
-        tires = sorted(rng.sample(range(lo, hi + 1), len(pots)))
-        sortie.extend(zip(pots, tires))
-    return sortie
+    """[(pot, numéro), ...] : chaque colonne tire dans sa plage, le plus petit en haut."""
+    out = []
+    for pots, (lo, hi), let in COLONNES:
+        out.extend((p, n, let) for p, n in zip(pots, sorted(rng.sample(range(lo, hi + 1), len(pots)))))
+    return out
+
+
+def _billet(c, ox, oy, serie, tirage, col):
+    c.saveState()
+    c.translate(ox, oy)
+    c.setStrokeColor(NOIR); c.setLineWidth(0.7)
+    c.roundRect(2.834646, 2.834646, 274.9607, 143.1497, 6.803, stroke=1, fill=0)
+    c.setFillColor(NOIR); c.setFont("Helvetica-Bold", 4.6)
+    c.drawString(10.20472, 138.6142, "N° %05d" % serie)
+    for (px, py), n, let in tirage:
+        _image(c, "pot", px, py, _POT_W, _POT_H)
+        c.setFillColor(col); c.setFont(POLICE_NUM, T_NUM)
+        c.drawCentredString(px + _POT_W / 2.0, py + 8.04, str(n))
+        # lettre B I G O sur le couvercle (pastille blanche sur le nœud)
+        lx, ly = px + _POT_W / 2.0, py + 41.0
+        c.setFillColor(colors.white); c.setStrokeColor(NOIR); c.setLineWidth(0.6)
+        c.circle(lx, ly, 5.4, stroke=1, fill=1)
+        c.setFillColor(col); c.setFont("Helvetica-Bold", 8)
+        c.drawCentredString(lx, ly - 2.85, let)
+    _image(c, "lys", 77.83011, 115.6535, 18.14173, 21.25984)
+    _image(c, "lys", 184.6581, 115.6535, 18.14173, 21.25984)
+    t = c.beginText(101.6411, 118.2047); t.setFont("Helvetica", 22); t.setCharSpace(1)
+    t.setFillColor(NOIR); t.textOut("TUKEA"); t.setCharSpace(0); c.drawText(t)
+    c.setFillColor(NOIR); c.setFont(_POLICE_TEL, 9); c.drawString(104.502, 104.0315, "\u260e" if _POLICE_TEL != "Helvetica" else "Tel")
+    c.setFont("Helvetica-Bold", 10.5); c.drawString(120.6594, 104.0315, "89 22 23 05")
+    _image(c, "bol", 87.87402, 5.385827, 104.8819, 48.31122)
+    c.restoreState()
 
 
 def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleur=True,
@@ -116,14 +103,13 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
     n_ = max(1, int(n_ if n_ else CARTES_PAGE))
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=(PAGE_W, PAGE_H), pageCompression=1)
-    rng = random.Random(int(serie_start) * 100003 + 6161)
+    rng = random.Random(int(serie_start) * 100003 + 4242)
     serie = int(serie_start)
     faits = 0
     try:
         no_page = max(1, int(page_start))
     except Exception:
         no_page = 1
-
     col_imposee = None
     if couleur and couleur_perso:
         try:
@@ -132,43 +118,30 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
             col_imposee = None
 
     while faits < n_:
-        # en-tête de page (rame personnalisée) + n° de feuille
-        entete = "  ·  ".join(t for t in ((nom_evenement or "").strip(),
-                                          (date_lieu or "").strip()) if t)
+        entete = "  ·  ".join(t for t in ((nom_evenement or "").strip(), (date_lieu or "").strip()) if t)
         if entete:
-            c.setFillColor(colors.black)
-            c.setFont("Helvetica-Bold", 8)
-            c.drawCentredString(PAGE_W / 2.0, PAGE_H - _YTOP / 2.0 - 3, entete)
-        c.setFillColor(colors.Color(0.6, 0.6, 0.6))
-        c.setFont("Helvetica", 6)
-        c.drawRightString(PAGE_W - 14, PAGE_H - _YTOP / 2.0 - 3, "%03d" % no_page)
+            c.setFillColor(NOIR); c.setFont("Helvetica-Bold", 7)
+            c.drawCentredString(PAGE_W / 2.0, PAGE_H - DECAL_Y / 2.0 - 2.5, entete)
+        c.setFillColor(colors.Color(0.5, 0.5, 0.5)); c.setFont("Helvetica", 6)
+        c.drawRightString(PAGE_W - DECAL_X, DECAL_Y / 2.0 - 2, "page %d" % no_page)
 
+        c.saveState()
+        c.translate(DECAL_X, DECAL_Y); c.scale(ECHELLE, ECHELLE)
         for idx in range(CARTES_PAGE):
             if faits >= n_:
                 break
-            x0, y0 = _origine(idx)
-            try:
-                c.drawImage(_IMG_FOND, x0, y0, _CW, _CH,
-                            preserveAspectRatio=False, mask="auto")
-            except Exception:
-                pass
-            if couleur:
-                col = col_imposee or colors.HexColor(RAINBOW[serie % len(RAINBOW)])
-            else:
-                col = NOIR
-            # n° de série discret, coin haut gauche
-            c.setFillColor(colors.Color(0.45, 0.45, 0.45))
-            c.setFont("Helvetica-Bold", 7)
-            c.drawString(_px(x0, _SERIE_X), _py(y0, _SERIE_BASE), "N° %05d" % serie)
-            # les 6 chiffres, au centre du ventre de chaque pot
-            c.setFillColor(col)
-            c.setFont(POLICE, _T_NUM)
-            for (bx0, by0, bx1, by1), num in _numeros(rng):
-                cx = _px(x0, (bx0 + bx1) / 2.0)
-                cy = _py(y0, by0 + _VENTRE_Y * (by1 - by0))
-                c.drawCentredString(cx, cy - _T_NUM * 0.717 / 2.0, str(num))
+            ox = (idx % COLS) * CELL_W
+            oy = (RANGS - 1 - idx // COLS) * CELL_H
+            col = (col_imposee or colors.HexColor(RAINBOW[serie % len(RAINBOW)])) if couleur else NOIR
+            _billet(c, ox, oy, serie, _numeros(rng), col)
             serie += 1
             faits += 1
+        c.setStrokeColor(colors.Color(0.5, 0.5, 0.5)); c.setLineWidth(0.3); c.setDash(2, 2)
+        for i in (1, 2):
+            c.line(i * CELL_W, 0, i * CELL_W, RANGS * CELL_H)
+        for j in (1, 2, 3):
+            c.line(0, j * CELL_H, COLS * CELL_W, j * CELL_H)
+        c.restoreState()
         c.showPage()
         no_page += 1
     c.save()
@@ -177,5 +150,5 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
 
 
 if __name__ == "__main__":
-    open("test_miel.pdf", "wb").write(generer_pdf(nb_cartes=8, couleur=False).read())
+    open("test_miel.pdf", "wb").write(generer_pdf(nb_cartes=12, couleur=False).read())
     print("MIEL genere")
