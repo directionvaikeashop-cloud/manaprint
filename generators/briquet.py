@@ -1,126 +1,91 @@
 # -*- coding: utf-8 -*-
-"""MANAPRINT — BRIQUET · 7 boules (création 2KEA & Associé), maquette Maeva 08/11/2026.
-8 cartons / feuille A4 PORTRAIT (grille 2 colonnes x 4 rangées).
-Chaque carton = « N° ______ », « BRIQUET », le briquet, la flamme, et
-7 FLAMMES où l'on pose un numéro chacune.
-Plages B I N G O, lues par COLONNE de gauche à droite (sceau Maeva) :
-   colonne 1 : 1 flamme  (milieu gauche)            -> B  1-15
-   colonne 2 : 2 flammes (haut et bas, à gauche)     -> I 16-30
-   colonne 3 : 1 flamme  (centre)                    -> N 31-45
-   colonne 4 : 2 flammes (haut et bas, à droite)     -> G 46-60
-   colonne 5 : 1 flamme  (milieu droit)              -> O 61-75
-   -> crieur 1 à 75 (BINGO complet).
-Dans une colonne de 2, le plus petit numéro est en haut.
-La maquette (carton complet) est reprise TELLE QUELLE comme image de fond,
-répétée 8 fois ; on ajoute seulement les 7 chiffres et le numéro de série."""
+"""MANAPRINT — BRIQUET · 7 boules (création 2KEA & Associé).
+NOUVELLE MAQUETTE de Maeva (24/11/2026, « briquet_12_A4 ») reprise TELLE QUELLE :
+12 billets / feuille A4 PAYSAGE (3 colonnes x 4 rangées), traits de coupe en pointillés.
+Chaque billet : N° de série souligné, le briquet (haut-gauche), titre BRIQUET, la flamme
+(haut-droite), 7 gouttes 2 · 3 · 2, « Voir plus loin.. Gagner ensemble ! » et
+« 2KEA & Associé – Papeete ».
+Plages B I N G O (inchangées), lues par COLONNE de gauche à droite, la lettre posée
+dans la pointe de chaque goutte (24/11, comme le CARBASS) :
+   colonne 1 : goutte du milieu gauche      -> B  1-15
+   colonne 2 : gouttes haut + bas gauche    -> I 16-30 (le plus petit en haut)
+   colonne 3 : goutte du centre             -> N 31-45
+   colonne 4 : gouttes haut + bas droite    -> G 46-60 (le plus petit en haut)
+   colonne 5 : goutte du milieu droit       -> O 61-75
+   -> crieur 1 à 75.
+Le tout est réduit pour garder 6 mm de marge d'impression (Konica / Sharp)."""
 import io, os as _os, random
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfbase.pdfmetrics import stringWidth
 
-PAGE_W, PAGE_H = A4
-CARTES_PAGE = 8
-COLS_PAGE, ROWS_PAGE = 2, 4
-POLICE = "Helvetica-Bold"
-GRIS = colors.Color(0.18, 0.18, 0.18)
+PAGE_W, PAGE_H = landscape(A4)
+COLS, RANGS = 3, 4
+CARTES_PAGE = COLS * RANGS                # 12
+CELL_W, CELL_H = 280.6299, 148.8189
+PLAGES = [(1, 15), (16, 30), (31, 45), (46, 60), (61, 75)]
+LETTRES = "BINGO"
 RAINBOW = ["#E53935", "#FB8C00", "#F9A825", "#43A047", "#00ACC1",
            "#1E88E5", "#3949AB", "#8E24AA", "#D81B60", "#6D4C41"]
+NOIR = colors.black
+POLICE_NUM, T_NUM = "Helvetica-Bold", 22  # comme la maquette (gras 22 pt)
 
-# le n° de série, dans le style du « N° » de la maquette (gras condensé)
-try:
-    pdfmetrics.registerFont(TTFont("BRQSERIE", "/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed-Bold.ttf"))
-    _POLICE_SERIE = "BRQSERIE"
-except Exception:
-    _POLICE_SERIE = "Helvetica-Bold"
+_ICI = _os.path.dirname(_os.path.abspath(__file__))
+_IMG = {k: _os.path.join(_ICI, "briquet_v2_%s.png" % k) for k in ("briquet", "flamme", "goutte")}
 
-# carton-modèle (518 x 371 px)
-_IMG_W, _IMG_H = 518.0, 371.0
-# contour de chaque flamme (x0, y0, x1, y1) en px
-_FL_MILIEU_G = (41, 152, 160, 262)
-_FL_HAUT_G = (131, 63, 246, 172)
-_FL_BAS_G = (119, 241, 233, 346)
-_FL_CENTRE = (203, 152, 320, 262)
-_FL_HAUT_D = (294, 64, 406, 170)
-_FL_BAS_D = (287, 241, 404, 344)
-_FL_MILIEU_D = (365, 153, 484, 262)
-# colonnes B I N G O : (flammes de haut en bas, plage)
-COLONNES = [
-    ([_FL_MILIEU_G], (1, 15)),                 # B
-    ([_FL_HAUT_G, _FL_BAS_G], (16, 30)),       # I
-    ([_FL_CENTRE], (31, 45)),                  # N
-    ([_FL_HAUT_D, _FL_BAS_D], (46, 60)),       # G
-    ([_FL_MILIEU_D], (61, 75)),                # O
+_GW, _GH = 42.51969, 40.25197          # goutte
+COLONNES = [                            # coin bas-gauche de chaque goutte, par colonne
+    [(33.16535, 44.50394)],                          # B
+    [(83.62205, 78.51969), (75.11811, 9.92126)],     # I (haut, bas)
+    [(121.3228, 44.50394)],                          # N
+    [(170.9291, 78.51969), (167.5276, 9.92126)],     # G (haut, bas)
+    [(209.4803, 44.50394)],                          # O
 ]
-# le chiffre se pose dans le « ventre » blanc de la flamme
-_VENTRE_Y = 0.64          # hauteur du centre du ventre, en part de la flamme
-_VENTRE_L = 66.0          # largeur blanche utile (px) entre les reflets gris
-_VENTRE_H = 41.0          # hauteur blanche utile (px)
-# n° de série : à la place de « 000003 », au-dessus du soulignement
-_SERIE_X, _SERIE_BASE, _SERIE_HCAP, _SERIE_XMAX = 68.0, 44.0, 26.0, 168.0
 
-# grille 2 x 4, bloc centré (même méthode que ARCHER / MONTRE)
-_MARGE = 12
-_GAP_X = 8
-_GAP_Y = 6
-_avail_w = PAGE_W - 2 * _MARGE
-_avail_h = PAGE_H - 2 * _MARGE
-_cw_w = (_avail_w - _GAP_X) / 2.0
-_ch_w = _cw_w * (_IMG_H / _IMG_W)
-if 4 * _ch_w + 3 * _GAP_Y <= _avail_h:
-    _CW, _CH = _cw_w, _ch_w
-else:
-    _CH = (_avail_h - 3 * _GAP_Y) / 4.0
-    _CW = _CH * (_IMG_W / _IMG_H)
-_BLOC_W = 2 * _CW + _GAP_X
-_BLOC_H = 4 * _CH + 3 * _GAP_Y
-_X0 = (PAGE_W - _BLOC_W) / 2.0
-_YTOP = (PAGE_H - _BLOC_H) / 2.0
-_SCALE = _CW / _IMG_W
+MARGE_SURE = 6 * 72 / 25.4
+ECHELLE = min((PAGE_W - 2 * MARGE_SURE) / PAGE_W, (PAGE_H - 2 * MARGE_SURE) / PAGE_H)
+DECAL_X = (PAGE_W - PAGE_W * ECHELLE) / 2.0
+DECAL_Y = (PAGE_H - PAGE_H * ECHELLE) / 2.0
 
 
-def _fond():
-    return _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "briquet_carton.png")
-_IMG_FOND = _fond()
+def _image(c, cle, x, y, w, h):
+    try:
+        c.drawImage(_IMG[cle], x, y, w, h, preserveAspectRatio=False, mask="auto")
+    except Exception:
+        pass
 
 
-def _origine(idx):
-    col = idx % COLS_PAGE
-    rang = idx // COLS_PAGE
-    x = _X0 + col * (_CW + _GAP_X)
-    y = PAGE_H - _YTOP - (rang + 1) * _CH - rang * _GAP_Y
-    return x, y
-
-
-def _px(x0, px):
-    return x0 + px / _IMG_W * _CW
-
-
-def _py(y0, py):
-    return y0 + _CH * (1 - py / _IMG_H)
-
-
-def _taille_flamme():
-    """La plus grande taille où « 88 » (pire cas) tient dans le ventre blanc."""
-    w = _VENTRE_L * _SCALE
-    h = _VENTRE_H * _SCALE
-    t = h / 0.717
-    while t > 6 and stringWidth("88", POLICE, t) > w:
-        t -= 0.5
-    return t
-_T_NUM = _taille_flamme()
+def _billet(c, ox, oy, serie, nums, col):
+    c.saveState()
+    c.translate(ox, oy)
+    c.setStrokeColor(NOIR); c.setLineWidth(0.7)
+    c.roundRect(2.834646, 2.834646, 274.9607, 143.1497, 6.803, stroke=1, fill=0)
+    c.setFillColor(NOIR); c.setFont("Helvetica-Bold", 6.5)
+    c.drawString(9.637795, 134.6457, "N\u00b0")
+    c.drawString(22.67717, 134.6457, "%06d" % serie)
+    c.setLineWidth(0.4); c.line(22.67717, 133.2283, 44.36711, 133.2283)
+    _image(c, "briquet", 9.070866, 87.80598, 31.1811, 40.03654)
+    _image(c, "flamme", 248.0315, 104.8819, 19.84252, 35.43307)
+    t = c.beginText(118.7734, 124.4409); t.setFont("Helvetica", 21); t.setCharSpace(0.6)
+    t.setFillColor(NOIR); t.textOut("BRIQUET"); t.setCharSpace(0); c.drawText(t)
+    gouttes = [(p, LETTRES[i]) for i, colonne in enumerate(COLONNES) for p in colonne]
+    for ((gx, gy), let), n in zip(gouttes, nums):
+        _image(c, "goutte", gx, gy, _GW, _GH)
+        c.setFillColor(col); c.setFont(POLICE_NUM, T_NUM)
+        c.drawCentredString(gx + _GW / 2.0, gy + 6.615, str(n))
+        c.setFont("Helvetica-Bold", 7); c.drawCentredString(gx + _GW / 2.0, gy + 25.3, let)
+    c.setFillColor(NOIR)
+    c.setFont("Helvetica-Oblique", 4.8); c.drawString(10.20472, 5.952756, "Voir plus loin.. Gagner ensemble !")
+    c.setFont("Helvetica-Bold", 4.8); c.drawString(209.3307, 5.952756, "2KEA & Associ\u00e9 \u2013 Papeete")
+    c.restoreState()
 
 
 def _numeros(rng):
-    """[(flamme, numéro), ...] : chaque colonne tire dans sa plage, numéros
-    différents, le plus petit en haut."""
-    sortie = []
-    for flammes, (lo, hi) in COLONNES:
-        tires = sorted(rng.sample(range(lo, hi + 1), len(flammes)))
-        sortie.extend(zip(flammes, tires))
-    return sortie
+    """Un tirage par colonne dans sa plage ; deux numéros différents, le petit en haut."""
+    out = []
+    for colonne, (lo, hi) in zip(COLONNES, PLAGES):
+        out.extend(sorted(rng.sample(range(lo, hi + 1), len(colonne))))
+    return out
 
 
 def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleur=True,
@@ -130,14 +95,13 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
     n_ = max(1, int(n_ if n_ else CARTES_PAGE))
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=(PAGE_W, PAGE_H), pageCompression=1)
-    rng = random.Random(int(serie_start) * 100003 + 811)
+    rng = random.Random(int(serie_start) * 100003 + 8181)
     serie = int(serie_start)
     faits = 0
     try:
         no_page = max(1, int(page_start))
     except Exception:
         no_page = 1
-
     col_imposee = None
     if couleur and couleur_perso:
         try:
@@ -145,48 +109,33 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
         except Exception:
             col_imposee = None
 
-    t_serie = _SERIE_HCAP * _SCALE / 0.729
-    while t_serie > 4 and stringWidth("000000", _POLICE_SERIE, t_serie) > (_SERIE_XMAX - _SERIE_X) * _SCALE:
-        t_serie -= 0.25
-
     while faits < n_:
-        # en-tête de page (rame personnalisée) + n° de feuille
-        entete = "  ·  ".join(t for t in ((nom_evenement or "").strip(),
-                                          (date_lieu or "").strip()) if t)
+        # en-tête de rame personnalisée + n° de feuille, dans la marge
+        entete = "  ·  ".join(t for t in ((nom_evenement or "").strip(), (date_lieu or "").strip()) if t)
         if entete:
-            c.setFillColor(colors.black)
-            c.setFont("Helvetica-Bold", 8)
-            c.drawCentredString(PAGE_W / 2.0, PAGE_H - _YTOP / 2.0 - 3, entete)
-        c.setFillColor(colors.Color(0.6, 0.6, 0.6))
-        c.setFont("Helvetica", 6)
-        c.drawRightString(PAGE_W - 14, PAGE_H - _YTOP / 2.0 - 3, "%03d" % no_page)
+            c.setFillColor(NOIR); c.setFont("Helvetica-Bold", 7)
+            c.drawCentredString(PAGE_W / 2.0, PAGE_H - DECAL_Y / 2.0 - 2.5, entete)
+        c.setFillColor(colors.Color(0.5, 0.5, 0.5)); c.setFont("Helvetica", 6)
+        c.drawRightString(PAGE_W - DECAL_X, DECAL_Y / 2.0 - 2, "page %d" % no_page)
 
+        c.saveState()
+        c.translate(DECAL_X, DECAL_Y); c.scale(ECHELLE, ECHELLE)
         for idx in range(CARTES_PAGE):
             if faits >= n_:
                 break
-            x0, y0 = _origine(idx)
-            try:
-                c.drawImage(_IMG_FOND, x0, y0, _CW, _CH,
-                            preserveAspectRatio=False, mask="auto")
-            except Exception:
-                pass
-            if couleur:
-                col = col_imposee or colors.HexColor(RAINBOW[serie % len(RAINBOW)])
-            else:
-                col = GRIS
-            # n° de série, sur le soulignement à côté de « N° »
-            c.setFillColor(colors.black)
-            c.setFont(_POLICE_SERIE, t_serie)
-            c.drawString(_px(x0, _SERIE_X), _py(y0, _SERIE_BASE), "%06d" % serie)
-            # les 7 chiffres, au centre du ventre de chaque flamme
-            c.setFillColor(col)
-            c.setFont(POLICE, _T_NUM)
-            for (fx0, fy0, fx1, fy1), num in _numeros(rng):
-                cx = _px(x0, (fx0 + fx1) / 2.0)
-                cy = _py(y0, fy0 + _VENTRE_Y * (fy1 - fy0))
-                c.drawCentredString(cx, cy - _T_NUM * 0.717 / 2.0, str(num))
+            ox = (idx % COLS) * CELL_W
+            oy = (RANGS - 1 - idx // COLS) * CELL_H
+            col = (col_imposee or colors.HexColor(RAINBOW[serie % len(RAINBOW)])) if couleur else NOIR
+            _billet(c, ox, oy, serie, _numeros(rng), col)
             serie += 1
             faits += 1
+        # traits de coupe en pointillés
+        c.setStrokeColor(colors.Color(0.5, 0.5, 0.5)); c.setLineWidth(0.3); c.setDash(2, 2)
+        for i in (1, 2):
+            c.line(i * CELL_W, 0, i * CELL_W, RANGS * CELL_H)
+        for j in (1, 2, 3):
+            c.line(0, j * CELL_H, COLS * CELL_W, j * CELL_H)
+        c.restoreState()
         c.showPage()
         no_page += 1
     c.save()
@@ -195,5 +144,5 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
 
 
 if __name__ == "__main__":
-    open("test_briquet.pdf", "wb").write(generer_pdf(nb_cartes=8, couleur=False).read())
+    open("test_briquet.pdf", "wb").write(generer_pdf(nb_cartes=12, couleur=False).read())
     print("BRIQUET genere")
