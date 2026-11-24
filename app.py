@@ -8696,3 +8696,11 @@ try:
     print("[CARBASS] nouvelle maquette — 12 billets par feuille, crieur 1-90")
 except Exception as _e_carbass2:
     print("[CARBASS] nouvelle maquette non chargée :", repr(_e_carbass2))
+
+# 🎳 24/11 — PÉTANQUE nouvelle maquette : 12 billets par feuille A4 paysage B I N G O + étoile comme le CARBASS (crieur 1 à 90)
+try:
+    _enregistrer_paire("petanque", "PÉTANQUE · 7 boules", "\U0001f3b3", 12, petanque.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[PETANQUE] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_petanque2:
+    print("[PETANQUE] nouvelle maquette non chargée :", repr(_e_petanque2))
