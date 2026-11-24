@@ -8686,3 +8686,13 @@ try:
     print("[FACTURATION] devis & factures /facturation et lien client /f prêts")
 except Exception as _e_fac:
     print("[FACTURATION] non chargé :", repr(_e_fac))
+
+# 🚗 24/11 — CARBASS nouvelle maquette : 12 billets par feuille, B I N G O + étoile, crieur 1 à 90
+try:
+    _enregistrer_paire("carbass", "CARBASS · 5 boules", "\U0001f697", 12, carbass.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    _PLAGES_CALLER["carbass"] = (1, 90)
+    _BOULES_CALLER["carbass"] = list(range(1, 91))
+    print("[CARBASS] nouvelle maquette — 12 billets par feuille, crieur 1-90")
+except Exception as _e_carbass2:
+    print("[CARBASS] nouvelle maquette non chargée :", repr(_e_carbass2))
