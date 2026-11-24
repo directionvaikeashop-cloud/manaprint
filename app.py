@@ -8704,3 +8704,11 @@ try:
     print("[PETANQUE] nouvelle maquette — 12 billets par feuille")
 except Exception as _e_petanque2:
     print("[PETANQUE] nouvelle maquette non chargée :", repr(_e_petanque2))
+
+# 🍯 24/11 — MIEL nouvelle maquette : 12 billets par feuille A4 paysage B I G O sur les couvercles (crieur 1 à 75 sans le N)
+try:
+    _enregistrer_paire("miel", "MIEL · 6 boules", "\U0001f36f", 12, miel.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[MIEL] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_miel2:
+    print("[MIEL] nouvelle maquette non chargée :", repr(_e_miel2))
