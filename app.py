@@ -8712,3 +8712,11 @@ try:
     print("[MIEL] nouvelle maquette — 12 billets par feuille")
 except Exception as _e_miel2:
     print("[MIEL] nouvelle maquette non chargée :", repr(_e_miel2))
+
+# 🏓 24/11 — PING-PONG GO nouvelle maquette : 12 billets par feuille A4 paysage B I N G O sur les balles (crieur 1 à 75)
+try:
+    _enregistrer_paire("pingpong_go", "PING-PONG GO · 16 numéros", "\U0001f3d3", 12, pingpong_go.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[PING-PONG GO] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_pingpong2:
+    print("[PING-PONG GO] nouvelle maquette non chargée :", repr(_e_pingpong2))
