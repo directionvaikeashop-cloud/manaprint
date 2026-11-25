@@ -8846,3 +8846,26 @@ def _drs_page_visible(self, x, y, text, *a, **k):
     return _o_drs_pg(self, x, y, text, *a, **k)
 _CvPg.drawRightString = _drs_page_visible
 print("[PAGES] numéros de page des nouveaux jeux remontés à 4,4 mm (bien imprimés)")
+
+# 📄 25/11 (suite) — NUMÉRO DE PAGE EN HAUT À DROITE sur les nouveaux jeux (« sur les nouveaux jeux travaillés » — Maeva)
+#   Tout « page N » que les nouveaux jeux écrivent dans la marge du bas passe en HAUT À DROITE
+#   de la feuille, en gras 7 pt gris foncé, à 4,4 mm du bord : bien imprimé, sans toucher les billets.
+_PG_BAS_MAX = 15.0        # « page N » tracé à moins de ~5 mm du bas  -> on le monte en haut
+_PG_HAUT = 17.3           # ligne de base à 17,3 pt sous le haut de la feuille
+def _drs_page_en_haut(self, x, y, text, *a, **k):
+    try:
+        if _PG_RE.match(str(text).strip()):
+            a0, b0, c0, d0, e0, f0 = self._currentMatrix
+            if abs(b0) < 1e-9 and abs(c0) < 1e-9 and d0 > 0 and d0 * y + f0 < _PG_BAS_MAX:
+                H = self._pagesize[1]
+                self.saveState()
+                self.setFont("Helvetica-Bold", 7)
+                self.setFillColorRGB(0.2, 0.2, 0.2)
+                r = _o_drs_pg(self, x, (H - _PG_HAUT - f0) / d0, text, *a, **k)
+                self.restoreState()
+                return r
+    except Exception:
+        pass
+    return _o_drs_pg(self, x, y, text, *a, **k)
+_CvPg.drawRightString = _drs_page_en_haut
+print("[PAGES] numéro de page des nouveaux jeux en haut à droite")
