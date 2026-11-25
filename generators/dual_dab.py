@@ -60,7 +60,6 @@ def _txt(c, s, x, y, taille, col, police=POLICE_NUM, centre=True, esp=0):
 def _billet(c, ox, oy, serie, nums, col):
     (b1, b2), (i1, i2), (n1, n2), (g1, g2), o = nums
     textes = [
-        lambda: _txt(c, "VOTRE JEU", -30.92285, -3.401575, 9.5, NOIR, POLICE_NUM, esp=1),
         lambda: _txt(c, "DUAL DAB", 145.8938, 128.6929, 16.5, NOIR, "Helvetica", esp=1.6),
         lambda: _txt(c, str(b1), 62.36, 93.8731, 26, col),
         lambda: _txt(c, str(b2), 113.95, 93.8731, 26, col),
@@ -72,14 +71,22 @@ def _billet(c, ox, oy, serie, nums, col):
         lambda: _txt(c, "N\u00b0 %06d" % serie, 114.1841, 6.80315, 4.2, NOIR, centre=False),
         lambda: _txt(c, "89 52 98 83", 145.1339, 6.80315, 4.2, NOIR, centre=False),
     ]
+    # 25/11 : le dessin du billet est enregistré UNE fois par document (modèle réutilisé) :
+    # fichier ~100 fois plus léger -> la rame s'envoie et s'imprime vite.
+    if not getattr(c, "_dd_modele", False):
+        c.beginForm("DUALDAB_DESSIN", 0, 0, CELL_W, CELL_H)
+        c._code.append("q\n" + "\n".join(_DESSIN) + "\nQ")
+        c.endForm()
+        c._dd_modele = True
     c.saveState()
     c.translate(ox, oy)
-    c._code.append("q")
-    for k, morceau in enumerate(_DESSIN):
-        c._code.append(morceau)
-        if k < len(textes):
-            textes[k]()
-    c._code.append("Q")
+    c.doForm("DUALDAB_DESSIN")
+    c.saveState()
+    c.transform(0, 1, -1, 0, 19.84252, 74.26772)
+    _txt(c, "VOTRE JEU", -30.92285, -3.401575, 9.5, NOIR, POLICE_NUM, esp=1)
+    c.restoreState()
+    for f in textes:
+        f()
     for let, lx, ly in PASTILLES:
         c.setFillColor(colors.white); c.setStrokeColor(NOIR); c.setLineWidth(0.6)
         c.circle(lx, ly, 4.6, stroke=1, fill=1)
