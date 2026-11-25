@@ -1,59 +1,94 @@
 # -*- coding: utf-8 -*-
-"""MANAPRINT — GUN (RANIHEI SISTERS & SHOP), maquette fournie par Maeva (31/10).
-8 cartons / feuille A4 PORTRAIT (grille 2 colonnes x 4 rangées).
-Chaque carton : 5 cercles « viseur » en haut = les plages du B I N G O.
-  B 1-15 · I 16-30 · N 31-45 · G 46-60 · O 61-75  (un numéro par cercle).
-La maquette (carton de gauche, 5 cercles) est reprise TELLE QUELLE comme image
-de fond, répétée 8 fois ; on ajoute seulement les chiffres dans les cercles.
-(Décision Maeva 31/10 : 5 cercles PARTOUT — les cartons de droite de la
- maquette, qui n'en avaient que 4, deviennent identiques à ceux de gauche.)"""
+"""MANAPRINT — GUN · 5 boules (création RANIHEI SISTERS & SHOP, maquette CANVA de Maeva).
+NOUVELLE MAQUETTE de Maeva (24/11/2026, « gun_canva2_12_A4 ») reprise TELLE QUELLE :
+12 billets / feuille A4 PAYSAGE (3 colonnes x 4 rangées), traits de coupe en pointillés.
+Chaque billet : le stand de tir en perspective, 5 cercles « viseur » en haut, 4 impacts,
+le viseur central, le titre GUN, le pistolet, « RANIHEI SISTERS & SHOP · 87 77 39 19 ».
+Plages (inchangées), une par cercle de gauche à droite, la lettre posée sur le bord
+de chaque cercle (24/11) : B 1-15 · I 16-30 · N 31-45 · G 46-60 · O 61-75 -> crieur 1 à 75.
+Chiffres gras 28 pt comme la maquette. Seul ajout : le N° de série, discret, sous GUN.
+Le tout est réduit pour garder 6 mm de marge d'impression (Konica / Sharp)."""
 import io, os as _os, random
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import landscape, A4
 from reportlab.lib import colors
 
-PAGE_W, PAGE_H = A4                 # portrait (595 x 842)
-CARTES_PAGE = 8
-POLICE = "Helvetica-Bold"
-GRIS = colors.Color(0.20, 0.20, 0.20)
+PAGE_W, PAGE_H = landscape(A4)
+COLS, RANGS = 3, 4
+CARTES_PAGE = COLS * RANGS                # 12
+CELL_W, CELL_H = 280.6299, 148.8189
+NOIR = colors.black
 RAINBOW = ["#E53935", "#FB8C00", "#F9A825", "#43A047", "#00ACC1",
            "#1E88E5", "#3949AB", "#8E24AA", "#D81B60", "#6D4C41"]
+POLICE_NUM, T_NUM = "Helvetica-Bold", 28  # comme la maquette (gras 28 pt)
 
-# le carton-modèle (578 x 372) — centres des 5 cercles mesurés dessus.
-_IMG_W, _IMG_H = 578.0, 372.0
-_CX = [72, 180, 287, 395, 504]      # centres X des cercles (px image)
-_CY = 72                            # centre Y commun (px image, depuis le haut)
-_R = 47                             # rayon des cercles (px image)
-# les 5 plages du BINGO, de gauche à droite : B · I · N · G · O
+_ICI = _os.path.dirname(_os.path.abspath(__file__))
+_IMG = {k: _os.path.join(_ICI, "gun_v2_%s.png" % k)
+        for k in ("fond", "impact1", "impact2", "impact3", "impact4", "pistolet")}
+
+_CX = [35.14961, 87.30709, 139.748, 192.7559, 244.9134]   # centres des 5 cercles
+_CY = 118.2047
 PLAGES = [(1, 15), (16, 30), (31, 45), (46, 60), (61, 75)]
+LETTRES = "BINGO"
 
-# grille 2 x 4 sur la page
-_MARGE = 12
-_GAP_X = 8
-_GAP_Y = 8
-_CW = (PAGE_W - 2 * _MARGE - _GAP_X) / 2.0          # largeur d'un carton
-_CH = _CW * (_IMG_H / _IMG_W)                       # hauteur (aspect conservé)
-_BLOC_H = 4 * _CH + 3 * _GAP_Y
-_Y0 = (PAGE_H - _BLOC_H) / 2.0                      # bloc centré verticalement
+MARGE_SURE = 6 * 72 / 25.4
+ECHELLE = min((PAGE_W - 2 * MARGE_SURE) / PAGE_W, (PAGE_H - 2 * MARGE_SURE) / PAGE_H)
+DECAL_X = (PAGE_W - PAGE_W * ECHELLE) / 2.0
+DECAL_Y = (PAGE_H - PAGE_H * ECHELLE) / 2.0
 
 
-def _fond():
-    return _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "gun_carton.png")
-_IMG_FOND = _fond()
-
-
-def _origine(idx):
-    """Coin bas-gauche (x, y) du carton n° idx (0..7) : 2 colonnes, 4 rangées."""
-    col = idx % 2
-    rang = idx // 2                                  # 0 en haut
-    x = _MARGE + col * (_CW + _GAP_X)
-    y = _Y0 + (3 - rang) * (_CH + _GAP_Y)
-    return x, y
+def _image(c, cle, x, y, w, h):
+    try:
+        c.drawImage(_IMG[cle], x, y, w, h, preserveAspectRatio=False, mask="auto")
+    except Exception:
+        pass
 
 
 def _numeros(rng):
-    """Un numéro tiré dans chaque plage B · I · N · G · O."""
-    return [rng.randint(a, b) for a, b in PLAGES]
+    return [rng.randint(lo, hi) for lo, hi in PLAGES]
+
+
+def _billet(c, ox, oy, serie, nums, col):
+    c.saveState()
+    c.translate(ox, oy)
+    c.saveState()
+    p = c.beginPath(); p.rect(0, 0, CELL_W, CELL_H)
+    c.clipPath(p, stroke=0, fill=0)
+    _image(c, "fond", 0, 0, CELL_W, CELL_H)
+    _image(c, "impact1", 16.72441, 64.88801, 36.85039, 43.13737)
+    _image(c, "impact2", 68.88189, 66.22386, 36.85039, 40.46566)
+    _image(c, "impact3", 121.3228, 66.75197, 36.85039, 39.40945)
+    _image(c, "impact4", 174.3307, 66.75197, 36.85039, 39.40945)
+    c.restoreState()
+    # titre GUN
+    t = c.beginText(11.33858, 35.43307); t.setFont("Helvetica", 30); t.setCharSpace(5)
+    t.setFillColor(NOIR); t.textOut("GUN"); t.setCharSpace(0); c.drawText(t)
+    # viseur central
+    c.setStrokeColor(NOIR); c.setLineWidth(0.5)
+    c.circle(130.3937, 63.98365, 10.20472, stroke=1, fill=0)
+    c.circle(130.3937, 63.98365, 4.535433, stroke=1, fill=0)
+    c.line(116.2205, 63.98365, 144.5669, 63.98365); c.line(130.3937, 49.81042, 130.3937, 78.15688)
+    # pied
+    c.setFillColor(NOIR); c.setFont("Helvetica-Bold", 5.2)
+    c.drawString(26.30012, 13.03937, "RANIHEI SISTERS & SHOP")
+    c.drawString(45.7925, 6.23622, "87 77 39 19")
+    c.setFillColor(colors.Color(0.30, 0.30, 0.30)); c.setFont("Helvetica-Bold", 5.2)
+    c.drawString(26.30012, 21.5, "N\u00b0 %06d" % serie)      # seul ajout : le n° de série
+    _image(c, "pistolet", 175.748, 11.33858, 96.37795, 63.42779)
+    # 5 cercles viseur + chiffres + lettre B I N G O
+    for cx, n, let in zip(_CX, nums, LETTRES):
+        c.setStrokeColor(NOIR); c.setFillColor(colors.white); c.setLineWidth(0.9)
+        c.circle(cx, _CY, 20.69291, stroke=1, fill=1)
+        c.setLineWidth(0.35); c.circle(cx, _CY, 18.14173, stroke=1, fill=0)
+        c.setFillColor(col); c.setFont(POLICE_NUM, T_NUM)
+        c.drawCentredString(cx, 108.1807, str(n))
+        lx, ly = cx - 15.6, _CY + 14.6
+        c.setFillColor(colors.white); c.setStrokeColor(NOIR); c.setLineWidth(0.6)
+        c.circle(lx, ly, 4.8, stroke=1, fill=1)
+        c.setFillColor(col); c.setFont("Helvetica-Bold", 7.2); c.drawCentredString(lx, ly - 2.6, let)
+    c.setStrokeColor(NOIR); c.setLineWidth(0.5)
+    c.rect(0.708661, 0.708661, 279.2126, 147.4016, stroke=1, fill=0)
+    c.restoreState()
 
 
 def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleur=True,
@@ -63,15 +98,13 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
     n_ = max(1, int(n_ if n_ else CARTES_PAGE))
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=(PAGE_W, PAGE_H), pageCompression=1)
-    rng = random.Random(int(serie_start) * 100003 + 911)
+    rng = random.Random(int(serie_start) * 100003 + 4848)
     serie = int(serie_start)
     faits = 0
     try:
-        page_dep = max(1, int(page_start))
+        no_page = max(1, int(page_start))
     except Exception:
-        page_dep = 1
-
-    # couleur imposée (option partenaire) : un seul code #RRGGBB pour tout le lot
+        no_page = 1
     col_imposee = None
     if couleur and couleur_perso:
         try:
@@ -80,42 +113,37 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
             col_imposee = None
 
     while faits < n_:
+        entete = "  ·  ".join(t for t in ((nom_evenement or "").strip(), (date_lieu or "").strip()) if t)
+        if entete:
+            c.setFillColor(NOIR); c.setFont("Helvetica-Bold", 7)
+            c.drawCentredString(PAGE_W / 2.0, PAGE_H - DECAL_Y / 2.0 - 2.5, entete)
+        c.setFillColor(colors.Color(0.5, 0.5, 0.5)); c.setFont("Helvetica", 6)
+        c.drawRightString(PAGE_W - DECAL_X, DECAL_Y / 2.0 - 2, "page %d" % no_page)
+
+        c.saveState()
+        c.translate(DECAL_X, DECAL_Y); c.scale(ECHELLE, ECHELLE)
         for idx in range(CARTES_PAGE):
             if faits >= n_:
                 break
-            x0, y0 = _origine(idx)
-            # 1) le carton-modèle (art de Maeva), tel quel
-            try:
-                c.drawImage(_IMG_FOND, x0, y0, _CW, _CH,
-                            preserveAspectRatio=False, mask="auto")
-            except Exception:
-                pass
-            # 2) les chiffres dans les 5 cercles
-            if couleur:
-                col = col_imposee or colors.HexColor(RAINBOW[serie % len(RAINBOW)])
-            else:
-                col = GRIS
-            c.setFillColor(col)
-            r_pt = _R / _IMG_W * _CW
-            taille = r_pt * 1.5          # chiffres bien remplissants dans le cercle
-            c.setFont(POLICE, taille)
-            for i, num in enumerate(_numeros(rng)):
-                cx = x0 + _CX[i] / _IMG_W * _CW
-                cy = y0 + _CH * (1 - _CY / _IMG_H)
-                c.drawCentredString(cx, cy - taille * 0.35, str(num))
-            # 3) numéro de série, discret, en bas du carton
-            c.setFillColor(colors.Color(0.55, 0.55, 0.55))
-            c.setFont("Helvetica", 6)
-            c.drawCentredString(x0 + _CW / 2.0, y0 + 3, "N° %05d" % serie)
+            ox = (idx % COLS) * CELL_W
+            oy = (RANGS - 1 - idx // COLS) * CELL_H
+            col = (col_imposee or colors.HexColor(RAINBOW[serie % len(RAINBOW)])) if couleur else NOIR
+            _billet(c, ox, oy, serie, _numeros(rng), col)
             serie += 1
             faits += 1
-        # numéro de feuille (quand le lot dépasse une page)
-        if page_dep > 1 or faits > CARTES_PAGE:
-            c.setFillColor(colors.Color(0.6, 0.6, 0.6))
-            c.setFont("Helvetica", 6)
-            nfe = page_dep + (faits - 1) // CARTES_PAGE
-            c.drawRightString(PAGE_W - 8, PAGE_H - 12, "%03d" % nfe)
+        c.setStrokeColor(colors.Color(0.5, 0.5, 0.5)); c.setLineWidth(0.3); c.setDash(2, 2)
+        for i in (1, 2):
+            c.line(i * CELL_W, 0, i * CELL_W, RANGS * CELL_H)
+        for j in (1, 2, 3):
+            c.line(0, j * CELL_H, COLS * CELL_W, j * CELL_H)
+        c.restoreState()
         c.showPage()
+        no_page += 1
     c.save()
     buf.seek(0)
     return buf
+
+
+if __name__ == "__main__":
+    open("test_gun.pdf", "wb").write(generer_pdf(nb_cartes=12, couleur=False).read())
+    print("GUN genere")
