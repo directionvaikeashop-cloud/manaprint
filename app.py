@@ -8746,3 +8746,11 @@ try:
     print("[ARCHER] nouvelle maquette — 12 billets par feuille")
 except Exception as _e_archer2:
     print("[ARCHER] nouvelle maquette non chargée :", repr(_e_archer2))
+
+# 🏐 24/11 — VOLLEY-BALL nouvelle maquette CANVA : 12 billets par feuille A4 paysage, B I N G O à côté des numéros (crieur 1 à 75)
+try:
+    _enregistrer_paire("volley", "VOLLEY-BALL · 5 numéros", "\U0001f3d0", 12, volley.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[VOLLEY] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_volley2:
+    print("[VOLLEY] nouvelle maquette non chargée :", repr(_e_volley2))
