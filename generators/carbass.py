@@ -33,7 +33,7 @@ _CERCLES = [            # (x, y, rayon) dans l'ordre de pose des numéros croiss
     (192.2, 165.2, 31.5),  # bas-centre (sur la voiture)
 ]
 
-_MARGE = 3 * mm
+_MARGE = 6 * mm          # 25/11 : 6 mm de marge (Konica / Sharp) — le bas des billets et le n° de page s'impriment
 _CELL_W = (PAGE_W - 2 * _MARGE) / COLS
 _CELL_H = (PAGE_H - 2 * _MARGE) / RANGS
 _PAD = 1.2 * mm
@@ -152,8 +152,8 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
             serie += 1
             faits += 1
         nfe = page_dep + (faits - 1) // CARTES_PAGE
-        c.setFillColor(colors.Color(0.5, 0.5, 0.5)); c.setFont("Helvetica", 6)
-        c.drawRightString(PAGE_W - _MARGE, 2.5, "page %d" % nfe)
+        c.setFillColor(colors.Color(0.2, 0.2, 0.2)); c.setFont("Helvetica-Bold", 7.5)
+        c.drawRightString(PAGE_W - _MARGE, 12.5, "page %d" % nfe)     # 25/11 : bien imprimé (4,4 mm du bord)
         c.showPage()
     c.save()
     buf.seek(0)
