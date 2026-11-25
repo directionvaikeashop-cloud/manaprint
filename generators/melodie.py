@@ -1,57 +1,87 @@
 # -*- coding: utf-8 -*-
-"""MANAPRINT — MÉLODIE (RANIHEI SISTERS & SHOP), maquette portée musicale.
-8 cartons/feuille. 10 ovales (2 rangées × 5 colonnes) sur une portée.
-Règle : 75 boules classique, 2 par colonne -> 10 numéros :
-  col0 B 1-15, col1 I 16-30, col2 N 31-45, col3 G 46-60, col4 O 61-75.
-Se joue en « OHANA ti'a » (paires) ou en keno (1 par 1) — même carton.
-Maquette reprise telle quelle ; on ajoute les chiffres et la série."""
-import io, os as _os, json as _json, random
+"""MANAPRINT — MÉLODIE · 10 boules (création RANIHEI SISTERS & SHOP, maquette CANVA de Maeva).
+NOUVELLE MAQUETTE de Maeva (24/11/2026, « melodie_canva_12_A4 ») reprise TELLE QUELLE :
+12 billets / feuille A4 PAYSAGE (3 colonnes x 4 rangées), traits de coupe en pointillés.
+Chaque billet : cadre de feuillages et de baies, titre MÉLODIE, N° de série,
+« RANIHEI SISTERS & SHOP · 87 77 39 19 », deux portées avec leurs clés de sol,
+10 ronds (2 rangées x 5 colonnes).
+RÈGLE (inchangée) — 2 numéros par colonne (le petit en haut), la lettre sur le rond du haut (24/11) :
+   B 1-15 · I 16-30 · N 31-45 · G 46-60 · O 61-75 -> crieur 1 à 75.
+Chiffres comme la maquette : gras 25 pt.
+Le tout est réduit pour garder 6 mm de marge d'impression (Konica / Sharp)."""
+import io, os as _os, random
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import landscape, A4
 from reportlab.lib import colors
-from reportlab.lib.units import mm
-from reportlab.pdfbase.pdfmetrics import stringWidth
 
-PAGE_W, PAGE_H = A4[1], A4[0]        # paysage
-CARTES_PAGE = 8
-POLICE = "Helvetica-Bold"
-GRIS = colors.Color(0.38, 0.38, 0.38)
-RAINBOW = ["#E53935","#FB8C00","#F9A825","#43A047","#00ACC1",
-           "#1E88E5","#3949AB","#8E24AA","#D81B60","#6D4C41"]
-PLAGES = [(1,15),(16,30),(31,45),(46,60),(61,75)]   # B I N G O (par colonne)
+PAGE_W, PAGE_H = landscape(A4)
+COLS, RANGS = 3, 4
+CARTES_PAGE = COLS * RANGS                # 12
+CELL_W, CELL_H = 280.6299, 148.8189
+NOIR = colors.black
+RAINBOW = ["#E53935", "#FB8C00", "#F9A825", "#43A047", "#00ACC1",
+           "#1E88E5", "#3949AB", "#8E24AA", "#D81B60", "#6D4C41"]
+POLICE_NUM, T_NUM = "Helvetica-Bold", 25  # comme la maquette (gras 25 pt)
 
-_d = _json.load(open(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "melodie_pos.json")))
-_IMG_W, _IMG_H = _d["W"], _d["H"]
-_CELLS = _d["cells"]      # 8 cartons x 10 (x,y) ordonnés col0h,col0b,col1h,col1b,...
-_SER = _d["ser"]
-_RW, _RH = _d["rw"], _d["rh"]
-MARGE = 4.5 * mm
-_AVW = PAGE_W - 2*MARGE
-_AVH = PAGE_H - 2*MARGE
-def _x(px): return MARGE + px/_IMG_W*_AVW
-def _y(py): return (PAGE_H-MARGE) - py/_IMG_H*_AVH
+_ICI = _os.path.dirname(_os.path.abspath(__file__))
+_IMG = {k: _os.path.join(_ICI, "melodie_v2_%s.png" % k) for k in ("fond", "portee_haut", "portee_bas")}
 
-def _fond():
-    return _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "melodie_fond.png")
-_IMG_FOND = _fond()
+_CX = [57.54331, 98.92913, 140.315, 181.7008, 223.0866]
+_CY = [87.87402, 47.05512]          # rangée du haut, rangée du bas
+_RX, _RY = 18.42519, 17.85828
+PLAGES = [(1, 15), (16, 30), (31, 45), (46, 60), (61, 75)]
+LETTRES = "BINGO"
 
-_RWPT = _RW/_IMG_W*_AVW
-_RHPT = _RH/_IMG_H*_AVH
-def _taille():
-    t = 34.0
-    while t > 8 and (stringWidth("88", POLICE, t) > 2*_RWPT*0.80 or t*0.70 > 2*_RHPT*0.82):
-        t -= 0.5
-    return t
-_T = _taille()
+MARGE_SURE = 6 * 72 / 25.4
+ECHELLE = min((PAGE_W - 2 * MARGE_SURE) / PAGE_W, (PAGE_H - 2 * MARGE_SURE) / PAGE_H)
+DECAL_X = (PAGE_W - PAGE_W * ECHELLE) / 2.0
+DECAL_Y = (PAGE_H - PAGE_H * ECHELLE) / 2.0
 
-def _gen_carton(rng):
-    vals = [None]*10
-    for col in range(5):
-        a, b = PLAGES[col]
-        n1, n2 = rng.sample(range(a, b+1), 2)
-        vals[col*2] = n1       # rangée haut
-        vals[col*2+1] = n2     # rangée bas
-    return vals
+
+def _image(c, cle, x, y, w, h):
+    try:
+        c.drawImage(_IMG[cle], x, y, w, h, preserveAspectRatio=False, mask="auto")
+    except Exception:
+        pass
+
+
+def _numeros(rng):
+    """[[haut, bas] par colonne] — le plus petit en haut."""
+    return [sorted(rng.sample(range(lo, hi + 1), 2)) for lo, hi in PLAGES]
+
+
+def _billet(c, ox, oy, serie, nums, col):
+    c.saveState()
+    c.translate(ox, oy)
+    c.setStrokeColor(NOIR); c.setLineWidth(0.6)
+    c.roundRect(2.267717, 2.267717, 276.0945, 144.2835, 3.134, stroke=1, fill=0)
+    c.saveState()
+    p = c.beginPath(); p.roundRect(2.834646, 2.834646, 274.9606, 143.1497, 2.977)
+    c.clipPath(p, stroke=0, fill=0)
+    _image(c, "fond", 0, 0, CELL_W, CELL_H)
+    c.restoreState()
+    _image(c, "portee_haut", 22.67717, 71.71498, 235.2756, 32.31808)
+    _image(c, "portee_bas", 22.67717, 30.84636, 235.2756, 32.41752)
+    for k, (cx, paire, let) in enumerate(zip(_CX, nums, LETTRES)):
+        for cy, n in zip(_CY, paire):
+            c.setFillColor(colors.white); c.setStrokeColor(NOIR); c.setLineWidth(0.9)
+            c.ellipse(cx - _RX, cy - _RY, cx + _RX, cy + _RY, stroke=1, fill=1)
+            s = str(n); w = c.stringWidth(s, POLICE_NUM, T_NUM)
+            t = c.beginText(cx - w / 2.0, cy - 8.95); t.setFont(POLICE_NUM, T_NUM); t.setFillColor(col)
+            t.textOut(s); c.drawText(t)
+        lx, ly = cx - 15.2, _CY[0] + 13.6
+        c.setFillColor(colors.white); c.setStrokeColor(NOIR); c.setLineWidth(0.6)
+        c.circle(lx, ly, 4.6, stroke=1, fill=1)
+        c.setFillColor(col); c.setFont("Helvetica-Bold", 7.0); c.drawCentredString(lx, ly - 2.5, let)
+    c.setFillColor(colors.white); c.rect(26.92913, 114.2362, 226.7717, 21.54331, stroke=0, fill=1)
+    t = c.beginText(29.76378, 120.4724); t.setFont("Helvetica", 17); t.setCharSpace(1.6)
+    t.setFillColor(NOIR); t.textOut("M\u00c9LODIE"); t.setCharSpace(0); c.drawText(t)
+    c.setFillColor(NOIR); c.setFont("Helvetica-Bold", 5)
+    c.drawString(188.3845, 128.4094, "RANIHEI SISTERS & SHOP"); c.drawString(225.8699, 119.3386, "87 77 39 19")
+    t = c.beginText(133.2283, 120.4724); t.setFont("Helvetica-Bold", 6); t.setFillColor(colors.Color(.35, .35, .35))
+    t.textOut("N\u00b0 %06d" % serie); c.drawText(t)
+    c.restoreState()
+
 
 def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleur=True,
                 nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="",
@@ -60,32 +90,52 @@ def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleu
     n_ = max(1, int(n_ if n_ else CARTES_PAGE))
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=(PAGE_W, PAGE_H), pageCompression=1)
-    rng = random.Random(int(serie_start)*100003 + 421)
-    serie = int(serie_start); faites = 0
-    try: page_dep = max(1, int(page_start))
-    except Exception: page_dep = 1
-    while faites < n_:
-        try: c.drawImage(_IMG_FOND, MARGE, MARGE, _AVW, _AVH, preserveAspectRatio=False, mask="auto")
-        except Exception: pass
-        for k in range(CARTES_PAGE):
-            if faites >= n_: break
-            vals = _gen_carton(rng)
-            col = colors.HexColor(RAINBOW[serie % len(RAINBOW)]) if couleur else GRIS
-            c.setFillColor(col); c.setFont(POLICE, _T)
-            for pos, (px, py) in enumerate(_CELLS[k]):
-                v = vals[pos]
-                if v is None: continue
-                c.drawCentredString(_x(px), _y(py) - _T*0.36, str(v))
-            # série : recouvre le "001" du modèle
-            sx, sy = _SER[k]
-            c.setFillColor(colors.white)
-            c.rect(_x(sx)-26, _y(sy)-9, 52, 18, fill=1, stroke=0)
-            c.setFillColor(colors.Color(0.15,0.15,0.15)); c.setFont("Helvetica-BoldOblique", 13)
-            c.drawCentredString(_x(sx), _y(sy)-13*0.34, "%03d" % serie)
-            serie += 1; faites += 1
-        if page_dep > 1 or faites > CARTES_PAGE:
-            c.setFillColor(colors.Color(0.55,0.55,0.55)); c.setFont("Helvetica", 6)
-            nfe = page_dep + (faites-1)//CARTES_PAGE
-            c.drawRightString(PAGE_W-6*mm, PAGE_H-7*mm, "%03d" % nfe)
+    rng = random.Random(int(serie_start) * 100003 + 7171)
+    serie = int(serie_start)
+    faits = 0
+    try:
+        no_page = max(1, int(page_start))
+    except Exception:
+        no_page = 1
+    col_imposee = None
+    if couleur and couleur_perso:
+        try:
+            col_imposee = colors.HexColor(couleur_perso)
+        except Exception:
+            col_imposee = None
+
+    while faits < n_:
+        entete = "  ·  ".join(t for t in ((nom_evenement or "").strip(), (date_lieu or "").strip()) if t)
+        if entete:
+            c.setFillColor(NOIR); c.setFont("Helvetica-Bold", 7)
+            c.drawCentredString(PAGE_W / 2.0, PAGE_H - DECAL_Y / 2.0 - 2.5, entete)
+        c.setFillColor(colors.Color(0.5, 0.5, 0.5)); c.setFont("Helvetica", 6)
+        c.drawRightString(PAGE_W - DECAL_X, DECAL_Y / 2.0 - 2, "page %d" % no_page)
+
+        c.saveState()
+        c.translate(DECAL_X, DECAL_Y); c.scale(ECHELLE, ECHELLE)
+        for idx in range(CARTES_PAGE):
+            if faits >= n_:
+                break
+            ox = (idx % COLS) * CELL_W
+            oy = (RANGS - 1 - idx // COLS) * CELL_H
+            col = (col_imposee or colors.HexColor(RAINBOW[serie % len(RAINBOW)])) if couleur else NOIR
+            _billet(c, ox, oy, serie, _numeros(rng), col)
+            serie += 1
+            faits += 1
+        c.setStrokeColor(colors.Color(0.5, 0.5, 0.5)); c.setLineWidth(0.3); c.setDash(2, 2)
+        for i in (1, 2):
+            c.line(i * CELL_W, 0, i * CELL_W, RANGS * CELL_H)
+        for j in (1, 2, 3):
+            c.line(0, j * CELL_H, COLS * CELL_W, j * CELL_H)
+        c.restoreState()
         c.showPage()
-    c.save(); buf.seek(0); return buf
+        no_page += 1
+    c.save()
+    buf.seek(0)
+    return buf
+
+
+if __name__ == "__main__":
+    open("test_melodie.pdf", "wb").write(generer_pdf(nb_cartes=12, couleur=False).read())
+    print("MELODIE genere")
