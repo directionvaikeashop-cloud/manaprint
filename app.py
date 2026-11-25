@@ -8879,3 +8879,13 @@ try:
     print("[BROWN] nouvelle maquette — 12 billets par feuille")
 except Exception as _e_brown2:
     print("[BROWN] nouvelle maquette non chargée :", repr(_e_brown2))
+
+# 🌙 25/11 — MOON nouvelle maquette CANVA : 12 billets par feuille A4 paysage (M 1-15 · O 16-30 · O 46-60 · N 61-75, crieur inchangé)
+try:
+    _ECO_VALIDES_21_11.add("moon")            # dessin Canva net + chiffres bien noirs en N&B
+    GRIS_PARTICULIERS.pop("moon", None)
+    _enregistrer_paire("moon", "MOON", "\U0001f319", 12, moon.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[MOON] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_moon2:
+    print("[MOON] nouvelle maquette non chargée :", repr(_e_moon2))
