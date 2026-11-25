@@ -8796,3 +8796,14 @@ try:
     print("[SICILE] nouvelle maquette — 12 billets par feuille")
 except Exception as _e_sicile2:
     print("[SICILE] nouvelle maquette non chargée :", repr(_e_sicile2))
+
+# 🗺️ 24/11 — SALUTE nouvelle maquette CANVA (la Corse au coeur) : 12 billets par feuille A4 paysage, B I G O contre les chiffres
+#    (fichier generators/salute_canva.py ; l'ancien salute.py reste pour le SALUTE SMORFIA). Crieur inchangé : 1-30 et 46-75.
+try:
+    from generators import salute_canva
+    _ECO_VALIDES_21_11.add("salute_canva")    # dessin Canva net + chiffres bien noirs en N&B
+    _enregistrer_paire("salute", "SALUTE 6 boules", "\U0001f5fa️", 12, salute_canva.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[SALUTE] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_salute2:
+    print("[SALUTE] nouvelle maquette non chargée :", repr(_e_salute2))
