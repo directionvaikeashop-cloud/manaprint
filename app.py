@@ -8728,3 +8728,13 @@ try:
     print("[BRIQUET] nouvelle maquette — 12 billets par feuille")
 except Exception as _e_briquet2:
     print("[BRIQUET] nouvelle maquette non chargée :", repr(_e_briquet2))
+
+# 💴 24/11 — 1000 FRANCS « bien lisible » (sceau Maeva) : le dessin N&B du billet
+#   (generators/billet1000.png) est maintenant FONCÉ et NET — cadres, « 1000 »,
+#   « MILLE FRANCS », fleurs et visage se lisent — avec un fond BLANC PUR.
+#   En N&B on ne l'éclaircit donc plus pour l'économie de toner.
+try:
+    _ECO_IMG_GARDER_BLANC.add("francs1000")
+    print("[1000 FRANCS] billet N&B bien lisible (dessin non éclairci)")
+except Exception as _e_1000:
+    print("[1000 FRANCS] réglage lisible non chargé :", repr(_e_1000))
