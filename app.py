@@ -8788,3 +8788,11 @@ try:
     print("[JOIE] nouvelle maquette — 12 billets par feuille")
 except Exception as _e_joie2:
     print("[JOIE] nouvelle maquette non chargée :", repr(_e_joie2))
+
+# 👑 24/11 — SICILE nouvelle maquette CANVA (la couronne) : 12 billets par feuille A4 paysage, B I N G O sur les gouttes (crieur 1 à 75)
+try:
+    _enregistrer_paire("sicile", "SICILE", "\U0001f451", 12, sicile.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[SICILE] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_sicile2:
+    print("[SICILE] nouvelle maquette non chargée :", repr(_e_sicile2))
