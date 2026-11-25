@@ -8738,3 +8738,11 @@ try:
     print("[1000 FRANCS] billet N&B bien lisible (dessin non éclairci)")
 except Exception as _e_1000:
     print("[1000 FRANCS] réglage lisible non chargé :", repr(_e_1000))
+
+# 🏹 24/11 — ARCHER nouvelle maquette : 12 billets par feuille A4 paysage (cibles 1-20 · 21-40 · 41-60 · 61-90, crieur 1 à 90)
+try:
+    _enregistrer_paire("archer", "ARCHER · 4 cibles", "\U0001f3f9", 12, archer.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[ARCHER] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_archer2:
+    print("[ARCHER] nouvelle maquette non chargée :", repr(_e_archer2))
