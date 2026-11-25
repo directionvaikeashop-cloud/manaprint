@@ -1,144 +1,143 @@
 # -*- coding: utf-8 -*-
-"""MANAPRINT — SICILE — maquette RETRAVAILLÉE par Maeva (12/10).
-
-👑 La couronne à cinq pierres. La nouvelle maquette (10 tickets 2×5, en-tête
-« SICILE · 5 BOULES », « N° », pastille « 5 BOULES », pied « 2KEA & Associé –
-Papeete · 89 22 23 05 ») est reprise TELLE QUELLE, posée comme UNE SEULE image
-de fond. Le « N° 00001 » figé a été effacé : le vrai numéro de série est
-imprimé dynamiquement.
-
-RÈGLE — cinq numéros, une plage par goutte, de gauche à droite :
-  goutte 1 (gauche) : 1-15 · goutte 2 : 16-30 · goutte 3 (centre, la plus
-  grande) : 31-45 · goutte 4 : 46-60 · goutte 5 (droite) : 61-75.
-Tout le sac 1-75 sert, les cinq numéros sont différents. Crieur 1 à 75.
-
-CHIFFRES — chaque chiffre est AU PLUS GROS que sa propre goutte permet :
-le rayon réel du ventre (bulbe) de chaque goutte a été mesuré sur la maquette
-(cercle inscrit) ; la taille du chiffre est calée dessus (pire cas 2 chiffres)
-et parfaitement centrée dans le bulbe. La goutte centrale reçoit les plus gros
-chiffres, les gouttes latérales le maximum que leur bulbe plus petit autorise —
-aucun débordement. Chiffres NOIRS (Latin Modern). 10 tickets A4 portrait.
-"""
-import io
-import os as _os
-import random
+"""MANAPRINT — SICILE · 5 boules (maquette CANVA de Maeva, création 2KEA & Associé).
+NOUVELLE MAQUETTE de Maeva (24/11/2026, « sicile_canva_12_A4 ») reprise TELLE QUELLE :
+12 billets / feuille A4 PAYSAGE (3 colonnes x 4 rangées), traits de coupe en pointillés.
+👑 La couronne à cinq gouttes : le dessin (cadres, fleurs de lys, gouttes, losanges,
+ronds à pointillés, bandeau, pastille « N° ») est rejoué TRAIT POUR TRAIT depuis la
+maquette (_DESSIN) ; on n'y pose que les chiffres, le N° de série et les lettres.
+RÈGLE (inchangée) — une plage par goutte, de gauche à droite, la lettre au-dessus du rond (24/11) :
+   B 1-15 · I 16-30 · N 31-45 (la grande du centre) · G 46-60 · O 61-75 -> crieur 1 à 75.
+Chiffres comme la maquette : écriture à empattements (Times) 27 · 28 · 30 · 28 · 27 pt.
+Le tout est réduit pour garder 6 mm de marge d'impression (Konica / Sharp)."""
+import io, os as _os, random
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import landscape, A4
 from reportlab.lib import colors
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 
-PAGE_W, PAGE_H = A4
-CARTES_PAGE = 10
-try:
-    pdfmetrics.registerFont(TTFont("LMROMANSI", _os.path.join(
-        _os.path.dirname(_os.path.abspath(__file__)), "LatinModern.ttf")))
-    POLICE_NUM = "LMROMANSI"
-except Exception:
-    POLICE_NUM = "Times-Bold"
-POLICE_PETIT = "Helvetica"
-RAINBOW = ["#E53935","#FB8C00","#F9A825","#43A047","#00ACC1",
-           "#1E88E5","#3949AB","#8E24AA","#D81B60","#6D4C41"]
-NOIR = colors.Color(0,0,0)
-GRIS = colors.Color(0.45,0.45,0.45)
+PAGE_W, PAGE_H = landscape(A4)
+COLS, RANGS = 3, 4
+CARTES_PAGE = COLS * RANGS                # 12
+CELL_W, CELL_H = 280.6299, 148.8189
+NOIR = colors.black
+RAINBOW = ["#E53935", "#FB8C00", "#F9A825", "#43A047", "#00ACC1",
+           "#1E88E5", "#3949AB", "#8E24AA", "#D81B60", "#6D4C41"]
+POLICE_NUM = "Times-Roman"
 
-PLAGES = [(1,15),(16,30),(31,45),(46,60),(61,75)]
-T_SER = 9.0
-
-# ⭐ Taille du chiffre = part du diamètre du bulbe (cercle inscrit mesuré sur la
-#   maquette). FACTOR 0.76 => « 88 » (pire cas) occupe 76 % du diamètre : le plus
-#   gros possible tout en gardant une marge pour ne jamais toucher le contour.
-_FACTOR = 0.76
-_VCEN = 0.345   # abaissement de la ligne de base pour centrer verticalement
-
-# chaque ticket = ([ (bulbe_x, bulbe_y, rayon) × 5 gouttes g->d ], (serie_x, serie_y))
-# (bulbe_x,bulbe_y) = centre réel du ventre de la goutte ; rayon = cercle inscrit
-# mesuré sur sicile_fond.png. Coordonnées plein cadre (transposées plus bas).
-CARTES = [
-    ([(60.9,728.4,17.6),(108.3,743.7,18.6),(158.6,760.6,20.0),(208.2,744.2,18.6),(253.9,728.4,17.2)], (275.4,808.6)),
-    ([(349.8,729.0,17.5),(396.7,743.1,18.4),(446.9,760.0,20.0),(496.6,744.8,18.6),(541.7,727.8,17.2)], (561.4,808.6)),
-    ([(60.9,566.9,17.6),(108.3,582.7,18.6),(158.6,599.7,19.9),(208.2,582.7,18.6),(253.9,566.9,17.2)], (275.4,646.5)),
-    ([(349.3,566.9,17.6),(396.7,582.2,18.4),(446.9,599.1,20.0),(496.6,583.3,18.5),(541.7,566.9,17.2)], (561.4,646.5)),
-    ([(60.9,405.4,17.6),(108.3,421.8,18.6),(158.6,438.7,19.9),(208.2,421.8,18.6),(253.9,405.4,17.3)], (275.4,483.3)),
-    ([(349.8,406.0,17.7),(396.7,420.7,18.4),(446.9,437.6,20.1),(496.0,421.8,18.6),(541.7,405.4,17.2)], (561.4,483.3)),
-    ([(61.5,244.5,17.6),(108.3,259.7,18.6),(158.6,276.1,20.1),(208.2,260.3,18.6),(253.9,243.9,17.2)], (275.4,323.5)),
-    ([(349.8,244.5,17.8),(396.7,259.2,18.4),(446.9,276.1,20.1),(496.0,260.3,18.6),(541.7,243.9,17.2)], (561.4,323.5)),
-    ([(60.9,81.9,17.5),(108.3,98.8,18.8),(158.6,115.2,20.0),(208.2,98.8,18.6),(253.9,81.9,17.2)], (275.4,160.4)),
-    ([(349.8,81.9,17.6),(396.7,97.7,18.5),(446.9,115.2,20.0),(496.6,98.8,18.6),(541.7,81.9,17.2)], (561.4,160.4)),
+# (centre x, ligne de base, taille, plage, lettre, haut du rond)
+GOUTTES = [
+    (33.44882, 40.97976, 27, (1, 15), "B", 71.71654),
+    (84.47244, 51.98835, 28, (16, 30), "I", 85.6063),
+    (140.315, 64.93465, 30, (31, 45), "N", 102.3307),
+    (196.1575, 51.98835, 28, (46, 60), "G", 85.6063),
+    (247.1811, 40.97976, 27, (61, 75), "O", 71.71654),
 ]
 
-# Marge blanche (zone non imprimable) : on réduit l'ensemble pour que les
-# bordures des tickets ne débordent pas à l'impression. Les coordonnées de
-# CARTES (calculées plein cadre) sont transposées dans le cadre réduit.
-from reportlab.lib.units import mm as _mm
-MARGE = 5 * _mm
-FOND_X = MARGE; FOND_Y = MARGE
-FOND_W = PAGE_W - 2 * MARGE; FOND_H = PAGE_H - 2 * MARGE
-_SX = FOND_W / PAGE_W; _SY = FOND_H / PAGE_H
-CARTES = [
-    ([(MARGE + x*_SX, MARGE + y*_SY, r*_SX) for (x, y, r) in ov],
-     (MARGE + ser[0]*_SX, MARGE + ser[1]*_SY))
-    for ov, ser in CARTES
-]
-
-def _fond():
-    d=_os.path.dirname(_os.path.abspath(__file__))
-    for nom in ("sicile_fond.png","sicile_couronne_fond.png"):
-        p=_os.path.join(d,nom)
-        if _os.path.exists(p): return p
-    try:
-        for f in _os.listdir(d):
-            if "sicile_fond" in f.lower() and f.lower().endswith(".png"): return _os.path.join(d,f)
-    except Exception: pass
-    return _os.path.join(d,"sicile_fond.png")
-_IMG_FOND=_fond()
+MARGE_SURE = 6 * 72 / 25.4
+ECHELLE = min((PAGE_W - 2 * MARGE_SURE) / PAGE_W, (PAGE_H - 2 * MARGE_SURE) / PAGE_H)
+DECAL_X = (PAGE_W - PAGE_W * ECHELLE) / 2.0
+DECAL_Y = (PAGE_H - PAGE_H * ECHELLE) / 2.0
 
 
-def _gen_carte(rng):
-    return [rng.randint(lo,hi) for (lo,hi) in PLAGES]
+def _numeros(rng):
+    return [rng.randint(lo, hi) for _x, _y, _t, (lo, hi), _l, _h in GOUTTES]
+
+
+def _txt(c, s, x, y, taille, col, police, centre=False, esp=0):
+    # objet texte : la position est EXACTEMENT celle de la maquette
+    w = c.stringWidth(s, police, taille) + (esp * (len(s) - 1) if esp else 0)
+    t = c.beginText(x - w / 2.0 if centre else x, y); t.setFont(police, taille)
+    if esp:
+        t.setCharSpace(esp)
+    t.setFillColor(col); t.textOut(s)
+    if esp:
+        t.setCharSpace(0)
+    c.drawText(t)
+
+
+def _billet(c, ox, oy, serie, nums, col):
+    gris = colors.Color(.45, .45, .45)
+    textes = [lambda k=k: _txt(c, str(nums[k]), GOUTTES[k][0], GOUTTES[k][1], GOUTTES[k][2], col,
+                               POLICE_NUM, centre=True) for k in range(5)]
+    textes += [
+        lambda: _txt(c, "SICILE", 29.76378, 120.189, 21, NOIR, "Helvetica", esp=2),
+        lambda: _txt(c, "2KEA & Associ\u00e9 \u2013 Papeete", 108.4949, 17.00787, 5, NOIR, "Helvetica-Bold"),
+        lambda: _txt(c, "89 22 23 05", 127.1082, 10.20472, 5, NOIR, "Helvetica-Bold"),
+        lambda: _txt(c, "N\u00b0", 207.4961, 122.1732, 6.5, NOIR, "Helvetica-Bold"),
+        lambda: _txt(c, "%05d" % serie, 231.7058, 122.1732, 7.4, gris, "Helvetica"),
+        lambda: _txt(c, "5 BOULES", 211.2531, 106.0157, 6.5, NOIR, "Helvetica-Bold", esp=0.6),
+    ]
+    c.saveState()
+    c.translate(ox, oy)
+    c._code.append("q")
+    for k, morceau in enumerate(_DESSIN):
+        c._code.append(morceau)
+        if k < len(textes):
+            textes[k]()
+    c._code.append("Q")
+    for cx, _y, _t, _pl, let, haut in GOUTTES:
+        lx, ly = cx, haut + 7.2
+        c.setFillColor(colors.white); c.setStrokeColor(NOIR); c.setLineWidth(0.6)
+        c.circle(lx, ly, 4.6, stroke=1, fill=1)
+        c.setFillColor(col); c.setFont("Helvetica-Bold", 7.0); c.drawCentredString(lx, ly - 2.5, let)
+    c.restoreState()
 
 
 def generer_pdf(nb_cartes=None, nb_tickets=None, serie_start=1, theme="", couleur=True,
-                nom_evenement="", titre_jeu="", couleur_perso="",
-                date_lieu="", telephone="", page_start=1, evenement_id="",
-                style="", motif="", **_ignore):
-    n_=nb_tickets if nb_tickets is not None else nb_cartes
-    n_=max(1,int(n_ if n_ else CARTES_PAGE))
-    buf=io.BytesIO(); c=canvas.Canvas(buf, pagesize=(PAGE_W,PAGE_H))
-    rng=random.Random(int(serie_start)*100003+7)
-    serie=int(serie_start); faites=0
-    try: page_dep=max(1,int(page_start))
-    except Exception: page_dep=1
-    while faites<n_:
-        try: c.drawImage(_IMG_FOND,FOND_X,FOND_Y,FOND_W,FOND_H,preserveAspectRatio=False,mask="auto")
-        except Exception: pass
-        for ovales, ser in CARTES:
-            if faites>=n_: break
-            nums=_gen_carte(rng)
-            col=colors.HexColor(RAINBOW[serie%len(RAINBOW)]) if couleur else NOIR
-            c.setFillColor(col)
-            # ⭐ Chaque chiffre AU PLUS GROS dans sa goutte : taille = 2·rayon·FACTOR
-            #   (rayon du bulbe propre à chaque goutte), centré sur le ventre réel.
-            for (cx,cy,r),val in zip(ovales, nums):
-                f=2.0*r*_FACTOR
-                # ⭐ 25/10 (Maeva : « le gras de SICILE comme ROYAL ») : on
-                #   épaissit le chiffre par un CONTOUR centré sur la lettre
-                #   (remplir+contourer), sans changer l'écriture Latin Modern.
-                t=c.beginText(cx - pdfmetrics.stringWidth(str(val),POLICE_NUM,f)/2.0,
-                              cy - f*_VCEN)
-                t.setFont(POLICE_NUM, f)
-                t.setTextRenderMode(2)            # remplir ET contourer
-                c.setStrokeColor(col)
-                c.setLineWidth(max(0.3, f*0.035))
-                t.textOut(str(val))
-                c.drawText(t)
-                c._code.append('0 Tr')            # sinon le mode de rendu reste actif
-            c.setFillColor(GRIS); c.setFont(POLICE_PETIT,T_SER)
-            c.drawRightString(ser[0], ser[1], "%05d"%serie)
-            serie+=1; faites+=1
-        if page_dep>1 or faites>CARTES_PAGE:
-            c.setFillColor(GRIS); c.setFont(POLICE_PETIT,6.0)
-            nfe=page_dep+(faites-1)//CARTES_PAGE
-            c.drawRightString(PAGE_W-6, 6, "%03d"%nfe)
+                nom_evenement="", titre_jeu="", couleur_perso="", date_lieu="",
+                telephone="", page_start=1, evenement_id="", style="", motif="", **_ig):
+    n_ = nb_cartes if nb_cartes is not None else nb_tickets
+    n_ = max(1, int(n_ if n_ else CARTES_PAGE))
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=(PAGE_W, PAGE_H), pageCompression=1)
+    rng = random.Random(int(serie_start) * 100003 + 2121)
+    serie = int(serie_start)
+    faits = 0
+    try:
+        no_page = max(1, int(page_start))
+    except Exception:
+        no_page = 1
+    col_imposee = None
+    if couleur and couleur_perso:
+        try:
+            col_imposee = colors.HexColor(couleur_perso)
+        except Exception:
+            col_imposee = None
+
+    while faits < n_:
+        entete = "  ·  ".join(t for t in ((nom_evenement or "").strip(), (date_lieu or "").strip()) if t)
+        if entete:
+            c.setFillColor(NOIR); c.setFont("Helvetica-Bold", 7)
+            c.drawCentredString(PAGE_W / 2.0, PAGE_H - DECAL_Y / 2.0 - 2.5, entete)
+        c.setFillColor(colors.Color(0.5, 0.5, 0.5)); c.setFont("Helvetica", 6)
+        c.drawRightString(PAGE_W - DECAL_X, DECAL_Y / 2.0 - 2, "page %d" % no_page)
+
+        c.saveState()
+        c.translate(DECAL_X, DECAL_Y); c.scale(ECHELLE, ECHELLE)
+        for idx in range(CARTES_PAGE):
+            if faits >= n_:
+                break
+            ox = (idx % COLS) * CELL_W
+            oy = (RANGS - 1 - idx // COLS) * CELL_H
+            col = (col_imposee or colors.HexColor(RAINBOW[serie % len(RAINBOW)])) if couleur else NOIR
+            _billet(c, ox, oy, serie, _numeros(rng), col)
+            serie += 1
+            faits += 1
+        c.setStrokeColor(colors.Color(0.5, 0.5, 0.5)); c.setLineWidth(0.3); c.setDash(2, 2)
+        for i in (1, 2):
+            c.line(i * CELL_W, 0, i * CELL_W, RANGS * CELL_H)
+        for j in (1, 2, 3):
+            c.line(0, j * CELL_H, COLS * CELL_W, j * CELL_H)
+        c.restoreState()
         c.showPage()
-    c.save(); buf.seek(0); return buf
+        no_page += 1
+    c.save()
+    buf.seek(0)
+    return buf
+
+
+_DESSIN = ['0 0 0 RG\n.7 w\n1 1 1 rg\nn\n7.937008 2.267717 m\n272.6929 2.267717 l\n275.8269 2.267717 278.3622 4.803024 278.3622 7.937008 c\n278.3622 140.8819 l\n278.3622 144.0159 275.8269 146.5512 272.6929 146.5512 c\n7.937008 146.5512 l\n4.803024 146.5512 2.267717 144.0159 2.267717 140.8819 c\n2.267717 7.937008 l\n2.267717 4.803024 4.803024 2.267717 7.937008 2.267717 c\nh\nB*\n.3 w\n[1.2 1] 0 d\nn 6.80315 6.80315 267.0236 135.2126 re S\n[] 0 d\n1 1 1 rg\n.7 w\nn 26.92913 20.04094 m 30.70866 21.31943 l 34.48819 22.55458 l 38.26772 23.74639 l 42.04724 24.89487 l 45.82677 26 l 49.6063 27.0618 l 53.38583 28.08025 l 57.16535 29.05537 l 60.94488 29.98715 l 64.72441 30.87559 l 68.50394 31.72069 l 72.28346 32.52246 l 76.06299 33.28088 l 79.84252 33.99597 l 83.62205 34.66772 l 87.40157 35.29613 l 91.1811 35.8812 l 94.96063 36.42293 l 98.74016 36.92132 l 102.5197 37.37638 l 106.2992 37.78809 l 110.0787 38.15647 l 113.8583 38.48151 l 117.6378 38.76321 l 121.4173 39.00157 l 125.1969 39.1966 l 128.9764 39.34828 l 132.7559 39.45663 l 136.5354 39.52164 l 140.315 39.54331 l 144.0945 39.52164 l 147.874 39.45663 l 151.6535 39.34828 l 155.4331 39.1966 l 159.2126 39.00157 l 162.9921 38.76321 l 166.7717 38.48151 l 170.5512 38.15647 l 174.3307 37.78809 l 178.1102 37.37638 l 181.8898 36.92132 l 185.6693 36.42293 l 189.4488 35.8812 l 193.2283 35.29613 l 197.0079 34.66772 l 200.7874 33.99597 l 204.5669 33.28088 l 208.3465 32.52246 l 212.126 31.72069 l 215.9055 30.87559 l 219.685 29.98715 l 223.4646 29.05537 l 227.2441 28.08025 l 231.0236 27.0618 l 234.8031 26 l 238.5827 24.89487 l 242.3622 23.74639 l 246.1417 22.55458 l 249.9213 21.31943 l 253.7008 20.04094 l 253.7008 11.25354 l 249.9213 12.53203 l 246.1417 13.76718 l 242.3622 14.95899 l 238.5827 16.10746 l 234.8031 17.2126 l 231.0236 18.27439 l 227.2441 19.29285 l 223.4646 20.26797 l 219.685 21.19975 l 215.9055 22.08819 l 212.126 22.93329 l 208.3465 23.73506 l 204.5669 24.49348 l 200.7874 25.20857 l 197.0079 25.88031 l 193.2283 26.50872 l 189.4488 27.0938 l 185.6693 27.63553 l 181.8898 28.13392 l 178.1102 28.58898 l 174.3307 29.00069 l 170.5512 29.36907 l 166.7717 29.69411 l 162.9921 29.97581 l 159.2126 30.21417 l 155.4331 30.4092 l 151.6535 30.56088 l 147.874 30.66923 l 144.0945 30.73424 l 140.315 30.75591 l 136.5354 30.73424 l 132.7559 30.66923 l 128.9764 30.56088 l 125.1969 30.4092 l 121.4173 30.21417 l 117.6378 29.97581 l 113.8583 29.69411 l 110.0787 29.36907 l 106.2992 29.00069 l 102.5197 28.58898 l 98.74016 28.13392 l 94.96063 27.63553 l 91.1811 27.0938 l 87.40157 26.50872 l 83.62205 25.88031 l 79.84252 25.20857 l 76.06299 24.49348 l 72.28346 23.73506 l 68.50394 22.93329 l 64.72441 22.08819 l 60.94488 21.19975 l 57.16535 20.26797 l 53.38583 19.29285 l 49.6063 18.27439 l 45.82677 17.2126 l 42.04724 16.10746 l 38.26772 14.95899 l 34.48819 13.76718 l 30.70866 12.53203 l 26.92913 11.25354 l h\nB*\n1 J\n.9 w\n[0 4.2] 0 d\nn 26.92913 15.64724 m 30.70866 16.92573 l 34.48819 18.16088 l 38.26772 19.35269 l 42.04724 20.50117 l 45.82677 21.6063 l 49.6063 22.66809 l 53.38583 23.68655 l 57.16535 24.66167 l 60.94488 25.59345 l 64.72441 26.48189 l 68.50394 27.32699 l 72.28346 28.12876 l 76.06299 28.88718 l 79.84252 29.60227 l 83.62205 30.27402 l 87.40157 30.90243 l 91.1811 31.4875 l 94.96063 32.02923 l 98.74016 32.52762 l 102.5197 32.98268 l 106.2992 33.39439 l 110.0787 33.76277 l 113.8583 34.08781 l 117.6378 34.36951 l 121.4173 34.60787 l 125.1969 34.8029 l 128.9764 34.95458 l 132.7559 35.06293 l 136.5354 35.12794 l 140.315 35.14961 l 144.0945 35.12794 l 147.874 35.06293 l 151.6535 34.95458 l 155.4331 34.8029 l 159.2126 34.60787 l 162.9921 34.36951 l 166.7717 34.08781 l 170.5512 33.76277 l 174.3307 33.39439 l 178.1102 32.98268 l 181.8898 32.52762 l 185.6693 32.02923 l 189.4488 31.4875 l 193.2283 30.90243 l 197.0079 30.27402 l 200.7874 29.60227 l 204.5669 28.88718 l 208.3465 28.12876 l 212.126 27.32699 l 215.9055 26.48189 l 219.685 25.59345 l 223.4646 24.66167 l 227.2441 23.68655 l 231.0236 22.66809 l 234.8031 21.6063 l 238.5827 20.50117 l 242.3622 19.35269 l 246.1417 18.16088 l 249.9213 16.92573 l 253.7008 15.64724 l\nS\n[] 0 d\n0 J\n1 1 1 rg\n.8 w\nn 8.503937 49.88976 m 8.503937 74.83465 27.96094 83.56535 33.44882 93.54331 c 38.93669 83.56535 58.3937 74.83465 58.3937 49.88976 c 8.503937 49.88976 m 8.503937 36.11309 19.67214 24.94488 33.44882 24.94488 c 47.2255 24.94488 58.3937 36.11309 58.3937 49.88976 c\nB*\n.5 w\nn 33.44882 101.7638 m 36 97.79528 l 33.44882 93.82677 l 30.89764 97.79528 l h\nS\nn 33.44882 91.27559 m 35.43307 88.15748 l 33.44882 85.03937 l 31.46457 88.15748 l h\nS\n1 1 1 rg\n.8 w\nn 56.97638 61.22835 m 56.97638 88.72441 78.42331 98.34803 84.47244 109.3465 c 90.52157 98.34803 111.9685 88.72441 111.9685 61.22835 c 56.97638 61.22835 m 56.97638 46.04269 69.28678 33.73228 84.47244 33.73228 c 99.6581 33.73228 111.9685 46.04269 111.9685 61.22835 c\nB*\n.5 w\nn 84.47244 117.5669 m 87.02362 113.5984 l 84.47244 109.6299 l 81.92126 113.5984 l h\nS\nn 84.47244 107.0787 m 86.45669 103.9606 l 84.47244 100.8425 l 82.48819 103.9606 l h\nS\n1 1 1 rg\n.8 w\nn 109.7008 74.83465 m 109.7008 105.4488 133.5798 116.1638 140.315 128.4094 c 147.0501 116.1638 170.9291 105.4488 170.9291 74.83465 c 109.7008 74.83465 m 109.7008 57.9269 123.4072 44.22047 140.315 44.22047 c 157.2227 44.22047 170.9291 57.9269 170.9291 74.83465 c\nB*\n.5 w\nn 140.315 136.6299 m 142.8661 132.6614 l 140.315 128.6929 l 137.7638 132.6614 l h\nS\nn 140.315 126.1417 m 142.2992 123.0236 l 140.315 119.9055 l 138.3307 123.0236 l h\nS\n1 1 1 rg\n.8 w\nn 168.6614 61.22835 m 168.6614 88.72441 190.1083 98.34803 196.1575 109.3465 c 202.2066 98.34803 223.6535 88.72441 223.6535 61.22835 c 168.6614 61.22835 m 168.6614 46.04269 180.9718 33.73228 196.1575 33.73228 c 211.3431 33.73228 223.6535 46.04269 223.6535 61.22835 c\nB*\n.5 w\nn 196.1575 117.5669 m 198.7087 113.5984 l 196.1575 109.6299 l 193.6063 113.5984 l h\nS\nn 196.1575 107.0787 m 198.1417 103.9606 l 196.1575 100.8425 l 194.1732 103.9606 l h\nS\n1 1 1 rg\n.8 w\nn 222.2362 49.88976 m 222.2362 74.83465 241.6932 83.56535 247.1811 93.54331 c 252.669 83.56535 272.126 74.83465 272.126 49.88976 c 222.2362 49.88976 m 222.2362 36.11309 233.4044 24.94488 247.1811 24.94488 c 260.9578 24.94488 272.126 36.11309 272.126 49.88976 c\nB*\n.5 w\nn 247.1811 101.7638 m 249.7323 97.79528 l 247.1811 93.82677 l 244.6299 97.79528 l h\nS\nn 247.1811 91.27559 m 249.1654 88.15748 l 247.1811 85.03937 l 245.1969 88.15748 l h\nS\n.7 w\n1 1 1 rg\nn\n149.6693 35.14961 m\n149.6693 40.31586 145.4812 44.50394 140.315 44.50394 c\n135.1487 44.50394 130.9606 40.31586 130.9606 35.14961 c\n130.9606 29.98335 135.1487 25.79528 140.315 25.79528 c\n145.4812 25.79528 149.6693 29.98335 149.6693 35.14961 c\nB*\n.5 w\n.55 .55 .55 rg\nn 140.315 40.8189 m 144.5669 35.14961 l 140.315 29.48031 l 136.063 35.14961 l h\nB*\n1 1 1 rg\n0 0 0 RG\n.8 w\nn\n55.27559 49.88976 m\n55.27559 61.94436 45.50341 71.71654 33.44882 71.71654 c\n21.39423 71.71654 11.62205 61.94436 11.62205 49.88976 c\n11.62205 37.83517 21.39423 28.06299 33.44882 28.06299 c\n45.50341 28.06299 55.27559 37.83517 55.27559 49.88976 c\nB*\n1 J\n.8 w\n[0 3.4] 0 d\nn\n52.58268 49.88976 m\n52.58268 60.4571 44.01616 69.02362 33.44882 69.02362 c\n22.88148 69.02362 14.31496 60.4571 14.31496 49.88976 c\n14.31496 39.32243 22.88148 30.75591 33.44882 30.75591 c\n44.01616 30.75591 52.58268 39.32243 52.58268 49.88976 c\nS\n[] 0 d\n0 J\n0 0 0 rg', '1 1 1 rg\n0 0 0 RG\n.8 w\nn\n108.8504 61.22835 m\n108.8504 74.69192 97.93601 85.6063 84.47244 85.6063 c\n71.00887 85.6063 60.09449 74.69192 60.09449 61.22835 c\n60.09449 47.76477 71.00887 36.85039 84.47244 36.85039 c\n97.93601 36.85039 108.8504 47.76477 108.8504 61.22835 c\nB*\n1 J\n.8 w\n[0 3.4] 0 d\nn\n106.1575 61.22835 m\n106.1575 73.20466 96.44876 82.91339 84.47244 82.91339 c\n72.49612 82.91339 62.7874 73.20466 62.7874 61.22835 c\n62.7874 49.25203 72.49612 39.54331 84.47244 39.54331 c\n96.44876 39.54331 106.1575 49.25203 106.1575 61.22835 c\nS\n[] 0 d\n0 J\n0 0 0 rg', '1 1 1 rg\n0 0 0 RG\n.8 w\nn\n167.811 74.83465 m\n167.811 90.0203 155.5006 102.3307 140.315 102.3307 c\n125.1293 102.3307 112.8189 90.0203 112.8189 74.83465 c\n112.8189 59.64899 125.1293 47.33858 140.315 47.33858 c\n155.5006 47.33858 167.811 59.64899 167.811 74.83465 c\nB*\n1 J\n.8 w\n[0 3.4] 0 d\nn\n165.1181 74.83465 m\n165.1181 88.53305 154.0134 99.6378 140.315 99.6378 c\n126.6166 99.6378 115.5118 88.53305 115.5118 74.83465 c\n115.5118 61.13624 126.6166 50.0315 140.315 50.0315 c\n154.0134 50.0315 165.1181 61.13624 165.1181 74.83465 c\nS\n[] 0 d\n0 J\n0 0 0 rg', '1 1 1 rg\n0 0 0 RG\n.8 w\nn\n220.5354 61.22835 m\n220.5354 74.69192 209.6211 85.6063 196.1575 85.6063 c\n182.6939 85.6063 171.7795 74.69192 171.7795 61.22835 c\n171.7795 47.76477 182.6939 36.85039 196.1575 36.85039 c\n209.6211 36.85039 220.5354 47.76477 220.5354 61.22835 c\nB*\n1 J\n.8 w\n[0 3.4] 0 d\nn\n217.8425 61.22835 m\n217.8425 73.20466 208.1338 82.91339 196.1575 82.91339 c\n184.1812 82.91339 174.4724 73.20466 174.4724 61.22835 c\n174.4724 49.25203 184.1812 39.54331 196.1575 39.54331 c\n208.1338 39.54331 217.8425 49.25203 217.8425 61.22835 c\nS\n[] 0 d\n0 J\n0 0 0 rg', '1 1 1 rg\n0 0 0 RG\n.8 w\nn\n269.0079 49.88976 m\n269.0079 61.94436 259.2357 71.71654 247.1811 71.71654 c\n235.1265 71.71654 225.3543 61.94436 225.3543 49.88976 c\n225.3543 37.83517 235.1265 28.06299 247.1811 28.06299 c\n259.2357 28.06299 269.0079 37.83517 269.0079 49.88976 c\nB*\n1 J\n.8 w\n[0 3.4] 0 d\nn\n266.315 49.88976 m\n266.315 60.4571 257.7484 69.02362 247.1811 69.02362 c\n236.6138 69.02362 228.0472 60.4571 228.0472 49.88976 c\n228.0472 39.32243 236.6138 30.75591 247.1811 30.75591 c\n257.7484 30.75591 266.315 39.32243 266.315 49.88976 c\nS\n[] 0 d\n0 J\n0 0 0 rg', '', '0 0 0 RG\n.5 w', '', '1 1 1 rg\n.6 w\nn\n206.9291 116.7874 m\n252.2835 116.7874 l\n254.1639 116.7874 255.685 118.3086 255.685 120.189 c\n255.685 130.9606 l\n255.685 132.841 254.1639 134.3622 252.2835 134.3622 c\n206.9291 134.3622 l\n205.0487 134.3622 203.5276 132.841 203.5276 130.9606 c\n203.5276 120.189 l\n203.5276 118.3086 205.0487 116.7874 206.9291 116.7874 c\nh\nB*', '', '', 'q\n.85 0 0 .85 15.87402 132.9449 cm\n.588235 w\n0 0 0 RG\n1 1 1 rg\nn 0 -6.23622 m -3.685039 .566929 -2.551181 4.535433 0 7.937008 c 2.551181 4.535433 3.685039 .566929 0 -6.23622 c\nB*\nn -1.133858 -0.850394 m -2.834646 3.968504 -6.80315 4.535433 -7.370079 .566929 c -7.370079 -3.968504 -3.11811 -3.685039 -0.566929 -2.834646 c\nB*\nn 1.133858 -0.850394 m 2.834646 3.968504 6.80315 4.535433 7.370079 .566929 c 7.370079 -3.968504 3.11811 -3.685039 .566929 -2.834646 c\nB*\nn -4.535433 -5.669291 9.070866 1.417323 re B*\nQ\nq\n.85 0 0 .85 264.7559 132.9449 cm\n.588235 w\n0 0 0 RG\n1 1 1 rg\nn 0 -6.23622 m -3.685039 .566929 -2.551181 4.535433 0 7.937008 c 2.551181 4.535433 3.685039 .566929 0 -6.23622 c\nB*\nn -1.133858 -0.850394 m -2.834646 3.968504 -6.80315 4.535433 -7.370079 .566929 c -7.370079 -3.968504 -3.11811 -3.685039 -0.566929 -2.834646 c\nB*\nn 1.133858 -0.850394 m 2.834646 3.968504 6.80315 4.535433 7.370079 .566929 c 7.370079 -3.968504 3.11811 -3.685039 .566929 -2.834646 c\nB*\nn -4.535433 -5.669291 9.070866 1.417323 re B*\nQ\nq\n.85 0 0 .85 15.87402 15.87402 cm\n.588235 w\n0 0 0 RG\n1 1 1 rg\nn 0 -6.23622 m -3.685039 .566929 -2.551181 4.535433 0 7.937008 c 2.551181 4.535433 3.685039 .566929 0 -6.23622 c\nB*\nn -1.133858 -0.850394 m -2.834646 3.968504 -6.80315 4.535433 -7.370079 .566929 c -7.370079 -3.968504 -3.11811 -3.685039 -0.566929 -2.834646 c\nB*\nn 1.133858 -0.850394 m 2.834646 3.968504 6.80315 4.535433 7.370079 .566929 c 7.370079 -3.968504 3.11811 -3.685039 .566929 -2.834646 c\nB*\nn -4.535433 -5.669291 9.070866 1.417323 re B*\nQ\nq\n.85 0 0 .85 264.7559 15.87402 cm\n.588235 w\n0 0 0 RG\n1 1 1 rg\nn 0 -6.23622 m -3.685039 .566929 -2.551181 4.535433 0 7.937008 c 2.551181 4.535433 3.685039 .566929 0 -6.23622 c\nB*\nn -1.133858 -0.850394 m -2.834646 3.968504 -6.80315 4.535433 -7.370079 .566929 c -7.370079 -3.968504 -3.11811 -3.685039 -0.566929 -2.834646 c\nB*\nn 1.133858 -0.850394 m 2.834646 3.968504 6.80315 4.535433 7.370079 .566929 c 7.370079 -3.968504 3.11811 -3.685039 .566929 -2.834646 c\nB*\nn -4.535433 -5.669291 9.070866 1.417323 re B*\nQ']
+
+
+if __name__ == "__main__":
+    open("test_sicile.pdf", "wb").write(generer_pdf(nb_cartes=12, couleur=False).read())
+    print("SICILE genere")
