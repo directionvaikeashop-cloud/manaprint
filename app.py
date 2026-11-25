@@ -8807,3 +8807,12 @@ try:
     print("[SALUTE] nouvelle maquette — 12 billets par feuille")
 except Exception as _e_salute2:
     print("[SALUTE] nouvelle maquette non chargée :", repr(_e_salute2))
+
+# 🎵 24/11 — MÉLODIE nouvelle maquette CANVA : 12 billets par feuille A4 paysage, B I N G O sur la rangée du haut (crieur 1 à 75)
+try:
+    _ECO_VALIDES_21_11.add("melodie")         # dessin Canva net + chiffres bien noirs en N&B
+    _enregistrer_paire("melodie", "MÉLODIE · 10 boules", "\U0001f3b5", 12, melodie.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[MELODIE] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_melodie2:
+    print("[MELODIE] nouvelle maquette non chargée :", repr(_e_melodie2))
