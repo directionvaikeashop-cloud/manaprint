@@ -8771,3 +8771,12 @@ try:
     print("[DUAL DAB] nouvelle maquette — 12 billets par feuille")
 except Exception as _e_dab2:
     print("[DUAL DAB] nouvelle maquette non chargée :", repr(_e_dab2))
+
+# 🏝️ 24/11 — LAGOON nouvelle maquette CANVA (l'atoll et son lagon) : 12 billets par feuille A4 paysage (5 ronds, crieur 1 à 50)
+try:
+    _ECO_VALIDES_21_11.add("lagoon")      # dessin Canva au trait net + chiffres bien noirs en N&B
+    _enregistrer_paire("lagoon", "LAGOON 5 boules", "\U0001f3dd️", 12, lagoon.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[LAGOON] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_lagoon2:
+    print("[LAGOON] nouvelle maquette non chargée :", repr(_e_lagoon2))
