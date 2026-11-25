@@ -8816,3 +8816,33 @@ try:
     print("[MELODIE] nouvelle maquette — 12 billets par feuille")
 except Exception as _e_melodie2:
     print("[MELODIE] nouvelle maquette non chargée :", repr(_e_melodie2))
+
+# 📄 25/11 — NUMÉROS DE PAGE BIEN VISIBLES sur les nouveaux jeux (12 billets A4 paysage)
+#   (« sur les nouveaux jeux n'oublie pas de mettre les numéros de page » — Maeva)
+#   Les nouvelles maquettes écrivaient « page N » à 2,3 mm du bas de la feuille, en gris
+#   clair 6 pt : la Konica et la Sharp ne l'impriment pas (bord non imprimable).
+#   ⭐ Tout « page N » tracé trop bas est remonté à 4,4 mm du bord, en gras 7,5 pt gris
+#   foncé : il sort à l'impression, dans la marge, sans toucher les billets.
+#   Les jeux dont le numéro de page est déjà bien placé ne changent pas.
+import re as _re_pg
+from reportlab.pdfgen.canvas import Canvas as _CvPg
+_PG_RE = _re_pg.compile(r'^page \d{1,5}$', _re_pg.I)
+_PG_Y_MIN = 12.0      # en dessous (≈ 4,2 mm), l'imprimante coupe
+_PG_Y = 12.5          # nouvelle hauteur (≈ 4,4 mm)
+_o_drs_pg = _CvPg.drawRightString
+def _drs_page_visible(self, x, y, text, *a, **k):
+    try:
+        if _PG_RE.match(str(text).strip()):
+            a0, b0, c0, d0, e0, f0 = self._currentMatrix
+            if abs(b0) < 1e-9 and abs(c0) < 1e-9 and d0 > 0 and d0 * y + f0 < _PG_Y_MIN:
+                self.saveState()
+                self.setFont("Helvetica-Bold", 7.5)
+                self.setFillColorRGB(0.2, 0.2, 0.2)
+                r = _o_drs_pg(self, x, (_PG_Y - f0) / d0, text, *a, **k)
+                self.restoreState()
+                return r
+    except Exception:
+        pass
+    return _o_drs_pg(self, x, y, text, *a, **k)
+_CvPg.drawRightString = _drs_page_visible
+print("[PAGES] numéros de page des nouveaux jeux remontés à 4,4 mm (bien imprimés)")
