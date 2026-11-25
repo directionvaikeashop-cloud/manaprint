@@ -8869,3 +8869,13 @@ def _drs_page_en_haut(self, x, y, text, *a, **k):
     return _o_drs_pg(self, x, y, text, *a, **k)
 _CvPg.drawRightString = _drs_page_en_haut
 print("[PAGES] numéro de page des nouveaux jeux en haut à droite")
+
+# 🟤 25/11 — BROWN 8 boules nouvelle maquette CANVA : 12 billets par feuille A4 paysage (crieur 1 à 75, règle inchangée)
+try:
+    _ECO_VALIDES_21_11.add("brown8")          # dessin Canva net + chiffres bien noirs en N&B
+    GRIS_PARTICULIERS.pop("brown8", None)
+    _enregistrer_paire("brown8", "BROWN 8 boules", "\U0001f7e4", 12, brown8.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[BROWN] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_brown2:
+    print("[BROWN] nouvelle maquette non chargée :", repr(_e_brown2))
