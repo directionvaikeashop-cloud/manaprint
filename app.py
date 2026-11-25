@@ -8754,3 +8754,12 @@ try:
     print("[VOLLEY] nouvelle maquette — 12 billets par feuille")
 except Exception as _e_volley2:
     print("[VOLLEY] nouvelle maquette non chargée :", repr(_e_volley2))
+
+# 🔫 24/11 — GUN nouvelle maquette CANVA : 12 billets par feuille A4 paysage, B I N G O sur les cercles (crieur 1 à 75)
+try:
+    _ECO_VALIDES_21_11.add("gun")         # comme les jeux validés : dessin Canva net + chiffres bien noirs en N&B
+    _enregistrer_paire("gun", "GUN · 5 boules", "\U0001f52b", 12, gun.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[GUN] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_gun2:
+    print("[GUN] nouvelle maquette non chargée :", repr(_e_gun2))
