@@ -8763,3 +8763,11 @@ try:
     print("[GUN] nouvelle maquette — 12 billets par feuille")
 except Exception as _e_gun2:
     print("[GUN] nouvelle maquette non chargée :", repr(_e_gun2))
+
+# 🤜 24/11 — DUAL DAB 75 nouvelle maquette CANVA : 12 billets par feuille A4 paysage, B I N G O sur les zones (crieur 1 à 75)
+try:
+    _enregistrer_paire("dual_dab", "DUAL DAB 75", "\U0001f91c", 12, dual_dab.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[DUAL DAB] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_dab2:
+    print("[DUAL DAB] nouvelle maquette non chargée :", repr(_e_dab2))
