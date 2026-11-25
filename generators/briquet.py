@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """MANAPRINT — BRIQUET · 7 boules (création 2KEA & Associé).
-NOUVELLE MAQUETTE de Maeva (24/11/2026, « briquet_12_A4 ») reprise TELLE QUELLE :
+NOUVELLE MAQUETTE de Maeva (24/11/2026, « briquet_12_A4 » v2 : grandes gouttes, chiffres 30 pt) reprise TELLE QUELLE :
 12 billets / feuille A4 PAYSAGE (3 colonnes x 4 rangées), traits de coupe en pointillés.
 Chaque billet : N° de série souligné, le briquet (haut-gauche), titre BRIQUET, la flamme
 (haut-droite), 7 gouttes 2 · 3 · 2, « Voir plus loin.. Gagner ensemble ! » et
@@ -28,18 +28,18 @@ LETTRES = "BINGO"
 RAINBOW = ["#E53935", "#FB8C00", "#F9A825", "#43A047", "#00ACC1",
            "#1E88E5", "#3949AB", "#8E24AA", "#D81B60", "#6D4C41"]
 NOIR = colors.black
-POLICE_NUM, T_NUM = "Helvetica-Bold", 22  # comme la maquette (gras 22 pt)
+POLICE_NUM, T_NUM = "Helvetica-Bold", 30  # comme la maquette du 24/11 (gras 30 pt, le maximum)
 
 _ICI = _os.path.dirname(_os.path.abspath(__file__))
 _IMG = {k: _os.path.join(_ICI, "briquet_v2_%s.png" % k) for k in ("briquet", "flamme", "goutte")}
 
-_GW, _GH = 42.51969, 40.25197          # goutte
+_GW, _GH = 56.69291, 47.05512          # goutte
 COLONNES = [                            # coin bas-gauche de chaque goutte, par colonne
-    [(33.16535, 44.50394)],                          # B
-    [(83.62205, 78.51969), (75.11811, 9.92126)],     # I (haut, bas)
-    [(121.3228, 44.50394)],                          # N
-    [(170.9291, 78.51969), (167.5276, 9.92126)],     # G (haut, bas)
-    [(209.4803, 44.50394)],                          # O
+    [(26.07874, 42.23622)],                          # B
+    [(76.53543, 74.55118), (68.0315, 9.354331)],      # I (haut, bas)
+    [(114.2362, 42.23622)],                          # N
+    [(163.8425, 74.55118), (160.4409, 9.354331)],    # G (haut, bas)
+    [(202.3937, 42.23622)],                          # O
 ]
 
 MARGE_SURE = 6 * 72 / 25.4
@@ -72,8 +72,8 @@ def _billet(c, ox, oy, serie, nums, col):
     for ((gx, gy), let), n in zip(gouttes, nums):
         _image(c, "goutte", gx, gy, _GW, _GH)
         c.setFillColor(col); c.setFont(POLICE_NUM, T_NUM)
-        c.drawCentredString(gx + _GW / 2.0, gy + 6.615, str(n))
-        c.setFont("Helvetica-Bold", 7); c.drawCentredString(gx + _GW / 2.0, gy + 25.3, let)
+        c.drawCentredString(gx + _GW / 2.0, gy + 6.19984, str(n))
+        c.setFont("Helvetica-Bold", 7); c.drawCentredString(gx + _GW / 2.0, gy + 31.0, let)
     c.setFillColor(NOIR)
     c.setFont("Helvetica-Oblique", 4.8); c.drawString(10.20472, 5.952756, "Voir plus loin.. Gagner ensemble !")
     c.setFont("Helvetica-Bold", 4.8); c.drawString(209.3307, 5.952756, "2KEA & Associ\u00e9 \u2013 Papeete")
