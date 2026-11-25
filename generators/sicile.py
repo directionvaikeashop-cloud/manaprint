@@ -66,14 +66,18 @@ def _billet(c, ox, oy, serie, nums, col):
         lambda: _txt(c, "%05d" % serie, 231.7058, 122.1732, 7.4, gris, "Helvetica"),
         lambda: _txt(c, "5 BOULES", 211.2531, 106.0157, 6.5, NOIR, "Helvetica-Bold", esp=0.6),
     ]
+    # 25/11 : le dessin du billet est enregistré UNE fois par document (modèle réutilisé) :
+    # fichier beaucoup plus léger -> la rame s'envoie et s'imprime vite.
+    if not getattr(c, "_sicile_modele", False):
+        c.beginForm("SICILE_DESSIN", 0, 0, CELL_W, CELL_H)
+        c._code.append("q\n" + "\n".join(_DESSIN) + "\nQ")
+        c.endForm()
+        c._sicile_modele = True
     c.saveState()
     c.translate(ox, oy)
-    c._code.append("q")
-    for k, morceau in enumerate(_DESSIN):
-        c._code.append(morceau)
-        if k < len(textes):
-            textes[k]()
-    c._code.append("Q")
+    c.doForm("SICILE_DESSIN")
+    for f in textes:
+        f()
     for cx, _y, _t, _pl, let, haut in GOUTTES:
         lx, ly = cx, haut + 7.2
         c.setFillColor(colors.white); c.setStrokeColor(NOIR); c.setLineWidth(0.6)
