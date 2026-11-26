@@ -303,7 +303,7 @@ async function sauverMaintenant(){
 function editer(){
   S.vue = "edit";
   const d = S.doc;
-  if (!d.lignes.length) d.lignes.push({designation:"", qte:1, prix:"", taux: d.type==="devis"?16:16});
+  if (!d.lignes.length) d.lignes.push({designation:"", qte:1, prix:"", taux: 1});
   const ents = Object.keys(S.entites);
   const titre = (d.type==="devis"?"📝 Devis":"🧾 Facture")+" — brouillon";
   feuille(titre, `
@@ -361,7 +361,7 @@ function editer(){
   const liv=$("#e-livrer"); if (liv) liv.onchange=()=>{ d.a_livrer = liv.checked?1:0; planifier(); };
   document.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{ d.saisie=b.dataset.s; lsSet("fac_saisie",d.saisie); planifier(); editer(); });
   $("#b-cat").onclick=()=>choisirArticle(d);
-  $("#b-ajout").onclick=()=>{ const der=d.lignes[d.lignes.length-1]; d.lignes.push({designation:"",qte:1,prix:"",taux:der?der.taux:16}); dessinerLignes(true); };
+  $("#b-ajout").onclick=()=>{ const der=d.lignes[d.lignes.length-1]; d.lignes.push({designation:"",qte:1,prix:"",taux:der?der.taux:1}); dessinerLignes(true); };
   $("#b-apercu").onclick = async e => { e.preventDefault(); const w = window.open("about:blank","_blank"); await sauverMaintenant(); if (w) w.location = "/facturation/api/documents/"+d.id+"/pdf?t="+Date.now(); };
   $("#b-suppr").onclick = async ()=>{ const b=$("#b-suppr"); if (!b.dataset.ok){ b.dataset.ok=1; b.textContent="Touchez encore pour confirmer"; return; }
     clearTimeout(minuteur); try { await api("/facturation/api/documents/"+d.id,{method:"DELETE"}); S.vue=null; toast("Brouillon supprimé"); fermer(); } catch(e){ toast(e.message,"rouge"); } };
@@ -399,7 +399,7 @@ function dessinerLignes(focusDernier=false){
       });
     });
   });
-  box.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>{ d.lignes.splice(+b.dataset.x,1); if(!d.lignes.length) d.lignes.push({designation:"",qte:1,prix:"",taux:16}); dessinerLignes(); planifier(); });
+  box.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>{ d.lignes.splice(+b.dataset.x,1); if(!d.lignes.length) d.lignes.push({designation:"",qte:1,prix:"",taux:1}); dessinerLignes(); planifier(); });
   majTotaux();
   if (focusDernier){ const all = box.querySelectorAll("input.des"); all[all.length-1].focus(); }
 }
@@ -432,10 +432,10 @@ async function choisirArticle(d){
   majTarif();
   try { if (!CAT) CAT = await api("/facturation/api/catalogue"); }
   catch(e){ box.querySelector("#ca-liste").innerHTML = `<div class="bandeau non">${esc(e.message)}</div>`; return; }
-  const ttc2prix = ttc => d.saisie==="ht" ? Math.round(ttc/1.16) : ttc;      // jeux et tampons : 16 %
+  const ttc2prix = ttc => d.saisie==="ht" ? Math.round(ttc/1.01) : ttc;      // jeux et tampons : 1 % (26/11)
   const ajouterL = (designation, prixTTC) => {
     const vide = d.lignes.findIndex(l=>!String(l.designation||"").trim() && !l.prix);
-    const ligne = {designation, qte:1, prix:ttc2prix(prixTTC), taux:16};
+    const ligne = {designation, qte:1, prix:ttc2prix(prixTTC), taux:1};
     if (vide>=0) d.lignes[vide]=ligne; else d.lignes.push(ligne);
     dessinerLignes(); planifier(); toast("＋ "+designation);
   };
@@ -563,7 +563,7 @@ function reglages(){
       <div class="deux"><label class="ch">Du<input type="date" id="x-de" value="${esc(debutMois)}"></label><label class="ch">Au<input type="date" id="x-a" value="${esc(S.aujourdhui||"")}"></label></div>
       <label class="ch">Entreprise<select id="x-ent"><option value="">Les deux</option>${ents.map(c=>`<option value="${c}">${esc(S.entites[c].nom)}</option>`).join("")}</select></label>
       <button class="gros" id="b-export">⬇️ Journal des ventes (Excel)</button>
-      <p class="note">Une ligne par facture et par avoir, avec le HT et la TVA à 16 %, 13 %, 5 % et 0 %.</p>
+      <p class="note">Une ligne par facture et par avoir, avec le HT et la TVA à 16 %, 13 %, 5 %, 1 % et 0 %.</p>
     </div></div>`);
   document.querySelectorAll("[data-sauve]").forEach(b=>b.onclick=async()=>{
     const c=b.dataset.sauve, box=document.querySelector(`[data-e="${c}"]`), corps={code:c};
