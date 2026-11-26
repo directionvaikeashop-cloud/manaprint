@@ -36,6 +36,19 @@ _CARTE = (83.63609, 37.41732, 113.3577, 104.315)
 _IMG = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "gambier_v2_carte.png")
 
 
+try:
+    from generators import canva_masque as _masque
+except Exception:
+    import canva_masque as _masque
+
+
+def _source_png():
+    """Le dessin : le fichier .png s'il est là, sinon la copie rangée dans ce fichier."""
+    if _os.path.exists(_IMG):
+        return _IMG
+    import base64
+    return base64.b64decode(_CARTE_PNG)
+
 def _image_carte():
     if _os.path.exists(_IMG):
         return _IMG
@@ -85,7 +98,7 @@ def _billet(c, ox, oy, serie, nums, col):
         c.beginForm("GAMBIER_DESSIN", 0, 0, CELL_W, CELL_H)
         c._code.append("q\n" + _DESSIN_A)
         x, y, w, h = _CARTE
-        c.drawImage(_image_carte(), x, y, w, h, mask="auto")
+        _masque.poser(c, "GAMBIER_CARTE", _source_png(), x, y, w, h)
         c._code.append(_DESSIN_B + "\nQ")
         c.endForm()
         c._gam_modele = True
