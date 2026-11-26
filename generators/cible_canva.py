@@ -41,6 +41,19 @@ DECAL_Y = (PAGE_H - PAGE_H * ECHELLE) / 2.0
 _DEJA = set()
 
 
+try:
+    from generators import canva_masque as _masque
+except Exception:
+    import canva_masque as _masque
+
+
+def _source_png():
+    """Le dessin : le fichier .png s'il est là, sinon la copie rangée dans ce fichier."""
+    if _os.path.exists(_IMG):
+        return _IMG
+    import base64
+    return base64.b64decode(_DESSIN_PNG)
+
 def _image_dessin():
     if _os.path.exists(_IMG):
         return _IMG
@@ -75,7 +88,7 @@ def _txt(c, s, x, y, police, taille, col, esp=0, centre=False):
 def _billet(c, ox, oy, serie, nums, col):
     if not getattr(c, "_cible_modele", False):     # le dessin : une seule fois par document
         c.beginForm("CIBLE_DESSIN", 0, 0, CELL_W, CELL_H)
-        c.drawImage(_image_dessin(), 0, 0, CELL_W, CELL_H)
+        _masque.poser(c, "CIBLE_IMG", _source_png(), 0, 0, CELL_W, CELL_H)
         c.endForm()
         c._cible_modele = True
     c.saveState()
