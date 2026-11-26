@@ -8976,3 +8976,16 @@ try:
     print("[PERLE 90] nouvelle maquette — 16 billets par feuille")
 except Exception as _e_p90:
     print("[PERLE 90] nouvelle maquette non chargée :", repr(_e_p90))
+
+# 🐚 25/11 — GAMBIER 7 boules nouvelle maquette CANVA : 12 billets par feuille A4 paysage (règle et crieur inchangés)
+#    (fichier generators/gambier_canva.py, la carte du lagon est rangée dedans ; l'ancien gambier.py n'est plus appelé)
+try:
+    from generators import gambier_canva
+    _ECO_IMG_GARDER_BLANC.add("gambier_canva")   # dessin net, fond blanc
+    _ECO_VALIDES_21_11.add("gambier_canva")      # chiffres bien noirs en N&B
+    GRIS_PARTICULIERS.pop("gambier", None)
+    _enregistrer_paire("gambier", "GAMBIER 7 boules", "\U0001f41a", 12, gambier_canva.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[GAMBIER] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_gam:
+    print("[GAMBIER] nouvelle maquette non chargée :", repr(_e_gam))
