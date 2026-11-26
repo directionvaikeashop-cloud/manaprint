@@ -8938,3 +8938,28 @@ def generer_jeu(programme, nb_cartes, couleur, perso, evenement_id="", serie_sta
             pass
     return buf
 print("[PHOTOCOPIE] jeux Canva N&B en version photocopie (impression fluide)")
+
+# ⛰️ 25/11 — SOCIÉTÉ 7 boules nouvelle maquette CANVA : 12 billets par feuille A4 paysage (règle et crieur inchangés)
+#    (fichier generators/societe_canva.py ; l'ancien societe.py — 8 cartons portrait — n'est plus appelé)
+try:
+    from generators import societe_canva
+    _ECO_VALIDES_21_11.add("societe_canva")   # dessin Canva net + chiffres bien noirs en N&B
+    GRIS_PARTICULIERS.pop("societe", None)
+    _enregistrer_paire("societe", "SOCIÉTÉ 7 boules", "⛰️", 12, societe_canva.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[SOCIÉTÉ] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_soc:
+    print("[SOCIÉTÉ] nouvelle maquette non chargée :", repr(_e_soc))
+
+# ⌚ 25/11 — MONTRE nouvelle maquette CANVA : 12 billets par feuille A4 paysage (plages Maeva 25/11 : 1-18 · 19-40 · 41-50 · 51-75 · 76-90, crieur 1-90)
+#    (fichier generators/montre_canva.py + son dessin montre_v2_dessin.png ; l'ancien montre.py n'est plus appelé)
+try:
+    from generators import montre_canva
+    _ECO_IMG_GARDER_BLANC.add("montre_canva")   # dessin net, fond blanc
+    _ECO_VALIDES_21_11.add("montre_canva")      # chiffres bien noirs en N&B
+    GRIS_PARTICULIERS.pop("montre", None)
+    _enregistrer_paire("montre", "MONTRE · 5 boules", "⌚", 12, montre_canva.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[MONTRE] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_mon:
+    print("[MONTRE] nouvelle maquette non chargée :", repr(_e_mon))
