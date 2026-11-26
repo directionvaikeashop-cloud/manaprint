@@ -8963,3 +8963,16 @@ try:
     print("[MONTRE] nouvelle maquette — 12 billets par feuille")
 except Exception as _e_mon:
     print("[MONTRE] nouvelle maquette non chargée :", repr(_e_mon))
+
+# 🦪 25/11 — PERLE 90 nouvelle maquette CANVA : 16 billets par feuille A4 portrait (règle et crieur 1-90 inchangés)
+#    (fichier generators/perle90_canva.py, l'huître est rangée dedans ; l'ancien poe_parau.py n'est plus appelé)
+try:
+    from generators import perle90_canva
+    _ECO_IMG_GARDER_BLANC.add("perle90_canva")   # dessin net, fond blanc
+    _ECO_VALIDES_21_11.add("perle90_canva")      # chiffres bien noirs en N&B
+    GRIS_PARTICULIERS.pop("poe_parau", None)
+    _enregistrer_paire("poe_parau", "PERLE 90", "\U0001f9aa", 16, perle90_canva.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[PERLE 90] nouvelle maquette — 16 billets par feuille")
+except Exception as _e_p90:
+    print("[PERLE 90] nouvelle maquette non chargée :", repr(_e_p90))
