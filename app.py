@@ -9042,3 +9042,19 @@ try:
     print("[CIBLE] nouvelle maquette — 12 billets par feuille")
 except Exception as _e_cib:
     print("[CIBLE] nouvelle maquette non chargée :", repr(_e_cib))
+
+# ❌ 25/11 — TRIPLE X 75 (création 2KEA) nouvelle maquette CANVA : 10 billets par feuille A4 portrait
+#    places 1 et 5 : B + O · places 2 et 4 : I + G · place 3 : N — 3 numéros par bulle, crieur 1 à 75.
+#    (fichier generators/triplex_canva.py, tout le dessin est rangé dedans)
+try:
+    from generators import triplex_canva
+    JEUX_PROPRIETAIRE["triplex"] = "2kea_papeete"
+    _ECO_VALIDES_21_11.add("triplex_canva")      # chiffres bien noirs en N&B
+    GRIS_PARTICULIERS.pop("triplex", None)
+    _enregistrer_paire("triplex", "TRIPLE X 75", "❌", 10, triplex_canva.generer_pdf)
+    _PLAGES_CALLER["triplex"] = (1, 75)
+    _BOULES_CALLER["triplex"] = [n for n in range(1, 76)]
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[TRIPLE X] nouvelle maquette — 10 billets par feuille")
+except Exception as _e_tx:
+    print("[TRIPLE X] nouvelle maquette non chargée :", repr(_e_tx))
