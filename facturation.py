@@ -43,8 +43,8 @@ bp = Blueprint("facturation", __name__)
 DB_PATH = _liv.DB_PATH
 DOSSIER = os.path.join(os.path.dirname(os.path.abspath(DB_PATH)), "facturation")
 
-TAUX_TVA = [16, 13, 5, 0]          # Polynésie française (DICP)
-LIB_TAUX = {16: "16 % — produits", 13: "13 % — services", 5: "5 % — taux réduit", 0: "0 % — exonéré"}
+TAUX_TVA = [16, 13, 5, 1, 0]       # Polynésie française (DICP) + 1 % (Maeva 26/11, taux par défaut des jeux)
+LIB_TAUX = {16: "16 % — produits", 13: "13 % — services", 5: "5 % — taux réduit", 1: "1 %", 0: "0 % — exonéré"}
 
 ENTITES_DEFAUT = {
     "2K": {"nom": "2KEA & Associé", "adresse": "Papeete, Tahiti — Polynésie française",
@@ -295,9 +295,9 @@ def _enregistrer_lignes(c, did, lignes):
         try:
             taux = int(l.get("taux"))
         except Exception:
-            taux = 16
+            taux = 1
         if taux not in TAUX_TVA:
-            taux = 16
+            taux = 1
         c.execute("INSERT INTO fac_lignes (document_id, ordre, designation, qte, prix, taux) VALUES (?,?,?,?,?,?)",
                   (did, i, des, qte, prix, taux))
         n += 1
@@ -1314,7 +1314,7 @@ def api_export():
     out = io.StringIO()
     w = csv.writer(out, delimiter=";")
     w.writerow(["Entreprise", "Type", "Numéro", "Date", "Client", "N° TAHITI client",
-                "HT 16%", "TVA 16%", "HT 13%", "TVA 13%", "HT 5%", "TVA 5%", "HT 0%",
+                "HT 16%", "TVA 16%", "HT 13%", "TVA 13%", "HT 5%", "TVA 5%", "HT 1%", "TVA 1%", "HT 0%",
                 "Total HT", "Total TVA", "Total TTC", "Statut", "Payée le", "Mode"])
     with _db() as c:
         noms = {k: v["nom"] for k, v in _entites(c).items()}
@@ -1327,7 +1327,7 @@ def api_export():
             g = lambda t, k: vt.get(t, {}).get(k, 0)
             w.writerow([noms.get(d["entite"], d["entite"]), d["libelle_type"], d["numero"], d["date_fr"],
                         d["client"], d.get("tahiti_client") or "",
-                        g(16, "ht"), g(16, "tva"), g(13, "ht"), g(13, "tva"), g(5, "ht"), g(5, "tva"), g(0, "ht"),
+                        g(16, "ht"), g(16, "tva"), g(13, "ht"), g(13, "tva"), g(5, "ht"), g(5, "tva"), g(1, "ht"), g(1, "tva"), g(0, "ht"),
                         d["calcul"]["ht"], d["calcul"]["tva"], d["calcul"]["ttc"], d["libelle_statut"],
                         _fr(d.get("paye_le")), d["libelle_mode"]])
     nom = "journal-ventes-%s%s.csv" % (ent + "-" if ent else "", _aujourdhui())
