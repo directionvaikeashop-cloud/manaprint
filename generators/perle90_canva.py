@@ -43,6 +43,19 @@ DECAL_Y = (PAGE_H - PAGE_H * ECHELLE) / 2.0
 _DEJA = set()
 
 
+try:
+    from generators import canva_masque as _masque
+except Exception:
+    import canva_masque as _masque
+
+
+def _source_png():
+    """Le dessin : le fichier .png s'il est là, sinon la copie rangée dans ce fichier."""
+    if _os.path.exists(_IMG):
+        return _IMG
+    import base64
+    return base64.b64decode(_HUITRE_PNG)
+
 def _image_huitre():
     if _os.path.exists(_IMG):
         return _IMG
@@ -80,7 +93,7 @@ def _modele(c):
     c.beginForm("PERLE90_DESSIN", 0, 0, CELL_W, CELL_H)
     c._code.append("q\n" + _p(_DESSIN_A))
     x, y, w, h = _HUITRE
-    c.drawImage(_image_huitre(), x, y, w, h, mask="auto")
+    _masque.poser(c, "PERLE90_HUITRE", _source_png(), x, y, w, h)
     c._code.append(_p(_DESSIN_B) + "\nQ")
     c.endForm()
     c._perle90_modele = True
