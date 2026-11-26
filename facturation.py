@@ -386,7 +386,10 @@ def paiement_stripe_confirme(code, session_id=""):
         if session_id:
             c.execute("UPDATE fac_documents SET stripe_session=? WHERE id=? AND (stripe_session IS NULL OR stripe_session='')",
                       (session_id, r["id"]))
-        return _marquer_payee(c, r["id"], "carte", "Paiement en ligne")
+        ok = _marquer_payee(c, r["id"], "carte", "Paiement en ligne")
+    if ok:
+        _notifier_equipe(r["id"], "payee")
+    return ok
 
 
 def _verifier_session(code, sid):
@@ -788,6 +791,82 @@ def _envoyer_email(did, qui, hote):
             c.execute("INSERT INTO fac_journal (document_id, le, qui, quoi) VALUES (?,?,?,?)",
                       (did, _liv._maintenant(), qui,
                        ("✉️ Envoyé par email à %s (PDF joint)" % d["email"]) if ok else ("⚠️ Email non parti : " + msg)))
+        if not ok:
+            _notifier_equipe(did, "email_rate", msg)
+    threading.Thread(target=tache, daemon=True).start()
+
+
+# ═══ 🔔 26/11 — L'ÉQUIPE PRÉVENUE PAR EMAIL (demande de Maeva) ═══
+#   Un email part tout seul vers Maeva et ses deux vendeuses quand :
+#     · un client ACCEPTE un devis en ligne ;
+#     · un client PAIE une facture par carte ;
+#     · un email à un client n'a PAS pu partir.
+#   Adresses changeables sur Railway : variable MANADEVIS_ALERTES
+#   (adresses séparées par des virgules). Sans variable : les 3 ci-dessous.
+ALERTES_DEFAUT = ["directionvaikeashop@gmail.com",
+                  "inanakiparaurahi13@gmail.com",
+                  "tuhoe.tumata21@gmail.com"]
+
+
+def _destinataires_alertes():
+    brut = os.environ.get("MANADEVIS_ALERTES", "").strip()
+    liste = [a.strip() for a in brut.split(",") if a.strip()] if brut else list(ALERTES_DEFAUT)
+    return [a for a in liste if _liv._email_valide(a)]
+
+
+def _notifier_equipe(did, evenement, detail=""):
+    """🔔 Prévient l'équipe par email, sans jamais bloquer ni casser l'action du client."""
+    import threading
+
+    def tache():
+        try:
+            dest = _destinataires_alertes()
+            if not dest:
+                return
+            with _db() as c:
+                d = _doc(c, did)
+            if not d:
+                return
+            client = (d.get("client") or "Client").strip()
+            ref = "%s %s" % (d["libelle_type"], d.get("numero") or "")
+            montant = xpf(d["calcul"]["ttc"])
+            if evenement == "accepte":
+                sujet = "✅ Devis accepté — %s — %s (%s)" % (d.get("numero") or "", client, montant)
+                texte = "%s a accepté le devis %s en ligne (%s).\nPensez à le transformer en facture." % (
+                    client, d.get("numero") or "", montant)
+            elif evenement == "payee":
+                sujet = "💳 Facture payée par carte — %s — %s (%s)" % (d.get("numero") or "", client, montant)
+                texte = "%s a réglé la facture %s par carte en ligne (%s)." % (
+                    client, d.get("numero") or "", montant)
+            else:
+                sujet = "⚠️ Email non parti — %s — %s" % (ref.strip(), client)
+                texte = ("L'email du %s pour %s n'a pas pu partir.\nRaison : %s\n"
+                         "Envoyez-le par WhatsApp ou vérifiez l'adresse du client.") % (
+                    ref.strip(), client, detail or "inconnue")
+            if not _liv.SMTP_USER or not _liv.SMTP_PASS:
+                raise RuntimeError("boîte d'envoi non configurée (SMTP_USER / SMTP_PASS sur Railway)")
+            import smtplib
+            from email.message import EmailMessage
+            m = EmailMessage()
+            m["Subject"] = sujet
+            m["From"] = "MANA DEVIS <%s>" % _liv.SMTP_USER
+            m["To"] = ", ".join(dest)
+            m.set_content("Ia ora na l'équipe 🌺\n\n%s\n\nClient : %s\nTéléphone : %s\n"
+                          "Montant : %s\n\nOuvrir MANA DEVIS : https://manaprint.app/facturation\n"
+                          "Lien client : %s\n\n— MANA DEVIS" % (
+                              texte, client, d.get("telephone") or "—", montant, d.get("lien") or ""))
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30) as s_:
+                s_.login(_liv.SMTP_USER, _liv.SMTP_PASS)
+                s_.send_message(m)
+            quoi = "🔔 Équipe prévenue par email (%d adresses)" % len(dest)
+        except Exception as e:
+            quoi = "🔔 Alerte équipe non partie : " + str(e)[:140]
+        try:
+            with _db() as c:
+                c.execute("INSERT INTO fac_journal (document_id, le, qui, quoi) VALUES (?,?,?,?)",
+                          (did, _liv._maintenant(), "MANA DEVIS", quoi))
+        except Exception as e:
+            print("[FACTURATION] alerte équipe :", repr(e))
     threading.Thread(target=tache, daemon=True).start()
 
 
@@ -866,6 +945,7 @@ def accepter(code):
                   (_liv._maintenant(), r["id"]))
         c.execute("INSERT INTO fac_journal (document_id, le, qui, quoi) VALUES (?,?,?,?)",
                   (r["id"], _liv._maintenant(), "Client", "✅ Le client a accepté le devis en ligne"))
+    _notifier_equipe(r["id"], "accepte")
     return jsonify({"ok": True})
 
 
