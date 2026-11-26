@@ -8889,3 +8889,14 @@ try:
     print("[MOON] nouvelle maquette — 12 billets par feuille")
 except Exception as _e_moon2:
     print("[MOON] nouvelle maquette non chargée :", repr(_e_moon2))
+
+# 🌺 25/11 — OHANA 75 · 10 BOULES nouvelle maquette CANVA : 12 billets par feuille A4 paysage (règle et crieur inchangés)
+#    (fichier generators/ohana10_canva.py ; l'ancien ohana75_10boules.py reste pour l'OHANA 10 boules MYSTÈRE)
+try:
+    from generators import ohana10_canva
+    _ECO_VALIDES_21_11.add("ohana10_canva")   # dessin Canva net + chiffres bien noirs en N&B
+    _enregistrer_paire("ohana75_10b", "OHANA 75 · 10 boules", "\U0001f33a", 12, ohana10_canva.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[OHANA 10 BOULES] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_o10:
+    print("[OHANA 10 BOULES] nouvelle maquette non chargée :", repr(_e_o10))
