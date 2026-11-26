@@ -9002,3 +9002,16 @@ try:
     print("[FEU] nouvelle maquette — 16 billets par feuille")
 except Exception as _e_feu:
     print("[FEU] nouvelle maquette non chargée :", repr(_e_feu))
+
+# 🟤 25/11 — BROWN 14 boules nouvelle maquette CANVA : 12 billets par feuille A4 paysage (règle et crieur inchangés)
+#    (fichier generators/brown14_canva.py, l'hibiscus est rangé dedans ; l'ancien brown14.py n'est plus appelé)
+try:
+    from generators import brown14_canva
+    _ECO_IMG_GARDER_BLANC.add("brown14_canva")   # dessin net, fond blanc
+    _ECO_VALIDES_21_11.add("brown14_canva")      # chiffres bien noirs en N&B
+    GRIS_PARTICULIERS.pop("brown14", None)
+    _enregistrer_paire("brown14", "BROWN 14 boules", "\U0001f7e4", 12, brown14_canva.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[BROWN 14] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_b14:
+    print("[BROWN 14] nouvelle maquette non chargée :", repr(_e_b14))
