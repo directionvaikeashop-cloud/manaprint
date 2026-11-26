@@ -1124,9 +1124,12 @@ def _teinte_wrap(nom):
                 planche = False
             if getattr(_TEINTE_ETAT, "bulles", None):
                 _TEINTE_ETAT.images.append((image, x, y, width, height, tuple(self._currentMatrix), dict(k)))
-            image, n = _teinte_png(image, _TEINTE_ETAT.n, planche,
-                                   getattr(_TEINTE_ETAT, "haut", None))
-            _TEINTE_ETAT.n += n
+            if getattr(_TEINTE_ETAT, "billet", False):
+                image, n = _teinte_png(image, _teinte_index(self), False)
+            else:
+                image, n = _teinte_png(image, _TEINTE_ETAT.n, planche,
+                                       getattr(_TEINTE_ETAT, "haut", None))
+                _TEINTE_ETAT.n += n
         return orig(self, image, x, y, width, height, *a, **k)
     w._teinte_wrapped = True
     w._orig = orig
@@ -1277,11 +1280,117 @@ def _teinte_hooks_cases():
 _teinte_hooks_cases()
 
 
+# ═══ 🎨 26/11 — JEUX CANVA EN COULEUR : LA GRILLE EN COULEUR, LES CHIFFRES NOIRS ═══
+#   (Maeva : « c'est pas les chiffres qui doivent être en couleur mais les grilles »)
+#   Chaque billet prend UNE couleur de la gamme de 6 : tout son dessin (cadre,
+#   cases, titre, images) est repeint dans cette couleur ; les chiffres restent noirs.
+#   Le billet est reconnu par sa position sur la feuille.
+_TEINTE_CANVA = {"briquet", "archer", "volley", "gun", "lagoon", "joie", "salute", "melodie",
+                 "brown8", "moon", "carbass", "petanque", "miel", "pingpong_go", "dual_dab",
+                 "sicile", "ohana75_10b", "societe", "montre", "poe_parau", "gambier", "feu",
+                 "brown14", "australes", "cible", "triplex", "triple_inia"}
+_TEINTE_PAR_IMAGE = {"carbass"}          # une image = un billet (pas de décalage par billet)
+for _j_c in _TEINTE_CANVA:
+    _TEINTE_PNG.discard(_j_c)
+    _TEINTE_VECT.discard(_j_c)
+    _TEINTE_CASES_GRISES.discard(_j_c)
+
+
+def _teinte_index(cv):
+    """N° de couleur du billet en cours (d'après sa position sur la feuille)."""
+    if not getattr(_TEINTE_ETAT, "billet", False):
+        k = _TEINTE_ETAT.n
+        _TEINTE_ETAT.n += 1
+        return k
+    m = cv._currentMatrix
+    cle = (round(m[4], 1), round(m[5], 1))
+    o = _TEINTE_ETAT.origines
+    if cle not in o:
+        o[cle] = len(o)
+    return o[cle]
+
+
+def _teinte_recolorer(code, hexa):
+    import re as _reT
+    r, g, b = (int(hexa[k:k + 2], 16) / 255.0 for k in (1, 3, 5))
+    c3 = "%.3f %.3f %.3f" % (r, g, b)
+    txt = "\n".join(x if isinstance(x, str) else x.decode("latin-1") for x in code)
+    txt = _reT.sub(r"(?<![\d.])(?:0 0 0|\.1 \.1 \.1|0\.1 0\.1 0\.1|\.05 \.05 \.05) (rg|RG)\b",
+                   lambda mm: c3 + " " + mm.group(1), txt)
+    txt = _reT.sub(r"(?<![\d.])0 (g|G)\b", lambda mm: c3 + (" rg" if mm.group(1) == "g" else " RG"), txt)
+    return [txt]
+
+
+def _teinte_hooks_formes():
+    C = _canvas_pn.Canvas
+    if getattr(C, "_teinte_formes_ok", False):
+        return
+    o_end, o_do = C.endForm, C.doForm
+
+    def endForm(self, **kw):
+        if getattr(_TEINTE_ETAT, "canva", False) and not getattr(_TEINTE_ETAT, "copie", False):
+            try:
+                fd = self._formData
+                self.__dict__.setdefault("_teinte_formes", {})[fd[0]] = (fd[1:], list(self._code))
+            except Exception:
+                pass
+        return o_end(self, **kw)
+
+    def doForm(self, name):
+        d = self.__dict__.get("_teinte_formes")
+        if getattr(_TEINTE_ETAT, "canva", False) and d and name in d:
+            try:
+                k = _teinte_index(self) % 6
+                neuf = "%s_T%d" % (name, k)
+                faits = self.__dict__.setdefault("_teinte_faits", set())
+                if neuf not in faits:
+                    (lx, ly, ux, uy), code = d[name]
+                    _TEINTE_ETAT.copie = True
+                    try:
+                        self.beginForm(neuf, lx, ly, ux, uy)
+                        self._code.extend(_teinte_recolorer(code, _GAMME_6[k]))
+                        import re as _reF   # les images du dessin suivent dans la copie
+                        for _x in _reF.findall(r"/FormXob\.(\S+) Do", "\n".join(
+                                y if isinstance(y, str) else "" for y in code)):
+                            self._formsinuse.append(_x)
+                        self.endForm()
+                    finally:
+                        _TEINTE_ETAT.copie = False
+                    faits.add(neuf)
+                name = neuf
+            except Exception as _e_f:
+                print("[TEINTE] forme laissée telle quelle :", repr(_e_f))
+        return o_do(self, name)
+
+    o_stroke = C.setStrokeColor
+
+    def setStrokeColor(self, aColor, alpha=None):
+        # les traits NOIRS du billet (cadres, cases, ronds) prennent la couleur du billet
+        if getattr(_TEINTE_ETAT, "canva", False) and not getattr(_TEINTE_ETAT, "copie", False):
+            try:
+                rgb = aColor.rgb() if hasattr(aColor, "rgb") else None
+                if rgb and max(rgb) <= 0.15:
+                    aColor = _colors_t.HexColor(_GAMME_6[_teinte_index(self) % 6])
+            except Exception:
+                pass
+        if alpha is None:
+            return o_stroke(self, aColor)
+        return o_stroke(self, aColor, alpha)
+
+    C.endForm, C.doForm, C.setStrokeColor = endForm, doForm, setStrokeColor
+    C._teinte_formes_ok = True
+_teinte_hooks_formes()
+
+
 # ⭐ 22/11 (sceau Maeva : « c'est validé, à mettre dans le catalogue à partir
 #    du 1er décembre ») : la couleur « dessin teinté » s'allume TOUTE SEULE
 #    le 1er décembre 2026 à 0 h, heure de Tahiti. Avant, la version couleur
 #    reste celle d'aujourd'hui.
-_TEINTE_DEBUT = (2026, 12, 1)
+_TEINTE_DEBUT = (2026, 11, 26)
+# ⭐ 26/11 (Maeva : « nos partenaires demandent la couleur, active le travail
+#    sur les couleurs au lieu d'attendre le 1er décembre ») : ouverte dès le 26/11.
+#    Les jeux refaits en maquette CANVA ont leur propre teinte (_TEINTE_CANVA) :
+#    grille en couleur, chiffres noirs.
 
 
 def _teinte_ouverte():
@@ -1295,7 +1404,15 @@ def _generer_teinte(fn, kwargs, base_id):
     with _TEINTE_LOCK:
         sauv = {}
         try:
-            if base_id in _TEINTE_PNG:
+            if base_id in _TEINTE_CANVA:
+                kwargs["couleur"] = False          # chiffres noirs ; le dessin prend la couleur
+                kwargs["couleur_perso"] = ""
+                _TEINTE_ETAT.actif, _TEINTE_ETAT.canva, _TEINTE_ETAT.n = True, True, 0
+                _TEINTE_ETAT.billet = base_id not in _TEINTE_PAR_IMAGE
+                _TEINTE_ETAT.origines = {}
+                _TEINTE_ETAT.haut, _TEINTE_ETAT.bulles = None, None
+                _TEINTE_ETAT.images, _TEINTE_ETAT.ronds, _TEINTE_ETAT.textes = [], [], []
+            elif base_id in _TEINTE_PNG:
                 kwargs["couleur"] = False          # base N&B : chiffres gris foncé
                 _TEINTE_ETAT.actif, _TEINTE_ETAT.n = True, 0
                 _TEINTE_ETAT.haut = _TEINTE_HAUT_SEUL.get(base_id)
@@ -1313,6 +1430,8 @@ def _generer_teinte(fn, kwargs, base_id):
             return fn(**kwargs)
         finally:
             _TEINTE_ETAT.actif = False
+            _TEINTE_ETAT.canva = False
+            _TEINTE_ETAT.billet = False
             _TEINTE_ETAT.cases = False
             _TEINTE_ETAT.haut = None
             _TEINTE_ETAT.bulles = None
@@ -1329,7 +1448,8 @@ def _variante(fn, couleur_force, style_force="eco", base_id=""):
         if (not couleur_force) and style_force == "eco":
             return _generer_eco_gris(fn, kwargs)
         # 🎨 22/11 : couleur « dessin teinté » sur les jeux validés par Maeva
-        if couleur_force and (base_id in _TEINTE_PNG or base_id in _TEINTE_VECT) \
+        if couleur_force and (base_id in _TEINTE_PNG or base_id in _TEINTE_VECT
+                              or base_id in _TEINTE_CANVA) \
                 and not kwargs.get("couleur_perso") and _teinte_ouverte():
             return _generer_teinte(fn, kwargs, base_id)
         return fn(**kwargs)
