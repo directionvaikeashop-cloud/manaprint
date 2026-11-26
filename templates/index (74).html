@@ -174,7 +174,7 @@
       <label class="field-label">🔐 Date précise du tournoi (optionnel — laisser vide pour les cartons boutique / grand public : QR toujours actif)</label>
       <input id="gen-datetournoi" type="date">
       <label class="field-label" style="display:flex;align-items:center;gap:.55rem;cursor:pointer;margin-top:.5rem">
-        <input id="gen-rapide" type="checkbox" style="width:auto;margin:0;accent-color:var(--teal)">
+        <input id="gen-rapide" type="checkbox" checked style="width:auto;margin:0;accent-color:var(--teal)">
         <span>🖨️ Impression rapide boutique — cartons sans microtexte (QR de vérification conservé). Idéal pour l'impression directe par clé USB.</span>
       </label>
       <label class="field-label">Couleur des cartons <span class="opt">(touchez votre couleur — ou gardez le multicolore)</span></label>
@@ -254,7 +254,7 @@
 
       <div id="offre-couleur" style="display:none;border:1px solid #C9A227;background:#FFFBEA;border-radius:8px;padding:.8rem;margin-bottom:1rem">
         <div style="font-weight:600;margin-bottom:.5rem">🎨 Ce jeu est en COULEUR — deux formules :</div>
-        <label id="offre-pdf-label" style="display:block;margin-bottom:.5rem;cursor:pointer">
+        <label style="display:block;margin-bottom:.5rem;cursor:pointer">
           <input type="radio" name="offre-c" value="pdf" checked onchange="majOffreCouleur()">
           <b>📄 Le fichier PDF seul — 3,5 F la feuille</b>
           <div style="font-size:.8rem;color:var(--muted);margin-left:1.5rem">Tu reçois ton fichier tout de suite et tu l'imprimes où tu veux.</div>
@@ -1131,17 +1131,6 @@ function majOffreCouleur(){
   const bPan=document.getElementById('gen-panier-btn');
   const couleur=estJeuCouleur();
   if(bloc) bloc.style.display = couleur ? 'block' : 'none';
-  // ⚠️ 26/10 (Maeva) : « PDF seul » réservé aux clients qui impriment eux-mêmes
-  //   (INTERNATIONAL et PACIFIC INK). Pour le client polynésien sans machine,
-  //   on masque l'option PDF et on force « impression ».
-  const gardePdf = (typeof origineAcces !== 'undefined' &&
-                    (origineAcces === 'international' || origineAcces === 'pacific_ink'));
-  const pdfLabel = document.getElementById('offre-pdf-label');
-  if(pdfLabel) pdfLabel.style.display = gardePdf ? 'block' : 'none';
-  if(!gardePdf){
-    const imp = document.querySelector('input[name="offre-c"][value="impression"]');
-    if(imp) imp.checked = true;
-  }
   const demande = couleur && offreCouleurChoisie()==='impression';
   if(bDem) bDem.style.display = demande ? '' : 'none';
   // en mode demande, on ne passe NI par la commande directe NI par le panier :
