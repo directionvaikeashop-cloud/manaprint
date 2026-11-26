@@ -42,6 +42,19 @@ DECAL_Y = (PAGE_H - PAGE_H * ECHELLE) / 2.0
 _DEJA = set()
 
 
+try:
+    from generators import canva_masque as _masque
+except Exception:
+    import canva_masque as _masque
+
+
+def _source_png(nom):
+    chemin = _os.path.join(_DIR, nom)
+    if _os.path.exists(chemin):
+        return chemin
+    import base64
+    return base64.b64decode(_PNG[nom])
+
 def _image(nom):
     chemin = _os.path.join(_DIR, nom)
     if _os.path.exists(chemin):
@@ -78,7 +91,7 @@ def _modele(c):
     c.beginForm("FEU_DESSIN", 0, 0, CELL_W, CELL_H)
     c._code.append("q\n" + d)
     for nom, x, y, w, h in _IMAGES:
-        c.drawImage(_image(nom), x, y, w, h, mask="auto")
+        _masque.poser(c, "FEU_" + nom, _source_png(nom), x, y, w, h)
     c._code.append("Q")
     c.endForm()
     c._feu_modele = True
