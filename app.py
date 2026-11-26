@@ -8900,3 +8900,41 @@ try:
     print("[OHANA 10 BOULES] nouvelle maquette — 12 billets par feuille")
 except Exception as _e_o10:
     print("[OHANA 10 BOULES] nouvelle maquette non chargée :", repr(_e_o10))
+
+# 🖨️ 25/11 — IMPRESSION FLUIDE DES JEUX CANVA (sceau Maeva : « 1 oui, 2 oui »)
+#   Les jeux Canva en noir & blanc sortent désormais en version « PHOTOCOPIE » :
+#   chaque feuille devient une image noir & blanc 300 dpi (generators/photocopie.py).
+#   La Konica et la Sharp n'ont plus de dessins à recalculer -> les feuilles sortent
+#   d'une traite (avant : 4 feuilles, puis une longue attente). Mêmes billets, mêmes
+#   séries, même n° de page. La couleur ne change pas. En cas de souci, on garde le
+#   PDF normal (jamais de commande perdue).
+_JEUX_PHOTOCOPIE = {"carbass", "petanque", "miel", "pingpong_go", "briquet", "archer", "volley",
+                    "gun", "lagoon", "joie", "salute", "melodie", "brown8", "moon"}
+try:
+    from generators import photocopie as _photocopie
+except Exception as _e_ph:
+    _photocopie = None
+    print("[PHOTOCOPIE] module non chargé :", repr(_e_ph))
+_generer_jeu_avant_photocopie = generer_jeu
+def generer_jeu(programme, nb_cartes, couleur, perso, evenement_id="", serie_start=1):
+    buf = _generer_jeu_avant_photocopie(programme, nb_cartes, couleur, perso,
+                                        evenement_id=evenement_id, serie_start=serie_start)
+    try:
+        prog = str(programme or "")
+        base = prog[:-3] if prog.endswith("_nb") else prog
+        nb = prog.endswith("_nb") or not couleur
+        if _photocopie is not None and nb and base in _JEUX_PHOTOCOPIE:
+            data = buf.getvalue() if hasattr(buf, "getvalue") else bytes(buf)
+            import io as _io_ph
+            res = _io_ph.BytesIO(_photocopie.convertir(data))
+            del data
+            res.seek(0)
+            return res
+    except Exception as _e_ph2:
+        print("[PHOTOCOPIE] conversion ignorée :", repr(_e_ph2))
+        try:
+            buf.seek(0)
+        except Exception:
+            pass
+    return buf
+print("[PHOTOCOPIE] jeux Canva N&B en version photocopie (impression fluide)")
