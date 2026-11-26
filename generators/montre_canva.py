@@ -30,6 +30,19 @@ POLICE_NUM = "Helvetica-Bold"
 _IMG = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "montre_v2_dessin.png")
 
 
+try:
+    from generators import canva_masque as _masque
+except Exception:
+    import canva_masque as _masque
+
+
+def _source_png():
+    """Le dessin : le fichier .png s'il est là, sinon la copie rangée dans ce fichier."""
+    if _os.path.exists(_IMG):
+        return _IMG
+    import base64
+    return base64.b64decode(_DESSIN_PNG)
+
 def _image_dessin():
     # le dessin est aussi rangé DANS ce fichier : pas besoin d'envoyer le .png à part
     if _os.path.exists(_IMG):
@@ -79,7 +92,7 @@ def _txt(c, s, x, y, police, taille, col, esp=0, centre=False):
 def _billet(c, ox, oy, serie, position, nums, col):
     if not getattr(c, "_montre_modele", False):     # le dessin : une seule fois par document
         c.beginForm("MONTRE_DESSIN", 0, 0, CELL_W, CELL_H)
-        c.drawImage(_image_dessin(), 0, 0, CELL_W, CELL_H)
+        _masque.poser(c, "MONTRE_IMG", _source_png(), 0, 0, CELL_W, CELL_H)
         c.endForm()
         c._montre_modele = True
     c.saveState()
