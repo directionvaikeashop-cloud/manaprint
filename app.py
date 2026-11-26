@@ -9015,3 +9015,15 @@ try:
     print("[BROWN 14] nouvelle maquette — 12 billets par feuille")
 except Exception as _e_b14:
     print("[BROWN 14] nouvelle maquette non chargée :", repr(_e_b14))
+
+# 🐋 25/11 — AUSTRALES nouvelle maquette CANVA : 15 billets par feuille A4 portrait (règle et crieur inchangés)
+#    (fichier generators/australes_canva.py ; l'ancien australes.py n'est plus appelé)
+try:
+    from generators import australes_canva
+    _ECO_VALIDES_21_11.add("australes_canva")   # dessin Canva net + chiffres bien noirs en N&B
+    GRIS_PARTICULIERS.pop("australes", None)
+    _enregistrer_paire("australes", "AUSTRALES", "\U0001f40b", 15, australes_canva.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[AUSTRALES] nouvelle maquette — 15 billets par feuille")
+except Exception as _e_aus:
+    print("[AUSTRALES] nouvelle maquette non chargée :", repr(_e_aus))
