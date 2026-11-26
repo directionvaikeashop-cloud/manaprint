@@ -9027,3 +9027,18 @@ try:
     print("[AUSTRALES] nouvelle maquette — 15 billets par feuille")
 except Exception as _e_aus:
     print("[AUSTRALES] nouvelle maquette non chargée :", repr(_e_aus))
+
+# 🎯 25/11 — CIBLE nouvelle maquette CANVA : 12 billets par feuille A4 paysage, 8 cibles en 2 rangées de 4
+#    haut B B I I · bas N N G O (règle et crieur 1-75 inchangés). Création RANIHEI.
+#    (fichier generators/cible_canva.py, le dessin est rangé dedans ; l'ancien cible.py n'est plus appelé)
+try:
+    from generators import cible_canva
+    JEUX_PROPRIETAIRE["cible"] = "ranihei"
+    _ECO_IMG_GARDER_BLANC.add("cible_canva")   # dessin net, fond blanc
+    _ECO_VALIDES_21_11.add("cible_canva")      # chiffres bien noirs en N&B
+    GRIS_PARTICULIERS.pop("cible", None)
+    _enregistrer_paire("cible", "CIBLE · 8 numéros", "\U0001f3af", 12, cible_canva.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[CIBLE] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_cib:
+    print("[CIBLE] nouvelle maquette non chargée :", repr(_e_cib))
