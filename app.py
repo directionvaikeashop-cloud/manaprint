@@ -9058,3 +9058,21 @@ try:
     print("[TRIPLE X] nouvelle maquette — 10 billets par feuille")
 except Exception as _e_tx:
     print("[TRIPLE X] nouvelle maquette non chargée :", repr(_e_tx))
+
+# 🔋 25/11 — TRIPLE I NI'A 75 (création 2KEA) nouvelle maquette CANVA : 10 tickets par feuille A4 portrait
+#    batteries comme la maquette (haut 2·1·1·3·2, bas 1·2·1·3·2), ancienne règle des plages
+#    (par rangée : 1 B, 3 I, 2 N, 2 G, 1 O ; 3 numéros par batterie), crieur 1 à 75.
+#    (fichier generators/triple_inia_canva.py, les dessins sont rangés dedans ; l'ancien triple_inia.py n'est plus appelé)
+try:
+    from generators import triple_inia_canva
+    JEUX_PROPRIETAIRE["triple_inia"] = "2kea_papeete"
+    _ECO_IMG_GARDER_BLANC.add("triple_inia_canva")   # dessin net, fond blanc
+    _ECO_VALIDES_21_11.add("triple_inia_canva")      # chiffres bien noirs en N&B
+    GRIS_PARTICULIERS.pop("triple_inia", None)
+    _enregistrer_paire("triple_inia", "TRIPLE I NI'A 75", "\U0001f50b", 10, triple_inia_canva.generer_pdf)
+    _PLAGES_CALLER["triple_inia"] = (1, 75)
+    _BOULES_CALLER["triple_inia"] = [n for n in range(1, 76)]
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[TRIPLE I NI'A] nouvelle maquette — 10 tickets par feuille")
+except Exception as _e_inia:
+    print("[TRIPLE I NI'A] nouvelle maquette non chargée :", repr(_e_inia))
