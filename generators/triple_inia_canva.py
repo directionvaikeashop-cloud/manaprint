@@ -45,39 +45,20 @@ DECAL_X = (PAGE_W - PAGE_W * ECHELLE) / 2.0
 DECAL_Y = (PAGE_H - PAGE_H * ECHELLE) / 2.0
 
 
+try:
+    from generators import canva_masque as _masque
+except Exception:
+    import canva_masque as _masque
+
 def _image_1bit(c, k, w, h):
-    """Le dessin de la place k, posé en image NOIR & BLANC 1 bit (la plus légère
-    pour la Konica / la Sharp : pas de gris à recalculer)."""
-    import zlib
-    from reportlab.pdfbase import pdfdoc
-    nom = "INIA_IMG_%d" % k
-    reg = c._doc.getXObjectName(nom)
-    obj = c._doc.idToObject.get(reg, None)
-    if not obj:
-        from PIL import Image
-        chemin = _os.path.join(_DIR, "inia_v2_%d.png" % k)
-        if _os.path.exists(chemin):
-            im = Image.open(chemin)
-        else:
-            import base64
-            im = Image.open(io.BytesIO(base64.b64decode(_PNG[k])))
-        im = im.convert("1")
-        obj = pdfdoc.PDFImageXObject(nom)
-        obj.width, obj.height = im.size
-        obj.bitsPerComponent = 1
-        obj.colorSpace = "DeviceGray"
-        obj.streamContent = zlib.compress(im.tobytes(), 9)
-        obj._filters = ("FlateDecode",)
-        obj.mask = None
-        obj.name = nom
-        c._setXObjects(obj)
-        c._doc.Reference(obj, reg)
-        c._doc.addForm(nom, obj)
-    c.saveState()
-    c.scale(w, h)
-    c._code.append("/%s Do" % reg)
-    c.restoreState()
-    c._formsinuse.append(nom)
+    """Le dessin de la place k, posé en pochoir noir (léger ; en couleur, MANAPRINT le repeint)."""
+    chemin = _os.path.join(_DIR, "inia_v2_%d.png" % k)
+    if _os.path.exists(chemin):
+        src = chemin
+    else:
+        import base64
+        src = base64.b64decode(_PNG[k])
+    _masque.poser(c, "INIA_IMG_%d" % k, src, 0, 0, w, h)
 
 
 def _rangee(rng, places):
