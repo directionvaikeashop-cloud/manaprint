@@ -8989,3 +8989,16 @@ try:
     print("[GAMBIER] nouvelle maquette — 12 billets par feuille")
 except Exception as _e_gam:
     print("[GAMBIER] nouvelle maquette non chargée :", repr(_e_gam))
+
+# 🔥 25/11 — FEU 5 boules nouvelle maquette CANVA : 16 billets par feuille A4 portrait (règle et crieur inchangés)
+#    (fichier generators/feu_canva.py, flambeau et flammes rangés dedans ; l'ancien feu.py n'est plus appelé)
+try:
+    from generators import feu_canva
+    _ECO_IMG_GARDER_BLANC.add("feu_canva")   # dessin net, fond blanc
+    _ECO_VALIDES_21_11.add("feu_canva")      # chiffres bien noirs en N&B
+    GRIS_PARTICULIERS.pop("feu", None)
+    _enregistrer_paire("feu", "FEU 5 boules", "\U0001f525", 16, feu_canva.generer_pdf)
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[FEU] nouvelle maquette — 16 billets par feuille")
+except Exception as _e_feu:
+    print("[FEU] nouvelle maquette non chargée :", repr(_e_feu))
