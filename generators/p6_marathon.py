@@ -316,6 +316,13 @@ def _dessiner_carte(c, x0, y0, carte, couleur_hex, serie, encre, telephone="", t
                     c.setFont("Helvetica-Bold", _tp)
                     for _k, _l in enumerate(_lg[1:], 1):
                         c.drawCentredString(cx, _y0c - _t * 0.26 - _k * _tp * 1.40, _l)
+                elif not evenement_id and not cartes:
+                    # 🏷 27/11 (Maeva) : P6 « toujours comme celle-là » — TUKEA 89 22 23 05
+                    #    au milieu de chaque grille, en gras noir (sauf nom de client ou QR).
+                    _ym = y0 + FOOT_H + (GRID_N - 1 - ri) * cell_h + cell_h / 2
+                    c.setFillColor(colors.black)
+                    c.setFont("Helvetica-Bold", 10); c.drawCentredString(cx, _ym + 2, "TUKEA")
+                    c.setFont("Helvetica-Bold", 8.5); c.drawCentredString(cx, _ym - 9, "89 22 23 05")
             elif cartes and nums[ri] <= 13:
                 # 🃏 jumeau CASINO : le numéro 1-13 vit dans sa carte à jouer
                 _carte_jeu(c, cx, cy + 5, nums[ri], col, gris_ch)
