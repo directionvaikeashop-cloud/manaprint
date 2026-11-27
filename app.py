@@ -9260,3 +9260,22 @@ try:
     print("[AS DES AS] nouvelle maquette — 12 billets par feuille")
 except Exception as _e_ada:
     print("[AS DES AS] nouvelle maquette non chargée :", repr(_e_ada))
+
+# ⚡ 26/11 — TRIPLE POWER 75 nouvelle maquette CANVA : 10 tickets par feuille A4 portrait
+#    bulles fixes OFF · ON · OFF · ON ; B 1-15 · I 16-30 · G 46-60 · O 61-75, 3 numéros par ligne,
+#    crieur 1-30 et 46-75 (pas de N). (fichier generators/triple_power_canva.py ; l'ancien triple_power.py n'est plus appelé)
+try:
+    from generators import triple_power_canva
+    JEUX_PROPRIETAIRE["triple_power"] = "2kea_papeete"
+    _ECO_VALIDES_21_11.add("triple_power_canva")
+    GRIS_PARTICULIERS.pop("triple_power", None)
+    _enregistrer_paire("triple_power", "TRIPLE POWER 75", "⚡", 10, triple_power_canva.generer_pdf, kwarg_nb="nb_tickets")
+    _PLAGES_CALLER["triple_power"] = (1, 75)
+    _BOULES_CALLER["triple_power"] = [n for n in range(1, 31)] + [n for n in range(46, 76)]
+    _TEINTE_PNG.discard("triple_power")
+    _TEINTE_VECT.discard("triple_power")
+    _TEINTE_CANVA.add("triple_power")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[TRIPLE POWER] nouvelle maquette — 10 tickets par feuille")
+except Exception as _e_tpc:
+    print("[TRIPLE POWER] nouvelle maquette non chargée :", repr(_e_tpc))
