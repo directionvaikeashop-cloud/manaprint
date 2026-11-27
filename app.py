@@ -9244,3 +9244,19 @@ try:
     print("[CASINO] nouvelle maquette — 12 billets par feuille")
 except Exception as _e_cas:
     print("[CASINO] nouvelle maquette non chargée :", repr(_e_cas))
+
+# 🂡 26/11 — L'AS DES AS nouvelle maquette CANVA : 12 billets par feuille A4 paysage (règle et crieur 1-75 inchangés)
+#    (fichier generators/as_des_as_canva.py ; l'ancien as_des_as.py n'est plus appelé)
+try:
+    from generators import as_des_as_canva
+    JEUX_PROPRIETAIRE["as_des_as"] = "2kea_papeete"
+    _ECO_VALIDES_21_11.add("as_des_as_canva")
+    GRIS_PARTICULIERS.pop("as_des_as", None)
+    _enregistrer_paire("as_des_as", "L'AS DES AS · 4 boules", "\U0001f0a1", 12, as_des_as_canva.generer_pdf)
+    _PLAGES_CALLER["as_des_as"] = (1, 75)
+    _BOULES_CALLER["as_des_as"] = [n for n in range(1, 76)]
+    _TEINTE_CANVA.add("as_des_as")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[AS DES AS] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_ada:
+    print("[AS DES AS] nouvelle maquette non chargée :", repr(_e_ada))
