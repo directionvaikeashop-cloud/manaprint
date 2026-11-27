@@ -9212,3 +9212,19 @@ try:
     print("[WOWOWO] inscrit — 12 billets par feuille")
 except Exception as _e_wo:
     print("[WOWOWO] non chargé :", repr(_e_wo))
+
+# 🎄 26/11 — NOËL nouvelle maquette CANVA : 8 billets par feuille A4 paysage (règle et crieur 1-90 inchangés)
+#    (fichier generators/noel_canva.py ; l'ancien noel.py n'est plus appelé)
+try:
+    from generators import noel_canva
+    JEUX_PROPRIETAIRE["noel"] = "2kea_papeete"
+    _ECO_VALIDES_21_11.add("noel_canva")
+    GRIS_PARTICULIERS.pop("noel", None)
+    _enregistrer_paire("noel", "NOËL · 6 boules", "\U0001f384", 8, noel_canva.generer_pdf)
+    _PLAGES_CALLER["noel"] = (1, 90)
+    _BOULES_CALLER["noel"] = [n for n in range(1, 91)]
+    _TEINTE_CANVA.add("noel")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[NOËL] nouvelle maquette — 8 billets par feuille")
+except Exception as _e_noel:
+    print("[NOËL] nouvelle maquette non chargée :", repr(_e_noel))
