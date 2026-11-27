@@ -9347,3 +9347,20 @@ try:
     print("[KAUKURA] inscrit — 12 billets par feuille")
 except Exception as _e_kauk:
     print("[KAUKURA] non chargé :", repr(_e_kauk))
+
+# 🌸 27/11 — OHANA 90 · 4 séries : le VRAI modèle de Maeva (« c'est ça le OHANA 90 4 série »)
+#    titre OHANA 90 en contour, N° à gauche, B I N G O 90, rond + numéro en gras dans chaque case.
+#    (fichier generators/ohana90_4series_v2.py ; l'ancien ohana90_4series.py n'est plus appelé)
+try:
+    from generators import ohana90_4series_v2
+    _ECO_VALIDES_21_11.add("ohana90_4series_v2")
+    GRIS_PARTICULIERS.pop("ohana90_4series", None)
+    _enregistrer_paire("ohana90_4series", "OHANA 90 · 4 séries", "\U0001f338", 4, ohana90_4series_v2.generer_pdf)
+    _PLAGES_CALLER["ohana90_4series"] = (1, 90)
+    _BOULES_CALLER["ohana90_4series"] = [n for n in range(1, 91)]
+    for _ens in (_TEINTE_PNG, _TEINTE_VECT, _TEINTE_CASES_GRISES, _TEINTE_CANVA):
+        _ens.discard("ohana90_4series")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[OHANA 90 · 4 séries] vrai modèle — 4 cartes par feuille")
+except Exception as _e_o904:
+    print("[OHANA 90 · 4 séries] vrai modèle non chargé :", repr(_e_o904))
