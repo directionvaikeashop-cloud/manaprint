@@ -3710,6 +3710,15 @@ def _apercu_signature(jeu_id):
                     h.update(("%s:%d" % (os.path.basename(v), os.path.getsize(v))).encode())
         except Exception:
             pass
+        # 🎨 26/11 : la couleur « grille teintée » (chiffres noirs) est ouverte ->
+        #    les vignettes COULEUR de ces jeux sont refaites une fois.
+        try:
+            _bj = _base_jeu(jeu_id)
+            if jeu_id.endswith("_couleur") and _teinte_ouverte() and (
+                    _bj in _TEINTE_CANVA or _bj in _TEINTE_PNG or _bj in _TEINTE_VECT):
+                h.update(b"teinte-2611")
+        except Exception:
+            pass
         sig = h.hexdigest()[:12]
     except Exception:
         sig = ""
