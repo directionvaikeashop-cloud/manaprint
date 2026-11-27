@@ -9228,3 +9228,19 @@ try:
     print("[NOËL] nouvelle maquette — 8 billets par feuille")
 except Exception as _e_noel:
     print("[NOËL] nouvelle maquette non chargée :", repr(_e_noel))
+
+# 🎰 26/11 — CASINO nouvelle maquette CANVA : 12 billets par feuille A4 paysage (règle et crieur 1-75 inchangés)
+#    (fichier generators/casino_canva.py ; l'ancien casino_bingo.py n'est plus appelé)
+try:
+    from generators import casino_canva
+    JEUX_PROPRIETAIRE["casino_bingo"] = "2kea_papeete"
+    _ECO_VALIDES_21_11.add("casino_canva")
+    GRIS_PARTICULIERS.pop("casino_bingo", None)
+    _enregistrer_paire("casino_bingo", "CASINO · 5 jetons", "\U0001f3b0", 12, casino_canva.generer_pdf)
+    _PLAGES_CALLER["casino_bingo"] = (1, 75)
+    _BOULES_CALLER["casino_bingo"] = [n for n in range(1, 76)]
+    _TEINTE_CANVA.add("casino_bingo")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[CASINO] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_cas:
+    print("[CASINO] nouvelle maquette non chargée :", repr(_e_cas))
