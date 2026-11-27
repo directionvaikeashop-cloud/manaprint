@@ -9364,3 +9364,12 @@ try:
     print("[OHANA 90 · 4 séries] vrai modèle — 4 cartes par feuille")
 except Exception as _e_o904:
     print("[OHANA 90 · 4 séries] vrai modèle non chargé :", repr(_e_o904))
+
+# 🎳 27/11 — 40 BOULES (retour de validation de Maeva : « il n'est pas en couleur ») :
+#    ce jeu est dessiné (plus d'image depuis le 08/10) → il passe en teinte « dessin » :
+#    chaque grille dans sa couleur de la gamme, les chiffres restent noirs.
+try:
+    _TEINTE_PNG.discard("boules40")
+    _TEINTE_VECT.add("boules40")
+except Exception as _e_b40:
+    print("[40 BOULES] couleur :", repr(_e_b40))
