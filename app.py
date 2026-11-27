@@ -9288,3 +9288,62 @@ try:
     print("[TRIPLE POWER] nouvelle maquette — 10 tickets par feuille")
 except Exception as _e_tpc:
     print("[TRIPLE POWER] nouvelle maquette non chargée :", repr(_e_tpc))
+
+# 🏛️ 26/11 — ROMA · 6 boules nouvelle maquette CANVA : 12 billets par feuille A4 paysage
+#    règle inchangée (6 pairs, une plage par rond : 2-14 · 16-30 · 32-44 · 46-60 · 62-74 · 76-90),
+#    crieur : les 45 pairs de 2 à 90. (fichier generators/roma_canva.py ; l'ancien roma6.py n'est plus appelé)
+try:
+    from generators import roma_canva
+    JEUX_PROPRIETAIRE["roma6"] = "2kea_papeete"
+    _ECO_IMG_GARDER_BLANC.add("roma_canva")
+    _ECO_VALIDES_21_11.add("roma_canva")
+    GRIS_PARTICULIERS.pop("roma6", None)
+    _enregistrer_paire("roma6", "ROMA · 6 boules", "\U0001f3db️", 12, roma_canva.generer_pdf)
+    _PLAGES_CALLER["roma6"] = (2, 90)
+    _BOULES_CALLER["roma6"] = [n for n in range(2, 91, 2)]
+    _TEINTE_PNG.discard("roma6")
+    _TEINTE_VECT.discard("roma6")
+    _TEINTE_CASES_GRISES.discard("roma6")
+    _TEINTE_CANVA.add("roma6")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[ROMA] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_roma:
+    print("[ROMA] nouvelle maquette non chargée :", repr(_e_roma))
+
+# 🐉 26/11 — DRAGON D'OR (création RANIHEI) nouvelle maquette CANVA : 12 billets par feuille A4 paysage
+#    règle inchangée (7 bulles, une tranche chacune : 1-13 · 14-26 · 27-39 · 40-52 · 53-65 · 66-78 · 79-90),
+#    crieur 1 à 90. (fichier generators/dragon_or_canva.py ; l'ancien dragon_or.py n'est plus appelé)
+try:
+    from generators import dragon_or_canva
+    JEUX_PROPRIETAIRE["dragon_or"] = "ranihei"
+    _ECO_IMG_GARDER_BLANC.add("dragon_or_canva")
+    _ECO_VALIDES_21_11.add("dragon_or_canva")
+    GRIS_PARTICULIERS.pop("dragon_or", None)
+    _enregistrer_paire("dragon_or", "DRAGON D'OR", "\U0001f409", 12, dragon_or_canva.generer_pdf)
+    _PLAGES_CALLER["dragon_or"] = (1, 90)
+    _BOULES_CALLER["dragon_or"] = [n for n in range(1, 91)]
+    _TEINTE_PNG.discard("dragon_or")
+    _TEINTE_VECT.discard("dragon_or")
+    _TEINTE_CASES_GRISES.discard("dragon_or")
+    _TEINTE_CANVA.add("dragon_or")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[DRAGON D'OR] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_dragon:
+    print("[DRAGON D'OR] nouvelle maquette non chargée :", repr(_e_dragon))
+
+# 🦈 26/11 — KAUKURA (création 2KEA) maquette CANVA : 12 billets par feuille A4 paysage
+#    8 boules, une par dizaine, en zigzag : 1-9 · 10-19 · 20-29 · 30-39 · 40-49 · 50-59 · 60-69 · 70-75,
+#    crieur 1 à 75. (fichier generators/kaukura_canva.py)
+try:
+    from generators import kaukura_canva
+    JEUX_PROPRIETAIRE["kaukura"] = "2kea_papeete"
+    _ECO_IMG_GARDER_BLANC.add("kaukura_canva")
+    _ECO_VALIDES_21_11.add("kaukura_canva")
+    _enregistrer_paire("kaukura", "KAUKURA · 8 boules", "\U0001f988", 12, kaukura_canva.generer_pdf)
+    _PLAGES_CALLER["kaukura"] = (1, 75)
+    _BOULES_CALLER["kaukura"] = [n for n in range(1, 76)]
+    _TEINTE_CANVA.add("kaukura")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[KAUKURA] inscrit — 12 billets par feuille")
+except Exception as _e_kauk:
+    print("[KAUKURA] non chargé :", repr(_e_kauk))
