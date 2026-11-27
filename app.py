@@ -9196,3 +9196,19 @@ try:
     print("[TRIPLE I NI'A] nouvelle maquette — 10 tickets par feuille")
 except Exception as _e_inia:
     print("[TRIPLE I NI'A] nouvelle maquette non chargée :", repr(_e_inia))
+
+# 🍍 26/11 — WOWOWO! (création RANIHEI SISTERS & SHOP), maquette CANVA : 12 billets par feuille A4 paysage.
+#    9 étoiles « petit/grand », 18 numéros différents de 1 à 75 -> crieur 1 à 75.
+try:
+    from generators import wowowo_canva
+    JEUX_PROPRIETAIRE["wowowo"] = "ranihei"
+    _ECO_IMG_GARDER_BLANC.add("wowowo_canva")
+    _ECO_VALIDES_21_11.add("wowowo_canva")
+    _enregistrer_paire("wowowo", "WOWOWO! · 9 étoiles", "\U0001f34d", 12, wowowo_canva.generer_pdf)
+    _PLAGES_CALLER["wowowo"] = (1, 75)
+    _BOULES_CALLER["wowowo"] = [n for n in range(1, 76)]
+    _TEINTE_CANVA.add("wowowo")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[WOWOWO] inscrit — 12 billets par feuille")
+except Exception as _e_wo:
+    print("[WOWOWO] non chargé :", repr(_e_wo))
