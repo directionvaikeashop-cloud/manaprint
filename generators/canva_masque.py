@@ -19,7 +19,7 @@ class _Masque(pdfdoc.PDFImageXObject):
         d["Subtype"] = pdfdoc.PDFName("Image")
         d["Width"] = self.width
         d["Height"] = self.height
-        d["ImageMask"] = _Vrai()
+        d["ImageMask"] = b"true"
         d["BitsPerComponent"] = 1
         d["Filter"] = pdfdoc.PDFArray([pdfdoc.PDFName("FlateDecode")])
         d["Length"] = len(self.streamContent)
