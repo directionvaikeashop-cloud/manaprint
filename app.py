@@ -9373,3 +9373,88 @@ try:
     _TEINTE_VECT.add("boules40")
 except Exception as _e_b40:
     print("[40 BOULES] couleur :", repr(_e_b40))
+
+# 🥥 27/11 — HAKARI · 6 boules nouvelle maquette CANVA : 20 cartons par feuille A4 portrait
+#    règle inchangée (B 1-15 ×2 · N 31-45 ×2 · I 16-30 · O 61-75 au centre), crieur 1-45 et 61-75.
+#    (fichier generators/hakari_canva.py ; l'ancien hakari.py n'est plus appelé)
+try:
+    from generators import hakari_canva
+    _ECO_IMG_GARDER_BLANC.add("hakari_canva")
+    _ECO_VALIDES_21_11.add("hakari_canva")
+    GRIS_PARTICULIERS.pop("hakari", None)
+    _enregistrer_paire("hakari", "HAKARI 6 boules", "\U0001f965", 20, hakari_canva.generer_pdf)
+    for _ens in (_TEINTE_PNG, _TEINTE_VECT, _TEINTE_CASES_GRISES):
+        _ens.discard("hakari")
+    _TEINTE_CANVA.add("hakari")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[HAKARI] nouvelle maquette — 20 cartons par feuille")
+except Exception as _e_hak:
+    print("[HAKARI] nouvelle maquette non chargée :", repr(_e_hak))
+
+# 🍺 27/11 — PIETRA · 8 boules nouvelle maquette CANVA (bouteille de bière PIETRA au centre) :
+#    12 cartes par feuille A4 paysage ; règle inchangée (2 triés par plage : 1-15 · 16-30 · 46-60 · 61-75),
+#    crieur 1-30 et 46-75. (fichier generators/pietra_canva.py ; l'ancien pietra.py reste pour PIETRA SMORFIA)
+try:
+    from generators import pietra_canva
+    _ECO_IMG_GARDER_BLANC.add("pietra_canva")
+    _ECO_VALIDES_21_11.add("pietra_canva")
+    GRIS_PARTICULIERS.pop("pietra", None)
+    _enregistrer_paire("pietra", "PIETRA 8 boules", "\U0001f37a", 12, pietra_canva.generer_pdf)
+    for _ens in (_TEINTE_PNG, _TEINTE_VECT, _TEINTE_CASES_GRISES):
+        _ens.discard("pietra")
+    _TEINTE_CANVA.add("pietra")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[PIETRA] nouvelle maquette — 12 cartes par feuille")
+except Exception as _e_pie:
+    print("[PIETRA] nouvelle maquette non chargée :", repr(_e_pie))
+
+# 🚗 27/11 — TESLA · 5 boules nouvelle maquette CANVA (la vraie Tesla Model 3 de face) :
+#    12 cartes par feuille A4 paysage ; règle inchangée (g. haut 1-15 · g. bas + centre = 2 triés 16-30 ·
+#    droite = 2 triés 46-60), crieur 1-30 et 46-60. (fichier generators/tesla_canva.py ; l'ancien tesla.py n'est plus appelé)
+try:
+    from generators import tesla_canva
+    _ECO_IMG_GARDER_BLANC.add("tesla_canva")
+    _ECO_VALIDES_21_11.add("tesla_canva")
+    GRIS_PARTICULIERS.pop("tesla", None)
+    _enregistrer_paire("tesla", "TESLA 5 boules", "\U0001f697", 12, tesla_canva.generer_pdf)
+    for _ens in (_TEINTE_PNG, _TEINTE_VECT, _TEINTE_CASES_GRISES):
+        _ens.discard("tesla")
+    _TEINTE_CANVA.add("tesla")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[TESLA] nouvelle maquette — 12 cartes par feuille")
+except Exception as _e_tes:
+    print("[TESLA] nouvelle maquette non chargée :", repr(_e_tes))
+
+# 👑 27/11 — POMARE · 7 boules (RANIHEI) nouvelle maquette : couronne originale, 12 billets par
+#    feuille A4 paysage, bulles agrandies, POMARE et H-TMH en TE URU. Règle inchangée (paires
+#    1-15 · 16-30 · 31-45, milieu 76-90), crieur 1-90. (generators/pomare_canva.py ; l'ancien pomare.py n'est plus appelé)
+try:
+    from generators import pomare_canva
+    _ECO_IMG_GARDER_BLANC.add("pomare_canva")
+    _ECO_VALIDES_21_11.add("pomare_canva")
+    GRIS_PARTICULIERS.pop("pomare", None)
+    _enregistrer_paire("pomare", "POMARE", "\U0001f451", 12, pomare_canva.generer_pdf)
+    for _ens in (_TEINTE_PNG, _TEINTE_VECT, _TEINTE_CASES_GRISES):
+        _ens.discard("pomare")
+    _TEINTE_CANVA.add("pomare")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[POMARE] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_pom:
+    print("[POMARE] nouvelle maquette non chargée :", repr(_e_pom))
+
+# ⚽ 27/11 — TALON · 6 boules (RANIHEI) nouvelle maquette : roue à 6 cases en traits fins, hibiscus Canva,
+#    TALON en TE URU, 12 billets par feuille A4 paysage. Règle inchangée (g 1-15 · h 16-30 · d 31-45 ·
+#    bd 46-60 · bg 61-75 · centre 76-90), crieur 1-90. (generators/talon_canva.py ; l'ancien talon.py n'est plus appelé)
+try:
+    from generators import talon_canva
+    _ECO_IMG_GARDER_BLANC.add("talon_canva")
+    _ECO_VALIDES_21_11.add("talon_canva")
+    GRIS_PARTICULIERS.pop("talon", None)
+    _enregistrer_paire("talon", "TALON", "⚽", 12, talon_canva.generer_pdf)
+    for _ens in (_TEINTE_PNG, _TEINTE_VECT, _TEINTE_CASES_GRISES):
+        _ens.discard("talon")
+    _TEINTE_CANVA.add("talon")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[TALON] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_tal:
+    print("[TALON] nouvelle maquette non chargée :", repr(_e_tal))
