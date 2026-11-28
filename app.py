@@ -9458,3 +9458,129 @@ try:
     print("[TALON] nouvelle maquette — 12 billets par feuille")
 except Exception as _e_tal:
     print("[TALON] nouvelle maquette non chargée :", repr(_e_tal))
+
+# 🪭 27/11 — FAN · 7 boules nouvelle maquette Canva (« fan_canva_12_A4_v2 ») : 4 bulles en haut (la 4e
+#    dans le soleil), couronne, ailes et lune en bas, 12 billets par feuille A4 paysage, chiffres Times
+#    gras 30 pt. Règle inchangée (1-10 · 20-30 · 31-45 ×2 · ailes 46-59 · lune 60-75 · couronne 76-90),
+#    crieur 1-90 sans le 11 à 19. (generators/fan_canva.py ; l'ancien fan90.py n'est plus appelé)
+try:
+    from generators import fan_canva
+    _ECO_IMG_GARDER_BLANC.add("fan_canva")
+    _ECO_VALIDES_21_11.add("fan_canva")
+    GRIS_PARTICULIERS.pop("fan90", None)
+    _enregistrer_paire("fan90", "FAN 90", "☀️", 12, fan_canva.generer_pdf)
+    for _ens in (_TEINTE_PNG, _TEINTE_VECT, _TEINTE_CASES_GRISES):
+        _ens.discard("fan90")
+    _TEINTE_CANVA.add("fan90")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[FAN] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_fan:
+    print("[FAN] nouvelle maquette non chargée :", repr(_e_fan))
+
+# 🏔️ 27/11 — OPOA · 6 boules nouvelle maquette Canva (« opoa_canva_15_A4_portrait ») : B I G O en haut
+#    avec leurs plages, la montagne Canva, les deux N 31-45 en bas, 15 cartons par feuille A4 portrait,
+#    chiffres Times 27 pt. Règle inchangée (B 1-15 · I 16-30 · G 46-60 · O 61-75 · N 31-45 ×2),
+#    crieur 1-75. (generators/opoa_canva.py ; l'ancien opoa.py n'est plus appelé)
+try:
+    from generators import opoa_canva
+    _ECO_IMG_GARDER_BLANC.add("opoa_canva")
+    _ECO_VALIDES_21_11.add("opoa_canva")
+    GRIS_PARTICULIERS.pop("opoa", None)
+    _enregistrer_paire("opoa", "OPOA", "🏔️", 15, opoa_canva.generer_pdf)
+    for _ens in (_TEINTE_PNG, _TEINTE_VECT, _TEINTE_CASES_GRISES):
+        _ens.discard("opoa")
+    _TEINTE_CANVA.add("opoa")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[OPOA] nouvelle maquette — 15 cartons par feuille")
+except Exception as _e_opoa:
+    print("[OPOA] nouvelle maquette non chargée :", repr(_e_opoa))
+
+# 💧 27/11 — VAI · 7 boules nouvelle maquette Canva (« vai_canva_16_A4_v4 ») : la goutte et ses ronds,
+#    les deux vagues, 3 bulles à gauche et 3 à droite, 16 cartes par feuille A4 paysage, chiffres Times
+#    gras 30 pt (bulles agrandies). Règle inchangée (g 61-70 ×3 · d 81-90 ×3 · goutte 71-80),
+#    crieur 61-90. (generators/vai_canva.py ; l'ancien vai.py n'est plus appelé)
+try:
+    from generators import vai_canva
+    _ECO_IMG_GARDER_BLANC.add("vai_canva")
+    _ECO_VALIDES_21_11.add("vai_canva")
+    GRIS_PARTICULIERS.pop("vai", None)
+    _enregistrer_paire("vai", "VAI 7 boules", "\U0001f4a7", 16, vai_canva.generer_pdf)
+    for _ens in (_TEINTE_PNG, _TEINTE_VECT, _TEINTE_CASES_GRISES):
+        _ens.discard("vai")
+    _TEINTE_CANVA.add("vai")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[VAI] nouvelle maquette — 16 cartes par feuille")
+except Exception as _e_vai:
+    print("[VAI] nouvelle maquette non chargée :", repr(_e_vai))
+
+# ⚪ 27/11 — POE · 6 boules nouvelle maquette Canva (« poe_canva_16_A4_v2 ») : P (huître perlière) E,
+#    les deux vagues, 6 cases (2 x 3), 16 cartons par feuille A4 paysage, chiffres Times gras 30 pt.
+#    Règle inchangée (deux par plage triés : 45-60 · 61-75 · 76-90, le petit en haut), crieur 45-90.
+#    (generators/poe_canva.py ; l'ancien poe.py n'est plus appelé)
+try:
+    from generators import poe_canva
+    _ECO_IMG_GARDER_BLANC.add("poe_canva")
+    _ECO_VALIDES_21_11.add("poe_canva")
+    GRIS_PARTICULIERS.pop("poe", None)
+    _enregistrer_paire("poe", "POE 6 boules", "⚪", 16, poe_canva.generer_pdf)
+    for _ens in (_TEINTE_PNG, _TEINTE_VECT, _TEINTE_CASES_GRISES):
+        _ens.discard("poe")
+    _TEINTE_CANVA.add("poe")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[POE] nouvelle maquette — 16 cartons par feuille")
+except Exception as _e_poe:
+    print("[POE] nouvelle maquette non chargée :", repr(_e_poe))
+
+# 🫧 27/11 — BUBULLE · 6 boules nouvelle maquette Canva (« bubulle_canva_12_A4 ») : BUBULLE en lettres
+#    creuses, bulles et étoiles Canva, B B N N O O et 6 ovales, 12 billets par feuille A4 paysage,
+#    chiffres Helvetica 27 pt. Règle inchangée (2 B 1-15 · 2 N 31-45 · 2 O 61-75), crieur 1-75.
+#    (generators/bubulle_canva.py ; l'ancien bubulle.py n'est plus appelé)
+try:
+    from generators import bubulle_canva
+    _ECO_IMG_GARDER_BLANC.add("bubulle_canva")
+    _ECO_VALIDES_21_11.add("bubulle_canva")
+    GRIS_PARTICULIERS.pop("bubulle", None)
+    _enregistrer_paire("bubulle", "BUBULLE", "\U0001fae7", 12, bubulle_canva.generer_pdf)
+    for _ens in (_TEINTE_PNG, _TEINTE_VECT, _TEINTE_CASES_GRISES):
+        _ens.discard("bubulle")
+    _TEINTE_CANVA.add("bubulle")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[BUBULLE] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_bub:
+    print("[BUBULLE] nouvelle maquette non chargée :", repr(_e_bub))
+
+# 👌 27/11 — OK · 6 boules nouvelle maquette Canva (« ok_canva_16_A4 ») : titre OK avec rayons et
+#    étoiles, la main qui fait OK, 6 cases B · G · O · G · O · I, 16 cartons par feuille A4 portrait,
+#    chiffres Times 30 pt. Règle inchangée (B 1-15 · G 46-60 ×2 · O 61-75 ×2 · I 16-30),
+#    crieur 1-30 et 46-75. (generators/ok_canva.py ; l'ancien ok.py n'est plus appelé)
+try:
+    from generators import ok_canva
+    _ECO_IMG_GARDER_BLANC.add("ok_canva")
+    _ECO_VALIDES_21_11.add("ok_canva")
+    GRIS_PARTICULIERS.pop("ok", None)
+    _enregistrer_paire("ok", "OK 6 boules", "👌", 16, ok_canva.generer_pdf)
+    for _ens in (_TEINTE_PNG, _TEINTE_VECT, _TEINTE_CASES_GRISES):
+        _ens.discard("ok")
+    _TEINTE_CANVA.add("ok")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[OK] nouvelle maquette — 16 cartons par feuille")
+except Exception as _e_ok:
+    print("[OK] nouvelle maquette non chargée :", repr(_e_ok))
+
+# 🏝️ 27/11 — TUAMOTU · 5 boules nouvelle maquette Canva (« tuamotu_canva_12_A4 ») : carte des atolls,
+#    oiseaux, cocotiers et soleil couchant, 5 ronds B · G · I · O · N, 12 cartons par feuille A4
+#    portrait, chiffres Times 30 pt. Règle inchangée (B 1-15 · I 16-30 · N 31-45 · G 46-60 · O 61-75),
+#    crieur 1-75. (generators/tuamotu_canva.py ; l'ancien tuamotu.py n'est plus appelé)
+try:
+    from generators import tuamotu_canva
+    _ECO_IMG_GARDER_BLANC.add("tuamotu_canva")
+    _ECO_VALIDES_21_11.add("tuamotu_canva")
+    GRIS_PARTICULIERS.pop("tuamotu", None)
+    _enregistrer_paire("tuamotu", "TUAMOTU", "🏝️", 12, tuamotu_canva.generer_pdf)
+    for _ens in (_TEINTE_PNG, _TEINTE_VECT, _TEINTE_CASES_GRISES):
+        _ens.discard("tuamotu")
+    _TEINTE_CANVA.add("tuamotu")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[TUAMOTU] nouvelle maquette — 12 cartons par feuille")
+except Exception as _e_tua:
+    print("[TUAMOTU] nouvelle maquette non chargée :", repr(_e_tua))
