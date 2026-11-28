@@ -9584,3 +9584,130 @@ try:
     print("[TUAMOTU] nouvelle maquette — 12 cartons par feuille")
 except Exception as _e_tua:
     print("[TUAMOTU] nouvelle maquette non chargée :", repr(_e_tua))
+
+# 🐙 27/11 — TUBUAI · 6 boules (RANIHEI) nouvelle maquette Canva (« tubuai_canva_12_A4 ») : l'île, la
+#    pieuvre ORAVA et le requin TUAI, 6 ronds, 12 billets par feuille A4 paysage, chiffres Helvetica
+#    gras 30 pt. Règle inchangée (g 1-15 · 16-30 · 31-45 · d 46-60 · 61-75 · 76-90), crieur 1-90.
+#    (generators/tubuai_canva.py ; l'ancien tubuai.py n'est plus appelé)
+try:
+    from generators import tubuai_canva
+    _ECO_IMG_GARDER_BLANC.add("tubuai_canva")
+    _ECO_VALIDES_21_11.add("tubuai_canva")
+    GRIS_PARTICULIERS.pop("tubuai", None)
+    _enregistrer_paire("tubuai", "TUBUAI · 6 boules", "\U0001f419", 12, tubuai_canva.generer_pdf)
+    for _ens in (_TEINTE_PNG, _TEINTE_VECT, _TEINTE_CASES_GRISES):
+        _ens.discard("tubuai")
+    _TEINTE_CANVA.add("tubuai")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[TUBUAI] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_tub:
+    print("[TUBUAI] nouvelle maquette non chargée :", repr(_e_tub))
+
+# 💗 27/11 — UNITÉ · 5 boules (RANIHEI) nouvelle maquette Canva (« unite_canva_12_A4 ») : bouquet, mains,
+#    colombe, cinq cœurs en V, 12 billets par feuille A4 paysage, chiffres Helvetica gras 30 pt.
+#    Règle inchangée (hg 1-15 · hd 16-25 · mg 26-40 · md 41-60 · centre 61-75), crieur 1-75.
+#    (generators/unite_canva.py ; l'ancien unite.py n'est plus appelé)
+try:
+    from generators import unite_canva
+    _ECO_IMG_GARDER_BLANC.add("unite_canva")
+    _ECO_VALIDES_21_11.add("unite_canva")
+    GRIS_PARTICULIERS.pop("unite", None)
+    _enregistrer_paire("unite", "UNIT\u00c9", "\U0001f497", 12, unite_canva.generer_pdf)
+    for _ens in (_TEINTE_PNG, _TEINTE_VECT, _TEINTE_CASES_GRISES):
+        _ens.discard("unite")
+    _TEINTE_CANVA.add("unite")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[UNITE] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_uni:
+    print("[UNITE] nouvelle maquette non chargée :", repr(_e_uni))
+
+# 🤲 27/11 — HOANUI · 7 boules (RANIHEI) nouvelle maquette Canva (« hoanui_canva_12_A4 ») : mains, deux
+#    couronnes de fleurs, 2 ronds en haut et 5 en bas, 12 billets par feuille A4 paysage, chiffres
+#    Helvetica gras 30 pt. Règle inchangée (diag. droite 26-45 · diag. gauche 16-25 · bords 1-15 ·
+#    centre 46-90), crieur 1-90. (generators/hoanui_canva.py ; l'ancien hoanui.py n'est plus appelé)
+try:
+    from generators import hoanui_canva
+    _ECO_IMG_GARDER_BLANC.add("hoanui_canva")
+    _ECO_VALIDES_21_11.add("hoanui_canva")
+    GRIS_PARTICULIERS.pop("hoanui", None)
+    _enregistrer_paire("hoanui", "HOANUI", "\U0001f932", 12, hoanui_canva.generer_pdf)
+    for _ens in (_TEINTE_PNG, _TEINTE_VECT, _TEINTE_CASES_GRISES):
+        _ens.discard("hoanui")
+    _TEINTE_CANVA.add("hoanui")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[HOANUI] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_hoa:
+    print("[HOANUI] nouvelle maquette non chargée :", repr(_e_hoa))
+
+# 💎 27/11 — DIAMANT · 10 boules nouvelle maquette Canva (« diamant_canva_12_A4 ») : DIAMANT entre deux
+#    diamants, B I N G O, dix bagues, 12 billets par feuille A4 paysage, chiffres Helvetica 30 pt.
+#    Règle inchangée (deux par lettre, le petit en haut : B 1-15 · I 16-30 · N 31-45 · G 46-60 ·
+#    O 61-75), crieur 1-75. (generators/diamant_canva.py ; l'ancien diamant.py n'est plus appelé)
+try:
+    from generators import diamant_canva
+    _ECO_IMG_GARDER_BLANC.add("diamant_canva")
+    _ECO_VALIDES_21_11.add("diamant_canva")
+    GRIS_PARTICULIERS.pop("diamant", None)
+    _enregistrer_paire("diamant", "DIAMANT", "\U0001f48e", 12, diamant_canva.generer_pdf)
+    for _ens in (_TEINTE_PNG, _TEINTE_VECT, _TEINTE_CASES_GRISES):
+        _ens.discard("diamant")
+    _TEINTE_CANVA.add("diamant")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[DIAMANT] nouvelle maquette — 12 billets par feuille")
+except Exception as _e_dia:
+    print("[DIAMANT] nouvelle maquette non chargée :", repr(_e_dia))
+
+# 🎱 27/11 — BINGO BALL · 7 boules nouvelle maquette Canva (« bingo_ball_canva_12_A4 ») : boules et
+#    sphère de tirage, croix de 7 cases, 12 cartons par feuille A4 paysage, chiffres Helvetica 30 pt.
+#    Règle inchangée (B 1-15 · I 16-30 · 3 N 31-45 · G 46-60 · O 61-75), crieur 1-75.
+#    (generators/bingo_ball_canva.py ; l'ancien bingo_ball.py n'est plus appelé)
+try:
+    from generators import bingo_ball_canva
+    _ECO_IMG_GARDER_BLANC.add("bingo_ball_canva")
+    _ECO_VALIDES_21_11.add("bingo_ball_canva")
+    GRIS_PARTICULIERS.pop("bingo_ball", None)
+    _TEINTE_HAUT_SEUL.pop("bingo_ball", None)
+    _enregistrer_paire("bingo_ball", "Bingo Ball", "🎱", 12, bingo_ball_canva.generer_pdf)
+    for _ens in (_TEINTE_PNG, _TEINTE_VECT, _TEINTE_CASES_GRISES):
+        _ens.discard("bingo_ball")
+    _TEINTE_CANVA.add("bingo_ball")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[BINGO BALL] nouvelle maquette — 12 cartons par feuille")
+except Exception as _e_bb:
+    print("[BINGO BALL] nouvelle maquette non chargée :", repr(_e_bb))
+
+# 💎 27/11 — RUBIS 90 · 14 boules nouvelle maquette Canva (« rubis90_canva_12_A4 ») : rubis et diamant,
+#    bande R U B I S, 14 cases (centre de B vide), 12 cartons par feuille A4 paysage, chiffres Times
+#    30 pt. Règle inchangée (R 1-18 x3 · U 19-36 x3 · B 37-54 x2 · I 55-72 x3 · S 73-90 x3, triés),
+#    crieur 1-90. (generators/rubis90_canva.py ; l'ancien rubis90.py n'est plus appelé)
+try:
+    from generators import rubis90_canva
+    _ECO_IMG_GARDER_BLANC.add("rubis90_canva")
+    _ECO_VALIDES_21_11.add("rubis90_canva")
+    GRIS_PARTICULIERS.pop("rubis90", None)
+    _enregistrer_paire("rubis90", "RUBIS 90", "💎", 12, rubis90_canva.generer_pdf)
+    for _ens in (_TEINTE_PNG, _TEINTE_VECT, _TEINTE_CASES_GRISES):
+        _ens.discard("rubis90")
+    _TEINTE_CANVA.add("rubis90")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[RUBIS 90] nouvelle maquette — 12 cartons par feuille")
+except Exception as _e_r90:
+    print("[RUBIS 90] nouvelle maquette non chargée :", repr(_e_r90))
+
+# 💎 27/11 — RUBIS 75 · 14 boules nouvelle maquette Canva (« rubis75_canva_12_A4 ») : rubis et diamant,
+#    bande R U B I S, 14 cases (centre de B vide), 12 cartons par feuille A4 paysage, chiffres Times
+#    30 pt. Règle inchangée (R 1-15 x3 · U 16-30 x3 · B 31-45 x2 · I 46-60 x3 · S 61-75 x3, triés),
+#    crieur 1-75. (generators/rubis75_canva.py ; l'ancien rubis75.py n'est plus appelé)
+try:
+    from generators import rubis75_canva
+    _ECO_IMG_GARDER_BLANC.add("rubis75_canva")
+    _ECO_VALIDES_21_11.add("rubis75_canva")
+    GRIS_PARTICULIERS.pop("rubis75", None)
+    _enregistrer_paire("rubis75", "RUBIS 75 · 32 pts", "💎", 12, rubis75_canva.generer_pdf)
+    for _ens in (_TEINTE_PNG, _TEINTE_VECT, _TEINTE_CASES_GRISES):
+        _ens.discard("rubis75")
+    _TEINTE_CANVA.add("rubis75")
+    CARTES_PAR_FEUILLE.update({_j: _v["cartes_par_feuille"] for _j, _v in REGISTRE_JEUX.items()})
+    print("[RUBIS 75] nouvelle maquette — 12 cartons par feuille")
+except Exception as _e_r75:
+    print("[RUBIS 75] nouvelle maquette non chargée :", repr(_e_r75))
