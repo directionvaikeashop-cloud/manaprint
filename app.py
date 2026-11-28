@@ -1405,6 +1405,16 @@ def _generer_teinte(fn, kwargs, base_id):
         sauv = {}
         try:
             if base_id in _TEINTE_CANVA:
+                # 🎯 27/11 (espace partenaire) : « une seule couleur pour tout le lot »
+                #    -> les 6 teintes deviennent cette couleur-là, le temps de ce PDF.
+                _perso = str(kwargs.get("couleur_perso") or "").strip()
+                if len(_perso) == 7 and _perso.startswith("#"):
+                    try:
+                        int(_perso[1:], 16)
+                        sauv["__gamme6__"] = list(_GAMME_6)
+                        _GAMME_6[:] = [_perso.upper()] * 6
+                    except ValueError:
+                        pass
                 kwargs["couleur"] = False          # chiffres noirs ; le dessin prend la couleur
                 kwargs["couleur_perso"] = ""
                 _TEINTE_ETAT.actif, _TEINTE_ETAT.canva, _TEINTE_ETAT.n = True, True, 0
@@ -1436,7 +1446,10 @@ def _generer_teinte(fn, kwargs, base_id):
             _TEINTE_ETAT.haut = None
             _TEINTE_ETAT.bulles = None
             for k_, v_ in sauv.items():
-                g[k_] = v_
+                if k_ == "__gamme6__":
+                    _GAMME_6[:] = v_
+                else:
+                    g[k_] = v_
 
 
 def _variante(fn, couleur_force, style_force="eco", base_id=""):
@@ -1450,7 +1463,8 @@ def _variante(fn, couleur_force, style_force="eco", base_id=""):
         # 🎨 22/11 : couleur « dessin teinté » sur les jeux validés par Maeva
         if couleur_force and (base_id in _TEINTE_PNG or base_id in _TEINTE_VECT
                               or base_id in _TEINTE_CANVA) \
-                and not kwargs.get("couleur_perso") and _teinte_ouverte():
+                and (not kwargs.get("couleur_perso") or base_id in _TEINTE_CANVA) \
+                and _teinte_ouverte():
             return _generer_teinte(fn, kwargs, base_id)
         return fn(**kwargs)
     return _w
@@ -9703,7 +9717,7 @@ try:
     _ECO_IMG_GARDER_BLANC.add("rubis75_canva")
     _ECO_VALIDES_21_11.add("rubis75_canva")
     GRIS_PARTICULIERS.pop("rubis75", None)
-    _enregistrer_paire("rubis75", "RUBIS 75 · 32 pts", "💎", 12, rubis75_canva.generer_pdf)
+    _enregistrer_paire("rubis75", "RUBIS 75", "💎", 12, rubis75_canva.generer_pdf)
     for _ens in (_TEINTE_PNG, _TEINTE_VECT, _TEINTE_CASES_GRISES):
         _ens.discard("rubis75")
     _TEINTE_CANVA.add("rubis75")
